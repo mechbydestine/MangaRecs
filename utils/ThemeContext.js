@@ -1,31 +1,31 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+﻿import { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'inklore_theme';
+const STORAGE_KEY = 'panelr_theme';
 
 const darkColors = {
-  background: '#000000',
-  card: '#0F0F0F',
-  primary: '#534AB7',
-  muted: '#888892',
-  border: '#1C1C1E',
+  background: '#06080F',
+  card: '#0C0E18',
+  primary: '#0891B2',
+  muted: '#7A8099',
+  border: '#141828',
   accent: '#1D9E75',
   error: '#FF3B30',
   text: '#FFFFFF',
-  textSecondary: '#888892',
-  inputBg: '#080808',
+  textSecondary: '#7A8099',
+  inputBg: '#080B14',
 };
 
 const lightColors = {
   background: '#F5F5F7',
   card: '#FFFFFF',
-  primary: '#534AB7',
+  primary: '#0891B2',
   muted: '#6E6E78',
   border: '#E2E2E7',
   accent: '#1D9E75',
   error: '#FF3B30',
-  text: '#0D0D0F',
+  text: '#06080F',
   textSecondary: '#6E6E78',
   inputBg: '#EBEBF0',
 };

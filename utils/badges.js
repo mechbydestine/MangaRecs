@@ -12,15 +12,15 @@ export const BADGE_GRADES = {
 export const ALL_BADGES = [
 
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // GREY STARTER (15)   First steps. Welcome to Inklore.
+  // GREY STARTER (15)   First steps. Welcome to Panelr.
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  { id: 'first_page',       name: 'First Page',         icon: 'ðŸ“„', grade: 'grey', desc: 'Turned your very first page on Inklore',          requirement: { type: 'chapters',  value: 1   } },
+  { id: 'first_page',       name: 'First Page',         icon: 'ðŸ“„', grade: 'grey', desc: 'Turned your very first page on Panelr',          requirement: { type: 'chapters',  value: 1   } },
   { id: 'new_chapter',      name: 'New Chapter',         icon: 'ðŸ“–', grade: 'grey', desc: 'Started your first series',                       requirement: { type: 'series',    value: 1   } },
   { id: 'speak_up',         name: 'Speak Up',            icon: 'ðŸ’¬', grade: 'grey', desc: 'Left your first comment on anything',             requirement: { type: 'comments',  value: 1   } },
   { id: 'first_heart',      name: 'First Heart',         icon: 'â¤ï¸', grade: 'grey', desc: 'Liked something for the very first time',         requirement: { type: 'likes',     value: 1   } },
-  { id: 'not_alone',        name: 'Not Alone',           icon: 'ðŸ¤', grade: 'grey', desc: 'Added your first friend on Inklore',              requirement: { type: 'friends',   value: 1   } },
-  { id: 'face_of_inklore',  name: 'Face of Inklore',    icon: 'ðŸªž', grade: 'grey', desc: 'Set your profile picture',                        requirement: { type: 'profile',   value: 1   } },
+  { id: 'not_alone',        name: 'Not Alone',           icon: 'ðŸ¤', grade: 'grey', desc: 'Added your first friend on Panelr',              requirement: { type: 'friends',   value: 1   } },
+  { id: 'face_of_panelr',  name: 'Face of Panelr',    icon: 'ðŸªž', grade: 'grey', desc: 'Set your profile picture',                        requirement: { type: 'profile',   value: 1   } },
   { id: 'getting_hooked',   name: 'Getting Hooked',      icon: 'ðŸª', grade: 'grey', desc: 'Read ten chapters  you can\'t stop now',         requirement: { type: 'chapters',  value: 10  } },
   { id: 'first_hour',       name: 'First Hour',          icon: 'â±ï¸', grade: 'grey', desc: 'Spent your first hour in the panels',             requirement: { type: 'hours',     value: 1   } },
   { id: 'day_one',          name: 'Day One',             icon: 'ðŸ“…', grade: 'grey', desc: 'Today was day one it starts here',              requirement: { type: 'streak',    value: 1   } },
@@ -64,7 +64,7 @@ export const ALL_BADGES = [
   // Social Likes
   { id: 'appreciator',       name: 'Appreciator',          icon: 'ðŸ‘', grade: 'green', desc: 'Liked ten things that moved you',                     requirement: { type: 'likes',     value: 10  } },
   { id: 'spreading_love',    name: 'Spreading Love',       icon: 'ðŸ’“', grade: 'green', desc: 'Twenty-five things you wanted to appreciate',         requirement: { type: 'likes',     value: 25  } },
-  { id: 'fifty_hearts',      name: 'Fifty Hearts',         icon: 'â¤ï¸', grade: 'green', desc: 'Fifty moments across Inklore that hit different',     requirement: { type: 'likes',     value: 50  } },
+  { id: 'fifty_hearts',      name: 'Fifty Hearts',         icon: 'â¤ï¸', grade: 'green', desc: 'Fifty moments across Panelr that hit different',     requirement: { type: 'likes',     value: 50  } },
   { id: 'seventy_five_hearts',name: 'Seventy-Five Hearts', icon: 'ðŸ’,', grade: 'green', desc: 'Seventy-five likes the warmth is real',             requirement: { type: 'likes',     value: 75  } },
 
   // Social Friends
@@ -165,7 +165,7 @@ export const ALL_BADGES = [
   { id: 'love_machine',      name: 'Love Machine',         icon: 'ðŸ’', grade: 'blue', desc: 'One hundred likes given your love is famous',         requirement: { type: 'likes',     value: 100  } },
   { id: 'two_hundred_hearts',name: 'Two Hundred Hearts',   icon: 'ðŸ’–', grade: 'blue', desc: 'Two hundred moments that moved you',                   requirement: { type: 'likes',     value: 200  } },
   { id: 'two_fifty_hearts',  name: 'Two-Fifty Hearts',     icon: 'ðŸ’,', grade: 'blue', desc: 'Two fifty appreciations and counting',                 requirement: { type: 'likes',     value: 250  } },
-  { id: 'three_hundred_hrt', name: 'Three Hundred',        icon: 'ðŸ’•', grade: 'blue', desc: 'Three hundred hearts given out on Inklore',            requirement: { type: 'likes',     value: 300  } },
+  { id: 'three_hundred_hrt', name: 'Three Hundred',        icon: 'ðŸ’•', grade: 'blue', desc: 'Three hundred hearts given out on Panelr',            requirement: { type: 'likes',     value: 300  } },
 
   // Night, Genre, Shares
   { id: 'midnight_regular',  name: 'Midnight Regular',     icon: 'ðŸŒƒ', grade: 'blue', desc: 'Fifteen nights past midnight you belong here',       requirement: { type: 'midnight',  value: 15   } },
@@ -223,14 +223,14 @@ export const ALL_BADGES = [
   // Friends & Comments
   { id: 'connector',         name: 'Connector',            icon: 'ðŸ”,', grade: 'indigo', desc: 'Twenty-five friends you connect people together',   requirement: { type: 'friends',   value: 25   } },
   { id: 'thirty_strong',     name: 'Thirty Strong',        icon: 'ðŸ¤', grade: 'indigo', desc: 'Thirty people in your reading network',               requirement: { type: 'friends',   value: 30   } },
-  { id: 'thirty_five_frnd',  name: 'Thirty-Five Friends',  icon: 'ðŸ”,', grade: 'indigo', desc: 'Thirty-five friends across Inklore',                  requirement: { type: 'friends',   value: 35   } },
+  { id: 'thirty_five_frnd',  name: 'Thirty-Five Friends',  icon: 'ðŸ”,', grade: 'indigo', desc: 'Thirty-five friends across Panelr',                  requirement: { type: 'friends',   value: 35   } },
   { id: 'voice_carries',     name: 'Voice Carries',        icon: 'ðŸ“£', grade: 'indigo', desc: 'One fifty comments your voice carries far',         requirement: { type: 'comments',  value: 150  } },
-  { id: 'voice_of_inklore',  name: 'Voice of Inklore',     icon: 'ðŸ“¢', grade: 'indigo', desc: 'Two hundred comments you speak for the community',  requirement: { type: 'comments',  value: 200  } },
+  { id: 'voice_of_panelr',  name: 'Voice of Panelr',     icon: 'ðŸ“¢', grade: 'indigo', desc: 'Two hundred comments you speak for the community',  requirement: { type: 'comments',  value: 200  } },
   { id: 'two_fifty_voices',  name: 'Two-Fifty Voices',     icon: 'ðŸ,£ï¸', grade: 'indigo', desc: 'Two fifty comments left across the platform',         requirement: { type: 'comments',  value: 250  } },
   { id: 'three_fifty_voice', name: 'Three-Fifty Voices',   icon: 'ðŸ“¢', grade: 'indigo', desc: 'Three fifty comments relentlessly vocal',           requirement: { type: 'comments',  value: 350  } },
 
   // Likes & Night
-  { id: 'four_hundred_hrt',  name: 'Four Hundred Hearts',  icon: 'ðŸ’•', grade: 'indigo', desc: 'Four hundred appreciations given on Inklore',         requirement: { type: 'likes',     value: 400  } },
+  { id: 'four_hundred_hrt',  name: 'Four Hundred Hearts',  icon: 'ðŸ’•', grade: 'indigo', desc: 'Four hundred appreciations given on Panelr',         requirement: { type: 'likes',     value: 400  } },
   { id: 'the_appreciator',   name: 'The Appreciator',      icon: 'ðŸ’Ž', grade: 'indigo', desc: 'Five hundred likes you are the appreciation engine', requirement: { type: 'likes',    value: 500  } },
   { id: 'six_hundred_hrt',   name: 'Six Hundred Hearts',   icon: 'ðŸ’', grade: 'indigo', desc: 'Six hundred moments you chose to celebrate',          requirement: { type: 'likes',     value: 600  } },
   { id: 'night_regular',     name: 'Night Regular',        icon: 'ðŸŒŒ', grade: 'indigo', desc: 'Fifty nights past midnight it\'s a lifestyle now',  requirement: { type: 'midnight',  value: 50   } },
@@ -354,8 +354,8 @@ export const ALL_BADGES = [
   { id: 'eternal_night',     name: 'Eternal Night',        icon: 'ðŸŒ‘', grade: 'gold', desc: 'Three sixty-five nights past midnight the eternal shift', requirement: { type: 'midnight', value: 365  } },
 
   // Account / Veteran
-  { id: 'veteran_1yr',       name: '1 Year Veteran',       icon: 'ðŸŽ‚', grade: 'gold', desc: 'Been on Inklore for one full year',                      requirement: { type: 'account',   value: 365   } },
-  { id: 'veteran_2yr',       name: '2 Year Legend',        icon: 'ðŸŽ', grade: 'gold', desc: 'Two years on Inklore a legend in longevity',           requirement: { type: 'account',   value: 730   } },
+  { id: 'veteran_1yr',       name: '1 Year Veteran',       icon: 'ðŸŽ‚', grade: 'gold', desc: 'Been on Panelr for one full year',                      requirement: { type: 'account',   value: 365   } },
+  { id: 'veteran_2yr',       name: '2 Year Legend',        icon: 'ðŸŽ', grade: 'gold', desc: 'Two years on Panelr a legend in longevity',           requirement: { type: 'account',   value: 730   } },
   { id: 'veteran_3yr',       name: '3 Year Deity',         icon: 'ðŸŽ‡', grade: 'gold', desc: 'Three years you were here before it was cool',         requirement: { type: 'account',   value: 1095  } },
 
   // Shares & Series
@@ -363,7 +363,7 @@ export const ALL_BADGES = [
   { id: 'epic_library',      name: 'Epic Library',         icon: 'ðŸ,¼', grade: 'gold', desc: 'Following one hundred series simultaneously',            requirement: { type: 'series',    value: 100   } },
 
   // Event & Social Legends (hidden)
-  { id: 'founding_member',   name: 'Founding Member',      icon: 'ðŸ›ï¸', grade: 'gold', desc: 'Joined Inklore in the very first month of launch',       requirement: { type: 'special',   value: 1     }, hidden: true },
+  { id: 'founding_member',   name: 'Founding Member',      icon: 'ðŸ›ï¸', grade: 'gold', desc: 'Joined Panelr in the very first month of launch',       requirement: { type: 'special',   value: 1     }, hidden: true },
   { id: 'trusted_recomm',    name: 'Trusted Recommender',  icon: 'ðŸ…', grade: 'gold', desc: 'Five friends started a manga because of your recommendation', requirement: { type: 'special', value: 1  }, hidden: true },
   { id: 'taste_maker',       name: 'Taste Maker',          icon: 'ðŸ‘‘', grade: 'gold', desc: 'Ten users bookmarked something from your profile',       requirement: { type: 'special',   value: 1     }, hidden: true },
   { id: 'community_fav',     name: 'Community Favorite',   icon: 'ðŸ’«', grade: 'gold', desc: 'Received 250 profile likes from the community',          requirement: { type: 'special',   value: 1     }, hidden: true },
@@ -386,8 +386,8 @@ export const ALL_BADGES = [
   { id: 'mythic_grand_curator', name: 'The Grand Curator',     icon: 'ðŸ“š', grade: 'mythic', desc: 'Following 500 different series simultaneously',                   requirement: { type: 'series',    value: 500   }, hidden: true },
   { id: 'mythic_supreme_spr',   name: 'The Spreader Supreme',  icon: 'ðŸŒ', grade: 'mythic', desc: 'Shared 5, 000 series you single-handedly built the community',   requirement: { type: 'shares',    value: 5000  }, hidden: true },
   { id: 'mythic_oracle',        name: 'The Oracle',            icon: 'ðŸ”®', grade: 'mythic', desc: 'Rated 1, 000 different series your word is law',                 requirement: { type: 'ratings',   value: 1000  }, hidden: true },
-  { id: 'mythic_decade',        name: 'A Decade on Inklore',   icon: 'ðŸª', grade: 'mythic', desc: 'A member for 10 full years here before it was anything',        requirement: { type: 'account',   value: 3650  }, hidden: true },
-  { id: 'mythic_incarnate',     name: 'Inklore Incarnate',     icon: 'âœ´ï¸', grade: 'mythic', desc: 'Earned every other badge the true and only final achievement',  requirement: { type: 'special',   value: 1     }, hidden: true },
+  { id: 'mythic_decade',        name: 'A Decade on Panelr',   icon: 'ðŸª', grade: 'mythic', desc: 'A member for 10 full years here before it was anything',        requirement: { type: 'account',   value: 3650  }, hidden: true },
+  { id: 'mythic_incarnate',     name: 'Panelr Incarnate',     icon: 'âœ´ï¸', grade: 'mythic', desc: 'Earned every other badge the true and only final achievement',  requirement: { type: 'special',   value: 1     }, hidden: true },
 ];
 
 // â”€â”€ Dynamic badge engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -436,7 +436,7 @@ export function computeEarnedBadgeIds(stats = {}) {
   if (has_comment || comments_count >= 1) earned.add('speak_up');
   if (has_like    || likes_given    >= 1) earned.add('first_heart');
   if (has_friend  || friends_count  >= 1) earned.add('not_alone');
-  if (has_avatar)                         earned.add('face_of_inklore');
+  if (has_avatar)                         earned.add('face_of_panelr');
   if (series_count   >= 2 || chapters_read >= 30) earned.add('more_please');
   if (genres_count   >= 1 || chapters_read >= 1)  earned.add('curious');
 
@@ -465,7 +465,7 @@ export function computeEarnedBadgeIds(stats = {}) {
 
 export const EARNED_BADGE_IDS = new Set([
   'first_page', 'new_chapter', 'speak_up', 'first_heart', 'not_alone',
-  'face_of_inklore', 'getting_hooked', 'first_hour', 'day_one', 'curious',
+  'face_of_panelr', 'getting_hooked', 'first_hour', 'day_one', 'curious',
   'first_word', 'spread_the_word', 'your_verdict', 'more_please',
   'page_turner', 'deep_diver', 'bookworm', 'story_addict',
   'regular_reader', 'time_well_spent', 'dedicated', 'deep_session',

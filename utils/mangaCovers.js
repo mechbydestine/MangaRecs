@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { View, Image, StyleSheet, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { searchMangaDex } from './mangaDexApi';
 
-export const NSFW_KEY   = '@inklore/allowNsfw';
-export const AI_REC_KEY = '@inklore/aiRecommendations';
+export const NSFW_KEY   = '@panelr/allowNsfw';
+export const AI_REC_KEY = '@panelr/aiRecommendations';
 
 // In-memory cache: key → result object, null (known failure), or undefined (never fetched)
 const _cache = {};
@@ -52,7 +52,7 @@ export function clearAllCoversCache() {
 // ── Persistent cover URL store ─────────────────────────────────────────────
 // Survives app restarts so covers never need re-fetching after the first session.
 
-const COVER_URL_STORE_KEY = '@inklore/cover_urls_v3';
+const COVER_URL_STORE_KEY = '@panelr/cover_urls_v3';
 
 export async function hydrateCoverCache() {
   try {
@@ -312,7 +312,7 @@ export function getCachedCoverUrl(title, lang) {
   );
 }
 
-export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', style, children }) {
+export function MangaCover({ title, searchKey, lang, color = '#0C1220', style, children }) {
   const lookupTitle = searchKey || title;
   const [coverUrl, setCoverUrl] = useState(() => getCachedCoverUrl(lookupTitle, lang));
 

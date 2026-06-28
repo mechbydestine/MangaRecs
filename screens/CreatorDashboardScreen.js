@@ -1,4 +1,4 @@
-import {
+﻿import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Modal, TextInput, ActivityIndicator, Image, Alert,
 } from 'react-native';
@@ -14,7 +14,7 @@ import PickerSheet from '../components/PickerSheet';
 import { GENRE_PICKER_OPTIONS as GENRES } from '../utils/genres';
 
 const STAT_META = [
-  { icon: 'book',   label: 'Series Published', color: '#534AB7', key: 'count' },
+  { icon: 'book',   label: 'Series Published', color: '#0891B2', key: 'count' },
   { icon: 'eye',    label: 'Total Reads',       color: '#1D9E75', key: 'views' },
   { icon: 'people', label: 'Followers',         color: '#EF9F27', key: 'followers' },
 ];
@@ -42,7 +42,7 @@ function MiniBarChart({ data, labels }) {
     <View style={styles.chartWrap}>
       {data.map((val, i) => (
         <View key={i} style={styles.barCol}>
-          <View style={[styles.bar, { height: (val / max) * 64, backgroundColor: i === data.length - 1 ? '#534AB7' : 'rgba(83,74,183,0.35)' }]} />
+          <View style={[styles.bar, { height: (val / max) * 64, backgroundColor: i === data.length - 1 ? '#0891B2' : 'rgba(8,145,178,0.35)' }]} />
           <Text style={styles.barLabel}>{labels[i]}</Text>
         </View>
       ))}
@@ -292,8 +292,8 @@ export default function CreatorDashboardScreen() {
       <MobileHeader
         title="Creator Dashboard"
         right={
-          <View style={[styles.proBadge, { borderColor: 'rgba(83,74,183,0.3)' }]}>
-            <Ionicons name="diamond" size={11} color="#534AB7" />
+          <View style={[styles.proBadge, { borderColor: 'rgba(8,145,178,0.3)' }]}>
+            <Ionicons name="diamond" size={11} color="#0891B2" />
             <Text style={styles.proBadgeText}>Creator</Text>
           </View>
         }
@@ -386,7 +386,7 @@ export default function CreatorDashboardScreen() {
                 </View>
                 <View style={[styles.seriesActions, { borderTopColor: colors.border }]}>
                   <TouchableOpacity style={styles.seriesActionBtn} onPress={() => openAddChapter(s)}>
-                    <Ionicons name="add-circle-outline" size={14} color="#534AB7" />
+                    <Ionicons name="add-circle-outline" size={14} color="#0891B2" />
                     <Text style={styles.seriesActionText}>Add Chapter</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -422,7 +422,7 @@ export default function CreatorDashboardScreen() {
               [{ text: 'Got it' }]
             )}>
             <View style={styles.monetizationIcon}>
-              <Ionicons name="diamond" size={20} color="#534AB7" />
+              <Ionicons name="diamond" size={20} color="#0891B2" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.monetizationTitle, { color: colors.text }]}>Enable Monetization</Text>
@@ -549,7 +549,7 @@ export default function CreatorDashboardScreen() {
                   style={[styles.pagePickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
                   onPress={pickPages}
                   activeOpacity={0.8}>
-                  <Ionicons name="images-outline" size={20} color="#534AB7" />
+                  <Ionicons name="images-outline" size={20} color="#0891B2" />
                   <Text style={styles.pagePickerText}>
                     {chapterPages.length === 0 ? 'Select pages (images)' : `${chapterPages.length} pages selected — add more`}
                   </Text>
@@ -618,16 +618,16 @@ export default function CreatorDashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  proBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.15)', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  proBadgeText: { color: '#534AB7', fontSize: 11, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  proBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.15)', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  proBadgeText: { color: '#0891B2', fontSize: 11, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
 
   statsRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 20 },
   statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', marginHorizontal: 4, borderWidth: 1 },
   statValue: { fontSize: 18, fontWeight: 'bold', marginTop: 6, marginBottom: 2 },
   statLabel: { fontSize: 9, textAlign: 'center' },
 
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, borderWidth: 1, borderColor: 'rgba(83,74,183,0.4)', borderRadius: 16, padding: 16, marginBottom: 24 },
-  uploadIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, borderWidth: 1, borderColor: 'rgba(8,145,178,0.4)', borderRadius: 16, padding: 16, marginBottom: 24 },
+  uploadIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#0891B2', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   uploadTitle: { fontSize: 14, fontWeight: '600' },
   uploadSub: { fontSize: 11, marginTop: 2 },
 
@@ -656,10 +656,10 @@ const styles = StyleSheet.create({
   seriesMetaText: { fontSize: 10, marginLeft: 4 },
   seriesActions: { flexDirection: 'row', borderTopWidth: 1, paddingTop: 10 },
   seriesActionBtn: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
-  seriesActionText: { color: '#534AB7', fontSize: 12, fontWeight: '500', marginLeft: 4 },
+  seriesActionText: { color: '#0891B2', fontSize: 12, fontWeight: '500', marginLeft: 4 },
 
-  monetizationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.06)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.25)', borderRadius: 16, padding: 16 },
-  monetizationIcon: { backgroundColor: 'rgba(83,74,183,0.15)', borderRadius: 20, padding: 10, marginRight: 14 },
+  monetizationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.06)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.25)', borderRadius: 16, padding: 16 },
+  monetizationIcon: { backgroundColor: 'rgba(8,145,178,0.15)', borderRadius: 20, padding: 10, marginRight: 14 },
   monetizationTitle: { fontSize: 14, fontWeight: '600' },
   monetizationSub: { fontSize: 11, marginTop: 3 },
 
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   fieldWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, marginBottom: 12 },
   input: { flex: 1, paddingVertical: 14, fontSize: 14 },
 
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#534AB7', borderRadius: 12, padding: 16, gap: 8 },
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0891B2', borderRadius: 12, padding: 16, gap: 8 },
   submitBtnDisabled: { opacity: 0.45 },
   submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 
@@ -684,16 +684,16 @@ const styles = StyleSheet.create({
 
   // Chapter page picker
   pagePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, padding: 16, marginBottom: 14 },
-  pagePickerText: { color: '#534AB7', fontSize: 13, fontWeight: '600', flex: 1 },
+  pagePickerText: { color: '#0891B2', fontSize: 13, fontWeight: '600', flex: 1 },
 
   thumbRow: { flexDirection: 'row', paddingBottom: 4 },
   thumbWrap: { width: 72, height: 96, borderRadius: 8, overflow: 'visible', marginRight: 10, position: 'relative' },
-  thumb: { width: 72, height: 96, borderRadius: 8, backgroundColor: '#1A1A1F' },
+  thumb: { width: 72, height: 96, borderRadius: 8, backgroundColor: '#0C1220' },
   thumbLabel: { position: 'absolute', bottom: 4, left: 6, color: '#fff', fontSize: 10, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   thumbRemove: { position: 'absolute', top: -6, right: -6 },
 
   progressWrap: { marginBottom: 14 },
   progressBar: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
-  progressFill: { height: '100%', borderRadius: 3, backgroundColor: '#534AB7' },
+  progressFill: { height: '100%', borderRadius: 3, backgroundColor: '#0891B2' },
   progressText: { fontSize: 12, textAlign: 'center' },
 });

@@ -1,4 +1,4 @@
-import {
+﻿import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Linking, ActivityIndicator,
 } from 'react-native';
@@ -32,7 +32,7 @@ const GUIDELINES = [
   {
     emoji: '🔗',
     title: 'Your URLs, your responsibility',
-    desc: 'You are solely responsible for any links you share. Inklore is not liable for third-party content.',
+    desc: 'You are solely responsible for any links you share. Panelr is not liable for third-party content.',
   },
   {
     emoji: '🤝',
@@ -52,7 +52,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
   async function handleAgree() {
     setLoading(true);
     try {
-      await AsyncStorage.setItem('@inklore/guidelines_accepted', 'true');
+      await AsyncStorage.setItem('@panelr/guidelines_accepted', 'true');
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
         await supabase.from('profiles').upsert({
@@ -85,14 +85,14 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
           <View style={styles.logo}>
             <Ionicons name="book" size={28} color="#fff" />
           </View>
-          <Text style={styles.logoText}>Inklore</Text>
+          <Text style={styles.logoText}>Panelr</Text>
         </View>
 
         <Text style={styles.title}>Community Guidelines</Text>
         <Text style={styles.subtitle}>
           {isInfoMode
-            ? 'Our community standards keep Inklore a great place for every reader.'
-            : 'Before you enter, please read and agree to our community standards. These rules keep Inklore a great place for every reader.'}
+            ? 'Our community standards keep Panelr a great place for every reader.'
+            : 'Before you enter, please read and agree to our community standards. These rules keep Panelr a great place for every reader.'}
         </Text>
 
         {GUIDELINES.map((g) => (
@@ -106,11 +106,11 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
         ))}
 
         <View style={styles.linksRow}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://inklore.app/privacy')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://panelr.app/privacy')}>
             <Text style={styles.linkText}>Privacy Policy</Text>
           </TouchableOpacity>
           <Text style={styles.linkSep}>·</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://inklore.app/terms')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://panelr.app/terms')}>
             <Text style={styles.linkText}>Terms of Service</Text>
           </TouchableOpacity>
         </View>
@@ -136,7 +136,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0D0D0F' },
+  root: { flex: 1, backgroundColor: '#06080F' },
   scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
 
   topBar: {
@@ -147,14 +147,14 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#1A1A1F',
+    backgroundColor: '#0C1220',
     alignItems: 'center', justifyContent: 'center',
   },
 
   logoWrap: { alignItems: 'center', marginBottom: 32 },
   logo: {
     width: 60, height: 60, borderRadius: 20,
-    backgroundColor: '#534AB7',
+    backgroundColor: '#0891B2',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   logoText: { color: '#fff', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
@@ -162,23 +162,23 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
   subtitle: { color: '#9B9AA3', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
 
-  card: { flexDirection: 'row', backgroundColor: '#1A1A1F', borderRadius: 14, padding: 16, marginBottom: 10 },
+  card: { flexDirection: 'row', backgroundColor: '#0C1220', borderRadius: 14, padding: 16, marginBottom: 10 },
   cardEmoji: { fontSize: 22, marginRight: 14, marginTop: 1 },
   cardBody: { flex: 1 },
   cardTitle: { color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 4 },
   cardDesc: { color: '#9B9AA3', fontSize: 12, lineHeight: 18 },
 
   linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
-  linkText: { color: '#534AB7', fontSize: 12, fontWeight: '500' },
+  linkText: { color: '#0891B2', fontSize: 12, fontWeight: '500' },
   linkSep: { color: '#9B9AA3', marginHorizontal: 10, fontSize: 12 },
 
   bottomBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#0D0D0F',
-    borderTopWidth: 1, borderTopColor: '#1A1A1F',
+    backgroundColor: '#06080F',
+    borderTopWidth: 1, borderTopColor: '#0C1220',
     paddingTop: 16, paddingHorizontal: 24,
   },
-  agreeBtn: { backgroundColor: '#534AB7', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  agreeBtn: { backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   agreeBtnLoading: { opacity: 0.7 },
   agreeBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

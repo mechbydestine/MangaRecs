@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+﻿import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
@@ -29,7 +29,7 @@ export default function MobileHeader({ title, right, leftContent, noBorder = fal
             <View style={styles.logoMark}>
               <Ionicons name="book" size={13} color="#fff" />
             </View>
-            <Text style={[styles.logoText, { color: colors.text }]}>Inklore</Text>
+            <Text style={[styles.logoText, { color: colors.text }]}>Panelr</Text>
           </View>
         )}
       </View>
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: '#534AB7',
+    backgroundColor: '#0891B2',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE = 'https://api.mangadex.org';
 const TIMEOUT = 5000;
@@ -208,8 +208,8 @@ function normalizeManga(manga) {
   };
 }
 
-const POPULAR_CACHE_KEY = '@inklore/mdex_popular_v2';
-const RECENT_CACHE_KEY  = '@inklore/mdex_recent_v2';
+const POPULAR_CACHE_KEY = '@panelr/mdex_popular_v2';
+const RECENT_CACHE_KEY  = '@panelr/mdex_recent_v2';
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
 async function readCache(key) {

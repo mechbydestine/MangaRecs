@@ -1,4 +1,4 @@
-import {
+﻿import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Modal,
   ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator,
 } from 'react-native';
@@ -18,7 +18,7 @@ import { MANGA_POOL } from '../utils/mangaPool';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
 const TABS = ['Reading', 'Completed', 'Bookmarked', 'Downloaded'];
-const UPDATE_CACHE_KEY = '@inklore/updates_cache';
+const UPDATE_CACHE_KEY = '@panelr/updates_cache';
 const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
 
 
@@ -95,7 +95,7 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, has
           </View>
         </MangaCover>
 
-        <Text style={[styles.itemTitle, { color: opening ? '#534AB7' : colors.text }]} numberOfLines={1}>
+        <Text style={[styles.itemTitle, { color: opening ? '#0891B2' : colors.text }]} numberOfLines={1}>
           {opening ? 'Opening…' : series.title}
         </Text>
         <View style={styles.itemMeta}>
@@ -183,7 +183,7 @@ export default function LibraryScreen() {
         const uid = session?.user?.id;
 
         // Load local bookmarks first, then merge with Supabase (avoids race condition)
-        AsyncStorage.getItem('@inklore_saved').then((val) => {
+        AsyncStorage.getItem('@panelr_saved').then((val) => {
           let localItems = [];
           try { localItems = val ? JSON.parse(val) : []; } catch (_) {}
 
@@ -225,7 +225,7 @@ export default function LibraryScreen() {
 
   function openSearch() {
     setSearchOpen(true);
-    AsyncStorage.getItem('@inklore_search_history').then((val) => {
+    AsyncStorage.getItem('@panelr_search_history').then((val) => {
       try { if (val) setRecentSearches(JSON.parse(val)); } catch (_) {}
     });
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -241,7 +241,7 @@ export default function LibraryScreen() {
     if (!q.trim()) return;
     const updated = [q, ...recentSearches.filter((r) => r !== q)].slice(0, 5);
     setRecentSearches(updated);
-    AsyncStorage.setItem('@inklore_search_history', JSON.stringify(updated)).catch(() => {});
+    AsyncStorage.setItem('@panelr_search_history', JSON.stringify(updated)).catch(() => {});
     closeSearch();
     navigation.navigate('Reader', { searchQuery: q.trim(), title: q.trim(), chapters: 999 });
   }
@@ -249,7 +249,7 @@ export default function LibraryScreen() {
   function removeRecent(term) {
     const updated = recentSearches.filter((r) => r !== term);
     setRecentSearches(updated);
-    AsyncStorage.setItem('@inklore_search_history', JSON.stringify(updated)).catch(() => {});
+    AsyncStorage.setItem('@panelr_search_history', JSON.stringify(updated)).catch(() => {});
   }
 
   // Live pool search — filters MANGA_POOL as the user types
@@ -266,7 +266,7 @@ export default function LibraryScreen() {
   function openFromSearch(item) {
     const updated = [item.title, ...recentSearches.filter((r) => r !== item.title)].slice(0, 5);
     setRecentSearches(updated);
-    AsyncStorage.setItem('@inklore_search_history', JSON.stringify(updated)).catch(() => {});
+    AsyncStorage.setItem('@panelr_search_history', JSON.stringify(updated)).catch(() => {});
     closeSearch();
     saveLastRead({
       title: item.title,
@@ -306,7 +306,7 @@ export default function LibraryScreen() {
     };
   })();
 
-  const INVALID_HIST_TITLE = /^(reader|browser|inklore|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak)$/i;
+  const INVALID_HIST_TITLE = /^(reader|browser|panelr|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak)$/i;
 
   const baseReadingSeries = staticPool
     .filter((s) => s.progress < 1 && !deletedIds.has(s.id) && !completedIds.has(s.id))
@@ -518,7 +518,7 @@ export default function LibraryScreen() {
           continue;
         }
 
-        const resumeKey = '@inklore/resume/' + encodeURIComponent(cacheKey);
+        const resumeKey = '@panelr/resume/' + encodeURIComponent(cacheKey);
         const resumeRaw = await AsyncStorage.getItem(resumeKey).catch(() => null);
         if (!resumeRaw) { cache[cacheKey] = { ts: now, hasUpdate: false }; continue; }
 
@@ -549,7 +549,7 @@ export default function LibraryScreen() {
     if (series?.savedFromFeed || series?.id?.startsWith?.('sb-')) {
       const updated = savedItems.filter((s) => s.id !== series.id);
       setSavedItems(updated);
-      await AsyncStorage.setItem('@inklore_saved', JSON.stringify(updated.filter((s) => !s.id?.startsWith?.('sb-')))).catch(() => {});
+      await AsyncStorage.setItem('@panelr_saved', JSON.stringify(updated.filter((s) => !s.id?.startsWith?.('sb-')))).catch(() => {});
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
         supabase.from('reading_progress').delete()
@@ -572,12 +572,12 @@ export default function LibraryScreen() {
       // Remove from local reading history so hist-* items don't come back on focus
       if (series.id.startsWith('hist-')) {
         try {
-          const raw = await AsyncStorage.getItem('@inklore_reading_history');
+          const raw = await AsyncStorage.getItem('@panelr_reading_history');
           if (raw) {
             const hist = JSON.parse(raw);
             delete hist[series.searchKey];
             if (series.title) delete hist[series.title];
-            await AsyncStorage.setItem('@inklore_reading_history', JSON.stringify(hist));
+            await AsyncStorage.setItem('@panelr_reading_history', JSON.stringify(hist));
             setHistoryItems((prev) => prev.filter((h) => h.searchKey !== series.searchKey && h.title !== series.title));
           }
         } catch (_) {}
@@ -598,7 +598,7 @@ export default function LibraryScreen() {
     };
     const updated = [newItem, ...savedItems];
     setSavedItems(updated);
-    await AsyncStorage.setItem('@inklore_saved', JSON.stringify(updated)).catch(() => {});
+    await AsyncStorage.setItem('@panelr_saved', JSON.stringify(updated)).catch(() => {});
     // Persist bookmark to Supabase (won't overwrite existing reading/completed progress)
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
@@ -681,7 +681,7 @@ export default function LibraryScreen() {
         .then(({ data }) => {
           if (data) {
             setProgressRows(data.filter((r) => r.status !== 'bookmarked'));
-            AsyncStorage.getItem('@inklore_saved').then((val) => {
+            AsyncStorage.getItem('@panelr_saved').then((val) => {
               let localItems = [];
               try { localItems = val ? JSON.parse(val) : []; } catch (_) {}
               const localTitles = new Set(localItems.map((s) => s.title));
@@ -724,7 +724,7 @@ export default function LibraryScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#534AB7" colors={['#534AB7']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0891B2" colors={['#0891B2']} />}>
 
         <View style={styles.headerRow}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Library</Text>
@@ -781,7 +781,7 @@ export default function LibraryScreen() {
                 })()}
               </View>
               <View style={styles.continuePlayBtn}>
-                <Ionicons name="play" size={16} color="#534AB7" />
+                <Ionicons name="play" size={16} color="#0891B2" />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -825,7 +825,7 @@ export default function LibraryScreen() {
         {filtered.length === 0 && activeTab !== 'Bookmarked' && activeTab !== 'Downloaded' && (
           libLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator color="#534AB7" size="large" />
+              <ActivityIndicator color="#0891B2" size="large" />
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -907,7 +907,7 @@ export default function LibraryScreen() {
                         style={styles.searchResultRow}
                         onPress={() => openFromSearch(item)}
                         activeOpacity={0.7}>
-                        <View style={[styles.searchResultDot, { backgroundColor: item.color || '#534AB7' }]} />
+                        <View style={[styles.searchResultDot, { backgroundColor: item.color || '#0891B2' }]} />
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.searchResultTitle, { color: colors.text }]}>{item.title}</Text>
                           {item.genres?.length > 0 && (
@@ -984,16 +984,16 @@ const styles = StyleSheet.create({
   streakText: { color: '#FF9500', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(155,154,163,0.08)', borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 11, marginHorizontal: 20, marginBottom: 16 },
   searchPlaceholder: { fontSize: 13, marginLeft: 10 },
-  continueCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.15)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.2)', borderRadius: 16, padding: 12, marginHorizontal: 20, marginBottom: 16 },
+  continueCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.15)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.2)', borderRadius: 16, padding: 12, marginHorizontal: 20, marginBottom: 16 },
   continueCover: { width: 48, height: 66, borderRadius: 10, marginRight: 12 },
-  continueCoverPlay: { position: 'absolute', bottom: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(83,74,183,0.88)', alignItems: 'center', justifyContent: 'center' },
+  continueCoverPlay: { position: 'absolute', bottom: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(8,145,178,0.88)', alignItems: 'center', justifyContent: 'center' },
   continueInfo: { flex: 1 },
-  continueLabel: { color: '#534AB7', fontSize: 11, fontWeight: '500' },
+  continueLabel: { color: '#0891B2', fontSize: 11, fontWeight: '500' },
   continueTitle: { fontSize: 14, fontWeight: '600', marginTop: 1 },
   continueChapter: { fontSize: 11, marginTop: 1 },
-  continuePlayBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(83,74,183,0.2)', alignItems: 'center', justifyContent: 'center' },
-  continueProgressBar: { height: 3, backgroundColor: 'rgba(83,74,183,0.18)', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
-  continueProgressFill: { height: 3, backgroundColor: '#534AB7', borderRadius: 2 },
+  continuePlayBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(8,145,178,0.2)', alignItems: 'center', justifyContent: 'center' },
+  continueProgressBar: { height: 3, backgroundColor: 'rgba(8,145,178,0.18)', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  continueProgressFill: { height: 3, backgroundColor: '#0891B2', borderRadius: 2 },
   tabsRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 20, marginBottom: 20 },
   tab: { flex: 1, borderRadius: 9 },
   tabInner: { paddingVertical: 8, alignItems: 'center' },
@@ -1004,8 +1004,8 @@ const styles = StyleSheet.create({
   gridItem: { width: '31%', marginHorizontal: '1.16%', marginBottom: 20 },
   cover: { width: '100%', aspectRatio: 0.66, borderRadius: 12, overflow: 'hidden', marginBottom: 6 },
   progressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(0,0,0,0.4)' },
-  progressFill: { height: 3, backgroundColor: '#534AB7' },
-  savedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(83,74,183,0.25)', borderRadius: 10, padding: 3 },
+  progressFill: { height: 3, backgroundColor: '#0891B2' },
+  savedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(8,145,178,0.25)', borderRadius: 10, padding: 3 },
   downloadedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, padding: 3 },
   cloudBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 },
   updateBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: '#1D9E75', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 14, fontWeight: '600' },
   emptySub: { fontSize: 11, marginTop: 6 },
-  contextMenu: { position: 'absolute', width: 210, backgroundColor: 'rgba(22,22,28,0.93)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(83,74,183,0.22)', overflow: 'hidden' },
+  contextMenu: { position: 'absolute', width: 210, backgroundColor: 'rgba(22,22,28,0.93)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(8,145,178,0.22)', overflow: 'hidden' },
   contextMenuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13 },
   contextMenuText: { color: '#E8E8F0', fontSize: 13, fontWeight: '500', marginLeft: 10, flex: 1 },
   contextDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)' },

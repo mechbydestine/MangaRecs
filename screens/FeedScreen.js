@@ -67,7 +67,7 @@ let _queueFetching = false;
 
 // Genre preference weights for per-user algorithm
 // Updated when user likes/saves; persisted to AsyncStorage
-const PREFS_KEY = '@inklore_genre_prefs';
+const PREFS_KEY = '@panelr_genre_prefs';
 let _genreWeights = {};
 let _aiRecEnabled = true;
 
@@ -333,7 +333,7 @@ function notifIconName(type) {
   return 'heart';
 }
 function notifIconColor(type) {
-  if (type === 'friend_request')  return '#534AB7';
+  if (type === 'friend_request')  return '#0891B2';
   if (type === 'friend_accepted') return '#1D9E75';
   if (type === 'comment')         return '#1D9E75';
   if (type === 'badge')           return '#f59e0b';
@@ -341,7 +341,7 @@ function notifIconColor(type) {
   return '#E8527A';
 }
 function notifIconBg(type) {
-  if (type === 'friend_request')  return 'rgba(83,74,183,0.22)';
+  if (type === 'friend_request')  return 'rgba(8,145,178,0.22)';
   if (type === 'friend_accepted') return 'rgba(29,158,117,0.22)';
   if (type === 'comment')         return 'rgba(29,158,117,0.22)';
   if (type === 'badge')           return 'rgba(245,158,11,0.22)';
@@ -365,9 +365,9 @@ function SkeletonFeed() {
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.65] });
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24 }}>
-      <Animated.View style={{ width: COVER_W, height: COVER_H, borderRadius: 18, backgroundColor: '#534AB7', opacity }} />
+      <Animated.View style={{ width: COVER_W, height: COVER_H, borderRadius: 18, backgroundColor: '#0891B2', opacity }} />
       <Animated.View style={{ width: COVER_W * 0.65, height: 22, borderRadius: 8, backgroundColor: '#A09CE0', opacity, marginTop: 8 }} />
-      <Animated.View style={{ width: COVER_W * 0.45, height: 14, borderRadius: 6, backgroundColor: '#534AB7', opacity }} />
+      <Animated.View style={{ width: COVER_W * 0.45, height: 14, borderRadius: 6, backgroundColor: '#0891B2', opacity }} />
       <Animated.View style={{ width: COVER_W * 0.9, height: 36, borderRadius: 10, backgroundColor: '#2D2A4A', opacity }} />
       <Animated.View style={{ width: COVER_W * 0.55, height: 12, borderRadius: 6, backgroundColor: '#3B3672', opacity }} />
     </View>
@@ -384,7 +384,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   const navigation = useNavigation();
   const { isDark } = useTheme();
   const cardOverlay   = isDark ? 'rgba(4,3,14,0.72)'      : 'rgba(245,245,250,0.78)';
-  const cardText      = isDark ? '#FFFFFF'                  : '#0D0D0F';
+  const cardText      = isDark ? '#FFFFFF'                  : '#06080F';
   const cardDesc      = isDark ? 'rgba(210,208,242,0.88)'  : 'rgba(13,13,15,0.72)';
   const cardMuted     = isDark ? 'rgba(255,255,255,0.58)'  : 'rgba(13,13,15,0.5)';
   const cardAuthor    = isDark ? 'rgba(255,255,255,0.4)'   : 'rgba(13,13,15,0.38)';
@@ -534,7 +534,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
           {item._section === 'creator' && (
             <View style={[styles.sectionBadge, styles.sectionBadgeCreator]}>
               <Text style={styles.sectionBadgeIcon}>✨</Text>
-              <Text style={styles.sectionBadgeText}>Inklore Creator</Text>
+              <Text style={styles.sectionBadgeText}>Panelr Creator</Text>
             </View>
           )}
           <View style={styles.genres}>
@@ -692,7 +692,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
 
         {repliesExpanded && (
           repliesLoading ? (
-            <ActivityIndicator size="small" color="#534AB7" style={{ marginTop: 8 }} />
+            <ActivityIndicator size="small" color="#0891B2" style={{ marginTop: 8 }} />
           ) : (
             <View style={styles.replyThread}>
               {replies.map((r) => (
@@ -801,7 +801,7 @@ export default function FeedScreen() {
     loadFeedPrefs();
     loadUserInfo();
     reloadNotifs();
-    AsyncStorage.getItem('@inklore_saved').then((val) => {
+    AsyncStorage.getItem('@panelr_saved').then((val) => {
       if (!val) return;
       try {
         const saved = JSON.parse(val);
@@ -810,7 +810,7 @@ export default function FeedScreen() {
         setFeed((prev) => prev.map((item) => ({ ...item, bookmarked: map.has(item.id) })));
       } catch (_) {}
     });
-    AsyncStorage.getItem('@inklore_liked_posts').then((val) => {
+    AsyncStorage.getItem('@panelr_liked_posts').then((val) => {
       try {
         const ids = val ? JSON.parse(val) : [];
         const localSet = new Set(ids);
@@ -829,7 +829,7 @@ export default function FeedScreen() {
           setLikedIds((prev) => {
             const merged = new Set([...prev, ...serverIds]);
             if (merged.size === prev.size) return prev;
-            AsyncStorage.setItem('@inklore_liked_posts', JSON.stringify([...merged])).catch(() => {});
+            AsyncStorage.setItem('@panelr_liked_posts', JSON.stringify([...merged])).catch(() => {});
             return merged;
           });
           setFeed((prev) => prev.map((item) => ({
@@ -849,9 +849,9 @@ export default function FeedScreen() {
       let savedIds = new Set();
       let likedSet = new Set();
       try {
-        const savedRaw = await AsyncStorage.getItem('@inklore_saved');
+        const savedRaw = await AsyncStorage.getItem('@panelr_saved');
         if (savedRaw) (JSON.parse(savedRaw) || []).forEach((s) => savedIds.add(s.id));
-        const likedRaw = await AsyncStorage.getItem('@inklore_liked_posts');
+        const likedRaw = await AsyncStorage.getItem('@panelr_liked_posts');
         if (likedRaw) (JSON.parse(likedRaw) || []).forEach((id) => likedSet.add(id));
       } catch (_) {}
 
@@ -885,12 +885,12 @@ export default function FeedScreen() {
             id: `creator-${s.id}`,
             creatorSeriesId: s.id,
             title: s.title,
-            description: s.description || 'A new series from an Inklore creator.',
+            description: s.description || 'A new series from an Panelr creator.',
             genres: s.genre ? [s.genre] : ['Original'],
             rating: null,
             chapters: s.chapters || 1,
             readers: s.views ? `${s.views.toLocaleString()}` : '0',
-            author: 'Inklore Creator',
+            author: 'Panelr Creator',
             updated: 'just now',
             color: '#1A1633',
             likeCount: 0,
@@ -968,7 +968,7 @@ export default function FeedScreen() {
     setLikedIds((prev) => {
       const next = new Set(prev);
       isNowLiked ? next.add(id) : next.delete(id);
-      AsyncStorage.setItem('@inklore_liked_posts', JSON.stringify([...next])).catch(() => {});
+      AsyncStorage.setItem('@panelr_liked_posts', JSON.stringify([...next])).catch(() => {});
       return next;
     });
 
@@ -1016,7 +1016,7 @@ export default function FeedScreen() {
     setSavedMap((prev) => {
       const next = new Map(prev);
       isNowSaved ? next.set(id, { ...item, bookmarked: true }) : next.delete(id);
-      AsyncStorage.setItem('@inklore_saved', JSON.stringify([...next.values()])).catch(() => {});
+      AsyncStorage.setItem('@panelr_saved', JSON.stringify([...next.values()])).catch(() => {});
       return next;
     });
 
@@ -1292,7 +1292,7 @@ export default function FeedScreen() {
     return (
       <View style={[styles.container, { backgroundColor: '#0D0D12' }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.logo}>Inklore</Text>
+          <Text style={styles.logo}>Panelr</Text>
         </View>
         <SkeletonFeed />
       </View>
@@ -1303,7 +1303,7 @@ export default function FeedScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.logo}>Inklore</Text>
+        <Text style={styles.logo}>Panelr</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerBtn} onPress={() => setSearchOpen(true)}>
             <Ionicons name="search-outline" size={24} color="#fff" />
@@ -1356,7 +1356,7 @@ export default function FeedScreen() {
           ) : null
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#534AB7" colors={['#534AB7']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0891B2" colors={['#0891B2']} />
         }
       />
 
@@ -1395,7 +1395,7 @@ export default function FeedScreen() {
                       discussing: activeItem?.commentCount,
                     });
                   }}>
-                  <Text style={{ color: '#534AB7', fontSize: 12, fontWeight: '600' }}>Full discussion</Text>
+                  <Text style={{ color: '#0891B2', fontSize: 12, fontWeight: '600' }}>Full discussion</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.commentsCloseBtn, { backgroundColor: colors.inputBg }]}
@@ -1427,7 +1427,7 @@ export default function FeedScreen() {
               ListEmptyComponent={
                 <View style={styles.commentsEmpty}>
                   {commentFetching
-                    ? <ActivityIndicator size="small" color="#534AB7" />
+                    ? <ActivityIndicator size="small" color="#0891B2" />
                     : <Text style={[styles.commentsEmptyText, { color: colors.muted }]}>No comments yet. Be first!</Text>}
                 </View>
               }
@@ -1495,8 +1495,8 @@ export default function FeedScreen() {
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
                 {sendFriends.map((friend) => {
                   const status = sendSentTo[friend.id];
-                  const THEME_COLORS = { default: '#534AB7', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD' };
-                  const accent = THEME_COLORS[friend.color] || '#534AB7';
+                  const THEME_COLORS = { default: '#0891B2', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#22D3EE' };
+                  const accent = THEME_COLORS[friend.color] || '#0891B2';
                   return (
                     <View key={friend.id} style={[feedSendStyles.friendRow, { borderBottomColor: colors.border }]}>
                       <View style={[feedSendStyles.friendAvatar, { backgroundColor: accent }]}>
@@ -1614,7 +1614,7 @@ export default function FeedScreen() {
                 <Text style={styles.notifViewAll}>View older</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.notifClearBtn} onPress={handleClearAllNotif}>
-                <Ionicons name="checkmark-done-outline" size={13} color="#534AB7" />
+                <Ionicons name="checkmark-done-outline" size={13} color="#0891B2" />
                 <Text style={styles.notifClearBtnText}>Clear all</Text>
               </TouchableOpacity>
             </View>
@@ -1675,7 +1675,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
-  logo: { color: '#534AB7', fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
+  logo: { color: '#0891B2', fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
   headerRight: { flexDirection: 'row' },
   headerBtn: { position: 'relative', marginLeft: 16 },
   badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 8, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
@@ -1702,7 +1702,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(160,156,224,0.65)',
-    shadowColor: '#534AB7',
+    shadowColor: '#0891B2',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.85,
     shadowRadius: 22,
@@ -1712,7 +1712,7 @@ const styles = StyleSheet.create({
   coverFallback: { borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   coverFallbackText: { fontSize: 72, fontWeight: '800', color: 'rgba(255,255,255,0.25)' },
   feedComingSoonOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', paddingVertical: 10, borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
-  feedComingSoonChip: { backgroundColor: 'rgba(83,74,183,0.5)', borderWidth: 1, borderColor: 'rgba(160,156,224,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 4 },
+  feedComingSoonChip: { backgroundColor: 'rgba(8,145,178,0.5)', borderWidth: 1, borderColor: 'rgba(160,156,224,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 4 },
   feedComingSoonLabel: { color: '#A09CE0', fontSize: 9, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' },
   feedComingSoonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   sideActions: { position: 'absolute', right: 14, bottom: 110, alignItems: 'center', justifyContent: 'space-between', height: 220 },
@@ -1723,12 +1723,12 @@ const styles = StyleSheet.create({
   sectionBadgeHot:      { backgroundColor: 'rgba(255, 86, 24, 0.27)', borderColor: 'rgba(255, 81, 1, 0.57)' },
   sectionBadgeTrending: { backgroundColor: 'rgba(46, 31, 212, 0.49)',  borderColor: 'rgba(10, 0, 104, 0.81)' },
   sectionBadgePopular:  { backgroundColor: 'rgba(255, 217, 0, 0.25)',  borderColor: 'rgba(255, 217, 0, 0.55)' },
-  sectionBadgeCreator:  { backgroundColor: 'rgba(83,74,183,0.22)',  borderColor: 'rgba(160,156,224,0.45)' },
+  sectionBadgeCreator:  { backgroundColor: 'rgba(8,145,178,0.22)',  borderColor: 'rgba(160,156,224,0.45)' },
   sectionBadgeIcon: { fontSize: 11 },
   sectionBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
   genres: { flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' },
   genreTag: {
-    backgroundColor: 'rgba(83,74,183,0.42)',
+    backgroundColor: 'rgba(8,145,178,0.42)',
     paddingHorizontal: 11,
     paddingVertical: 4,
     borderRadius: 20,
@@ -1746,7 +1746,7 @@ const styles = StyleSheet.create({
 
   // Save toast
   loadingMore: { height, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D12' },
-  loadingMoreDot: { color: '#534AB7', fontSize: 32, letterSpacing: 8 },
+  loadingMoreDot: { color: '#0891B2', fontSize: 32, letterSpacing: 8 },
   saveToast: { position: 'absolute', bottom: 100, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,28,50,0.92)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(160,156,224,0.35)' },
   saveToastText: { color: '#A09CE0', fontSize: 13, fontWeight: '600', marginLeft: 7, paddingRight: 2 },
 
@@ -1763,7 +1763,7 @@ const styles = StyleSheet.create({
 
   // Comment row (TikTok layout)
   commentRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14, alignItems: 'flex-start' },
-  commentAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(83,74,183,0.45)', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 },
+  commentAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(8,145,178,0.45)', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 },
   commentAvatarText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   commentContent: { flex: 1 },
   commentMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginBottom: 5 },
@@ -1777,7 +1777,7 @@ const styles = StyleSheet.create({
   commentFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 16 },
   replyBtn: {},
   replyBtnText: { fontSize: 12, fontWeight: '600' },
-  repliesBtnText: { color: '#534AB7', fontSize: 12, fontWeight: '600' },
+  repliesBtnText: { color: '#0891B2', fontSize: 12, fontWeight: '600' },
   commentLikeCol: { paddingTop: 2, paddingLeft: 8, alignItems: 'center', flexShrink: 0 },
   commentLikeBtn: { alignItems: 'center' },
   commentLikeCount: { fontSize: 11, fontWeight: '600', marginTop: 3 },
@@ -1785,7 +1785,7 @@ const styles = StyleSheet.create({
   // Reply thread
   replyThread: { marginTop: 8, paddingLeft: 4 },
   replyItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
-  replyAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(83,74,183,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0 },
+  replyAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(8,145,178,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0 },
   replyAvatarText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   replyName: { fontSize: 12, fontWeight: '700' },
   replyTime: { fontSize: 10 },
@@ -1793,9 +1793,9 @@ const styles = StyleSheet.create({
 
   // Comment input
   commentInputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 10, borderTopWidth: 1 },
-  commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(83,74,183,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(8,145,178,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   commentInput: { flex: 1, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 80 },
-  commentSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  commentSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#0891B2', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 
   // Notification panel
   notifPanel: { position: 'absolute', top: 0, left: 0, right: 0, height: NOTIF_H, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: 'hidden' },
@@ -1805,12 +1805,12 @@ const styles = StyleSheet.create({
   notifCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(155,154,163,0.16)', alignItems: 'center', justifyContent: 'center' },
   notifViewAll: { color: '#9B9AA3', fontSize: 12, fontWeight: '500' },
   notifFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
-  notifClearBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(83,74,183,0.14)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(83,74,183,0.35)' },
+  notifClearBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(8,145,178,0.14)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(8,145,178,0.35)' },
   notifClearBtnText: { color: '#A09CE0', fontSize: 12, fontWeight: '600' },
   notifRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 13, marginHorizontal: 8, borderRadius: 12, marginBottom: 2 },
-  notifRowUnread: { backgroundColor: 'rgba(83,74,183,0.08)' },
+  notifRowUnread: { backgroundColor: 'rgba(8,145,178,0.08)' },
   notifAvatarWrap: { position: 'relative', marginRight: 12, flexShrink: 0 },
-  notifAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(83,74,183,0.55)', alignItems: 'center', justifyContent: 'center' },
+  notifAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(8,145,178,0.55)', alignItems: 'center', justifyContent: 'center' },
   notifAvatarTxt: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   notifTypeBadge: { position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   notifContent: { flex: 1 },
@@ -1818,20 +1818,20 @@ const styles = StyleSheet.create({
   notifUser: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   notifAction: { color: '#9B9AA3', fontSize: 13 },
   notifMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 7, padding: 9, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)' },
-  notifMetaCover: { width: 28, height: 36, borderRadius: 5, marginRight: 9, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(83,74,183,0.3)' },
+  notifMetaCover: { width: 28, height: 36, borderRadius: 5, marginRight: 9, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,145,178,0.3)' },
   notifMetaTitle: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
   notifMetaGenre: { color: '#9B9AA3', fontSize: 10, marginTop: 2 },
   notifTime: { color: '#9B9AA3', fontSize: 10, marginTop: 5 },
-  notifAcceptBtn: { alignSelf: 'flex-start', marginTop: 7, backgroundColor: 'rgba(83,74,183,0.2)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.45)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5 },
+  notifAcceptBtn: { alignSelf: 'flex-start', marginTop: 7, backgroundColor: 'rgba(8,145,178,0.2)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.45)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5 },
   notifAcceptBtnText: { color: '#A09CE0', fontSize: 11, fontWeight: '600' },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#534AB7', marginTop: 5, flexShrink: 0 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0891B2', marginTop: 5, flexShrink: 0 },
 
   // Search
   searchOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.42)' },
   searchPanel: { marginTop: 90, marginHorizontal: 12, borderRadius: 16, borderWidth: 1, padding: 16 },
   searchRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16 },
   searchField: { flex: 1, fontSize: 13, marginLeft: 8 },
-  searchGoBtn: { backgroundColor: '#534AB7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, marginLeft: 6 },
+  searchGoBtn: { backgroundColor: '#0891B2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, marginLeft: 6 },
   searchGoBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   searchLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   bookmarksGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -1862,7 +1862,7 @@ const feedSendStyles = StyleSheet.create({
   friendAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginRight: 12 },
   friendAvatarText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   friendName: { flex: 1, fontSize: 15, fontWeight: '500' },
-  sendBtn: { backgroundColor: '#534AB7', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 },
+  sendBtn: { backgroundColor: '#0891B2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 },
   sendBtnSent: { backgroundColor: '#1D9E75' },
   sendBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

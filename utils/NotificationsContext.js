@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+﻿import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../supabase';
 
 const NotificationsContext = createContext(null);
@@ -12,7 +12,7 @@ function relTime(iso) {
 }
 
 function buildNotification(row) {
-  const name = row.type === 'badge' ? 'Inklore' : (row.actor?.username || 'Someone');
+  const name = row.type === 'badge' ? 'Panelr' : (row.actor?.username || 'Someone');
   const d = row.data || {};
   let text = '';
   if (row.type === 'friend_request')       text = 'sent you a friend request';
@@ -70,7 +70,7 @@ export function NotificationsProvider({ children }) {
 
     if (built.length === 0) {
       built.push({
-        id: 'welcome', type: 'system', user: 'Inklore', avatar: 'I',
+        id: 'welcome', type: 'system', user: 'Panelr', avatar: 'I',
         text: 'Welcome! Friend requests and comments will appear here.',
         time: 'just now', read: true,
         friendshipId: null, actorId: null, seriesTitle: null, badgeIcon: null,

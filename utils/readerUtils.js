@@ -1,11 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 
 const _openedThisSession = new Set();
-const GENRE_PREFS_KEY = '@inklore_genre_prefs';
-const DAILY_LOG_KEY   = '@inklore_daily_log';
-const LAST_READ_KEY   = '@inklore_last_read';
-const HISTORY_KEY     = '@inklore_reading_history';
+const GENRE_PREFS_KEY = '@panelr_genre_prefs';
+const DAILY_LOG_KEY   = '@panelr_daily_log';
+const LAST_READ_KEY   = '@panelr_last_read';
+const HISTORY_KEY     = '@panelr_reading_history';
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -61,7 +61,7 @@ export function incrementSharesCount(userId) {
  * Save the most recently opened series so Library can show accurate "Continue Reading".
  */
 const INVALID_TITLES = new Set([
-  'reader', 'browser', 'inklore',
+  'reader', 'browser', 'panelr',
   'mangadex', 'mangafire', 'webtoon', 'asura scans', 'weeb central',
   'manga plus', 'mangahub', 'cubari proxy', 'dynasty reader', 'scans.gg',
   'likemanga', 'mangago', 'mangakatana', 'mangapill', 'manhuaplus',

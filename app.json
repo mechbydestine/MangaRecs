@@ -1,8 +1,8 @@
-{
+﻿{
   "expo": {
-    "name": "Inklore",
-    "slug": "inklore",
-    "scheme": "inklore",
+    "name": "Panelr",
+    "slug": "panelr",
+    "scheme": "panelr",
     "version": "1.0.0",
     "runtimeVersion": {
       "policy": "appVersion"
@@ -14,11 +14,11 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0D0D0F"
+      "backgroundColor": "#06080F"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.inklore.app",
+      "bundleIdentifier": "com.panelr.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Used to upload your profile photo.",
         "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
@@ -28,11 +28,11 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0D0D0F"
+        "backgroundColor": "#06080F"
       },
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "adjustPan",
-      "package": "com.inklore.app",
+      "package": "com.panelr.app",
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]
@@ -46,7 +46,7 @@
       [
         "expo-notifications",
         {
-          "color": "#534AB7",
+          "color": "#0891B2",
           "sounds": ["./assets/sounds/notification.mp3"]
         }
       ],

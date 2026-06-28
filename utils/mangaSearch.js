@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const DEFAULT_SITE_KEY = '@inklore/defaultMangaSite';
+export const DEFAULT_SITE_KEY = '@panelr/defaultMangaSite';
 
 export const TOP_SITES = [
   { name: 'MangaDex',    url: 'https://mangadex.org',        emoji: '📚' },

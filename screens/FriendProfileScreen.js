@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -12,12 +12,12 @@ import { MangaCover } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 
 const PROFILE_THEMES = [
-  { id: 'default', label: 'Default', ring: '#534AB7', gradient: ['#534AB7', '#1D9E75'], banner: ['#534AB7', '#0D0D0F'] },
-  { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#0D0D0F'] },
-  { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#0D0D0F'] },
-  { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },
-  { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#0D0D0F'] },
-  { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'] },
+  { id: 'default', label: 'Default', ring: '#0891B2', gradient: ['#0891B2', '#1D9E75'], banner: ['#0891B2', '#06080F'] },
+  { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#06080F'] },
+  { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#06080F'] },
+  { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#06080F'] },
+  { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#06080F'] },
+  { id: 'violet',  label: 'Violet',  ring: '#22D3EE', gradient: ['#22D3EE', '#D4537E'], banner: ['#22D3EE', '#06080F'] },
 ];
 
 const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
@@ -46,11 +46,11 @@ function StreakCalendar({ dailyLog }) {
   })();
 
   function getColor(hours) {
-    if (hours <= 0)   return '#0D0D0F';
-    if (hours < 0.25) return '#2D2872';
+    if (hours <= 0)   return '#06080F';
+    if (hours < 0.25) return '#0A3F52';
     if (hours < 0.75) return '#3D3580';
     if (hours < 1.5)  return '#4A40A0';
-    return '#534AB7';
+    return '#0891B2';
   }
 
   // Columns = weeks (left = oldest, right = most recent), rows = days top→bottom
@@ -241,7 +241,7 @@ export default function FriendProfileScreen({ route }) {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#534AB7" />
+        <ActivityIndicator size="large" color="#0891B2" />
       </View>
     );
   }
@@ -301,7 +301,7 @@ export default function FriendProfileScreen({ route }) {
                   friendAvatarUrl: profile.avatar_url || null,
                 })}
                 activeOpacity={0.8}>
-                <Ionicons name="chatbubble-outline" size={16} color="#534AB7" />
+                <Ionicons name="chatbubble-outline" size={16} color="#0891B2" />
                 <Text style={styles.msgHeaderText}>Message</Text>
               </TouchableOpacity>
             )}
@@ -360,7 +360,7 @@ export default function FriendProfileScreen({ route }) {
         {/* Stats — same icons and labels as ProfileScreen */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="book" size={18} color="#534AB7" />
+            <Ionicons name="book" size={18} color="#0891B2" />
             <Text style={[styles.statValue, { color: colors.text }]}>{entriesRead}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Read</Text>
           </View>
@@ -386,7 +386,7 @@ export default function FriendProfileScreen({ route }) {
               <View style={styles.streakBadges}>
                 {todayLabel && (
                   <View style={styles.todayBadge}>
-                    <Ionicons name="time" size={11} color="#534AB7" />
+                    <Ionicons name="time" size={11} color="#0891B2" />
                     <Text style={styles.todayBadgeText}>{todayLabel}</Text>
                   </View>
                 )}
@@ -398,9 +398,9 @@ export default function FriendProfileScreen({ route }) {
               <StreakCalendar dailyLog={dailyLog} />
               <View style={styles.streakLegend}>
                 {[
-                  { bg: '#0D0D0F', label: 'None' },
+                  { bg: '#06080F', label: 'None' },
                   { bg: '#4A40A0', label: 'Some' },
-                  { bg: '#534AB7', label: 'Lots' },
+                  { bg: '#0891B2', label: 'Lots' },
                 ].map(({ bg, label }) => (
                   <View key={label} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: bg }]} />
@@ -417,7 +417,7 @@ export default function FriendProfileScreen({ route }) {
                 <Text style={styles.favesPanelHeadText}>Favorite</Text>
               </View>
               {favorites.length === 0 ? (
-                <View style={[styles.favesEmptyCard, { borderColor: 'rgba(83,74,183,0.25)' }]}>
+                <View style={[styles.favesEmptyCard, { borderColor: 'rgba(8,145,178,0.25)' }]}>
                   <Text style={styles.favesEmptyText}>No faves yet</Text>
                 </View>
               ) : (
@@ -556,7 +556,7 @@ export default function FriendProfileScreen({ route }) {
                                   <Ionicons
                                     name="thumbs-up"
                                     size={9}
-                                    color={endorsed[badge.id] ? '#534AB7' : colors.muted}
+                                    color={endorsed[badge.id] ? '#0891B2' : colors.muted}
                                   />
                                   <Text style={[
                                     styles.endorseBtnText,
@@ -568,7 +568,7 @@ export default function FriendProfileScreen({ route }) {
                                   {count > 0 && (
                                     <Text style={[
                                       styles.endorseCount,
-                                      { color: endorsed[badge.id] ? '#534AB7' : colors.muted },
+                                      { color: endorsed[badge.id] ? '#0891B2' : colors.muted },
                                     ]}>
                                       · {count}
                                     </Text>
@@ -605,13 +605,13 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundText: { fontSize: 14, marginBottom: 12 },
-  notFoundLink: { color: '#534AB7', fontSize: 14, fontWeight: '600' },
+  notFoundLink: { color: '#0891B2', fontSize: 14, fontWeight: '600' },
 
   onlineBadge: { flexDirection: 'row', alignItems: 'center' },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginRight: 4 },
   onlineText: { color: '#1D9E75', fontSize: 10, fontWeight: '600' },
-  msgHeaderBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(83,74,183,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  msgHeaderText: { color: '#534AB7', fontSize: 12, fontWeight: '600' },
+  msgHeaderBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(8,145,178,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
+  msgHeaderText: { color: '#0891B2', fontSize: 12, fontWeight: '600' },
 
   // Banner card — no overflow:hidden so negative-margin avatar is never clipped
   bannerCard: { marginHorizontal: 20, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
@@ -637,8 +637,8 @@ const styles = StyleSheet.create({
   streakSection: { marginHorizontal: 20, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1 },
   streakTitle: { fontSize: 16, fontWeight: '600', marginBottom: 14 },
   streakBadges: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
-  todayBadgeText: { color: '#534AB7', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
+  todayBadgeText: { color: '#0891B2', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   fireBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.12)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   fireBadgeText: { color: '#FF9500', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
   faveFeatGrad: { height: 126 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
   favesEmptyCard: { marginHorizontal: 6, height: 126, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  favesEmptyText: { color: 'rgba(83,74,183,0.5)', fontSize: 10, textAlign: 'center' },
+  favesEmptyText: { color: 'rgba(8,145,178,0.5)', fontSize: 10, textAlign: 'center' },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
   favesCountText: { fontSize: 11, fontWeight: '500' },
 
@@ -672,9 +672,9 @@ const styles = StyleSheet.create({
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   badgeCard: { width: '22%', margin: '1.5%', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2, marginTop: 4 },
-  endorseCountMini: { color: '#534AB7', fontSize: 8, marginTop: 2 },
+  endorseCountMini: { color: '#0891B2', fontSize: 8, marginTop: 2 },
   seeAllBtn: { paddingVertical: 8, alignItems: 'center' },
-  seeAllText: { color: '#534AB7', fontSize: 11, fontWeight: '500' },
+  seeAllText: { color: '#0891B2', fontSize: 11, fontWeight: '500' },
 
   // Badge modal — mirrors ProfileScreen's badge modal exactly
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -697,9 +697,9 @@ const styles = StyleSheet.create({
 
   // Endorse button + count
   endorseBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(155,154,163,0.08)' },
-  endorseBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.2)' },
+  endorseBtnActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.2)' },
   endorseBtnText: { fontSize: 10, fontWeight: '500', paddingRight: 2 },
-  endorseBtnTextActive: { color: '#534AB7' },
+  endorseBtnTextActive: { color: '#0891B2' },
   endorseCount: { fontSize: 10, fontWeight: '600' },
   endorseCountOwn: { fontSize: 10, marginTop: 4 },
 });

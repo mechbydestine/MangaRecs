@@ -1,9 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import { ALL_BADGES, computeEarnedBadgeIds, profileToBadgeStats } from './badges';
 import { success as hapticSuccess } from './haptics';
 
-const EARNED_KEY = '@inklore/earnedBadgeIds_v1';
+const EARNED_KEY = '@panelr/earnedBadgeIds_v1';
 
 async function getStoredEarnedIds() {
   try {
