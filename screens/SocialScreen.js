@@ -33,11 +33,11 @@ function formatTime(hours) {
 
 // Profile color is stored as a theme ID ('default','rose',…), not a hex value
 const THEME_COLORS = {
-  default: '#0891B2', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#22D3EE',
+  default: '#534AB7', rose: '#D4537E', sky: '#378ADD',
+  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD',
 };
 function themeColor(colorId) {
-  return THEME_COLORS[colorId] || '#0891B2';
+  return THEME_COLORS[colorId] || '#534AB7';
 }
 
 // Strip known garbage values that get written to currently_reading
@@ -150,7 +150,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
     <View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.pollHeader}>
         <View style={styles.pollTitleRow}>
-          <Ionicons name="bar-chart" size={12} color="#0891B2" />
+          <Ionicons name="bar-chart" size={12} color="#534AB7" />
         </View>
         {justVoted ? (
           <View style={[styles.liveChip, { backgroundColor: 'rgba(29,158,117,0.15)', borderColor: 'rgba(29,158,117,0.3)' }]}>
@@ -182,7 +182,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
             disabled={loading}
             style={[
               styles.pollOption,
-              { borderColor: isSelected ? '#0891B2' : colors.border },
+              { borderColor: isSelected ? '#534AB7' : colors.border },
             ]}
           >
             {hasVoted && (
@@ -193,7 +193,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
                   {
                     width: pct > 0 ? `${pct}%` : '2%',
                     backgroundColor: isSelected
-                      ? 'rgba(8,145,178,0.22)'
+                      ? 'rgba(83,74,183,0.22)'
                       : colors.inputBg,
                   },
                 ]}
@@ -201,8 +201,8 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
             )}
             <View style={styles.pollOptionContent}>
               {isSelected
-                ? <Ionicons name="checkmark-circle" size={16} color="#0891B2" style={{ marginRight: 10 }} />
-                : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(8,145,178,0.5)' }]} />
+                ? <Ionicons name="checkmark-circle" size={16} color="#534AB7" style={{ marginRight: 10 }} />
+                : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(83,74,183,0.5)' }]} />
               }
               <Text
                 style={[styles.pollOptionLabel, { color: isSelected ? '#A09CE0' : colors.text }]}
@@ -211,7 +211,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
                 {opt.label}
               </Text>
               {hasVoted && (
-                <Text style={[styles.pollPct, { color: isSelected ? '#0891B2' : colors.muted }]}>
+                <Text style={[styles.pollPct, { color: isSelected ? '#534AB7' : colors.muted }]}>
                   {pct}%
                 </Text>
               )}
@@ -777,7 +777,7 @@ export default function SocialScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Community</Text>
           <View style={styles.headerButtons}>
             <TouchableOpacity style={styles.addFriendBtn} onPress={() => setShowAddFriend(true)}>
-              <Ionicons name="person-add-outline" size={13} color="#0891B2" />
+              <Ionicons name="person-add-outline" size={13} color="#534AB7" />
               <Text style={styles.addFriendText}>Add Friend</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.leaderboardBtn} onPress={() => setShowLeaderboard(true)}>
@@ -791,7 +791,7 @@ export default function SocialScreen() {
         {pendingRequests.length > 0 && (
           <View style={styles.requestsSection}>
             <View style={styles.requestsHeader}>
-              <Ionicons name="people" size={14} color="#0891B2" />
+              <Ionicons name="people" size={14} color="#534AB7" />
               <Text style={[styles.requestsTitle, { color: colors.text }]}>Friend Requests</Text>
               <View style={styles.requestsBadge}>
                 <Text style={styles.requestsBadgeText}>{pendingRequests.length}</Text>
@@ -823,7 +823,7 @@ export default function SocialScreen() {
         {/* ── Messages ── */}
         <View style={styles.msgSectionHeader}>
           <View style={styles.msgSectionLeft}>
-            <Ionicons name="chatbubble-ellipses" size={14} color="#0891B2" />
+            <Ionicons name="chatbubble-ellipses" size={14} color="#534AB7" />
             <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>Messages</Text>
           </View>
           {dmConvos.reduce((n, c) => n + c.unread, 0) > 0 && (
@@ -951,7 +951,7 @@ export default function SocialScreen() {
                 <Text style={[styles.discTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.discChap, { color: colors.muted }]}>Ch. {item.latestChapter} · Latest</Text>
                 <View style={styles.discCountRow}>
-                  <Ionicons name="chatbubble-ellipses" size={11} color="#0891B2" />
+                  <Ionicons name="chatbubble-ellipses" size={11} color="#534AB7" />
                   <Text style={styles.discCount}>{item.discussing.toLocaleString()} discussing</Text>
                 </View>
               </View>
@@ -971,7 +971,7 @@ export default function SocialScreen() {
         {/* ── Poll of the Week ── */}
         <View style={[styles.actHeaderRow, { marginBottom: 10, marginTop: 8 }]}>
           <View style={styles.actTitleRow}>
-            <Ionicons name="bar-chart-outline" size={14} color="#0891B2" />
+            <Ionicons name="bar-chart-outline" size={14} color="#534AB7" />
             <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>
               Poll of the Week </Text>
           </View>
@@ -979,7 +979,7 @@ export default function SocialScreen() {
 
         {pollLoading ? (
           <View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <ActivityIndicator size="small" color="#0891B2" style={styles.actLoader} />
+            <ActivityIndicator size="small" color="#534AB7" style={styles.actLoader} />
           </View>
         ) : poll ? (
           <PollCard
@@ -1050,7 +1050,7 @@ export default function SocialScreen() {
                   <Ionicons
                     name={requestSentTo[searchResult.id] ? 'checkmark' : 'person-add'}
                     size={14}
-                    color={requestSentTo[searchResult.id] ? '#1D9E75' : '#0891B2'}
+                    color={requestSentTo[searchResult.id] ? '#1D9E75' : '#534AB7'}
                   />
                   <Text style={[styles.addBtnText, requestSentTo[searchResult.id] && styles.addBtnTextSent]}>
                     {getAddLabel(searchResult.id)}
@@ -1077,7 +1077,7 @@ export default function SocialScreen() {
                   <Ionicons
                     name={requestSentTo[f.id] ? 'checkmark' : 'add'}
                     size={16}
-                    color={requestSentTo[f.id] ? '#1D9E75' : '#0891B2'}
+                    color={requestSentTo[f.id] ? '#1D9E75' : '#534AB7'}
                   />
                 </TouchableOpacity>
               </View>
@@ -1103,7 +1103,7 @@ export default function SocialScreen() {
                 activeOpacity={0.75}>
                 <Text style={[styles.reportOptionText, { color: colors.text }]}>{reason}</Text>
                 {reportSubmitting
-                  ? <ActivityIndicator size="small" color="#0891B2" />
+                  ? <ActivityIndicator size="small" color="#534AB7" />
                   : <Ionicons name="chevron-forward" size={14} color={colors.muted} />}
               </TouchableOpacity>
             ))}
@@ -1157,7 +1157,7 @@ export default function SocialScreen() {
             <View style={[styles.lbDivider, { backgroundColor: colors.border }]} />
 
             {leaderboardLoading ? (
-              <ActivityIndicator size="small" color="#0891B2" style={{ marginVertical: 24 }} />
+              <ActivityIndicator size="small" color="#534AB7" style={{ marginVertical: 24 }} />
             ) : sortedLeaderboard.length === 0 ? (
               <Text style={[styles.emptyHint, { textAlign: 'center', paddingVertical: 32 }]}>No rankings yet. Start reading to appear on the leaderboard!</Text>
             ) : (
@@ -1167,7 +1167,7 @@ export default function SocialScreen() {
                     key={entry.id || idx}
                     style={[
                       styles.lbRow,
-                      { borderColor: entry.isMe ? 'rgba(8,145,178,0.4)' : colors.border },
+                      { borderColor: entry.isMe ? 'rgba(83,74,183,0.4)' : colors.border },
                       entry.isMe && styles.lbRowMe,
                     ]}>
                     <View style={styles.lbRankWrap}>
@@ -1190,7 +1190,7 @@ export default function SocialScreen() {
                     </View>
                     <View style={styles.lbInfo}>
                       <View style={styles.lbNameRow}>
-                        <Text style={[styles.lbName, { color: entry.isMe ? '#0891B2' : colors.text }]} numberOfLines={1}>
+                        <Text style={[styles.lbName, { color: entry.isMe ? '#534AB7' : colors.text }]} numberOfLines={1}>
                           {entry.name}
                         </Text>
                         {entry.isMe && (
@@ -1232,8 +1232,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, marginBottom: 20 },
   headerTitle: { fontSize: 28, fontWeight: 'bold' },
   headerButtons: { alignItems: 'flex-end' },
-  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.15)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginBottom: 6 },
-  addFriendText: { color: '#0891B2', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
+  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.15)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginBottom: 6 },
+  addFriendText: { color: '#534AB7', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
   leaderboardBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
   leaderboardText: { color: '#FFD700', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
 
@@ -1250,13 +1250,13 @@ const styles = StyleSheet.create({
   pollCard: { marginHorizontal: 20, marginBottom: 24, borderRadius: 16, borderWidth: 1, overflow: 'hidden', padding: 16 },
   pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   pollTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pollLabel: { color: '#0891B2', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  pollLabel: { color: '#534AB7', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
   pollQuestion: { fontSize: 15, fontWeight: '700', lineHeight: 22, marginBottom: 14 },
   pollOption: { borderRadius: 10, borderWidth: 1, marginBottom: 8, overflow: 'hidden', height: 44, justifyContent: 'center' },
   pollOptionFill: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   pollOptionContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
-  pollDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(8,145,178,0.5)', marginRight: 10 },
-  pollDotFilled: { backgroundColor: '#0891B2', borderColor: '#0891B2' },
+  pollDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(83,74,183,0.5)', marginRight: 10 },
+  pollDotFilled: { backgroundColor: '#534AB7', borderColor: '#534AB7' },
   pollOptionLabel: { flex: 1, fontSize: 13, fontWeight: '500' },
   pollPct: { fontSize: 12, fontWeight: '700', marginLeft: 8 },
   pollHint: { fontSize: 12, marginBottom: 10, fontStyle: 'italic' },
@@ -1271,7 +1271,7 @@ const styles = StyleSheet.create({
   // Messages section
   msgSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 8, marginBottom: 10 },
   msgSectionLeft: { flexDirection: 'row', alignItems: 'center' },
-  dmTotalBadge: { backgroundColor: '#0891B2', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  dmTotalBadge: { backgroundColor: '#534AB7', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   dmTotalBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
   dmList: { paddingHorizontal: 20, marginBottom: 24 },
@@ -1285,14 +1285,14 @@ const styles = StyleSheet.create({
   dmConvoTime: { fontSize: 11, marginLeft: 8 },
   dmConvoPreview: { fontSize: 13, lineHeight: 17 },
   dmConvoPreviewBold: { fontWeight: '600' },
-  dmUnreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#0891B2', borderWidth: 2, borderColor: '#06080F' },
-  dmUnreadBadge: { backgroundColor: '#0891B2', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
+  dmUnreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#534AB7', borderWidth: 2, borderColor: '#0D0D0F' },
+  dmUnreadBadge: { backgroundColor: '#534AB7', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
   dmUnreadText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   friendsList: { paddingHorizontal: 20, marginBottom: 24 },
   friendRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   friendRowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   friendRowChevron: { paddingLeft: 8, paddingVertical: 4 },
-  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(8,145,178,0.5)', alignItems: 'center', justifyContent: 'center' },
+  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(83,74,183,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendInfo: { flex: 1, marginLeft: 12 },
@@ -1300,7 +1300,7 @@ const styles = StyleSheet.create({
   friendName: { fontSize: 14, fontWeight: '500' },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginLeft: 6 },
   friendReading: { fontSize: 12, marginTop: 2 },
-  friendSeriesLink: { color: '#0891B2' },
+  friendSeriesLink: { color: '#534AB7' },
 
   // Discussions
   discList: { paddingHorizontal: 20, marginBottom: 8 },
@@ -1310,7 +1310,7 @@ const styles = StyleSheet.create({
   discTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
   discChap: { fontSize: 11, marginBottom: 5 },
   discCountRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  discCount: { color: '#0891B2', fontSize: 11, fontWeight: '600' },
+  discCount: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
   discActions: { alignItems: 'center', justifyContent: 'space-between', height: 40, paddingLeft: 8 },
   discReportBtn: { padding: 2 },
 
@@ -1347,7 +1347,7 @@ const styles = StyleSheet.create({
   lbTabEmoji: { fontSize: 11 },
   lbDivider: { height: 1, marginBottom: 6 },
   lbRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, marginBottom: 5 },
-  lbRowMe: { backgroundColor: 'rgba(8,145,178,0.1)' },
+  lbRowMe: { backgroundColor: 'rgba(83,74,183,0.1)' },
   lbRankWrap: { width: 32, alignItems: 'center', marginRight: 4 },
   lbMedal: { fontSize: 18 },
   lbRankNumWrap: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
@@ -1358,8 +1358,8 @@ const styles = StyleSheet.create({
   lbInfo: { flex: 1, marginRight: 6 },
   lbNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
   lbName: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
-  youChip: { paddingHorizontal: 5, paddingVertical: 1, backgroundColor: 'rgba(8,145,178,0.2)', borderRadius: 20 },
-  youChipText: { color: '#0891B2', fontSize: 8, fontWeight: '700' },
+  youChip: { paddingHorizontal: 5, paddingVertical: 1, backgroundColor: 'rgba(83,74,183,0.2)', borderRadius: 20 },
+  youChipText: { color: '#534AB7', fontSize: 8, fontWeight: '700' },
   lbOnlineDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10b981' },
   lbBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
   lbStat: { alignItems: 'flex-end', minWidth: 44 },
@@ -1369,7 +1369,7 @@ const styles = StyleSheet.create({
   // Search / friend modal
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   searchInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, marginRight: 8 },
-  searchBtn: { backgroundColor: '#0891B2', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  searchBtn: { backgroundColor: '#534AB7', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   searchError: { color: '#D4537E', fontSize: 12, marginBottom: 10 },
   resultCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 4, borderWidth: 1 },
   resultAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
@@ -1377,11 +1377,11 @@ const styles = StyleSheet.create({
   resultInfo: { flex: 1 },
   resultName: { fontSize: 14, fontWeight: '600' },
   resultSub: { fontSize: 11, marginTop: 2 },
-  viewBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(8,145,178,0.1)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.3)', marginRight: 8 },
-  viewBtnText: { color: '#0891B2', fontSize: 11, fontWeight: '600' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(8,145,178,0.1)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.3)' },
+  viewBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.1)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)', marginRight: 8 },
+  viewBtnText: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.1)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)' },
   addBtnSent: { borderColor: 'rgba(29,158,117,0.4)', backgroundColor: 'rgba(29,158,117,0.1)' },
-  addBtnText: { color: '#0891B2', fontSize: 11, fontWeight: '600' },
+  addBtnText: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
   addBtnTextSent: { color: '#1D9E75' },
   divider: { height: 1, marginVertical: 16 },
   suggestedTitle: { fontSize: 11, fontWeight: '600', marginBottom: 12, letterSpacing: 0.5, textTransform: 'uppercase' },
@@ -1389,14 +1389,14 @@ const styles = StyleSheet.create({
   suggestedName: { fontSize: 13, flex: 1, marginLeft: 10 },
   suggestedProfileBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, marginRight: 8 },
   suggestedProfileText: { fontSize: 11, fontWeight: '500' },
-  suggestedAddBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(8,145,178,0.15)' },
+  suggestedAddBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(83,74,183,0.15)' },
   suggestedAddBtnSent: { backgroundColor: 'rgba(29,158,117,0.15)' },
 
   // Friend requests
   requestsSection: { paddingHorizontal: 20, marginBottom: 16 },
   requestsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   requestsTitle: { fontSize: 13, fontWeight: '600', marginLeft: 6, flex: 1 },
-  requestsBadge: { backgroundColor: '#0891B2', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  requestsBadge: { backgroundColor: '#534AB7', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   requestsBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   requestRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   requestAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 10 },

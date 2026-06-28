@@ -20,12 +20,12 @@ import { getMergedDailyLog, calculateStreak } from '../utils/readerUtils';
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const PROFILE_THEMES = [
-  { id: 'default', label: 'Default', ring: '#0891B2', gradient: ['#0891B2', '#1D9E75'], banner: ['#0891B2', '#06080F'] },
-  { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#06080F'] },
-  { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#06080F'] },
-  { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#06080F'] },
-  { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#06080F'] },
-  { id: 'violet',  label: 'Violet',  ring: '#22D3EE', gradient: ['#22D3EE', '#D4537E'], banner: ['#22D3EE', '#06080F'] },
+  { id: 'default', label: 'Default', ring: '#534AB7', gradient: ['#534AB7', '#1D9E75'], banner: ['#534AB7', '#0D0D0F'] },
+  { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#0D0D0F'] },
+  { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#0D0D0F'] },
+  { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },
+  { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#0D0D0F'] },
+  { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'] },
 ];
 
 const BIO_SUGGESTIONS = [
@@ -102,11 +102,11 @@ function StreakCalendar({ dailyLog }) {
   })();
 
   function getColor(hours) {
-    if (hours <= 0)   return '#06080F';
-    if (hours < 0.25) return '#0A3F52';
+    if (hours <= 0)   return '#0D0D0F';
+    if (hours < 0.25) return '#2D2872';
     if (hours < 0.75) return '#3D3580';
     if (hours < 1.5)  return '#4A40A0';
-    return '#0891B2';
+    return '#534AB7';
   }
 
   // Columns = weeks (left = oldest, right = most recent)
@@ -567,7 +567,7 @@ export default function ProfileScreen() {
                 {PROFILE_THEMES.map((t) => (
                   <TouchableOpacity
                     key={t.id}
-                    style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(8,145,178,0.12)' }]}
+                    style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(83,74,183,0.12)' }]}
                     onPress={() => { setThemeId(t.id); setShowThemes(false); updateProfile({ color: t.id }); }}>
                     <View style={[styles.themeChipDot, { backgroundColor: t.gradient[0] }]} />
                     <Text style={[styles.themeChipText, { color: colors.muted }, themeId === t.id && { color: t.ring }]}>{t.label}</Text>
@@ -580,7 +580,7 @@ export default function ProfileScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <StatCard icon="book"   label="Read" value={String(entriesRead)} color="#0891B2" anim={stat0Anim} />
+          <StatCard icon="book"   label="Read" value={String(entriesRead)} color="#534AB7" anim={stat0Anim} />
           <StatCard icon="time"   label="Time Read" value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((s, h) => s + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} />
           <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} />
         </View>
@@ -594,7 +594,7 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity style={styles.seeAllRow} onPress={() => navigation.navigate('Social')}>
               <Text style={styles.seeAllText}>See all</Text>
-              <Ionicons name="chevron-forward" size={12} color="#0891B2" />
+              <Ionicons name="chevron-forward" size={12} color="#534AB7" />
             </TouchableOpacity>
           </View>
           {friends.length === 0 ? (
@@ -625,7 +625,7 @@ export default function ProfileScreen() {
             <View style={styles.streakLeft}>
               <View style={styles.streakBadges}>
                 <View style={styles.todayBadge}>
-                  <Ionicons name="time" size={11} color="#0891B2" />
+                  <Ionicons name="time" size={11} color="#534AB7" />
                   <Text style={styles.todayBadgeText}>{(() => {
                     const hrs = dailyLog[new Date().toISOString().slice(0, 10)] || 0;
                     if (hrs <= 0) return 'Start reading';
@@ -640,7 +640,7 @@ export default function ProfileScreen() {
               </View>
               <StreakCalendar dailyLog={dailyLog} />
               <View style={styles.streakLegend}>
-                {[{ bg: colors.background, label: 'None' }, { bg: '#4A40A0', label: 'Some' }, { bg: '#0891B2', label: 'Lots' }].map(({ bg, label }) => (
+                {[{ bg: colors.background, label: 'None' }, { bg: '#4A40A0', label: 'Some' }, { bg: '#534AB7', label: 'Lots' }].map(({ bg, label }) => (
                   <View key={label} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: bg }]} />
                     <Text style={[styles.legendText, { color: colors.muted }]}>{label}</Text>
@@ -657,8 +657,8 @@ export default function ProfileScreen() {
               </View>
 
               {favorites.length === 0 ? (
-                <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(8,145,178,0.25)' }]} onPress={() => setShowAddFave(true)}>
-                  <Ionicons name="add" size={16} color="rgba(8,145,178,0.5)" />
+                <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(83,74,183,0.25)' }]} onPress={() => setShowAddFave(true)}>
+                  <Ionicons name="add" size={16} color="rgba(83,74,183,0.5)" />
                   <Text style={styles.favesEmptyText}>save </Text>
                 </TouchableOpacity>
               ) : (
@@ -723,7 +723,7 @@ export default function ProfileScreen() {
         <Animated.View style={[styles.section, { opacity: creatorAnim, transform: [{ translateY: creatorSlideY }, { scale: creatorScale }] }]}>
           <TouchableOpacity style={styles.creatorCard} onPress={() => navigation.navigate('Creator')} activeOpacity={0.85}>
             <View style={styles.creatorIconWrap}>
-              <Ionicons name="create-outline" size={18} color="#0891B2" />
+              <Ionicons name="create-outline" size={18} color="#534AB7" />
             </View>
             <View style={styles.creatorInfo}>
               <Text style={[styles.creatorTitle, { color: colors.text }]}>Creator Dashboard</Text>
@@ -897,21 +897,21 @@ const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 2, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  cameraBtn: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0891B2', borderRadius: 12, padding: 5 },
+  cameraBtn: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#534AB7', borderRadius: 12, padding: 5 },
   nameBioBlock: { flex: 1, marginLeft: 12, marginTop: 36 },
   username: { fontSize: 16, fontWeight: 'bold' },
   bioText: { fontSize: 12, marginTop: 3, lineHeight: 16 },
-  bioEditHint: { color: 'rgba(8,145,178,0.6)', fontSize: 9, marginTop: 2 },
+  bioEditHint: { color: 'rgba(83,74,183,0.6)', fontSize: 9, marginTop: 2 },
   bioInput: { borderWidth: 1, borderRadius: 10, padding: 8, fontSize: 12, marginTop: 4, minHeight: 44 },
-  bioSuggestion: { color: 'rgba(8,145,178,0.8)', fontSize: 10, marginTop: 4 },
+  bioSuggestion: { color: 'rgba(83,74,183,0.8)', fontSize: 10, marginTop: 4 },
   bioEditActions: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  bioSaveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0891B2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 8 },
+  bioSaveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#534AB7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 8 },
   bioSaveText: { color: '#fff', fontSize: 11, fontWeight: '500', marginLeft: 4, paddingRight: 2 },
   bioCancelBtn: { padding: 5 },
   handle: { fontSize: 10, marginTop: 4 },
   themeToggle: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   themeToggleText: { fontSize: 11, marginLeft: 6 },
-  themeToggleValue: { color: '#0891B2', fontSize: 11, fontWeight: '500', marginLeft: 4 },
+  themeToggleValue: { color: '#534AB7', fontSize: 11, fontWeight: '500', marginLeft: 4 },
   themeOptionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
   themeChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)', marginRight: 8, marginBottom: 8 },
   themeChipDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
@@ -925,10 +925,10 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitleText: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
   seeAllRow: { flexDirection: 'row', alignItems: 'center' },
-  seeAllText: { color: '#0891B2', fontSize: 11, fontWeight: '500', marginRight: 2 },
+  seeAllText: { color: '#534AB7', fontSize: 11, fontWeight: '500', marginRight: 2 },
   emptyFriendsText: { fontSize: 12, fontStyle: 'italic' },
   friendItem: { alignItems: 'center', marginRight: 16, width: 64 },
-  friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(8,145,178,0.5)', alignItems: 'center', justifyContent: 'center' },
+  friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(83,74,183,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendName: { fontSize: 10, marginTop: 6, textAlign: 'center' },
@@ -937,8 +937,8 @@ const styles = StyleSheet.create({
   streakSection: { marginHorizontal: 20, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1 },
   streakTitle: { fontSize: 16, fontWeight: '600', marginBottom: 14 },
   streakBadges: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
-  todayBadgeText: { color: '#0891B2', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
+  todayBadgeText: { color: '#534AB7', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   fireBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.12)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   fireBadgeText: { color: '#FF9500', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
@@ -960,11 +960,11 @@ const styles = StyleSheet.create({
   faveFeatGrad: { height: 126 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
   favesEmptyCard: { marginHorizontal: 6, height: 126, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  favesEmptyText: { color: 'rgba(8,145,178,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
+  favesEmptyText: { color: 'rgba(83,74,183,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
   favesRemoveBtn: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#E5534B', alignItems: 'center', justifyContent: 'center' },
   favesCountText: { fontSize: 11, fontWeight: '500' },
-  favesAddBtn: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#0891B2', alignItems: 'center', justifyContent: 'center' },
+  favesAddBtn: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center' },
 
 
   // Badges
@@ -975,11 +975,11 @@ const styles = StyleSheet.create({
   badgeIcon: { fontSize: 24, marginBottom: 5 },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 },
   seeAllBadgesBtn: { paddingVertical: 8, alignItems: 'center' },
-  seeAllBadgesText: { color: '#0891B2', fontSize: 11, fontWeight: '500' },
+  seeAllBadgesText: { color: '#534AB7', fontSize: 11, fontWeight: '500' },
 
   // Creator
-  creatorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.08)', borderWidth: 1, borderColor: 'rgba(8,145,178,0.3)', borderRadius: 16, padding: 16 },
-  creatorIconWrap: { backgroundColor: 'rgba(8,145,178,0.2)', borderRadius: 20, padding: 8 },
+  creatorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.08)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)', borderRadius: 16, padding: 16 },
+  creatorIconWrap: { backgroundColor: 'rgba(83,74,183,0.2)', borderRadius: 20, padding: 8 },
   creatorInfo: { flex: 1, marginLeft: 12 },
   creatorTitle: { fontSize: 14, fontWeight: '600' },
   creatorSub: { fontSize: 11, marginTop: 2 },
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
   addFaveTitle: { fontSize: 17, fontWeight: 'bold' },
   addFaveTabs: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 14 },
   addFaveTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, backgroundColor: 'rgba(255,255,255,0.06)' },
-  addFaveTabActive: { backgroundColor: '#0891B2' },
+  addFaveTabActive: { backgroundColor: '#534AB7' },
   addFaveTabText: { fontSize: 13, fontWeight: '600' },
   addFaveSearchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8 },
   addFaveSearchInput: { flex: 1, marginLeft: 8, fontSize: 14 },

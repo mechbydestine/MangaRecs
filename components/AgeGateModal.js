@@ -68,7 +68,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
       <View style={s.overlay}>
         <Animated.View style={[s.sheet, { transform: [{ translateX: shakeAnim }] }]}>
           <View style={s.iconWrap}>
-            <Ionicons name="shield-checkmark" size={32} color="#0891B2" />
+            <Ionicons name="shield-checkmark" size={32} color="#534AB7" />
           </View>
           <Text style={s.title}>Age Verification</Text>
           <Text style={s.sub}>
@@ -149,17 +149,17 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
 
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  sheet: { backgroundColor: '#0C0E18', borderRadius: 24, padding: 28, width: '100%', borderWidth: 1, borderColor: '#2A2A2F', alignItems: 'center' },
-  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(8,145,178,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  sheet: { backgroundColor: '#13131A', borderRadius: 24, padding: 28, width: '100%', borderWidth: 1, borderColor: '#2A2A2F', alignItems: 'center' },
+  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(83,74,183,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8, textAlign: 'center' },
   sub: { fontSize: 13, color: '#9B9AA3', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   dobRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginBottom: 8, width: '100%' },
   fieldWrap: { flex: 1, alignItems: 'center' },
   fieldLabel: { fontSize: 10, color: '#5C5B63', fontWeight: '700', letterSpacing: 1, marginBottom: 4, textTransform: 'uppercase' },
-  input: { width: '100%', backgroundColor: '#0C1220', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
+  input: { width: '100%', backgroundColor: '#1A1A1F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
   dobSep: { color: '#5C5B63', fontSize: 22, fontWeight: '300', paddingBottom: 10, paddingHorizontal: 2 },
   error: { color: '#FF6B6B', fontSize: 12, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  confirmBtn: { backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 14, width: '100%', alignItems: 'center', marginTop: 8, marginBottom: 8 },
+  confirmBtn: { backgroundColor: '#534AB7', borderRadius: 14, paddingVertical: 14, width: '100%', alignItems: 'center', marginTop: 8, marginBottom: 8 },
   confirmBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   cancelBtn: { paddingVertical: 10, width: '100%', alignItems: 'center' },
   cancelBtnText: { color: '#9B9AA3', fontSize: 14 },

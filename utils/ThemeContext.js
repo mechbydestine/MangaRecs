@@ -5,27 +5,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = 'panelr_theme';
 
 const darkColors = {
-  background: '#06080F',
-  card: '#0C0E18',
-  primary: '#0891B2',
-  muted: '#7A8099',
-  border: '#141828',
+  background: '#0D0D0F',
+  card: '#13131A',
+  primary: '#534AB7',
+  muted: '#888892',
+  border: '#1C1C1E',
   accent: '#1D9E75',
   error: '#FF3B30',
   text: '#FFFFFF',
-  textSecondary: '#7A8099',
-  inputBg: '#080B14',
+  textSecondary: '#888892',
+  inputBg: '#080808',
 };
 
 const lightColors = {
   background: '#F5F5F7',
   card: '#FFFFFF',
-  primary: '#0891B2',
+  primary: '#534AB7',
   muted: '#6E6E78',
   border: '#E2E2E7',
   accent: '#1D9E75',
   error: '#FF3B30',
-  text: '#06080F',
+  text: '#0D0D0F',
   textSecondary: '#6E6E78',
   inputBg: '#EBEBF0',
 };

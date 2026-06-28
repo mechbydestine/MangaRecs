@@ -347,7 +347,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#06080F',
+    backgroundColor: '#0D0D0F',
   },
   scroll: {
     flexGrow: 1,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   logo: {
-    color: '#0891B2',
+    color: '#534AB7',
     fontSize: 42,
     fontWeight: 'bold',
     letterSpacing: 2,
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   card: {
-    backgroundColor: '#0C1220',
+    backgroundColor: '#1A1A1F',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#06080F',
+    backgroundColor: '#0D0D0F',
     borderWidth: 1,
     borderColor: '#2A2A2F',
     borderRadius: 12,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   fieldWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#06080F',
+    backgroundColor: '#0D0D0F',
     borderWidth: 1,
     borderColor: '#2A2A2F',
     borderRadius: 12,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   forgotLink: {
-    color: '#0891B2',
+    color: '#534AB7',
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'right',
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   btn: {
-    backgroundColor: '#0891B2',
+    backgroundColor: '#534AB7',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   switchLink: {
-    color: '#0891B2',
+    color: '#534AB7',
     fontWeight: '600',
   },
 });

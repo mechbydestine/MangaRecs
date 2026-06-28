@@ -62,9 +62,9 @@ function WebtoonIcon({ active }) {
     } else { arrowY.setValue(0); }
   }, [active]);
   return (
-    <View style={[modeIconStyles.webtoonBox, { borderColor: active ? '#0891B2' : '#5C5B63' }]}>
+    <View style={[modeIconStyles.webtoonBox, { borderColor: active ? '#534AB7' : '#5C5B63' }]}>
       <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
-        <View style={[modeIconStyles.triangleDown, { borderTopColor: active ? '#0891B2' : '#5C5B63' }]} />
+        <View style={[modeIconStyles.triangleDown, { borderTopColor: active ? '#534AB7' : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
@@ -82,9 +82,9 @@ function MangaIcon({ active }) {
   }, [active]);
   return (
     <View style={modeIconStyles.mangaRow}>
-      <View style={[modeIconStyles.mangaBox, { borderColor: active ? '#0891B2' : '#5C5B63' }]} />
+      <View style={[modeIconStyles.mangaBox, { borderColor: active ? '#534AB7' : '#5C5B63' }]} />
       <Animated.View style={{ transform: [{ translateX: arrowX }] }}>
-        <View style={[modeIconStyles.triangleRight, { borderLeftColor: active ? '#0891B2' : '#5C5B63' }]} />
+        <View style={[modeIconStyles.triangleRight, { borderLeftColor: active ? '#534AB7' : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
@@ -590,8 +590,8 @@ function SiteCard({ site, active, onPress, onRemove }) {
 
 const siteCardStyles = StyleSheet.create({
   wrap:       { width: '48%', marginRight: '2%', marginBottom: 8, position: 'relative' },
-  card:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0C1220', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', paddingVertical: 10, paddingHorizontal: 10 },
-  cardActive: { borderColor: '#0891B2', backgroundColor: '#1A1633' },
+  card:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', paddingVertical: 10, paddingHorizontal: 10 },
+  cardActive: { borderColor: '#534AB7', backgroundColor: '#1A1633' },
   favicon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: '#2A2A2F' },
   info:       { flex: 1, marginLeft: 10 },
   name:       { color: '#fff', fontSize: 12, fontWeight: '600' },
@@ -621,10 +621,10 @@ export default function ReaderScreen({ route, navigation }) {
 
   // HUD palette — switches with the app theme
   const hudBg     = isDark ? 'rgba(13,13,15,0.92)'    : 'rgba(255,255,255,0.94)';
-  const hudText   = isDark ? '#ffffff'                 : '#06080F';
+  const hudText   = isDark ? '#ffffff'                 : '#0D0D0F';
   const hudMuted  = isDark ? '#9B9AA3'                 : '#6E6E78';
   const hudBorder = isDark ? '#2A2A2F'                 : 'rgba(0,0,0,0.08)';
-  const hudCard   = isDark ? '#0C1220'                 : 'rgba(0,0,0,0.06)';
+  const hudCard   = isDark ? '#1A1A1F'                 : 'rgba(0,0,0,0.06)';
 
   // core
   const [mode,               setMode]               = useState('webtoon');
@@ -1216,7 +1216,7 @@ export default function ReaderScreen({ route, navigation }) {
           siteEmoji: activeSite?.emoji || '📚',
           rating: 'N/A',
           chapters,
-          color: '#0891B2',
+          color: '#534AB7',
           bookmarked: true,
           savedAt: Date.now(),
         };
@@ -1559,7 +1559,7 @@ export default function ReaderScreen({ route, navigation }) {
                 </View>
               ) : (
                 <TouchableOpacity onPress={() => setShowSitePicker(true)} style={styles.reloadBtn}>
-                  <Ionicons name="globe-outline" size={15} color={readerMode === 'api' ? '#0891B2' : activeSite ? '#0891B2' : hudMuted} />
+                  <Ionicons name="globe-outline" size={15} color={readerMode === 'api' ? '#534AB7' : activeSite ? '#534AB7' : hudMuted} />
                 </TouchableOpacity>
               )}
               <Animated.View style={{ opacity: titleFade, alignItems: 'center' }}>
@@ -1578,7 +1578,7 @@ export default function ReaderScreen({ route, navigation }) {
           </View>
           <View style={styles.topRightIcons}>
             <TouchableOpacity onPress={() => setShowAmbience(true)} style={styles.topIconBtn}>
-              <Ionicons name="headset-outline" size={18} color={ambienceState.presetId ? '#0891B2' : hudMuted} />
+              <Ionicons name="headset-outline" size={18} color={ambienceState.presetId ? '#534AB7' : hudMuted} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn}>
               <Ionicons name="settings-outline" size={18} color={hudMuted} />
@@ -1597,7 +1597,7 @@ export default function ReaderScreen({ route, navigation }) {
           ]}>
           {pagesLoading ? (
             <View style={styles.pagesLoadingWrap}>
-              <ActivityIndicator size="large" color="#0891B2" />
+              <ActivityIndicator size="large" color="#534AB7" />
               <Text style={styles.pagesLoadingText}>Loading pages…</Text>
             </View>
           ) : (
@@ -1645,7 +1645,7 @@ export default function ReaderScreen({ route, navigation }) {
             ref={webviewRef}
             source={{ uri: currentUrl }}
             style={styles.webview}
-            containerStyle={{ backgroundColor: '#06080F' }}
+            containerStyle={{ backgroundColor: '#0D0D0F' }}
             injectedJavaScript={AD_BLOCK_JS + TAP_TOGGLE_JS}
             injectedJavaScriptForMainFrameOnly={false}
             startInLoadingState
@@ -1857,14 +1857,14 @@ export default function ReaderScreen({ route, navigation }) {
             <TouchableOpacity
               style={[styles.bottomIconBtn, mode === 'manga' && styles.modeToggleActive]}
               onPress={() => setMode((m) => m === 'webtoon' ? 'manga' : 'webtoon')}>
-              <Ionicons name={mode === 'webtoon' ? 'reader-outline' : 'albums-outline'} size={20} color={mode === 'manga' ? '#0891B2' : hudMuted} />
+              <Ionicons name={mode === 'webtoon' ? 'reader-outline' : 'albums-outline'} size={20} color={mode === 'manga' ? '#534AB7' : hudMuted} />
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.bottomIconBtn} onPress={handleBookmark}>
-            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#0891B2' : hudMuted} />
+            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#534AB7' : hudMuted} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomIconBtn} onPress={() => setShowUI((v) => !v)}>
-            <Ionicons name={showUI ? 'eye-outline' : 'eye-off-outline'} size={20} color={showUI ? hudMuted : '#0891B2'} />
+            <Ionicons name={showUI ? 'eye-outline' : 'eye-off-outline'} size={20} color={showUI ? hudMuted : '#534AB7'} />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -1935,7 +1935,7 @@ export default function ReaderScreen({ route, navigation }) {
                   ) : null}
                 </View>
                 {item.active
-                  ? <Ionicons name="play" size={11} color="#0891B2" />
+                  ? <Ionicons name="play" size={11} color="#534AB7" />
                   : item.isRead
                     ? <Ionicons name="checkmark" size={13} color="#1D9E75" />
                     : null}
@@ -2048,7 +2048,7 @@ export default function ReaderScreen({ route, navigation }) {
                     style={[styles.ambienceBtn, active && styles.ambienceBtnActive]}
                     onPress={() => active ? ambienceStop() : ambiencePlay(p.id)}
                     activeOpacity={0.75}>
-                    <Ionicons name={p.icon} size={24} color={active ? '#0891B2' : '#9B9AA3'} />
+                    <Ionicons name={p.icon} size={24} color={active ? '#534AB7' : '#9B9AA3'} />
                     <Text style={[styles.ambienceBtnLabel, active && styles.ambienceBtnLabelActive]}>{p.label}</Text>
                     <Text style={styles.ambienceBtnSub}>{active ? 'Tap to stop' : 'Tap to play'}</Text>
                   </TouchableOpacity>
@@ -2193,7 +2193,7 @@ export default function ReaderScreen({ route, navigation }) {
           <TouchableOpacity style={styles.resolvingBackBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.6)" />
           </TouchableOpacity>
-          <ActivityIndicator size="large" color="#0891B2" />
+          <ActivityIndicator size="large" color="#534AB7" />
           <Text style={styles.resolvingTitle} numberOfLines={2}>
             {routeTitle || searchQuery || 'Finding manga…'}
           </Text>
@@ -2239,9 +2239,9 @@ export default function ReaderScreen({ route, navigation }) {
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container:              { flex: 1, backgroundColor: '#06080F' },
+  container:              { flex: 1, backgroundColor: '#0D0D0F' },
   progressBar:            { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#2A2A2F', zIndex: 100 },
-  progressFill:           { height: 3, backgroundColor: '#0891B2' },
+  progressFill:           { height: 3, backgroundColor: '#534AB7' },
   topBar:                 { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 90, backgroundColor: 'rgba(13,13,15,0.92)' },
   topRow:                 { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 10, minHeight: 56 },
   topBarLeft:             { minWidth: 80, flexDirection: 'row', alignItems: 'center' },
@@ -2255,7 +2255,7 @@ const styles = StyleSheet.create({
   topRightIcons:          { width: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   topIconBtn:             { padding: 6, marginLeft: 2 },
   webtoonWrapper:         { flex: 1, position: 'relative' },
-  webview:                { flex: 1, backgroundColor: '#06080F' },
+  webview:                { flex: 1, backgroundColor: '#0D0D0F' },
   mangaTapOverlay:        { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end', alignItems: 'center' },
   mangaHintWrap:          { paddingBottom: 12 },
   mangaHintText:          { color: 'rgba(255,255,255,0.3)', fontSize: 10 },
@@ -2263,49 +2263,49 @@ const styles = StyleSheet.create({
   chapterNavGroup:        { flexDirection: 'row', alignItems: 'center' },
   chapterArrowBtn:        { padding: 7, borderRadius: 20 },
   chapterArrowDisabled:   { opacity: 0.3 },
-  chapterSelectBtn:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0C1220', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginHorizontal: 2 },
+  chapterSelectBtn:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginHorizontal: 2 },
   chapterSelectText:      { color: '#fff', fontSize: 12, fontWeight: '600', textAlign: 'center' },
   chapterSelectPage:      { color: '#5C5B63', fontSize: 9, textAlign: 'center', marginTop: 1 },
   bottomActions:          { flexDirection: 'row', alignItems: 'center' },
   bottomIconBtn:          { padding: 8, marginLeft: 4 },
   bottomIconBtnActive:    { backgroundColor: 'rgba(29,158,117,0.15)', borderRadius: 20 },
-  modeToggleActive:       { backgroundColor: 'rgba(8,145,178,0.15)', borderRadius: 20 },
+  modeToggleActive:       { backgroundColor: 'rgba(83,74,183,0.15)', borderRadius: 20 },
   eyeBtn:                 { position: 'absolute', bottom: 24, right: 16, padding: 10, borderRadius: 24, backgroundColor: 'rgba(13,13,15,0.7)', borderWidth: 1, borderColor: '#2A2A2F', zIndex: 90 },
   // Chapter floating dropdown
-  chapterDropdown:        { position: 'absolute', bottom: 90, left: 16, width: '50%', height: 300, backgroundColor: '#0C1220', borderRadius: 16, borderWidth: 1, borderColor: '#2A2A2F', overflow: 'hidden', zIndex: 95 },
+  chapterDropdown:        { position: 'absolute', bottom: 90, left: 16, width: '50%', height: 300, backgroundColor: '#1A1A1F', borderRadius: 16, borderWidth: 1, borderColor: '#2A2A2F', overflow: 'hidden', zIndex: 95 },
   chapterDropdownLabel:   { color: '#5C5B63', fontSize: 10, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   chapterListRow:         { flexDirection: 'row', alignItems: 'center', height: CHAPTER_ROW_H, paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#242428' },
-  chapterListRowActive:   { backgroundColor: 'rgba(8,145,178,0.12)' },
+  chapterListRowActive:   { backgroundColor: 'rgba(83,74,183,0.12)' },
   chapterListDotWrap:     { width: 14, alignItems: 'center', marginRight: 8 },
-  chapterListActiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: '#0891B2' },
+  chapterListActiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: '#534AB7' },
   chapterListNum:         { color: '#fff', fontSize: 12, fontWeight: '600' },
-  chapterListNumActive:   { color: '#0891B2' },
+  chapterListNumActive:   { color: '#534AB7' },
   chapterListNumRead:     { color: '#5C5B63', fontWeight: '400' },
   chapterListTitle:       { color: '#9B9AA3', fontSize: 10, marginTop: 2 },
   sheetOverlay:           { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet:                  { backgroundColor: '#0C1220', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  siteSheet:              { backgroundColor: '#0C1220', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '88%' },
+  sheet:                  { backgroundColor: '#1A1A1F', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  siteSheet:              { backgroundColor: '#1A1A1F', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '88%' },
   sheetHandle:            { width: 40, height: 4, backgroundColor: '#2A2A2F', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   sheetHeader:            { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   sheetTitle:             { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1 },
   playingBadge:           { backgroundColor: '#1D9E75', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, marginRight: 12 },
   playingText:            { color: '#fff', fontSize: 12, fontWeight: '600' },
   ambienceOptions:        { flexDirection: 'row', justifyContent: 'space-between' },
-  ambienceBtn:            { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: '#06080F', marginHorizontal: 4, borderWidth: 1, borderColor: '#2A2A2F' },
-  ambienceBtnActive:      { borderColor: '#0891B2', backgroundColor: '#1A1633' },
+  ambienceBtn:            { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: '#0D0D0F', marginHorizontal: 4, borderWidth: 1, borderColor: '#2A2A2F' },
+  ambienceBtnActive:      { borderColor: '#534AB7', backgroundColor: '#1A1633' },
   ambienceBtnLabel:       { color: '#9B9AA3', fontSize: 13, fontWeight: '600', marginTop: 8 },
-  ambienceBtnLabelActive: { color: '#0891B2' },
+  ambienceBtnLabelActive: { color: '#534AB7' },
   ambienceBtnSub:         { color: '#9B9AA3', fontSize: 10, marginTop: 4 },
   ambienceVolRow:         { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   ambienceVolBtn:         { padding: 6 },
   ambienceVolTrack:       { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden' },
-  ambienceVolFill:        { height: 4, backgroundColor: '#0891B2', borderRadius: 2 },
+  ambienceVolFill:        { height: 4, backgroundColor: '#534AB7', borderRadius: 2 },
   modeSectionLabel:       { color: '#9B9AA3', fontSize: 11, fontWeight: '600', marginBottom: 10 },
   readerRow:              { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   readerBtn:              { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, borderColor: '#2A2A2F' },
-  readerBtnActive:        { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.15)' },
+  readerBtnActive:        { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
   readerBtnText:          { color: '#9B9AA3', fontSize: 12, fontWeight: '600', marginTop: 8 },
-  readerBtnTextActive:    { color: '#0891B2' },
+  readerBtnTextActive:    { color: '#534AB7' },
   readerBtnSub:           { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
   settingsRow:            { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2A2A2F' },
   settingsRowText:        { color: '#fff', fontSize: 14, marginLeft: 12 },
@@ -2323,11 +2323,11 @@ const styles = StyleSheet.create({
   shareStoryBtn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D8336B', paddingVertical: 14, borderRadius: 12 },
   shareStoryText:         { color: '#fff', fontSize: 13, fontWeight: '600', marginLeft: 6 },
   // site picker
-  apiModeBanner:          { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(8,145,178,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(8,145,178,0.3)' },
-  apiModeBannerText:      { color: '#0891B2', fontSize: 12, marginLeft: 6, flex: 1 },
-  siteInputRow:           { flexDirection: 'row', alignItems: 'center', backgroundColor: '#06080F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
+  apiModeBanner:          { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)' },
+  apiModeBannerText:      { color: '#534AB7', fontSize: 12, marginLeft: 6, flex: 1 },
+  siteInputRow:           { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0D0D0F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
   siteInputField:         { flex: 1, color: '#fff', fontSize: 13, marginLeft: 8 },
-  siteGoBtn:              { backgroundColor: '#0891B2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  siteGoBtn:              { backgroundColor: '#534AB7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   siteGoBtnText:          { color: '#fff', fontSize: 12, fontWeight: '600' },
   siteSectionRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   siteSectionLabel:       { color: '#9B9AA3', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
@@ -2339,13 +2339,13 @@ const styles = StyleSheet.create({
   pagesLoadingText:       { color: '#9B9AA3', fontSize: 13, marginTop: 12 },
   noPages:                { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 120 },
   noPagesText:            { color: '#9B9AA3', fontSize: 14, marginTop: 12, textAlign: 'center' },
-  openInBrowserBtn:       { marginTop: 16, backgroundColor: '#0891B2', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
+  openInBrowserBtn:       { marginTop: 16, backgroundColor: '#534AB7', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   openInBrowserText:      { color: '#fff', fontSize: 13, fontWeight: '600' },
   pageCounter:            { position: 'absolute', bottom: 78, right: 16, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
   pageCounterText:        { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600' },
   // download overlay
   dlOverlay:              { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  dlCard:                 { backgroundColor: '#0C1220', borderRadius: 20, padding: 28, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: '#2A2A2F' },
+  dlCard:                 { backgroundColor: '#1A1A1F', borderRadius: 20, padding: 28, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: '#2A2A2F' },
   dlIconWrap:             { marginBottom: 16 },
   dlTitle:                { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   dlSub:                  { color: '#9B9AA3', fontSize: 12, marginTop: 6, marginBottom: 16 },
@@ -2353,7 +2353,7 @@ const styles = StyleSheet.create({
   dlBarFill:              { height: 6, backgroundColor: '#1D9E75', borderRadius: 3 },
   dlCount:                { color: '#9B9AA3', fontSize: 12, marginTop: 8 },
   // resolving overlay
-  resolvingOverlay:       { ...StyleSheet.absoluteFillObject, backgroundColor: '#06080F', alignItems: 'center', justifyContent: 'center', zIndex: 150 },
+  resolvingOverlay:       { ...StyleSheet.absoluteFillObject, backgroundColor: '#0D0D0F', alignItems: 'center', justifyContent: 'center', zIndex: 150 },
   resolvingBackBtn:       { position: 'absolute', top: 50, left: 16, padding: 10 },
   resolvingTitle:         { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 20, textAlign: 'center', paddingHorizontal: 32 },
   resolvingSub:           { color: '#9B9AA3', fontSize: 13, marginTop: 8 },
