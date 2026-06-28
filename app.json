@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "Inklore",
+    "slug": "inklore",
+    "scheme": "inklore",
+    "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D0F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.inklore.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to upload your profile photo.",
+        "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D0D0F"
+      },
+      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "adjustPan",
+      "package": "com.inklore.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-web-browser",
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#534AB7",
+          "sounds": ["./assets/sounds/notification.mp3"]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Used to select your profile photo."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d8e9e8d4-41cd-4b74-86c5-ffee8087dcf0"
+      }
+    },
+    "owner": "kazymodo"
+  }
+}
