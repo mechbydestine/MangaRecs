@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Share } from 'react-native';
+﻿import { View, Text, StyleSheet, Modal, TouchableOpacity, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../utils/ThemeContext';
@@ -27,7 +27,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
   async function handleCopyLink() {
     try {
       await Share.share({
-        message: `https://inklore.app/series/${series?.id || 'discover'}`,
+        message: `https://panelr.app/series/${series?.id || 'discover'}`,
       });
       setShared(true);
       setTimeout(() => setShared(false), 2000);
@@ -37,7 +37,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
   async function handleInstagram() {
     try {
       await Share.share({
-        message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on Inklore! 📚\nhttps://inklore.app/series/${series?.id || 'discover'}`,
+        message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on Panelr! 📚\nhttps://panelr.app/series/${series?.id || 'discover'}`,
       });
     } catch (_) {}
     onClose();
@@ -65,9 +65,9 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
                 style={[
                   styles.cardOption,
                   {
-                    borderColor: selectedCard === c.id ? '#534AB7' : colors.border,
+                    borderColor: selectedCard === c.id ? '#0891B2' : colors.border,
                     backgroundColor: selectedCard === c.id
-                      ? 'rgba(83,74,183,0.1)'
+                      ? 'rgba(8,145,178,0.1)'
                       : 'rgba(255,255,255,0.03)',
                   },
                 ]}
@@ -86,10 +86,10 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
             <View style={[styles.storyCard, { backgroundColor: storyBg }]}>
               <View style={styles.storyDimOverlay} />
 
-              {/* Inklore watermark */}
+              {/* Panelr watermark */}
               <View style={styles.watermark}>
                 <View style={styles.watermarkPill}>
-                  <Text style={styles.watermarkText}>inklore</Text>
+                  <Text style={styles.watermarkText}>panelr</Text>
                 </View>
               </View>
 
@@ -117,7 +117,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
                     <Text style={styles.storyTitle} numberOfLines={2}>
                       {series?.title || 'Series Title'}
                     </Text>
-                    <Text style={styles.storyChapter}>Ch. {chapter || 1} · Inklore</Text>
+                    <Text style={styles.storyChapter}>Ch. {chapter || 1} · Panelr</Text>
                   </>
                 )}
                 {selectedCard === 'rating' && (
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 3,
-    backgroundColor: '#534AB7',
+    backgroundColor: '#0891B2',
     borderRadius: 2,
   },
   storyPct: { fontSize: 7, color: 'rgba(255,255,255,0.5)', marginTop: 2 },

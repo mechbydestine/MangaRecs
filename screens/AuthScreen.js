@@ -1,4 +1,4 @@
-import {
+﻿import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
@@ -171,7 +171,7 @@ export default function AuthScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}>Inklore</Text>
+        <Text style={styles.logo}>Panelr</Text>
         <Text style={styles.tagline}>Your manga universe awaits</Text>
 
         <View style={styles.card}>
@@ -347,7 +347,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D0D0F',
+    backgroundColor: '#06080F',
   },
   scroll: {
     flexGrow: 1,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   logo: {
-    color: '#534AB7',
+    color: '#0891B2',
     fontSize: 42,
     fontWeight: 'bold',
     letterSpacing: 2,
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   card: {
-    backgroundColor: '#1A1A1F',
+    backgroundColor: '#0C1220',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D0D0F',
+    backgroundColor: '#06080F',
     borderWidth: 1,
     borderColor: '#2A2A2F',
     borderRadius: 12,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   fieldWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D0D0F',
+    backgroundColor: '#06080F',
     borderWidth: 1,
     borderColor: '#2A2A2F',
     borderRadius: 12,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   forgotLink: {
-    color: '#534AB7',
+    color: '#0891B2',
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'right',
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   btn: {
-    backgroundColor: '#534AB7',
+    backgroundColor: '#0891B2',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   switchLink: {
-    color: '#534AB7',
+    color: '#0891B2',
     fontWeight: '600',
   },
 });

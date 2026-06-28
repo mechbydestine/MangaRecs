@@ -1,4 +1,4 @@
-import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
+﻿import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, ActivityIndicator, Animated, Platform, AppState, StyleSheet } from 'react-native';
@@ -58,7 +58,7 @@ const queryClient = new QueryClient();
 async function checkGuidelinesAccepted(userId) {
   // Fast path: local cache (avoids Supabase round-trip on every launch)
   try {
-    const local = await AsyncStorage.getItem('@inklore/guidelines_accepted');
+    const local = await AsyncStorage.getItem('@panelr/guidelines_accepted');
     if (local === 'true') return true;
   } catch (_) {}
 
@@ -70,7 +70,7 @@ async function checkGuidelinesAccepted(userId) {
       .eq('id', userId)
       .maybeSingle();
     if (data?.accepted_guidelines === true) {
-      AsyncStorage.setItem('@inklore/guidelines_accepted', 'true').catch(() => {});
+      AsyncStorage.setItem('@panelr/guidelines_accepted', 'true').catch(() => {});
       return true;
     }
     return false;
@@ -247,7 +247,7 @@ function TabNavigator() {
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: '#534AB7',
+        tabBarActiveTintColor: '#0891B2',
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       })}>
@@ -314,12 +314,12 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
-      primary: '#534AB7',
+      primary: '#0891B2',
       background: colors.background,
       card: colors.card,
       text: colors.text,
       border: colors.border,
-      notification: '#534AB7',
+      notification: '#0891B2',
     },
   };
 
@@ -355,7 +355,7 @@ export default function App() {
         const [sessionResult, onboardingDone, guidelinesLocal] = await Promise.all([
           supabase.auth.getSession(),
           AsyncStorage.getItem('onboarding_complete'),
-          AsyncStorage.getItem('@inklore/guidelines_accepted'),
+          AsyncStorage.getItem('@panelr/guidelines_accepted'),
           hydrateCoverCache(),
         ]);
         const s = sessionResult?.data?.session ?? null;
@@ -380,7 +380,7 @@ export default function App() {
       setSession(session);
       if (session?.user?.id) {
         registerPushToken(session.user.id);
-        const guidelinesLocal = await AsyncStorage.getItem('@inklore/guidelines_accepted').catch(() => null);
+        const guidelinesLocal = await AsyncStorage.getItem('@panelr/guidelines_accepted').catch(() => null);
         if (guidelinesLocal === 'true') {
           setNeedsGuidelines(false);
         } else {
@@ -452,13 +452,13 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0D0D0F', alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+      <View style={{ flex: 1, backgroundColor: '#06080F', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#0891B2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Ionicons name="book" size={24} color="#fff" />
         </View>
-        <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1, marginBottom: 8 }}>Inklore</Text>
-        <ActivityIndicator size="small" color="#534AB7" style={{ marginTop: 8 }} />
-        <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading Inklore...</Text>
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1, marginBottom: 8 }}>Panelr</Text>
+        <ActivityIndicator size="small" color="#0891B2" style={{ marginTop: 8 }} />
+        <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading Panelr...</Text>
       </View>
     );
   }
