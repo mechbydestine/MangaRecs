@@ -136,7 +136,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#06080F' },
+  root: { flex: 1, backgroundColor: '#0D0D0F' },
   scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
 
   topBar: {
@@ -147,14 +147,14 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#0C1220',
+    backgroundColor: '#1A1A1F',
     alignItems: 'center', justifyContent: 'center',
   },
 
   logoWrap: { alignItems: 'center', marginBottom: 32 },
   logo: {
     width: 60, height: 60, borderRadius: 20,
-    backgroundColor: '#0891B2',
+    backgroundColor: '#534AB7',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
   logoText: { color: '#fff', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
@@ -162,23 +162,23 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
   subtitle: { color: '#9B9AA3', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
 
-  card: { flexDirection: 'row', backgroundColor: '#0C1220', borderRadius: 14, padding: 16, marginBottom: 10 },
+  card: { flexDirection: 'row', backgroundColor: '#1A1A1F', borderRadius: 14, padding: 16, marginBottom: 10 },
   cardEmoji: { fontSize: 22, marginRight: 14, marginTop: 1 },
   cardBody: { flex: 1 },
   cardTitle: { color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 4 },
   cardDesc: { color: '#9B9AA3', fontSize: 12, lineHeight: 18 },
 
   linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
-  linkText: { color: '#0891B2', fontSize: 12, fontWeight: '500' },
+  linkText: { color: '#534AB7', fontSize: 12, fontWeight: '500' },
   linkSep: { color: '#9B9AA3', marginHorizontal: 10, fontSize: 12 },
 
   bottomBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#06080F',
-    borderTopWidth: 1, borderTopColor: '#0C1220',
+    backgroundColor: '#0D0D0F',
+    borderTopWidth: 1, borderTopColor: '#1A1A1F',
     paddingTop: 16, paddingHorizontal: 24,
   },
-  agreeBtn: { backgroundColor: '#0891B2', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  agreeBtn: { backgroundColor: '#534AB7', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   agreeBtnLoading: { opacity: 0.7 },
   agreeBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

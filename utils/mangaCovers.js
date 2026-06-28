@@ -312,7 +312,7 @@ export function getCachedCoverUrl(title, lang) {
   );
 }
 
-export function MangaCover({ title, searchKey, lang, color = '#0C1220', style, children }) {
+export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', style, children }) {
   const lookupTitle = searchKey || title;
   const [coverUrl, setCoverUrl] = useState(() => getCachedCoverUrl(lookupTitle, lang));
 

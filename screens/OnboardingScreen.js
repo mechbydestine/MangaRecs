@@ -260,7 +260,7 @@ function Screen3() {
         {HIGHLIGHTS.map((h) => (
           <View key={h.label} style={styles.highlightCard}>
             <View style={styles.highlightIconWrap}>
-              <Ionicons name={h.icon} size={14} color="#0891B2" />
+              <Ionicons name={h.icon} size={14} color="#534AB7" />
             </View>
             <Text style={styles.highlightLabel}>{h.label}</Text>
           </View>
@@ -281,7 +281,7 @@ function Screen4() {
         {FEATURES.map((f) => (
           <View key={f.label} style={styles.featureRow}>
             <View style={styles.featureIconWrap}>
-              <Ionicons name={f.icon} size={14} color="#0891B2" />
+              <Ionicons name={f.icon} size={14} color="#534AB7" />
             </View>
             <Text style={styles.featureLabel}>{f.label}</Text>
             <View style={styles.featureCheck}>
@@ -313,7 +313,7 @@ function Screen5({ selected, onToggle }) {
               style={[styles.genreBtn, active && styles.genreBtnActive, maxed && styles.genreBtnMaxed]}>
               <Text style={styles.genreEmoji}>{g.emoji}</Text>
               <Text style={[styles.genreLabel, active && styles.genreLabelActive]}>{g.label}</Text>
-              {active && <Ionicons name="checkmark" size={14} color="#0891B2" />}
+              {active && <Ionicons name="checkmark" size={14} color="#534AB7" />}
             </TouchableOpacity>
           );
         })}
@@ -355,7 +355,7 @@ function ScreenTaste({ vibe, onVibe, frequency, onFrequency }) {
                 <Text style={[styles.tasteOptionLabel, active && { color: '#fff' }]}>{v.label}</Text>
                 <Text style={styles.tasteOptionDesc}>{v.desc}</Text>
               </View>
-              {active && <Ionicons name="checkmark-circle" size={20} color="#0891B2" />}
+              {active && <Ionicons name="checkmark-circle" size={20} color="#534AB7" />}
             </TouchableOpacity>
           );
         })}
@@ -551,7 +551,7 @@ export default function OnboardingScreen({ onComplete }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#06080F' },
+  container: { flex: 1, backgroundColor: '#0D0D0F' },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -560,21 +560,21 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 8,
   },
-  logo: { color: '#0891B2', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
+  logo: { color: '#534AB7', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
   skipText: { color: '#9B9AA3', fontSize: 12, textAlign: 'center', marginTop: 12 },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 12 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#9B9AA3' },
-  dotActive: { width: 24, backgroundColor: '#0891B2' },
+  dotActive: { width: 24, backgroundColor: '#534AB7' },
   screenPad: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
   headline: { color: '#fff', fontSize: 26, fontWeight: 'bold', marginBottom: 8, lineHeight: 32 },
-  highlightText: { color: '#0891B2', fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
+  highlightText: { color: '#534AB7', fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
   sub: { color: '#9B9AA3', fontSize: 12, lineHeight: 18, marginBottom: 4 },
   bottomBar: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   ctaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0891B2',
+    backgroundColor: '#534AB7',
     borderRadius: 16,
     paddingVertical: 16,
     gap: 8,
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#0891B2',
+    backgroundColor: '#534AB7',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
 
   googleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#06080F', borderWidth: 1, borderColor: '#2A2A2F',
+    backgroundColor: '#0D0D0F', borderWidth: 1, borderColor: '#2A2A2F',
     borderRadius: 12, paddingVertical: 14, marginTop: 12, marginBottom: 16, gap: 10,
   },
   googleBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1, backgroundColor: '#2A2A2F' },
   dividerText: { color: '#9B9AA3', fontSize: 11, textTransform: 'uppercase', marginHorizontal: 10 },
   fieldWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#0C1220',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F',
     borderWidth: 1, borderColor: '#2A2A2F', borderRadius: 12, paddingHorizontal: 14, marginBottom: 12,
   },
   fieldIcon: { marginRight: 8 },
@@ -628,18 +628,18 @@ const styles = StyleSheet.create({
 
   activityRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 12, backgroundColor: '#0C1220', borderRadius: 16, marginBottom: 10,
+    padding: 12, backgroundColor: '#1A1A1F', borderRadius: 16, marginBottom: 10,
     borderWidth: 1, borderColor: '#2A2A2F',
   },
   activityAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#0891B2',
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#534AB7',
     alignItems: 'center', justifyContent: 'center',
   },
   activityAvatarText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
   activityText: { fontSize: 12, lineHeight: 17 },
   activityUser: { color: '#fff', fontWeight: '600' },
   activityAction: { color: '#9B9AA3' },
-  activityTitle: { color: '#0891B2', fontWeight: '600' },
+  activityTitle: { color: '#534AB7', fontWeight: '600' },
   activityTime: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
 
   recCard: {
@@ -655,18 +655,18 @@ const styles = StyleSheet.create({
   highlightGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
   highlightCard: {
     width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, backgroundColor: '#0C1220', borderWidth: 1, borderColor: '#2A2A2F',
+    padding: 12, backgroundColor: '#1A1A1F', borderWidth: 1, borderColor: '#2A2A2F',
     borderRadius: 12, marginBottom: 8,
   },
-  highlightIconWrap: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(8,145,178,0.15)' },
+  highlightIconWrap: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.15)' },
   highlightLabel: { color: '#fff', fontSize: 11, fontWeight: '500', flex: 1 },
 
   featureRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 12, backgroundColor: '#0C1220', borderWidth: 1, borderColor: '#2A2A2F',
+    padding: 12, backgroundColor: '#1A1A1F', borderWidth: 1, borderColor: '#2A2A2F',
     borderRadius: 12, marginBottom: 8,
   },
-  featureIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(8,145,178,0.15)', alignItems: 'center', justifyContent: 'center' },
+  featureIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.15)', alignItems: 'center', justifyContent: 'center' },
   featureLabel: { color: '#fff', fontSize: 13, fontWeight: '500', flex: 1 },
   featureCheck: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(29,158,117,0.2)', alignItems: 'center', justifyContent: 'center' },
 
@@ -674,9 +674,9 @@ const styles = StyleSheet.create({
   genreBtn: {
     width: '47%', flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#0C1220', marginBottom: 4,
+    borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#1A1A1F', marginBottom: 4,
   },
-  genreBtnActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.15)' },
+  genreBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
   genreBtnMaxed: { opacity: 0.4 },
   genreEmoji: { fontSize: 18 },
   genreLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
@@ -686,9 +686,9 @@ const styles = StyleSheet.create({
   tasteOption: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#2A2A2F',
-    backgroundColor: '#0C1220', marginBottom: 10,
+    backgroundColor: '#1A1A1F', marginBottom: 10,
   },
-  tasteOptionActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.12)' },
+  tasteOptionActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.12)' },
   tasteOptionEmoji: { fontSize: 22, width: 30, textAlign: 'center' },
   tasteOptionLabel: { color: '#9B9AA3', fontSize: 14, fontWeight: '600', marginBottom: 2 },
   tasteOptionDesc: { color: 'rgba(155,154,163,0.55)', fontSize: 11 },
@@ -696,14 +696,14 @@ const styles = StyleSheet.create({
   freqBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
-    borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#0C1220',
+    borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#1A1A1F',
   },
-  freqBtnActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.12)' },
+  freqBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.12)' },
   freqEmoji: { fontSize: 16 },
   freqLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
 
   usernameWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#0C1220',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F',
     borderWidth: 1, borderColor: '#2A2A2F', borderRadius: 16, paddingHorizontal: 16,
     marginTop: 20, marginBottom: 12,
   },

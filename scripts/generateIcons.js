@@ -11,8 +11,8 @@ function drawIcon(size) {
 
   // Background: deep navy with subtle cyan gradient
   const bg = ctx.createLinearGradient(0, 0, size, size);
-  bg.addColorStop(0, '#06080F');
-  bg.addColorStop(1, '#0A1828');
+  bg.addColorStop(0, '#0D0D0F');
+  bg.addColorStop(1, '#13131A');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, size, size);
 
@@ -57,8 +57,8 @@ function drawIcon(size) {
       if (isLit) {
         // Lit panel: cyan fill with inner glow
         const panelGrad = ctx.createLinearGradient(px, py, px + cw, py + rh);
-        panelGrad.addColorStop(0, '#22D3EE');
-        panelGrad.addColorStop(1, '#0891B2');
+        panelGrad.addColorStop(0, '#7F77DD');
+        panelGrad.addColorStop(1, '#534AB7');
         ctx.fillStyle = panelGrad;
       } else {
         // Dark panel: very subtle so it reads as "empty" panel
@@ -101,7 +101,7 @@ function drawSplash(size) {
   const ctx = c.getContext('2d');
 
   // Background matching app
-  ctx.fillStyle = '#06080F';
+  ctx.fillStyle = '#0D0D0F';
   ctx.fillRect(0, 0, size, size);
 
   // Center the small icon version
@@ -136,8 +136,8 @@ function drawSplash(size) {
 
       if (isLit) {
         const pg = ctx.createLinearGradient(px, py, px + cw, py + rh);
-        pg.addColorStop(0, '#22D3EE');
-        pg.addColorStop(1, '#0891B2');
+        pg.addColorStop(0, '#7F77DD');
+        pg.addColorStop(1, '#534AB7');
         ctx.fillStyle = pg;
       } else {
         ctx.fillStyle = 'rgba(8,145,178,0.10)';

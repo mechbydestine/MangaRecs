@@ -247,7 +247,7 @@ function TabNavigator() {
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: '#0891B2',
+        tabBarActiveTintColor: '#534AB7',
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       })}>
@@ -314,12 +314,12 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
-      primary: '#0891B2',
+      primary: '#534AB7',
       background: colors.background,
       card: colors.card,
       text: colors.text,
       border: colors.border,
-      notification: '#0891B2',
+      notification: '#534AB7',
     },
   };
 
@@ -452,12 +452,12 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#06080F', alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#0891B2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+      <View style={{ flex: 1, backgroundColor: '#0D0D0F', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Ionicons name="book" size={24} color="#fff" />
         </View>
         <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1, marginBottom: 8 }}>Panelr</Text>
-        <ActivityIndicator size="small" color="#0891B2" style={{ marginTop: 8 }} />
+        <ActivityIndicator size="small" color="#534AB7" style={{ marginTop: 8 }} />
         <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading Panelr...</Text>
       </View>
     );

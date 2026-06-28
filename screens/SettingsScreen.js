@@ -33,9 +33,9 @@ function WebtoonIcon({ active }) {
     }
   }, [active]);
   return (
-    <View style={[iconStyles.webtoonBox, { borderColor: active ? '#0891B2' : '#5C5B63' }]}>
+    <View style={[iconStyles.webtoonBox, { borderColor: active ? '#534AB7' : '#5C5B63' }]}>
       <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
-        <View style={[iconStyles.triangleDown, { borderTopColor: active ? '#0891B2' : '#5C5B63' }]} />
+        <View style={[iconStyles.triangleDown, { borderTopColor: active ? '#534AB7' : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
@@ -57,9 +57,9 @@ function MangaIcon({ active }) {
   }, [active]);
   return (
     <View style={iconStyles.mangaRow}>
-      <View style={[iconStyles.mangaBox, { borderColor: active ? '#0891B2' : '#5C5B63' }]} />
+      <View style={[iconStyles.mangaBox, { borderColor: active ? '#534AB7' : '#5C5B63' }]} />
       <Animated.View style={{ transform: [{ translateX: arrowX }] }}>
-        <View style={[iconStyles.triangleRight, { borderLeftColor: active ? '#0891B2' : '#5C5B63' }]} />
+        <View style={[iconStyles.triangleRight, { borderLeftColor: active ? '#534AB7' : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
@@ -83,7 +83,7 @@ function SlideIcon({ active }) {
       <Animated.View
         style={[
           iconStyles.animPreviewInner,
-          { transform: [{ translateX: x }], borderColor: active ? '#0891B2' : '#5C5B63', backgroundColor: active ? 'rgba(8,145,178,0.2)' : 'rgba(155,154,163,0.1)' },
+          { transform: [{ translateX: x }], borderColor: active ? '#534AB7' : '#5C5B63', backgroundColor: active ? 'rgba(83,74,183,0.2)' : 'rgba(155,154,163,0.1)' },
         ]}
       />
     </View>
@@ -108,7 +108,7 @@ function FadeIcon({ active }) {
     <Animated.View
       style={[
         iconStyles.animPreviewBox,
-        { opacity, borderColor: active ? '#0891B2' : '#5C5B63', backgroundColor: active ? 'rgba(8,145,178,0.2)' : 'rgba(155,154,163,0.1)' },
+        { opacity, borderColor: active ? '#534AB7' : '#5C5B63', backgroundColor: active ? 'rgba(83,74,183,0.2)' : 'rgba(155,154,163,0.1)' },
       ]}
     />
   );
@@ -116,8 +116,8 @@ function FadeIcon({ active }) {
 
 function NoneIcon({ active }) {
   return (
-    <View style={[iconStyles.animPreviewBox, { alignItems: 'center', justifyContent: 'center', borderColor: active ? '#0891B2' : '#5C5B63', backgroundColor: active ? 'rgba(8,145,178,0.2)' : 'rgba(155,154,163,0.1)' }]}>
-      <View style={{ width: 12, height: 1, backgroundColor: active ? '#0891B2' : '#5C5B63' }} />
+    <View style={[iconStyles.animPreviewBox, { alignItems: 'center', justifyContent: 'center', borderColor: active ? '#534AB7' : '#5C5B63', backgroundColor: active ? 'rgba(83,74,183,0.2)' : 'rgba(155,154,163,0.1)' }]}>
+      <View style={{ width: 12, height: 1, backgroundColor: active ? '#534AB7' : '#5C5B63' }} />
     </View>
   );
 }
@@ -145,7 +145,7 @@ function SectionCard({ title, icon, children }) {
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.cardHeader}>
-        <Ionicons name={icon} size={15} color="#0891B2" />
+        <Ionicons name={icon} size={15} color="#534AB7" />
         <Text style={[styles.cardHeaderTitle, { color: colors.muted }]}>{title}</Text>
       </View>
       <View style={styles.cardBody}>{children}</View>
@@ -366,7 +366,7 @@ export default function SettingsScreen({ navigation }) {
                 style={[styles.themeBtn, { borderColor: colors.border }, theme === t.id && styles.themeBtnActive]}
                 onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
                 activeOpacity={0.8}>
-                <Ionicons name={t.icon} size={20} color={theme === t.id ? '#0891B2' : colors.muted} />
+                <Ionicons name={t.icon} size={20} color={theme === t.id ? '#534AB7' : colors.muted} />
                 <Text style={[styles.themeBtnText, { color: colors.muted }, theme === t.id && styles.themeBtnTextActive]}>{t.label}</Text>
                 {theme === t.id && <View style={styles.activeDot} />}
               </TouchableOpacity>
@@ -398,7 +398,7 @@ export default function SettingsScreen({ navigation }) {
             <Switch
               value={aiRec}
               onValueChange={toggleAiRec}
-              trackColor={{ false: colors.border, true: '#0891B2' }}
+              trackColor={{ false: colors.border, true: '#534AB7' }}
               thumbColor="#fff"
             />
           </View>
@@ -407,8 +407,8 @@ export default function SettingsScreen({ navigation }) {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
                 {ageVerified && (
-                  <View style={{ backgroundColor: 'rgba(8,145,178,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9, color: '#0891B2', fontWeight: '700' }}>VERIFIED</Text>
+                  <View style={{ backgroundColor: 'rgba(83,74,183,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 9, color: '#534AB7', fontWeight: '700' }}>VERIFIED</Text>
                   </View>
                 )}
               </View>
@@ -427,7 +427,7 @@ export default function SettingsScreen({ navigation }) {
               />
             ) : (
               <TouchableOpacity
-                style={{ backgroundColor: '#0891B2', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
+                style={{ backgroundColor: '#534AB7', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
                 onPress={() => setShowAgeGate(true)}
                 activeOpacity={0.8}>
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Verify Age</Text>
@@ -455,7 +455,7 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={notifs[item.key]}
                 onValueChange={() => toggleNotif(item.key)}
-                trackColor={{ false: colors.border, true: '#0891B2' }}
+                trackColor={{ false: colors.border, true: '#534AB7' }}
                 thumbColor="#fff"
               />
             </View>
@@ -527,7 +527,7 @@ export default function SettingsScreen({ navigation }) {
           ) : null}
           <View style={[styles.exportRow, { borderTopColor: colors.border }]}>
             <TouchableOpacity style={styles.exportBtn} onPress={handleExportLibrary} activeOpacity={0.7}>
-              <Ionicons name="share-outline" size={15} color="#0891B2" />
+              <Ionicons name="share-outline" size={15} color="#534AB7" />
               <View style={{ marginLeft: 10 }}>
                 <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Export Library</Text>
                 <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Share your reading list as text</Text>
@@ -538,7 +538,7 @@ export default function SettingsScreen({ navigation }) {
 
         <SectionCard title="Audio Ambience" icon="musical-notes-outline">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Ionicons name="headset-outline" size={18} color="#0891B2" />
+            <Ionicons name="headset-outline" size={18} color="#534AB7" />
             <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0 }]}>
               Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
             </Text>
@@ -585,7 +585,7 @@ export default function SettingsScreen({ navigation }) {
 
         <TouchableOpacity style={styles.upgradeCard} onPress={() => setShowPlans(true)} activeOpacity={0.85}>
           <View style={styles.upgradeLeft}>
-            <Ionicons name="diamond" size={20} color="#0891B2" />
+            <Ionicons name="diamond" size={20} color="#534AB7" />
             <View style={{ marginLeft: 12 }}>
               <Text style={[styles.upgradeTitle, { color: colors.text }]}>Upgrade Plan</Text>
               <Text style={[styles.upgradeSub, { color: colors.muted }]}>Free · Pro · MAX — see what's included</Text>
@@ -703,7 +703,7 @@ export default function SettingsScreen({ navigation }) {
                       <Text style={styles.bestBadgeText}>BEST VALUE</Text>
                     </View>
                   )}
-                  <Ionicons name={plan.icon} size={20} color={selectedPlan === plan.id ? '#0891B2' : plan.best ? '#FFD700' : colors.muted} />
+                  <Ionicons name={plan.icon} size={20} color={selectedPlan === plan.id ? '#534AB7' : plan.best ? '#FFD700' : colors.muted} />
                   <Text style={[styles.planLabel, { color: colors.muted }, plan.best && styles.planLabelBest]}>{plan.label}</Text>
                   <Text style={[styles.planPrice, { color: colors.text }, selectedPlan === plan.id && styles.planPriceActive]}>{plan.price}</Text>
                 </TouchableOpacity>
@@ -750,7 +750,7 @@ export default function SettingsScreen({ navigation }) {
               'Priority support',
             ].map((f) => (
               <View key={f} style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color="#0891B2" />
+                <Ionicons name="checkmark-circle" size={16} color="#534AB7" />
                 <Text style={[styles.featureText, { color: colors.text }]}>{f}</Text>
               </View>
             ))}
@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
   cardSub: { fontSize: 12, marginBottom: 10 },
   urlRow: { flexDirection: 'row', alignItems: 'center' },
   input: { flex: 1, borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 13, marginRight: 8 },
-  smallCta: { backgroundColor: '#0891B2', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
+  smallCta: { backgroundColor: '#534AB7', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   smallCtaText: { color: '#fff', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   warningRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   warningTextDanger: { color: '#E24B4A', fontSize: 11, marginLeft: 5 },
@@ -822,10 +822,10 @@ const styles = StyleSheet.create({
   sourceSiteDesc: { fontSize: 11 },
   themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   themeBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
-  themeBtnActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.15)' },
+  themeBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
   themeBtnText: { fontSize: 12, fontWeight: '500', marginTop: 8 },
-  themeBtnTextActive: { color: '#0891B2' },
-  activeDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, backgroundColor: '#0891B2' },
+  themeBtnTextActive: { color: '#534AB7' },
+  activeDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, backgroundColor: '#534AB7' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   borderTop: { borderTopWidth: 1 },
   settingsRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
@@ -834,16 +834,16 @@ const styles = StyleSheet.create({
   versionText: { fontSize: 12, fontFamily: 'monospace' },
   readerRow: { flexDirection: 'row', justifyContent: 'space-between' },
   readerBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
-  readerBtnActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.15)' },
+  readerBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
   readerBtnText: { fontSize: 12, fontWeight: '600', marginTop: 8, paddingHorizontal: 2 },
-  readerBtnTextActive: { color: '#0891B2' },
+  readerBtnTextActive: { color: '#534AB7' },
   readerBtnSub: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
   animRow: { flexDirection: 'row', justifyContent: 'space-between' },
   animBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
-  animBtnActive: { borderColor: '#0891B2', backgroundColor: 'rgba(8,145,178,0.15)' },
+  animBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
   animBtnText: { fontSize: 12, fontWeight: '600', marginTop: 8, paddingHorizontal: 2 },
-  animBtnTextActive: { color: '#0891B2' },
-  upgradeCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(8,145,178,0.1)', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(8,145,178,0.3)' },
+  animBtnTextActive: { color: '#534AB7' },
+  upgradeCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(83,74,183,0.1)', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)' },
   upgradeLeft: { flexDirection: 'row', alignItems: 'center' },
   upgradeTitle: { fontSize: 14, fontWeight: '600' },
   upgradeSub: { fontSize: 11, marginTop: 2 },
@@ -872,25 +872,25 @@ const styles = StyleSheet.create({
   modalSub: { fontSize: 13, marginTop: 4 },
   plansRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   planCard: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 12, marginHorizontal: 4, borderWidth: 1, position: 'relative' },
-  planCardActive: { borderColor: '#0891B2', backgroundColor: '#1A1633' },
+  planCardActive: { borderColor: '#534AB7', backgroundColor: '#1A1633' },
   planCardBest: { borderColor: '#FFD700' },
   bestBadge: { position: 'absolute', top: -10, backgroundColor: '#FFD700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   bestBadgeText: { color: '#000', fontSize: 8, fontWeight: 'bold', paddingRight: 2 },
   planLabel: { fontSize: 12, marginTop: 6 },
   planLabelBest: { color: '#FFD700' },
   planPrice: { fontSize: 13, fontWeight: 'bold', marginTop: 4 },
-  planPriceActive: { color: '#0891B2' },
+  planPriceActive: { color: '#534AB7' },
   billingRow: { flexDirection: 'row', marginBottom: 16 },
   billingBtn: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, marginHorizontal: 4, borderWidth: 1, flexDirection: 'row', justifyContent: 'center' },
-  billingBtnActive: { borderColor: '#0891B2', backgroundColor: '#1A1633' },
+  billingBtnActive: { borderColor: '#534AB7', backgroundColor: '#1A1633' },
   billingBtnText: { fontSize: 13, fontWeight: '500' },
-  billingBtnTextActive: { color: '#0891B2' },
+  billingBtnTextActive: { color: '#534AB7' },
   saveBadge: { backgroundColor: '#FFD700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 6 },
   saveBadgeText: { color: '#000', fontSize: 9, fontWeight: 'bold', paddingRight: 2 },
   whatsIncluded: { fontSize: 11, fontWeight: '600', letterSpacing: 1, marginBottom: 12, marginTop: 4 },
   featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   featureText: { fontSize: 14, marginLeft: 10 },
-  ctaBtn: { backgroundColor: '#0891B2', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
+  ctaBtn: { backgroundColor: '#534AB7', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
   ctaBtnMax: { backgroundColor: '#FFD700' },
   ctaBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   cancelText: { fontSize: 12, textAlign: 'center', marginTop: 10 },

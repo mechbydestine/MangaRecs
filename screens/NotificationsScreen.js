@@ -10,21 +10,21 @@ import { useTheme } from '../utils/ThemeContext';
 import { useNotifications } from '../utils/NotificationsContext';
 
 const TYPE_META = {
-  friend_request:  { icon: 'person-add',           color: '#0891B2' },
+  friend_request:  { icon: 'person-add',           color: '#534AB7' },
   friend_accepted: { icon: 'people',               color: '#1D9E75' },
   like:            { icon: 'heart',                color: '#E8527A' },
   comment:         { icon: 'chatbubble',           color: '#1D9E75' },
-  reply:           { icon: 'chatbubble-ellipses',  color: '#0891B2' },
+  reply:           { icon: 'chatbubble-ellipses',  color: '#534AB7' },
   badge:           { icon: 'trophy',               color: '#f59e0b' },
   system:          { icon: 'notifications',        color: '#EF9F27' },
-  direct_message:  { icon: 'chatbubble-ellipses',  color: '#0891B2' },
+  direct_message:  { icon: 'chatbubble-ellipses',  color: '#534AB7' },
 };
 
 function NotifItem({ item, onAccept, onNavigate, colors }) {
   const meta = TYPE_META[item.type] || TYPE_META.system;
   return (
     <TouchableOpacity
-      style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(8,145,178,0.08)', borderBottomColor: colors.border }]}
+      style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(83,74,183,0.08)', borderBottomColor: colors.border }]}
       activeOpacity={0.75}
       onPress={() => onNavigate && onNavigate(item)}>
       <View style={[styles.iconWrap, { backgroundColor: `${meta.color}22` }]}>
@@ -40,7 +40,7 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
         {item.type === 'friend_request' && !item.read && item.friendshipId && (
           <View style={styles.actions}>
             <TouchableOpacity
-              style={[styles.acceptBtn, { backgroundColor: '#0891B2' }]}
+              style={[styles.acceptBtn, { backgroundColor: '#534AB7' }]}
               onPress={() => onAccept(item.friendshipId)}>
               <Text style={styles.acceptText}>Accept</Text>
             </TouchableOpacity>
@@ -74,7 +74,7 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="small" color="#0891B2" />
+          <ActivityIndicator size="small" color="#534AB7" />
         </View>
       ) : (
         <FlatList
