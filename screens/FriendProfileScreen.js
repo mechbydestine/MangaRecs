@@ -1,18 +1,21 @@
-﻿import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image, Alert } from 'react-native';
+import { getBlockedIds, blockUser, unblockUser } from '../utils/blocking';
+import { showAppToast } from '../utils/appToast';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats } from '../utils/badges';
 import { useTheme } from '../utils/ThemeContext';
-import MobileHeader from '../components/MobileHeader';
 import { MangaCover } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
+import { PeopleListModal, PeopleRow } from './ProfileScreen';
 
 const PROFILE_THEMES = [
-  { id: 'default', label: 'Default', ring: '#534AB7', gradient: ['#534AB7', '#1D9E75'], banner: ['#534AB7', '#0D0D0F'] },
+  { id: 'default', label: 'Default', ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'], banner: ['#7B5CFF', '#0D0D0F'] },
   { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#0D0D0F'] },
   { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#0D0D0F'] },
   { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },
@@ -28,41 +31,94 @@ const fmtHrs = (h) => {
   return `${Math.round(h)}h`;
 };
 
-function StreakCalendar({ dailyLog }) {
-  const WEEKS = 10;
-  const DAYS  = 7;
+const MONTH_ABBRS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_LABELS  = ['S','M','T','W','T','F','S'];
 
-  const cells = (() => {
-    const log = dailyLog || {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const arr = [];
-    for (let i = WEEKS * DAYS - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      arr.push(log[d.toISOString().slice(0, 10)] || 0);
+function StreakCalendar({ dailyLog }) {
+  const log = dailyLog || {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const startSunday = new Date(firstOfLastMonth);
+  startSunday.setDate(startSunday.getDate() - startSunday.getDay());
+
+  const allDays = [];
+  const cursor = new Date(startSunday);
+  while (cursor <= today) {
+    allDays.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  while (allDays.length % 7 !== 0) allDays.push(null);
+
+  const weeks = [];
+  for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
+
+  const monthHeaders = weeks.map((week, idx) => {
+    for (const day of week) {
+      if (day && day.getDate() === 1) return MONTH_ABBRS[day.getMonth()];
     }
-    return arr;
-  })();
+    if (idx === 0) {
+      const first = week.find((d) => d);
+      return first ? MONTH_ABBRS[first.getMonth()] : null;
+    }
+    return null;
+  });
+
+  const currentMonth = today.getMonth();
+  const currentYear  = today.getFullYear();
+
+  function isCurrentMonth(date) {
+    return date && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  }
 
   function getColor(hours) {
-    if (hours <= 0)   return '#0D0D0F';
+    if (!hours || hours <= 0) return '#1C1C1E';
     if (hours < 0.25) return '#2D2872';
     if (hours < 0.75) return '#3D3580';
     if (hours < 1.5)  return '#4A40A0';
-    return '#534AB7';
+    return '#7B5CFF';
   }
 
-  // Columns = weeks (left = oldest, right = most recent), rows = days top→bottom
   return (
     <View style={styles.streakGrid}>
-      {Array.from({ length: WEEKS }).map((_, week) => (
-        <View key={week} style={styles.streakWeekCol}>
-          {Array.from({ length: DAYS }).map((_, day) => (
-            <View key={day} style={[styles.streakCell, { backgroundColor: getColor(cells[week * DAYS + day]) }]} />
-          ))}
-        </View>
-      ))}
+      <View style={styles.streakDayLabels}>
+        <View style={styles.streakMonthSpacer} />
+        {DAY_LABELS.map((label, i) => (
+          <View key={i} style={styles.streakDayLabelRow}>
+            <Text style={styles.streakDayLabelText}>{label}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row' }}>
+        {weeks.map((week, weekIdx) => (
+          <View key={weekIdx} style={styles.streakWeekCol}>
+            <View style={styles.streakMonthHeader}>
+              {monthHeaders[weekIdx] ? (
+                <Text style={styles.streakMonthText}>{monthHeaders[weekIdx]}</Text>
+              ) : null}
+            </View>
+            {week.map((day, dayIdx) => {
+              const dateStr = day ? day.toISOString().slice(0, 10) : null;
+              const hours   = dateStr ? (log[dateStr] || 0) : 0;
+              const future  = day && day > today;
+              const inMonth = isCurrentMonth(day);
+              return (
+                <View
+                  key={dayIdx}
+                  style={[
+                    styles.streakCell,
+                    {
+                      backgroundColor: getColor(future ? 0 : hours),
+                      opacity: !day || future ? 0.15 : inMonth ? 1 : 0.45,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -71,6 +127,7 @@ export default function FriendProfileScreen({ route }) {
   const { colors } = useTheme();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   const { id } = route.params || {};
   const [profile, setProfile]           = useState(null);
   const [loading, setLoading]           = useState(true);
@@ -79,14 +136,59 @@ export default function FriendProfileScreen({ route }) {
   const [endorseCounts, setEndorseCounts] = useState({});
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [entriesRead, setEntriesRead]     = useState(0);
+  const [friendsList, setFriendsList]     = useState([]);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [showPeople, setShowPeople]       = useState(null); // null | 'friends' | 'followers' | 'following'
+  const [iFollow, setIFollow]             = useState(false);
+  const [followBusy, setFollowBusy]       = useState(false);
+  const [iBlocked, setIBlocked]           = useState(false);
+  const [blockBusy, setBlockBusy]         = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setMyId(user.id);
+      if (user) {
+        setMyId(user.id);
+        getBlockedIds(user.id).then((set) => setIBlocked(set.has(id)));
+      }
     });
     loadProfile();
     loadEntriesRead();
   }, [id]);
+
+  function handleBlockToggle() {
+    if (!myId || !id || blockBusy) return;
+    if (iBlocked) {
+      setBlockBusy(true);
+      unblockUser(myId, id).then(({ error }) => {
+        setBlockBusy(false);
+        if (error) { showAppToast("Couldn't unblock — try again"); return; }
+        setIBlocked(false);
+        showAppToast(`Unblocked ${profile?.username || 'user'}`, 'success');
+      });
+      return;
+    }
+    Alert.alert(
+      `Block ${profile?.username || 'this user'}?`,
+      "They won't be able to message you, and you won't see their comments. This also removes them as a friend.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: () => {
+            setBlockBusy(true);
+            blockUser(myId, id).then(({ error }) => {
+              setBlockBusy(false);
+              if (error) { showAppToast("Couldn't block — try again"); return; }
+              setIBlocked(true);
+              showAppToast(`Blocked ${profile?.username || 'user'}`, 'success');
+            });
+          },
+        },
+      ]
+    );
+  }
 
   async function loadEntriesRead() {
     if (!id) return;
@@ -133,6 +235,18 @@ export default function FriendProfileScreen({ route }) {
     return () => { supabase.removeChannel(channel); };
   }, [id]);
 
+  // Live profile updates — avatar, banner, theme, online status, currently_reading
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`profile-live-${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${id}` }, (payload) => {
+        if (payload.new) setProfile((prev) => prev ? { ...prev, ...payload.new } : payload.new);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
+
   async function loadProfile() {
     setLoading(true);
     const { data, error } = await supabase
@@ -153,6 +267,81 @@ export default function FriendProfileScreen({ route }) {
     }
     setProfile(null);
     setLoading(false);
+  }
+
+  // ── Friends / Followers of this profile ──────────────────────────────────
+
+  function toPerson(p) {
+    return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
+  }
+
+  async function loadFollowers() {
+    const { data } = await supabase
+      .from('followers')
+      .select('follower:follower_id(id, username, avatar_url, online)')
+      .eq('followed_id', id)
+      .order('created_at', { ascending: false });
+    setFollowersList((data || []).map(r => r.follower).filter(Boolean).map(toPerson));
+  }
+
+  async function loadFollowing() {
+    const { data } = await supabase
+      .from('followers')
+      .select('followed:followed_id(id, username, avatar_url, online)')
+      .eq('follower_id', id)
+      .order('created_at', { ascending: false });
+    setFollowingList((data || []).map(r => r.followed).filter(Boolean).map(toPerson));
+  }
+
+  useEffect(() => {
+    if (!id) return;
+    supabase
+      .from('friendships')
+      .select('requester_id, addressee_id')
+      .or(`requester_id.eq.${id},addressee_id.eq.${id}`)
+      .eq('status', 'accepted')
+      .then(async ({ data: rows }) => {
+        const ids = (rows || []).map(f => (f.requester_id === id ? f.addressee_id : f.requester_id));
+        if (ids.length === 0) { setFriendsList([]); return; }
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, online')
+          .in('id', ids);
+        setFriendsList((profiles || []).map(toPerson));
+      });
+    loadFollowers();
+    loadFollowing();
+  }, [id]);
+
+  useEffect(() => {
+    if (!myId || !id || myId === id) return;
+    supabase
+      .from('followers')
+      .select('id')
+      .eq('follower_id', myId)
+      .eq('followed_id', id)
+      .maybeSingle()
+      .then(({ data }) => setIFollow(!!data));
+  }, [myId, id]);
+
+  async function toggleFollow() {
+    if (!myId || myId === id || followBusy) return;
+    setFollowBusy(true);
+    if (iFollow) {
+      setIFollow(false);
+      setFollowersList(prev => prev.filter(p => p.id !== myId));
+      await supabase.from('followers').delete().eq('follower_id', myId).eq('followed_id', id);
+    } else {
+      setIFollow(true);
+      const { error } = await supabase.from('followers').insert({ follower_id: myId, followed_id: id });
+      if (error) {
+        setIFollow(false);
+      } else {
+        supabase.from('notifications').insert({ user_id: id, actor_id: myId, type: 'follow', data: {} }).then(() => {});
+        loadFollowers();
+      }
+    }
+    setFollowBusy(false);
   }
 
   async function loadMyEndorsements(uid, friendId) {
@@ -236,33 +425,12 @@ export default function FriendProfileScreen({ route }) {
     }
   }
 
-  // ── Loading / not found ─────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#534AB7" />
-      </View>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.notFoundText, { color: colors.muted }]}>Friend not found.</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.notFoundLink}>Go back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   // ── Derived display values ──────────────────────────────────────────────
 
-  const theme          = PROFILE_THEMES.find((t) => t.id === profile.color) || PROFILE_THEMES[0];
-  const avatarInitial  = (profile.username || '?').charAt(0).toUpperCase();
-  const favorites      = Array.isArray(profile.favorites) ? profile.favorites : [];
-  const dailyLog       = profile.daily_log || {};
+  const theme          = profile ? (PROFILE_THEMES.find((t) => t.id === profile.color) || PROFILE_THEMES[0]) : PROFILE_THEMES[0];
+  const avatarInitial  = profile ? (profile.username || '?').charAt(0).toUpperCase() : '?';
+  const favorites      = profile && Array.isArray(profile.favorites) ? profile.favorites : [];
+  const dailyLog       = profile?.daily_log || {};
 
   const todayKey   = new Date().toISOString().slice(0, 10);
   const todayHrs   = dailyLog[todayKey] || 0;
@@ -277,41 +445,51 @@ export default function FriendProfileScreen({ route }) {
     .sort((a, b) => (GRADE_RANK[a.grade] ?? 9) - (GRADE_RANK[b.grade] ?? 9))
     .slice(0, 12);
 
+  const showActivity   = profile?.show_activity !== false;
+  const isOnline       = showActivity && !!profile?.online;
+  const joinedLabel    = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : null;
+  const currentlyReading = isOnline && profile?.currently_reading ? profile.currently_reading : null;
+  const currentChapter   = isOnline && profile?.current_chapter ? profile.current_chapter : null;
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <MobileHeader
-        title={profile.username}
-        right={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            {profile.online && (
-              <View style={styles.onlineBadge}>
-                <View style={styles.onlineDot} />
-                <Text style={styles.onlineText}>Online</Text>
-              </View>
-            )}
-            {profile.id && (
-              <TouchableOpacity
-                style={styles.msgHeaderBtn}
-                onPress={() => navigation.navigate('DM', {
-                  friendId: profile.id,
-                  friendName: profile.username,
-                  friendColor: profile.color,
-                  friendAvatarUrl: profile.avatar_url || null,
-                })}
-                activeOpacity={0.8}>
-                <Ionicons name="chatbubble-outline" size={16} color="#534AB7" />
-                <Text style={styles.msgHeaderText}>Message</Text>
-              </TouchableOpacity>
-            )}
+      {/* Floating header — back button + online badge + message (no title bar) */}
+      <View style={[styles.floatingBar, { paddingTop: insets.top + 6 }]} pointerEvents="box-none">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.floatingBackBtn} activeOpacity={0.75} pointerEvents="auto">
+          <Ionicons name="chevron-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        {profile && !loading && isOnline && (
+          <View style={styles.floatingRight} pointerEvents="auto">
+            <View style={styles.onlineBadge}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineText}>Online</Text>
+            </View>
           </View>
-        }
-      />
+        )}
+      </View>
 
+      {loading ? (
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color="#7B5CFF" />
+        </View>
+      ) : !profile ? (
+        <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.notFoundText, { color: colors.muted }]}>Friend not found.</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.notFoundLink}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
 
-        {/* Banner + avatar card — identical structure to ProfileScreen */}
+        {/* Space for floating bar */}
+        <View style={{ height: insets.top + 50 }} />
+
+        {/* Banner + avatar card */}
         <View style={[styles.bannerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {profile.banner_url ? (
             <Image source={{ uri: profile.banner_url }} style={styles.bannerImage} />
@@ -339,54 +517,119 @@ export default function FriendProfileScreen({ route }) {
               </LinearGradient>
               <View style={styles.nameBioBlock}>
                 <Text style={[styles.username, { color: colors.text }]}>{profile.username}</Text>
-                {profile.bio ? (
-                  <Text style={[styles.bioText, { color: colors.muted }]}>{profile.bio}</Text>
-                ) : null}
               </View>
             </View>
             <Text style={[styles.handle, { color: colors.muted }]}>
-              @{(profile.username || '').toLowerCase()}
-              {profile.streak_count > 0 ? `  ·  🔥 ${profile.streak_count}d streak` : ''}
+              @{(profile.username || '').toLowerCase()}{joinedLabel ? ` · Joined ${joinedLabel}` : ''}
             </Text>
-            {profile.currently_reading ? (
-              <Text style={[styles.currentlyReading, { color: colors.muted }]}>
-                Reading: {profile.currently_reading}
-                {profile.current_chapter ? ` · Ch. ${profile.current_chapter}` : ''}
-              </Text>
+            {profile.bio ? (
+              <Text style={[styles.bioText, { color: colors.muted }]}>{profile.bio}</Text>
             ) : null}
+            {currentlyReading ? (
+              <View style={styles.readingNowRow}>
+                <View style={styles.readingNowDot} />
+                <Text style={[styles.currentlyReading, { color: colors.muted }]} numberOfLines={1}>
+                  Reading: {currentlyReading}{currentChapter ? ` · Ch. ${currentChapter}` : ''}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Icon actions — bottom-right corner of the profile card */}
+            {myId && myId !== profile.id && (
+              <View style={styles.actionIconsRow}>
+                {!iBlocked && (
+                  <TouchableOpacity
+                    style={[styles.actionIconBtn, iFollow ? styles.actionIconBtnActive : null]}
+                    onPress={toggleFollow}
+                    disabled={followBusy}
+                    activeOpacity={0.75}>
+                    <Ionicons name={iFollow ? 'person-remove-outline' : 'person-add-outline'} size={17} color={iFollow ? '#1D9E75' : '#7B5CFF'} />
+                  </TouchableOpacity>
+                )}
+                {!iBlocked && (
+                  <TouchableOpacity
+                    style={styles.actionIconBtn}
+                    onPress={() => navigation.navigate('DM', {
+                      friendId: profile.id,
+                      friendName: profile.username,
+                      friendColor: profile.color,
+                      friendAvatarUrl: profile.avatar_url || null,
+                    })}
+                    activeOpacity={0.75}>
+                    <Ionicons name="chatbubble-outline" size={16} color="#7B5CFF" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[styles.actionIconBtn, iBlocked && styles.actionIconBtnBlocked]}
+                  onPress={handleBlockToggle}
+                  disabled={blockBusy}
+                  activeOpacity={0.75}>
+                  <Ionicons name={iBlocked ? 'ban' : 'ban-outline'} size={16} color="#E5534B" />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* Stats — same icons and labels as ProfileScreen */}
+        {/* Friends · Followers · Following — above the stats */}
+        <PeopleRow
+          friends={friendsList}
+          followers={followersList}
+          following={followingList}
+          colors={colors}
+          onOpen={(key) => setShowPeople(key)}
+        />
+
+        {/* Stats — same compact style as ProfileScreen */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="book" size={18} color="#534AB7" />
+          <View style={styles.statCard}>
+            <View style={[styles.statIconChip, { backgroundColor: 'rgba(123,92,255,0.1)' }]}>
+              <Ionicons name="book" size={14} color="#7B5CFF" />
+            </View>
             <Text style={[styles.statValue, { color: colors.text }]}>{entriesRead}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Read</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="time" size={18} color="#1D9E75" />
+          <View style={styles.statCard}>
+            <View style={[styles.statIconChip, { backgroundColor: 'rgba(29,158,117,0.1)' }]}>
+              <Ionicons name="time" size={14} color="#1D9E75" />
+            </View>
             <Text style={[styles.statValue, { color: colors.text }]}>{fmtHrs(profile.hours_read)}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Time Read</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="trophy" size={18} color="#FFD700" />
-            <Text style={[styles.statValue, { color: colors.text, fontSize: 14 }]} numberOfLines={1}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconChip, { backgroundColor: 'rgba(255,215,0,0.1)' }]}>
+              <Ionicons name="trophy" size={14} color="#FFD700" />
+            </View>
+            <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>
               {profile.favorite_genre || '—'}
             </Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Fav. Genre</Text>
           </View>
         </View>
 
-        {/* Reading Streak + Faves — exact same layout as ProfileScreen */}
+        <PeopleListModal
+          visible={!!showPeople}
+          title={showPeople === 'followers' ? 'Followers' : showPeople === 'following' ? 'Following' : 'Friends'}
+          people={showPeople === 'followers' ? followersList : showPeople === 'following' ? followingList : friendsList}
+          colors={colors}
+          onClose={() => setShowPeople(null)}
+          onOpenPerson={(p) => {
+            setShowPeople(null);
+            if (p.id !== id) navigation.push('FriendProfile', { id: p.id });
+          }}
+        />
+
+        {/* Reading Streak + Faves */}
         <View style={[styles.streakSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.streakTitle, { color: colors.text }]}>Reading Streak</Text>
+          <View style={styles.streakSectionHeader}>
+            <Text style={[styles.streakTitle, { color: colors.text }]}>Reading Streak </Text>
+          </View>
           <View style={styles.streakBody}>
             <View style={styles.streakLeft}>
               <View style={styles.streakBadges}>
                 {todayLabel && (
                   <View style={styles.todayBadge}>
-                    <Ionicons name="time" size={11} color="#534AB7" />
+                    <Ionicons name="time" size={11} color="#7B5CFF" />
                     <Text style={styles.todayBadgeText}>{todayLabel}</Text>
                   </View>
                 )}
@@ -397,11 +640,7 @@ export default function FriendProfileScreen({ route }) {
               </View>
               <StreakCalendar dailyLog={dailyLog} />
               <View style={styles.streakLegend}>
-                {[
-                  { bg: '#0D0D0F', label: 'None' },
-                  { bg: '#4A40A0', label: 'Some' },
-                  { bg: '#534AB7', label: 'Lots' },
-                ].map(({ bg, label }) => (
+                {[{ bg: '#4A40A0', label: 'Some' }, { bg: '#7B5CFF', label: 'Lots' }].map(({ bg, label }) => (
                   <View key={label} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: bg }]} />
                     <Text style={[styles.legendText, { color: colors.muted }]}>{label}</Text>
@@ -411,13 +650,9 @@ export default function FriendProfileScreen({ route }) {
             </View>
 
             {/* Faves panel */}
-            <View style={[styles.favesPanel, { borderColor: colors.border }]}>
-              <View style={styles.favesPanelHead}>
-                <Ionicons name="star" size={11} color="#FFD700" />
-                <Text style={styles.favesPanelHeadText}>Favorite</Text>
-              </View>
+            <View style={styles.favesPanel}>
               {favorites.length === 0 ? (
-                <View style={[styles.favesEmptyCard, { borderColor: 'rgba(83,74,183,0.25)' }]}>
+                <View style={[styles.favesEmptyCard, { borderColor: 'rgba(123,92,255,0.25)' }]}>
                   <Text style={styles.favesEmptyText}>No faves yet</Text>
                 </View>
               ) : (
@@ -477,9 +712,10 @@ export default function FriendProfileScreen({ route }) {
 
         <View style={{ height: tabBarHeight + 16 }} />
       </ScrollView>
+      )}
 
       {/* All badges modal — same grouped layout as ProfileScreen + endorse + live count */}
-      <Modal visible={showAllBadges} animationType="none" transparent onRequestClose={() => setShowAllBadges(false)}>
+      <Modal visible={showAllBadges && !!profile} animationType="none" transparent onRequestClose={() => setShowAllBadges(false)}>
         {showAllBadges && (
           <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowAllBadges(false)}>
             <View style={[styles.sheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
@@ -556,7 +792,7 @@ export default function FriendProfileScreen({ route }) {
                                   <Ionicons
                                     name="thumbs-up"
                                     size={9}
-                                    color={endorsed[badge.id] ? '#534AB7' : colors.muted}
+                                    color={endorsed[badge.id] ? '#7B5CFF' : colors.muted}
                                   />
                                   <Text style={[
                                     styles.endorseBtnText,
@@ -568,7 +804,7 @@ export default function FriendProfileScreen({ route }) {
                                   {count > 0 && (
                                     <Text style={[
                                       styles.endorseCount,
-                                      { color: endorsed[badge.id] ? '#534AB7' : colors.muted },
+                                      { color: endorsed[badge.id] ? '#7B5CFF' : colors.muted },
                                     ]}>
                                       · {count}
                                     </Text>
@@ -605,13 +841,18 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundText: { fontSize: 14, marginBottom: 12 },
-  notFoundLink: { color: '#534AB7', fontSize: 14, fontWeight: '600' },
+  notFoundLink: { color: '#7B5CFF', fontSize: 14, fontWeight: '600' },
 
-  onlineBadge: { flexDirection: 'row', alignItems: 'center' },
+  // Floating header bar
+  floatingBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10 },
+  floatingBackBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.40)', alignItems: 'center', justifyContent: 'center' },
+  floatingRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+
+  onlineBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(29,158,117,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginRight: 4 },
   onlineText: { color: '#1D9E75', fontSize: 10, fontWeight: '600' },
-  msgHeaderBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(83,74,183,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
-  msgHeaderText: { color: '#534AB7', fontSize: 12, fontWeight: '600' },
+  msgHeaderBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(123,92,255,0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
+  msgHeaderText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600' },
 
   // Banner card — no overflow:hidden so negative-margin avatar is never clipped
   bannerCard: { marginHorizontal: 20, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
@@ -623,29 +864,49 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   nameBioBlock: { flex: 1, marginLeft: 12, marginTop: 36 },
   username: { fontSize: 16, fontWeight: 'bold' },
-  bioText: { fontSize: 12, marginTop: 3, lineHeight: 16 },
   handle: { fontSize: 10, marginTop: 4 },
-  currentlyReading: { fontSize: 10, marginTop: 3, fontStyle: 'italic' },
+  bioText: { fontSize: 12, marginTop: 6, lineHeight: 17 },
+  readingNowRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  readingNowDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginRight: 6 },
+  currentlyReading: { fontSize: 10, fontStyle: 'italic', flex: 1 },
 
   // Stats — same as ProfileScreen
-  statsRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 24 },
-  statCard: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', marginHorizontal: 4, borderWidth: 1 },
-  statValue: { fontSize: 18, fontWeight: 'bold', marginTop: 6, marginBottom: 2 },
-  statLabel: { fontSize: 10, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 28, marginBottom: 22 },
+  statCard: { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  statIconChip: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+
+  actionIconsRow: { flexDirection: 'row', gap: 10, alignSelf: 'flex-end', marginTop: 8 },
+  actionIconBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(123,92,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)',
+  },
+  actionIconBtnActive: { backgroundColor: 'rgba(29,158,117,0.12)', borderColor: 'rgba(29,158,117,0.35)' },
+  actionIconBtnBlocked: { backgroundColor: 'rgba(229,83,75,0.14)', borderColor: 'rgba(229,83,75,0.4)' },
+  statValue: { fontSize: 14, fontWeight: '700', marginBottom: 1 },
+  statLabel: { fontSize: 9, textAlign: 'center' },
 
   // Streak section — same as ProfileScreen
   streakSection: { marginHorizontal: 20, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1 },
-  streakTitle: { fontSize: 16, fontWeight: '600', marginBottom: 14 },
+  streakSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  streakTitle: { fontSize: 16, fontWeight: '600' },
   streakBadges: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
-  todayBadgeText: { color: '#534AB7', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
+  todayBadgeText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   fireBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.12)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   fireBadgeText: { color: '#FF9500', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   streakBody: { flexDirection: 'row', alignItems: 'flex-start' },
   streakLeft: { flex: 1 },
   streakGrid: { flexDirection: 'row', marginBottom: 10 },
+  streakDayLabels: { marginRight: 5 },
+  streakMonthSpacer: { height: 16 },
+  streakDayLabelRow: { height: 11, marginBottom: 3, justifyContent: 'center' },
+  streakDayLabelText: { fontSize: 8, color: '#888892', width: 8, textAlign: 'center' },
   streakWeekCol: { marginRight: 3 },
+  streakMonthHeader: { height: 16, justifyContent: 'flex-end', paddingBottom: 2 },
+  streakMonthText: { fontSize: 8, color: '#888892' },
   streakCell: { width: 11, height: 11, borderRadius: 2, marginBottom: 3 },
   streakLegend: { flexDirection: 'row', alignItems: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
@@ -653,14 +914,13 @@ const styles = StyleSheet.create({
   legendText: { fontSize: 11 },
 
   // Faves panel
-  favesPanel: { width: 120, marginLeft: 14, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden' },
-  favesPanelHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingTop: 10, paddingBottom: 6 },
-  favesPanelHeadText: { color: '#FFD700', fontSize: 13, fontWeight: '700', marginLeft: 4 },
+  favesPanel: { width: 136, marginLeft: 14, borderRadius: 12, overflow: 'hidden' },
+  favesTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   faveFeatCard: { marginHorizontal: 6, borderRadius: 8, overflow: 'hidden' },
-  faveFeatGrad: { height: 126 },
+  faveFeatGrad: { height: 174 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
-  favesEmptyCard: { marginHorizontal: 6, height: 126, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  favesEmptyText: { color: 'rgba(83,74,183,0.5)', fontSize: 10, textAlign: 'center' },
+  favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center' },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
   favesCountText: { fontSize: 11, fontWeight: '500' },
 
@@ -672,9 +932,9 @@ const styles = StyleSheet.create({
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   badgeCard: { width: '22%', margin: '1.5%', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2, marginTop: 4 },
-  endorseCountMini: { color: '#534AB7', fontSize: 8, marginTop: 2 },
+  endorseCountMini: { color: '#7B5CFF', fontSize: 8, marginTop: 2 },
   seeAllBtn: { paddingVertical: 8, alignItems: 'center' },
-  seeAllText: { color: '#534AB7', fontSize: 11, fontWeight: '500' },
+  seeAllText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500' },
 
   // Badge modal — mirrors ProfileScreen's badge modal exactly
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -697,9 +957,9 @@ const styles = StyleSheet.create({
 
   // Endorse button + count
   endorseBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(155,154,163,0.08)' },
-  endorseBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.2)' },
+  endorseBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.2)' },
   endorseBtnText: { fontSize: 10, fontWeight: '500', paddingRight: 2 },
-  endorseBtnTextActive: { color: '#534AB7' },
+  endorseBtnTextActive: { color: '#7B5CFF' },
   endorseCount: { fontSize: 10, fontWeight: '600' },
   endorseCountOwn: { fontSize: 10, marginTop: 4 },
 });

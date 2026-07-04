@@ -1,4 +1,5 @@
-﻿import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
+﻿import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, ActivityIndicator, Animated, Platform, AppState, StyleSheet } from 'react-native';
@@ -17,6 +18,7 @@ import { NotificationsProvider, useNotifications } from './utils/NotificationsCo
 import { loadSaved as loadSavedAmbience } from './utils/ambiencePlayer';
 import { hydrateCoverCache } from './utils/mangaCovers';
 import { checkForNewChapters } from './utils/chapterUpdates';
+import { markTouch, startPresenceHeartbeat, stopPresenceHeartbeat } from './utils/presence';
 
 import FeedScreen from './screens/FeedScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
@@ -33,7 +35,10 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import GuidelinesScreen from './screens/GuidelinesScreen';
 import CreatorDashboardScreen from './screens/CreatorDashboardScreen';
 import DMScreen from './screens/DMScreen';
+import LegalScreen from './screens/LegalScreen';
+import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
+import ToastHost from './components/ToastHost';
 
 const navigationRef = createNavigationContainerRef();
 
@@ -224,7 +229,7 @@ function TabNavigator() {
         headerShown: false,
         tabBarIcon: ({ focused, color }) => {
           let iconName;
-          if (route.name === 'Feed') iconName = focused ? 'compass' : 'compass-outline';
+          if (route.name === 'Feed') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Library') iconName = focused ? 'book' : 'book-outline';
           else if (route.name === 'Social') iconName = focused ? 'people' : 'people-outline';
           else if (route.name === 'For You') iconName = focused ? 'sparkles' : 'sparkles-outline';
@@ -254,7 +259,7 @@ function TabNavigator() {
       <Tab.Screen
         name="Feed"
         component={FeedStack}
-        options={{ tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+        options={{ tabBarLabel: 'Home', tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             if (navigation.isFocused()) {
@@ -268,8 +273,23 @@ function TabNavigator() {
         })}
       />
       <Tab.Screen name="Library" component={LibraryStack} />
-      <Tab.Screen name="For You" component={ForYouStack} />
-      <Tab.Screen name="Social" component={SocialStack} />
+      <Tab.Screen name="For You" component={ForYouStack} options={{ tabBarLabel: 'Recs' }} />
+      <Tab.Screen
+        name="Social"
+        component={SocialStack}
+        options={{ tabBarLabel: 'Comms' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (navigation.isFocused()) {
+              e.preventDefault();
+              navigation.navigate('Social', {
+                screen: 'SocialHome',
+                params: { refreshAt: Date.now() },
+              });
+            }
+          },
+        })}
+      />
       <Tab.Screen name="Profile" component={ProfileStack} />
     </Tab.Navigator>
   );
@@ -296,6 +316,24 @@ function AppNavigator() {
         component={DiscussionScreen}
         options={{
           animation: 'slide_from_right',
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="AllDiscussions"
+        component={AllDiscussionsScreen}
+        options={{
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="Legal"
+        component={LegalScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          animationDuration: 280,
           contentStyle: { backgroundColor: colors.background },
         }}
       />
@@ -400,6 +438,8 @@ export default function App() {
       _presenceUserId = session?.user?.id ?? null;
       if (_presenceUserId) {
         supabase.from('profiles').update({ online: true }).eq('id', _presenceUserId).then(() => {});
+        markTouch();
+        startPresenceHeartbeat(_presenceUserId);
       }
     });
     const appStateSub = AppState.addEventListener('change', (nextState) => {
@@ -409,8 +449,14 @@ export default function App() {
       if (_presenceUserId) {
         const isActive = nextState === 'active';
         supabase.from('profiles').update({ online: isActive }).eq('id', _presenceUserId).then(() => {});
-        // Check for new chapters when the app comes back to foreground (fire-and-forget)
-        if (isActive) checkForNewChapters(_presenceUserId);
+        if (isActive) {
+          markTouch();
+          startPresenceHeartbeat(_presenceUserId);
+          // Check for new chapters when the app comes back to foreground (fire-and-forget)
+          checkForNewChapters(_presenceUserId);
+        } else {
+          stopPresenceHeartbeat();
+        }
       }
     });
 
@@ -423,12 +469,14 @@ export default function App() {
       notifSub = Notifications.addNotificationResponseReceivedListener((response) => {
         if (!navigationRef.isReady()) return;
         const data = response.notification.request.content.data || {};
-        if (data.type === 'new_chapter' && data.series_title) {
+        if ((data.type === 'new_chapter' || data.type === 'chapter_update') && (data.series_title || data.title)) {
           navigationRef.navigate('Reader', {
-            searchQuery: data.series_title,
-            title: data.series_title,
-            chapters: 0,
+            searchQuery: data.series_title || data.title,
+            title: data.series_title || data.title,
+            chapters: data.chapter || 0,
           });
+        } else if (data.type === 'friend_request' || data.type === 'direct_message') {
+          navigationRef.navigate('Tabs', { screen: 'Social' });
         } else {
           navigationRef.navigate('Tabs', {
             screen: 'Feed',
@@ -443,6 +491,7 @@ export default function App() {
       notifSub?.remove();
       notifReceivedSub?.remove();
       appStateSub?.remove();
+      stopPresenceHeartbeat();
       // Mark offline on cleanup (best-effort)
       if (_presenceUserId) {
         supabase.from('profiles').update({ online: false }).eq('id', _presenceUserId).then(() => {});
@@ -456,30 +505,33 @@ export default function App() {
         <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Ionicons name="book" size={24} color="#fff" />
         </View>
-        <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1, marginBottom: 8 }}>Panelr</Text>
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1, marginBottom: 8 }}>MangaRecs</Text>
         <ActivityIndicator size="small" color="#534AB7" style={{ marginTop: 8 }} />
-        <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading Panelr...</Text>
+        <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading MangaRecs...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <ProfileProvider>
-            <NotificationsProvider>
-              <RootNavigator
-                session={session}
-                needsOnboarding={needsOnboarding}
-                onOnboardingComplete={() => setNeedsOnboarding(false)}
-                needsGuidelines={needsGuidelines}
-                onGuidelinesComplete={() => setNeedsGuidelines(false)}
-              />
-            </NotificationsProvider>
-          </ProfileProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={markTouch}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <ProfileProvider>
+              <NotificationsProvider>
+                <RootNavigator
+                  session={session}
+                  needsOnboarding={needsOnboarding}
+                  onOnboardingComplete={() => setNeedsOnboarding(false)}
+                  needsGuidelines={needsGuidelines}
+                  onGuidelinesComplete={() => setNeedsGuidelines(false)}
+                />
+                <ToastHost />
+              </NotificationsProvider>
+            </ProfileProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
