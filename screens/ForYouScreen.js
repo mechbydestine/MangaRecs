@@ -716,7 +716,7 @@ export default function ForYouScreen() {
 
         <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}>
           <Ionicons name="sparkles" size={20} color="#534AB7" />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>For You</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Recs</Text>
         </Animated.View>
         <Animated.Text style={[styles.headerSub, { color: colors.muted, opacity: headerOpacity }]}>
           AI-powered recommendations

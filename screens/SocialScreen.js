@@ -1,18 +1,27 @@
 ﻿import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
+  TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Dimensions,
+  Animated, RefreshControl,
 } from 'react-native';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const IS_TABLET = SCREEN_W >= 768;
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigation, useScrollToTop, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, useScrollToTop, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
 import { supabase } from '../supabase';
 import { sendFriendRequestPush } from '../utils/pushNotifications';
+import { showAppToast } from '../utils/appToast';
+import { getBlockedIds } from '../utils/blocking';
 import { MangaCover } from '../utils/mangaCovers';
 import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats } from '../utils/badges';
 import { fetchPopularManga } from '../utils/mangaDexApi';
 import { prewarmCoverCache } from '../utils/mangaCovers';
+import StarLogo from '../components/StarLogo';
+import { computePresenceStatus, PRESENCE_COLORS, PRESENCE_LABELS } from '../utils/presence';
+import { light } from '../utils/haptics';
 
 const BLOCKED_DOMAINS = [
   'mega.nz', 'drive.google.com', 'mediafire.com', 'zippyshare.com',
@@ -33,11 +42,11 @@ function formatTime(hours) {
 
 // Profile color is stored as a theme ID ('default','rose',…), not a hex value
 const THEME_COLORS = {
-  default: '#534AB7', rose: '#D4537E', sky: '#378ADD',
+  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
   emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD',
 };
 function themeColor(colorId) {
-  return THEME_COLORS[colorId] || '#534AB7';
+  return THEME_COLORS[colorId] || '#7B5CFF';
 }
 
 // Strip known garbage values that get written to currently_reading
@@ -94,42 +103,103 @@ const rareBadgeStyles = StyleSheet.create({
   icon: { fontSize: 11, lineHeight: 14 },
 });
 
-function FriendActivity({ friend, onPress, onReadingPress }) {
+// Friend avatar with a corner presence dot — tap to peek status/reading via
+// toast, long-press to open their profile. Replaces the old always-expanded
+// "Friends Reading" list with a compact strip that scales to any friend count.
+function FriendAvatarStatus({ friend, onPeek, onOpenProfile }) {
   const { colors } = useTheme();
-  const validReading = sanitizeReading(friend.reading);
+  const scale = useRef(new Animated.Value(1)).current;
+  const status = friend.presenceStatus;
+  const dotColor = PRESENCE_COLORS[status];
+
+  function handlePress() {
+    light();
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 80, bounciness: 0 }),
+      Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 10 }),
+    ]).start();
+    onPeek(friend);
+  }
+
   return (
-    <View style={[styles.friendRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.friendRowLeft}>
-        <AvatarCircle
-          username={friend.name}
-          avatarUrl={friend.avatarUrl}
-          color={friend.color}
-          size={40}
-          style={friend.online ? styles.friendAvatarOnline : undefined}
-        />
-        <View style={styles.friendInfo}>
-          <View style={styles.friendNameRow}>
-            <Text style={[styles.friendName, { color: colors.text }]}>{friend.name}</Text>
-            {friend.online && <View style={styles.onlineDot} />}
+    <TouchableOpacity
+      onPress={handlePress}
+      onLongPress={() => onOpenProfile(friend)}
+      delayLongPress={380}
+      activeOpacity={0.85}
+      style={styles.friendAvatarItem}>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <View style={styles.friendAvatarWrap}>
+          <AvatarCircle username={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={54} />
+          <View style={[styles.presenceDot, { backgroundColor: dotColor, borderColor: colors.background }]}>
+            {status === 'busy' && <Ionicons name="close" size={8} color="#fff" style={{ fontWeight: '900' }} />}
           </View>
-          {friend.online && validReading ? (
-            <TouchableOpacity onPress={onReadingPress} activeOpacity={0.7} hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}>
-              <Text style={[styles.friendReading, { color: colors.muted }]} numberOfLines={1}>
-                Reading <Text style={styles.friendSeriesLink}>{validReading}</Text>
-                {friend.chapter ? ` · Ch. ${friend.chapter}` : ''}
-              </Text>
-            </TouchableOpacity>
-          ) : friend.online ? (
-            <Text style={[styles.friendReading, { color: colors.muted }]}>Online</Text>
-          ) : (
-            <Text style={[styles.friendReading, { color: colors.muted }]}>Offline</Text>
+        </View>
+      </Animated.View>
+      <Text style={[styles.friendAvatarName, { color: colors.text }]} numberOfLines={1}>{friend.name}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// Animates its own fill width whenever `pct` changes, so results settle in
+// smoothly instead of snapping — the poll card's own bars, plus the ones on
+// AllDiscussionsScreen reuse the same easing for consistency.
+function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote, colors }) {
+  const fillAnim = useRef(new Animated.Value(0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(fillAnim, {
+      toValue: hasVoted ? Math.max(pct, 2) : 0,
+      duration: 480,
+      useNativeDriver: false,
+    }).start();
+  }, [pct, hasVoted]);
+
+  function handlePress() {
+    if (loading) return;
+    light();
+    Animated.sequence([
+      Animated.spring(pressScale, { toValue: 0.98, useNativeDriver: true, speed: 90, bounciness: 0 }),
+      Animated.spring(pressScale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 6 }),
+    ]).start();
+    onVote(opt.id);
+  }
+
+  return (
+    <Animated.View style={{ transform: [{ scale: pressScale }] }}>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={0.75}
+        disabled={loading}
+        style={[styles.pollOption, { borderColor: isSelected ? '#7B5CFF' : colors.border }]}
+      >
+        {hasVoted && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.pollOptionFill,
+              {
+                width: fillAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+                backgroundColor: isSelected ? 'rgba(123,92,255,0.22)' : colors.inputBg,
+              },
+            ]}
+          />
+        )}
+        <View style={styles.pollOptionContent}>
+          {isSelected
+            ? <Ionicons name="checkmark-circle" size={16} color="#7B5CFF" style={{ marginRight: 10 }} />
+            : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(123,92,255,0.5)' }]} />
+          }
+          <Text style={[styles.pollOptionLabel, { color: isSelected ? '#A09CE0' : colors.text }]} numberOfLines={1}>
+            {opt.label}
+          </Text>
+          {hasVoted && (
+            <Text style={[styles.pollPct, { color: isSelected ? '#7B5CFF' : colors.muted }]}>{pct}%</Text>
           )}
         </View>
       </TouchableOpacity>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.6} style={styles.friendRowChevron}>
-        <Ionicons name="chevron-forward" size={14} color={colors.border} />
-      </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -137,20 +207,31 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
   const { colors } = useTheme();
   const options = Array.isArray(poll?.options) ? poll.options : [];
   const hasVoted = myVote != null;
+  const cardScale = useRef(new Animated.Value(0.97)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
 
-  const daysLeft = poll?.ends_at
-    ? Math.max(0, Math.ceil((new Date(poll.ends_at) - Date.now()) / 86400000))
-    : 7;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(cardScale, { toValue: 1, useNativeDriver: true, damping: 16, stiffness: 160 }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
+    ]).start();
+  }, [poll?.id]);
+
+  const hoursLeft = poll?.ends_at ? (new Date(poll.ends_at) - Date.now()) / 3600000 : 168;
+  const daysLeft = Math.max(0, Math.ceil(hoursLeft / 24));
+  const endingSoon = hoursLeft > 0 && hoursLeft < 24;
   const expiryText =
-    daysLeft === 0 ? 'Ends today' :
+    hoursLeft <= 0 ? 'Poll ended' :
+    endingSoon ? `${Math.max(1, Math.round(hoursLeft))}h left` :
     daysLeft === 1 ? 'Ends tomorrow' :
     `${daysLeft} days left`;
 
   return (
-    <View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Animated.View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: cardOpacity, transform: [{ scale: cardScale }] }]}>
       <View style={styles.pollHeader}>
         <View style={styles.pollTitleRow}>
-          <Ionicons name="bar-chart" size={12} color="#534AB7" />
+          <Ionicons name="bar-chart" size={12} color="#7B5CFF" />
+          <Text style={styles.pollLabel}>Poll of the Week</Text>
         </View>
         {justVoted ? (
           <View style={[styles.liveChip, { backgroundColor: 'rgba(29,158,117,0.15)', borderColor: 'rgba(29,158,117,0.3)' }]}>
@@ -158,9 +239,9 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
             <Text style={[styles.liveText, { color: '#1D9E75', marginLeft: 3 }]}>VOTED</Text>
           </View>
         ) : (
-          <View style={styles.liveChip}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+          <View style={[styles.liveChip, endingSoon && { backgroundColor: 'rgba(239,159,39,0.15)', borderColor: 'rgba(239,159,39,0.3)' }]}>
+            <View style={[styles.liveDot, endingSoon && { backgroundColor: '#EF9F27' }]} />
+            <Text style={[styles.liveText, endingSoon && { color: '#EF9F27' }]}>{endingSoon ? expiryText.toUpperCase() : 'LIVE'}</Text>
           </View>
         )}
       </View>
@@ -170,60 +251,30 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
         <Text style={[styles.pollHint, { color: colors.muted }]}>Tap an option to cast your vote</Text>
       )}
 
-      {options.map((opt) => {
-        const count = voteCounts[opt.id] || 0;
-        const pct = totalVotes > 0 ? Math.round(count / totalVotes * 100) : 0;
-        const isSelected = myVote === opt.id;
-        return (
-          <TouchableOpacity
-            key={opt.id}
-            onPress={() => !loading && onVote(opt.id)}
-            activeOpacity={0.75}
-            disabled={loading}
-            style={[
-              styles.pollOption,
-              { borderColor: isSelected ? '#534AB7' : colors.border },
-            ]}
-          >
-            {hasVoted && (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.pollOptionFill,
-                  {
-                    width: pct > 0 ? `${pct}%` : '2%',
-                    backgroundColor: isSelected
-                      ? 'rgba(83,74,183,0.22)'
-                      : colors.inputBg,
-                  },
-                ]}
-              />
-            )}
-            <View style={styles.pollOptionContent}>
-              {isSelected
-                ? <Ionicons name="checkmark-circle" size={16} color="#534AB7" style={{ marginRight: 10 }} />
-                : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(83,74,183,0.5)' }]} />
-              }
-              <Text
-                style={[styles.pollOptionLabel, { color: isSelected ? '#A09CE0' : colors.text }]}
-                numberOfLines={1}
-              >
-                {opt.label}
-              </Text>
-              {hasVoted && (
-                <Text style={[styles.pollPct, { color: isSelected ? '#534AB7' : colors.muted }]}>
-                  {pct}%
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        );
-      })}
+      {options.map((opt) => (
+        <PollOptionBar
+          key={opt.id}
+          opt={opt}
+          pct={totalVotes > 0 ? Math.round((voteCounts[opt.id] || 0) / totalVotes * 100) : 0}
+          count={voteCounts[opt.id] || 0}
+          hasVoted={hasVoted}
+          isSelected={myVote === opt.id}
+          loading={loading}
+          onVote={onVote}
+          colors={colors}
+        />
+      ))}
 
-      <Text style={[styles.pollFooter, { color: colors.muted }]}>
-        {totalVotes.toLocaleString()} {totalVotes === 1 ? 'vote' : 'votes'} · {expiryText}
-      </Text>
-    </View>
+      <View style={styles.pollFooterRow}>
+        <Ionicons name="people-outline" size={12} color={colors.muted} />
+        <Text style={[styles.pollFooter, { color: colors.muted }]}>
+          {totalVotes.toLocaleString()} {totalVotes === 1 ? 'vote' : 'votes'}
+        </Text>
+        <View style={styles.pollFooterDot} />
+        <Ionicons name="time-outline" size={12} color={endingSoon ? '#EF9F27' : colors.muted} />
+        <Text style={[styles.pollFooter, { color: endingSoon ? '#EF9F27' : colors.muted }]}>{expiryText}</Text>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -231,11 +282,19 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
 
 export default function SocialScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef(null);
   const uidRef = useRef(null);
+  const logoRef = useRef(null);
   useScrollToTop(scrollRef);
+
+  // Tab-icon tap while already on this tab → same refresh + logo spin as pull-to-refresh
+  useEffect(() => {
+    if (route.params?.refreshAt) { logoRef.current?.spin(); onRefresh(); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.refreshAt]);
 
   useFocusEffect(useCallback(() => {
     if (uidRef.current) {
@@ -275,8 +334,33 @@ export default function SocialScreen() {
 
   // DM conversations state
   const [dmConvos, setDmConvos] = useState([]);
+  const [friendsError, setFriendsError] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [peekFriendId, setPeekFriendId] = useState(null);
 
+  // AI-ranked trending discussions — recent comment velocity + total volume +
+  // a boost for series matching the reader's own top genres. Falls back to
+  // fetchPopularManga only if the RPC returns nothing (e.g. brand-new DB).
   async function loadDiscussions(uid) {
+    try {
+      const { data, error } = await supabase.rpc('get_trending_discussions', { p_user_id: uid, p_limit: 10 });
+      if (!error && data?.length) {
+        setDiscussionSeries(data.map((d) => ({
+          id: `disc-${d.series_title}`,
+          title: d.series_title,
+          searchKey: d.search_key || d.series_title,
+          lang: d.lang || 'ja',
+          latestChapter: d.chapters || 0,
+          discussing: Number(d.total_count) || 0,
+          recentCount: Number(d.recent_count) || 0,
+          color: d.color || '#1A1A2E',
+        })));
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback: popular + recently-read merge (pre-RPC behavior)
     try {
       const [popular, rpResult] = await Promise.all([
         fetchPopularManga({ limit: 20 }),
@@ -306,12 +390,11 @@ export default function SocialScreen() {
       const seenTitles = new Set(recentlyRead.map((r) => r.title.toLowerCase()));
       const fillFromPopular = popular
         .filter((m) => !seenTitles.has(m.title.toLowerCase()))
-        .slice(0, Math.max(0, 5 - recentlyRead.length));
+        .slice(0, Math.max(0, 10 - recentlyRead.length));
 
-      const merged = [...recentlyRead, ...fillFromPopular].slice(0, 5);
+      const merged = [...recentlyRead, ...fillFromPopular].slice(0, 10);
       if (!merged.length) return;
 
-      // Fetch real comment counts per series title
       const titles = merged.map((s) => s.title);
       const { data: commentRows } = await supabase
         .from('comments')
@@ -357,7 +440,13 @@ export default function SocialScreen() {
           setFriends((prev) =>
             prev.map((f) =>
               f.id === updated.id
-                ? { ...f, online: updated.online ?? f.online, reading: updated.currently_reading ?? f.reading }
+                ? {
+                    ...f,
+                    online: updated.online ?? f.online,
+                    reading: updated.currently_reading ?? f.reading,
+                    chapter: updated.current_chapter ?? f.chapter,
+                    presenceStatus: computePresenceStatus(updated),
+                  }
                 : f
             )
           );
@@ -369,6 +458,33 @@ export default function SocialScreen() {
       if (presenceChannel) supabase.removeChannel(presenceChannel);
     };
   }, []);
+
+  // Separate effect: realtime DM subscription — refreshes conversation list when messages arrive or are sent
+  useEffect(() => {
+    if (!currentUserId) return;
+    const uid = currentUserId;
+    const dmChannel = supabase
+      .channel(`social-dm-${uid}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${uid}` },
+        () => { loadDMConvos(uid); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `sender_id=eq.${uid}` },
+        () => { loadDMConvos(uid); }
+      )
+      .on(
+        'postgres_changes',
+        // read_at updates (messages marked read in DMScreen) — clears unread badges live
+        { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${uid}` },
+        () => { loadDMConvos(uid); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(dmChannel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]);
 
   // ── Poll ────────────────────────────────────────────────────────────────────
 
@@ -430,6 +546,7 @@ export default function SocialScreen() {
       setMyVote(prevVote);
       setVoteCounts(prevCounts);
       setTotalVotes(prevTotal);
+      showAppToast("Vote didn't go through — try again");
     } else {
       setJustVoted(true);
       setTimeout(() => setJustVoted(false), 2500);
@@ -456,7 +573,10 @@ export default function SocialScreen() {
       p_user_id: uid,
       p_limit: 5,
     });
-    if (!error && data) setSuggestedFriends(data);
+    if (!error && data) {
+      const blocked = await getBlockedIds(uid);
+      setSuggestedFriends(data.filter((f) => !blocked.has(f.id)));
+    }
   }
 
   async function loadFriends(userId) {
@@ -466,21 +586,22 @@ export default function SocialScreen() {
       .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
       .eq('status', 'accepted');
 
-    if (error || !rows || rows.length === 0) {
-      setFriends([]);
-      return;
-    }
+    if (error) { setFriendsError(true); setFriends([]); return; }
+    setFriendsError(false);
+    if (!rows || rows.length === 0) { setFriends([]); return; }
 
-    const friendIds = rows.map(f =>
-      f.requester_id === userId ? f.addressee_id : f.requester_id
-    );
+    const blocked = await getBlockedIds(userId);
+    const friendIds = rows
+      .map(f => f.requester_id === userId ? f.addressee_id : f.requester_id)
+      .filter((fid) => !blocked.has(fid));
+    if (friendIds.length === 0) { setFriends([]); return; }
 
     const { data: profiles, error: pErr } = await supabase
       .from('profiles')
-      .select('id, username, color, avatar_url, online, currently_reading, current_chapter')
+      .select('id, username, color, avatar_url, online, currently_reading, current_chapter, is_busy, last_active_at, show_activity')
       .in('id', friendIds);
 
-    if (pErr) { setFriends([]); return; }
+    if (pErr) { setFriendsError(true); setFriends([]); return; }
 
     const byId = Object.fromEntries((profiles || []).map(p => [p.id, p]));
     setFriends(
@@ -496,6 +617,7 @@ export default function SocialScreen() {
             online: p.online || false,
             reading: p.currently_reading || null,
             chapter: p.current_chapter || 0,
+            presenceStatus: computePresenceStatus(p),
           };
         })
         .filter(Boolean)
@@ -524,8 +646,9 @@ export default function SocialScreen() {
       }
     }
 
-    const partnerIds = Object.keys(byPartner);
-    if (!partnerIds.length) return;
+    const blocked = await getBlockedIds(uid);
+    const partnerIds = Object.keys(byPartner).filter((pid) => !blocked.has(pid));
+    if (!partnerIds.length) { setDmConvos([]); return; }
 
     const { data: profiles } = await supabase
       .from('profiles')
@@ -546,6 +669,8 @@ export default function SocialScreen() {
           preview = lastMsg.sender_id === uid
             ? `You: 📚 ${t || 'Manga recommendation'}`
             : `📚 ${t || 'Manga recommendation'}`;
+        } else if (lastMsg.message_type === 'image') {
+          preview = lastMsg.sender_id === uid ? 'You: 📷 Photo' : '📷 Photo';
         } else {
           preview = lastMsg.sender_id === uid
             ? `You: ${lastMsg.content || ''}`
@@ -721,6 +846,41 @@ export default function SocialScreen() {
     });
   }
 
+  // Short tap on a friend's avatar: peek what they're reading, or their status
+  function handlePeekFriend(friend) {
+    const validReading = sanitizeReading(friend.reading);
+    if (friend.presenceStatus !== 'offline' && validReading) {
+      showAppToast(`📖 ${friend.name} is reading ${validReading}${friend.chapter ? ` · Ch. ${friend.chapter}` : ''}`, 'info');
+    } else {
+      const emoji = friend.presenceStatus === 'online' ? '🟢' : friend.presenceStatus === 'idle' ? '🟡' : friend.presenceStatus === 'busy' ? '🔴' : '⚪';
+      showAppToast(`${emoji} ${friend.name} is ${PRESENCE_LABELS[friend.presenceStatus]}`, 'info');
+    }
+  }
+
+  function handleOpenFriendProfile(friend) {
+    navigation.navigate('FriendProfile', { id: friend.id });
+  }
+
+  function openMessages() {
+    setShowMessages(true);
+    if (uidRef.current) loadDMConvos(uidRef.current);
+  }
+
+  async function onRefresh() {
+    setRefreshing(true);
+    logoRef.current?.spin();
+    const uid = uidRef.current;
+    await Promise.all([
+      loadFriends(uid),
+      loadDMConvos(uid),
+      loadPendingRequests(uid),
+      loadPoll(uid),
+      loadDiscussions(uid),
+      loadSuggestedFriends(uid),
+    ]);
+    setRefreshing(false);
+  }
+
   function closeAddFriend() {
     setShowAddFriend(false);
     setSearchQuery('');
@@ -770,14 +930,21 @@ export default function SocialScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
 
+        <View style={IS_TABLET ? styles.tabletWrap : null}>
         {/* Header */}
         <View style={styles.header}>
+          <StarLogo ref={logoRef} size={32} />
           <Text style={[styles.headerTitle, { color: colors.text }]}>Community</Text>
           <View style={styles.headerButtons}>
             <TouchableOpacity style={styles.addFriendBtn} onPress={() => setShowAddFriend(true)}>
-              <Ionicons name="person-add-outline" size={13} color="#534AB7" />
+              <Ionicons name="person-add-outline" size={13} color="#7B5CFF" />
               <Text style={styles.addFriendText}>Add Friend</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.leaderboardBtn} onPress={() => setShowLeaderboard(true)}>
@@ -791,7 +958,7 @@ export default function SocialScreen() {
         {pendingRequests.length > 0 && (
           <View style={styles.requestsSection}>
             <View style={styles.requestsHeader}>
-              <Ionicons name="people" size={14} color="#534AB7" />
+              <Ionicons name="people" size={14} color="#7B5CFF" />
               <Text style={[styles.requestsTitle, { color: colors.text }]}>Friend Requests</Text>
               <View style={styles.requestsBadge}>
                 <Text style={styles.requestsBadgeText}>{pendingRequests.length}</Text>
@@ -820,119 +987,77 @@ export default function SocialScreen() {
           </View>
         )}
 
-        {/* ── Messages ── */}
-        <View style={styles.msgSectionHeader}>
-          <View style={styles.msgSectionLeft}>
-            <Ionicons name="chatbubble-ellipses" size={14} color="#534AB7" />
-            <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>Messages</Text>
+        {friendsError && (
+          <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="cloud-offline-outline" size={13} color={colors.muted} />
+            <Text style={[styles.errorBannerText, { color: colors.muted }]}>Couldn't load friends</Text>
+            <TouchableOpacity onPress={() => uidRef.current && loadFriends(uidRef.current)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.errorBannerRetry}>Retry</Text>
+            </TouchableOpacity>
           </View>
-          {dmConvos.reduce((n, c) => n + c.unread, 0) > 0 && (
-            <View style={styles.dmTotalBadge}>
-              <Text style={styles.dmTotalBadgeText}>{dmConvos.reduce((n, c) => n + c.unread, 0)}</Text>
-            </View>
-          )}
-        </View>
+        )}
 
-        <View style={styles.dmList}>
-          {dmConvos.length > 0 ? (
-            dmConvos.slice(0, 6).map((convo) => (
-              <TouchableOpacity
-                key={convo.friendId}
-                style={[styles.dmConvoRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={() => navigation.navigate('DM', {
-                  friendId: convo.friendId,
-                  friendName: convo.friend.name,
-                  friendColor: convo.friend.color,
-                  friendAvatarUrl: convo.friend.avatarUrl || null,
-                })}
-                activeOpacity={0.82}>
-                <View>
-                  <AvatarCircle
-                    username={convo.friend.name}
-                    avatarUrl={convo.friend.avatarUrl}
-                    color={convo.friend.color}
-                    size={44}
-                  />
-                  {convo.unread > 0 && (
-                    <View style={styles.dmUnreadDot} />
-                  )}
-                </View>
-                <View style={styles.dmConvoContent}>
-                  <View style={styles.dmConvoTopRow}>
-                    <Text style={[styles.dmConvoName, { color: colors.text }, convo.unread > 0 && styles.dmConvoNameBold]} numberOfLines={1}>
-                      {convo.friend.name}
-                    </Text>
-                    <Text style={[styles.dmConvoTime, { color: colors.muted }]}>{convo.lastTime}</Text>
-                  </View>
-                  <Text
-                    style={[styles.dmConvoPreview, { color: convo.unread > 0 ? colors.text : colors.muted }, convo.unread > 0 && styles.dmConvoPreviewBold]}
-                    numberOfLines={1}>
-                    {convo.preview}
-                  </Text>
-                </View>
-                {convo.unread > 0 && (
-                  <View style={styles.dmUnreadBadge}>
-                    <Text style={styles.dmUnreadText}>{convo.unread > 9 ? '9+' : convo.unread}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))
-          ) : friends.length > 0 ? (
-            friends.slice(0, 4).map((friend) => (
-              <TouchableOpacity
-                key={friend.id}
-                style={[styles.dmConvoRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={() => navigation.navigate('DM', {
-                  friendId: friend.id,
-                  friendName: friend.name,
-                  friendColor: friend.color,
-                  friendAvatarUrl: friend.avatarUrl || null,
-                })}
-                activeOpacity={0.82}>
-                <AvatarCircle username={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={44} />
-                <View style={styles.dmConvoContent}>
-                  <Text style={[styles.dmConvoName, { color: colors.text }]}>{friend.name}</Text>
-                  <Text style={[styles.dmConvoPreview, { color: colors.muted }]}>Say hello 👋</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.border} />
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={[styles.emptyHint, { color: colors.muted }]}>Add friends to start messaging.</Text>
-          )}
-        </View>
+        {/* ── Friends ── compact avatar strip, replaces the old always-expanded list */}
+        {friends.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Friends</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.friendStripRow}
+              contentContainerStyle={{ paddingRight: 20 }}>
+              {friends.map((friend) => (
+                <FriendAvatarStatus
+                  key={friend.id}
+                  friend={friend}
+                  onPeek={handlePeekFriend}
+                  onOpenProfile={handleOpenFriendProfile}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
 
-        {/* ── Friends Reading ── only online friends with an active title */}
-        {(() => {
-          const activeReaders = friends.filter(
-            (f) => f.online && sanitizeReading(f.reading)
-          );
-          if (activeReaders.length === 0) return null;
-          return (
-            <>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Friends Reading</Text>
-              <View style={styles.friendsList}>
-                {activeReaders.map((friend) => (
-                  <FriendActivity
-                    key={friend.id}
-                    friend={friend}
-                    onPress={() => navigation.navigate('FriendProfile', { id: friend.id })}
-                    onReadingPress={() => {
-                      const title = sanitizeReading(friend.reading);
-                      if (!title) return;
-                      navigation.navigate('Reader', { searchQuery: title, title, chapters: 999 });
-                    }}
-                  />
-                ))}
+        {/* ── Messages ── single entry point instead of an always-open list */}
+        <TouchableOpacity
+          style={[styles.msgEntryBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={openMessages}
+          activeOpacity={0.82}>
+          <View style={styles.msgEntryIconWrap}>
+            <Ionicons name="chatbubble-ellipses" size={20} color="#7B5CFF" />
+            {dmConvos.reduce((n, c) => n + c.unread, 0) > 0 && (
+              <View style={styles.dmTotalBadge}>
+                <Text style={styles.dmTotalBadgeText}>{dmConvos.reduce((n, c) => n + c.unread, 0)}</Text>
               </View>
-            </>
-          );
-        })()}
+            )}
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={[styles.msgEntryTitle, { color: colors.text }]}>Messages</Text>
+            <Text style={[styles.msgEntrySub, { color: colors.muted }]} numberOfLines={1}>
+              {dmConvos[0]
+                ? `${dmConvos[0].friend.name}: ${dmConvos[0].preview}`
+                : 'Tap to start a conversation'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+        </TouchableOpacity>
 
-        {/* ── Chapter Discussions ── */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>💬 Chapter Discussions</Text>
+        {/* ── Discussions ── */}
+        <TouchableOpacity
+          style={styles.discHeaderRow}
+          onPress={() => navigation.navigate('AllDiscussions')}
+          activeOpacity={0.7}>
+          <View style={styles.actTitleRow}>
+            <Ionicons name="chatbubbles" size={16} color="#7B5CFF" />
+            <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>Discussions </Text>
+          </View>
+          <View style={styles.seeAllChip}>
+            <Text style={styles.seeAllChipText}>See all</Text>
+            <Ionicons name="chevron-forward" size={12} color="#7B5CFF" />
+          </View>
+        </TouchableOpacity>
         <View style={styles.discList}>
-          {discussionSeries.map((item) => (
+          {discussionSeries.slice(0, 3).map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[styles.discCard, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -951,7 +1076,7 @@ export default function SocialScreen() {
                 <Text style={[styles.discTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.discChap, { color: colors.muted }]}>Ch. {item.latestChapter} · Latest</Text>
                 <View style={styles.discCountRow}>
-                  <Ionicons name="chatbubble-ellipses" size={11} color="#534AB7" />
+                  <Ionicons name="chatbubble-ellipses" size={11} color="#7B5CFF" />
                   <Text style={styles.discCount}>{item.discussing.toLocaleString()} discussing</Text>
                 </View>
               </View>
@@ -971,7 +1096,7 @@ export default function SocialScreen() {
         {/* ── Poll of the Week ── */}
         <View style={[styles.actHeaderRow, { marginBottom: 10, marginTop: 8 }]}>
           <View style={styles.actTitleRow}>
-            <Ionicons name="bar-chart-outline" size={14} color="#534AB7" />
+            <Ionicons name="bar-chart-outline" size={14} color="#7B5CFF" />
             <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>
               Poll of the Week </Text>
           </View>
@@ -979,7 +1104,7 @@ export default function SocialScreen() {
 
         {pollLoading ? (
           <View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <ActivityIndicator size="small" color="#534AB7" style={styles.actLoader} />
+            <ActivityIndicator size="small" color="#7B5CFF" style={styles.actLoader} />
           </View>
         ) : poll ? (
           <PollCard
@@ -994,7 +1119,95 @@ export default function SocialScreen() {
         ) : null}
 
         <View style={{ height: 88 }} />
+        </View>
       </ScrollView>
+
+      {/* ── Messages Modal ── */}
+      <Modal visible={showMessages} animationType="slide" transparent onRequestClose={() => setShowMessages(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowMessages(false)}>
+          <View style={[styles.msgModalSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Messages</Text>
+              <TouchableOpacity onPress={() => setShowMessages(false)}>
+                <Ionicons name="close" size={20} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              {dmConvos.length > 0 ? (
+                dmConvos.map((convo) => (
+                  <TouchableOpacity
+                    key={convo.friendId}
+                    style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}
+                    onPress={() => {
+                      setShowMessages(false);
+                      navigation.navigate('DM', {
+                        friendId: convo.friendId,
+                        friendName: convo.friend.name,
+                        friendColor: convo.friend.color,
+                        friendAvatarUrl: convo.friend.avatarUrl || null,
+                      });
+                    }}
+                    activeOpacity={0.82}>
+                    <View>
+                      <AvatarCircle
+                        username={convo.friend.name}
+                        avatarUrl={convo.friend.avatarUrl}
+                        color={convo.friend.color}
+                        size={44}
+                      />
+                      {convo.unread > 0 && <View style={styles.dmUnreadDot} />}
+                    </View>
+                    <View style={styles.dmConvoContent}>
+                      <View style={styles.dmConvoTopRow}>
+                        <Text style={[styles.dmConvoName, { color: colors.text }, convo.unread > 0 && styles.dmConvoNameBold]} numberOfLines={1}>
+                          {convo.friend.name}
+                        </Text>
+                        <Text style={[styles.dmConvoTime, { color: colors.muted }]}>{convo.lastTime}</Text>
+                      </View>
+                      <Text
+                        style={[styles.dmConvoPreview, { color: convo.unread > 0 ? colors.text : colors.muted }, convo.unread > 0 && styles.dmConvoPreviewBold]}
+                        numberOfLines={1}>
+                        {convo.preview}
+                      </Text>
+                    </View>
+                    {convo.unread > 0 && (
+                      <View style={styles.dmUnreadBadge}>
+                        <Text style={styles.dmUnreadText}>{convo.unread > 9 ? '9+' : convo.unread}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : friends.length > 0 ? (
+                friends.map((friend) => (
+                  <TouchableOpacity
+                    key={friend.id}
+                    style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}
+                    onPress={() => {
+                      setShowMessages(false);
+                      navigation.navigate('DM', {
+                        friendId: friend.id,
+                        friendName: friend.name,
+                        friendColor: friend.color,
+                        friendAvatarUrl: friend.avatarUrl || null,
+                      });
+                    }}
+                    activeOpacity={0.82}>
+                    <AvatarCircle username={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={44} />
+                    <View style={styles.dmConvoContent}>
+                      <Text style={[styles.dmConvoName, { color: colors.text }]}>{friend.name}</Text>
+                      <Text style={[styles.dmConvoPreview, { color: colors.muted }]}>Say hello 👋</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={colors.border} />
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={[styles.emptyHint, { color: colors.muted }]}>Add friends to start messaging.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* ── Add Friend Modal ── */}
       <Modal visible={showAddFriend} animationType="slide" transparent onRequestClose={closeAddFriend}>
@@ -1008,7 +1221,7 @@ export default function SocialScreen() {
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.modalSub, { color: colors.muted }]}>Search by username to find Panelr readers</Text>
+            <Text style={[styles.modalSub, { color: colors.muted }]}>Search by username to find MangaRecs readers</Text>
 
             <View style={styles.searchRow}>
               <TextInput
@@ -1050,7 +1263,7 @@ export default function SocialScreen() {
                   <Ionicons
                     name={requestSentTo[searchResult.id] ? 'checkmark' : 'person-add'}
                     size={14}
-                    color={requestSentTo[searchResult.id] ? '#1D9E75' : '#534AB7'}
+                    color={requestSentTo[searchResult.id] ? '#1D9E75' : '#7B5CFF'}
                   />
                   <Text style={[styles.addBtnText, requestSentTo[searchResult.id] && styles.addBtnTextSent]}>
                     {getAddLabel(searchResult.id)}
@@ -1077,7 +1290,7 @@ export default function SocialScreen() {
                   <Ionicons
                     name={requestSentTo[f.id] ? 'checkmark' : 'add'}
                     size={16}
-                    color={requestSentTo[f.id] ? '#1D9E75' : '#534AB7'}
+                    color={requestSentTo[f.id] ? '#1D9E75' : '#7B5CFF'}
                   />
                 </TouchableOpacity>
               </View>
@@ -1103,7 +1316,7 @@ export default function SocialScreen() {
                 activeOpacity={0.75}>
                 <Text style={[styles.reportOptionText, { color: colors.text }]}>{reason}</Text>
                 {reportSubmitting
-                  ? <ActivityIndicator size="small" color="#534AB7" />
+                  ? <ActivityIndicator size="small" color="#7B5CFF" />
                   : <Ionicons name="chevron-forward" size={14} color={colors.muted} />}
               </TouchableOpacity>
             ))}
@@ -1157,7 +1370,7 @@ export default function SocialScreen() {
             <View style={[styles.lbDivider, { backgroundColor: colors.border }]} />
 
             {leaderboardLoading ? (
-              <ActivityIndicator size="small" color="#534AB7" style={{ marginVertical: 24 }} />
+              <ActivityIndicator size="small" color="#7B5CFF" style={{ marginVertical: 24 }} />
             ) : sortedLeaderboard.length === 0 ? (
               <Text style={[styles.emptyHint, { textAlign: 'center', paddingVertical: 32 }]}>No rankings yet. Start reading to appear on the leaderboard!</Text>
             ) : (
@@ -1167,7 +1380,7 @@ export default function SocialScreen() {
                     key={entry.id || idx}
                     style={[
                       styles.lbRow,
-                      { borderColor: entry.isMe ? 'rgba(83,74,183,0.4)' : colors.border },
+                      { borderColor: entry.isMe ? 'rgba(123,92,255,0.4)' : colors.border },
                       entry.isMe && styles.lbRowMe,
                     ]}>
                     <View style={styles.lbRankWrap}>
@@ -1190,7 +1403,7 @@ export default function SocialScreen() {
                     </View>
                     <View style={styles.lbInfo}>
                       <View style={styles.lbNameRow}>
-                        <Text style={[styles.lbName, { color: entry.isMe ? '#534AB7' : colors.text }]} numberOfLines={1}>
+                        <Text style={[styles.lbName, { color: entry.isMe ? '#7B5CFF' : colors.text }]} numberOfLines={1}>
                           {entry.name}
                         </Text>
                         {entry.isMe && (
@@ -1227,13 +1440,17 @@ export default function SocialScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
+  errorBanner: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 10, padding: 10, borderRadius: 10, borderWidth: 1, gap: 8 },
+  errorBannerText: { flex: 1, fontSize: 11 },
+  errorBannerRetry: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
 
   // Header
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, marginBottom: 20 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, marginBottom: 20 },
+  headerTitle: { fontSize: 18, fontWeight: '700', marginLeft: 10, flex: 1 },
   headerButtons: { alignItems: 'flex-end' },
-  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.15)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginBottom: 6 },
-  addFriendText: { color: '#534AB7', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
+  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.15)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginBottom: 6 },
+  addFriendText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
   leaderboardBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
   leaderboardText: { color: '#FFD700', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
 
@@ -1250,17 +1467,19 @@ const styles = StyleSheet.create({
   pollCard: { marginHorizontal: 20, marginBottom: 24, borderRadius: 16, borderWidth: 1, overflow: 'hidden', padding: 16 },
   pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   pollTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pollLabel: { color: '#534AB7', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  pollLabel: { color: '#7B5CFF', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
   pollQuestion: { fontSize: 15, fontWeight: '700', lineHeight: 22, marginBottom: 14 },
   pollOption: { borderRadius: 10, borderWidth: 1, marginBottom: 8, overflow: 'hidden', height: 44, justifyContent: 'center' },
   pollOptionFill: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   pollOptionContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
-  pollDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(83,74,183,0.5)', marginRight: 10 },
-  pollDotFilled: { backgroundColor: '#534AB7', borderColor: '#534AB7' },
+  pollDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(123,92,255,0.5)', marginRight: 10 },
+  pollDotFilled: { backgroundColor: '#7B5CFF', borderColor: '#7B5CFF' },
   pollOptionLabel: { flex: 1, fontSize: 13, fontWeight: '500' },
   pollPct: { fontSize: 12, fontWeight: '700', marginLeft: 8 },
   pollHint: { fontSize: 12, marginBottom: 10, fontStyle: 'italic' },
-  pollFooter: { fontSize: 11, marginTop: 4, textAlign: 'right' },
+  pollFooter: { fontSize: 11 },
+  pollFooterRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 },
+  pollFooterDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(155,154,163,0.5)', marginHorizontal: 2 },
 
   // Shared live chip
   liveChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 20 },
@@ -1271,7 +1490,7 @@ const styles = StyleSheet.create({
   // Messages section
   msgSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 8, marginBottom: 10 },
   msgSectionLeft: { flexDirection: 'row', alignItems: 'center' },
-  dmTotalBadge: { backgroundColor: '#534AB7', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  dmTotalBadge: { backgroundColor: '#7B5CFF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   dmTotalBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
   dmList: { paddingHorizontal: 20, marginBottom: 24 },
@@ -1285,14 +1504,14 @@ const styles = StyleSheet.create({
   dmConvoTime: { fontSize: 11, marginLeft: 8 },
   dmConvoPreview: { fontSize: 13, lineHeight: 17 },
   dmConvoPreviewBold: { fontWeight: '600' },
-  dmUnreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#534AB7', borderWidth: 2, borderColor: '#0D0D0F' },
-  dmUnreadBadge: { backgroundColor: '#534AB7', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
+  dmUnreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#7B5CFF', borderWidth: 2, borderColor: '#0D0D0F' },
+  dmUnreadBadge: { backgroundColor: '#7B5CFF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
   dmUnreadText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   friendsList: { paddingHorizontal: 20, marginBottom: 24 },
   friendRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   friendRowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   friendRowChevron: { paddingLeft: 8, paddingVertical: 4 },
-  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(83,74,183,0.5)', alignItems: 'center', justifyContent: 'center' },
+  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(123,92,255,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendInfo: { flex: 1, marginLeft: 12 },
@@ -1300,9 +1519,29 @@ const styles = StyleSheet.create({
   friendName: { fontSize: 14, fontWeight: '500' },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginLeft: 6 },
   friendReading: { fontSize: 12, marginTop: 2 },
-  friendSeriesLink: { color: '#534AB7' },
+  friendSeriesLink: { color: '#7B5CFF' },
+
+  // Friend avatar strip (replaces the old "Friends Reading" list)
+  friendStripRow: { paddingLeft: 20, marginBottom: 22 },
+  friendAvatarItem: { alignItems: 'center', width: 66, marginRight: 10 },
+  friendAvatarWrap: { position: 'relative' },
+  presenceDot: {
+    position: 'absolute', bottom: 0, right: 2, width: 16, height: 16, borderRadius: 8,
+    borderWidth: 2.5, alignItems: 'center', justifyContent: 'center',
+  },
+  friendAvatarName: { fontSize: 11, fontWeight: '500', marginTop: 6, textAlign: 'center' },
+
+  // Messages entry button
+  msgEntryBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 24, padding: 14, borderRadius: 16, borderWidth: 1 },
+  msgEntryIconWrap: { position: 'relative', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(123,92,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  msgEntryTitle: { fontSize: 14, fontWeight: '700' },
+  msgEntrySub: { fontSize: 12, marginTop: 2 },
+  msgModalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36, maxHeight: '82%' },
 
   // Discussions
+  discHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
+  seeAllChip: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  seeAllChipText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600' },
   discList: { paddingHorizontal: 20, marginBottom: 8 },
   discCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   discCover: { width: 52, height: 66, borderRadius: 8, marginRight: 14 },
@@ -1310,7 +1549,7 @@ const styles = StyleSheet.create({
   discTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
   discChap: { fontSize: 11, marginBottom: 5 },
   discCountRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  discCount: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
+  discCount: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
   discActions: { alignItems: 'center', justifyContent: 'space-between', height: 40, paddingLeft: 8 },
   discReportBtn: { padding: 2 },
 
@@ -1347,7 +1586,7 @@ const styles = StyleSheet.create({
   lbTabEmoji: { fontSize: 11 },
   lbDivider: { height: 1, marginBottom: 6 },
   lbRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, marginBottom: 5 },
-  lbRowMe: { backgroundColor: 'rgba(83,74,183,0.1)' },
+  lbRowMe: { backgroundColor: 'rgba(123,92,255,0.1)' },
   lbRankWrap: { width: 32, alignItems: 'center', marginRight: 4 },
   lbMedal: { fontSize: 18 },
   lbRankNumWrap: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
@@ -1358,8 +1597,8 @@ const styles = StyleSheet.create({
   lbInfo: { flex: 1, marginRight: 6 },
   lbNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
   lbName: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
-  youChip: { paddingHorizontal: 5, paddingVertical: 1, backgroundColor: 'rgba(83,74,183,0.2)', borderRadius: 20 },
-  youChipText: { color: '#534AB7', fontSize: 8, fontWeight: '700' },
+  youChip: { paddingHorizontal: 5, paddingVertical: 1, backgroundColor: 'rgba(123,92,255,0.2)', borderRadius: 20 },
+  youChipText: { color: '#7B5CFF', fontSize: 8, fontWeight: '700' },
   lbOnlineDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10b981' },
   lbBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
   lbStat: { alignItems: 'flex-end', minWidth: 44 },
@@ -1369,7 +1608,7 @@ const styles = StyleSheet.create({
   // Search / friend modal
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   searchInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, marginRight: 8 },
-  searchBtn: { backgroundColor: '#534AB7', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  searchBtn: { backgroundColor: '#7B5CFF', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   searchError: { color: '#D4537E', fontSize: 12, marginBottom: 10 },
   resultCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 4, borderWidth: 1 },
   resultAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
@@ -1377,11 +1616,11 @@ const styles = StyleSheet.create({
   resultInfo: { flex: 1 },
   resultName: { fontSize: 14, fontWeight: '600' },
   resultSub: { fontSize: 11, marginTop: 2 },
-  viewBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.1)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)', marginRight: 8 },
-  viewBtnText: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.1)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)' },
+  viewBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.1)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)', marginRight: 8 },
+  viewBtnText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.1)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)' },
   addBtnSent: { borderColor: 'rgba(29,158,117,0.4)', backgroundColor: 'rgba(29,158,117,0.1)' },
-  addBtnText: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
+  addBtnText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
   addBtnTextSent: { color: '#1D9E75' },
   divider: { height: 1, marginVertical: 16 },
   suggestedTitle: { fontSize: 11, fontWeight: '600', marginBottom: 12, letterSpacing: 0.5, textTransform: 'uppercase' },
@@ -1389,14 +1628,14 @@ const styles = StyleSheet.create({
   suggestedName: { fontSize: 13, flex: 1, marginLeft: 10 },
   suggestedProfileBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, marginRight: 8 },
   suggestedProfileText: { fontSize: 11, fontWeight: '500' },
-  suggestedAddBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(83,74,183,0.15)' },
+  suggestedAddBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(123,92,255,0.15)' },
   suggestedAddBtnSent: { backgroundColor: 'rgba(29,158,117,0.15)' },
 
   // Friend requests
   requestsSection: { paddingHorizontal: 20, marginBottom: 16 },
   requestsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   requestsTitle: { fontSize: 13, fontWeight: '600', marginLeft: 6, flex: 1 },
-  requestsBadge: { backgroundColor: '#534AB7', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  requestsBadge: { backgroundColor: '#7B5CFF', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   requestsBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   requestRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   requestAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 10 },

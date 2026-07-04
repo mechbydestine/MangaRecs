@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../supabase';
 import { checkAndNotifyBadges } from './badgeEngine';
 
@@ -99,9 +99,12 @@ export function ProfileProvider({ children }) {
       }
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      // Path is constant per user, so bust caches on every change — otherwise
+      // friends' devices keep showing the previously cached image forever.
+      const versionedUrl = `${publicUrl}?v=${Date.now()}`;
       const field = type === 'avatar' ? 'avatar_url' : 'banner_url';
-      await updateProfile({ [field]: publicUrl });
-      return { url: publicUrl };
+      await updateProfile({ [field]: versionedUrl });
+      return { url: versionedUrl };
     } catch (e) {
       return { error: e };
     }

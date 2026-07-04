@@ -12,7 +12,7 @@ import { getFaviconUrl, AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsf
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
 import { clearBadgeCache } from '../utils/badgeEngine';
 import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const NOTIFS_KEY      = '@panelr/notifPrefs';
 const READER_MODE_KEY = '@panelr/readerMode';
@@ -393,7 +393,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
               <Text style={[styles.settingsRowLabel, { color: colors.text }]}>AI Recommendations</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your For You feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
             </View>
             <Switch
               value={aiRec}
@@ -414,7 +414,7 @@ export default function SettingsScreen({ navigation }) {
               </View>
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
                 {ageVerified
-                  ? 'Show 18+ content in your For You feed and search results.'
+                  ? 'Show 18+ content in your Recs feed and search results.'
                   : 'Verify your age to unlock adult content.'}
               </Text>
             </View>
@@ -734,7 +734,7 @@ export default function SettingsScreen({ navigation }) {
               'Download chapters (30 chapter limit)',
               'Full reading analytics & streak tracking',
               'AI-powered recommendations',
-              'For You page & taste profile',
+              'Recs page & taste profile',
             ].map((f) => (
               <View key={f} style={styles.featureRow}>
                 <Ionicons name="checkmark" size={16} color={colors.muted} />
