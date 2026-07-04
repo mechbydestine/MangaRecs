@@ -11,6 +11,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useTheme } from '../utils/ThemeContext';
+import StarLogo from '../components/StarLogo';
 import ShareToInstagram from '../components/ShareToInstagram';
 import { supabase } from '../supabase';
 import { syncReadOpen, setLastRead } from '../utils/readerUtils';
@@ -745,6 +746,7 @@ export default function FeedScreen() {
   const [savedMap, setSavedMap]   = useState(new Map());
   const [likedIds, setLikedIds]   = useState(new Set());
   const realtimeRef = useRef(null);
+  const logoRef = useRef(null);
   const [comments, setComments]   = useState({});
   const [revealedSpoilers, setRevealedSpoilers] = useState(new Set());
   const [loadingMore, setLoadingMore] = useState(false);
@@ -1235,7 +1237,7 @@ export default function FeedScreen() {
 
   // ── Tab-icon tap → refresh ────────────────────────────────────────────────
   useEffect(() => {
-    if (route.params?.refreshAt) onRefresh();
+    if (route.params?.refreshAt) { logoRef.current?.spin(); onRefresh(); }
   }, [route.params?.refreshAt]);
 
   function setupRealtimeSubscription() {
@@ -1290,9 +1292,9 @@ export default function FeedScreen() {
 
   if (initialLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: '#0D0D12' }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.logo}>Panelr</Text>
+          <StarLogo ref={logoRef} size={38} />
         </View>
         <SkeletonFeed />
       </View>
@@ -1303,7 +1305,7 @@ export default function FeedScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.logo}>Panelr</Text>
+        <StarLogo ref={logoRef} size={38} />
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerBtn} onPress={() => setSearchOpen(true)}>
             <Ionicons name="search-outline" size={24} color="#fff" />

@@ -42,6 +42,9 @@
   },
   "private": true,
   "devDependencies": {
-    "canvas": "^3.2.3"
+    "@types/react": "~19.1.10",
+    "canvas": "^3.2.3",
+    "sharp": "^0.35.3",
+    "typescript": "~5.9.2"
   }
 }

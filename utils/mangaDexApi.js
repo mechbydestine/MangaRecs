@@ -41,6 +41,44 @@ function findBestMatch(data, query) {
   return partial || null;
 }
 
+// Returns an ARRAY of matches for search-as-you-type UIs:
+// [{ id, title, coverUrl, lang, chapters }]
+export async function searchMangaDexList(query, { limit = 8, allowNsfw = false } = {}) {
+  try {
+    const ratings = allowNsfw
+      ? 'contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic'
+      : 'contentRating[]=safe&contentRating[]=suggestive';
+    const resp = await withTimeout(
+      fetch(
+        `${BASE}/manga?title=${encodeURIComponent(query)}&limit=${limit}&includes[]=cover_art&order[relevance]=desc&${ratings}`,
+        { headers: { Accept: 'application/json' } }
+      ),
+      TIMEOUT
+    );
+    if (!resp?.ok) return [];
+    const { data } = await resp.json();
+    if (!data?.length) return [];
+    return data.map((manga) => {
+      const coverRel = manga.relationships?.find((r) => r.type === 'cover_art');
+      const coverUrl = coverRel?.attributes?.fileName
+        ? `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`
+        : null;
+      const titleObj = manga.attributes?.title || {};
+      const title = titleObj.en || Object.values(titleObj)[0] || query;
+      const lastCh = parseFloat(manga.attributes?.lastChapter);
+      return {
+        id: manga.id,
+        title,
+        coverUrl,
+        lang: manga.attributes?.originalLanguage || 'ja',
+        chapters: Number.isFinite(lastCh) && lastCh > 0 ? Math.round(lastCh) : 0,
+      };
+    });
+  } catch (_) {
+    return [];
+  }
+}
+
 // Returns { id, title, coverUrl } or null
 export async function searchMangaDex(query, { lang, allowNsfw = false } = {}) {
   try {
@@ -124,6 +162,27 @@ export async function getMangaChapters(mangaId) {
   } catch (_) {
     return [];
   }
+}
+
+// Chapter-list cache: repeat opens of the same series skip the paginated
+// MangaDex fetch entirely for 6 hours.
+const CHAPTER_LIST_CACHE_PFX = '@mangarecs/chlist/';
+const CHAPTER_LIST_TTL = 6 * 60 * 60 * 1000;
+
+export async function getMangaChaptersCached(mangaId) {
+  const key = CHAPTER_LIST_CACHE_PFX + mangaId;
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (raw) {
+      const { ts, data } = JSON.parse(raw);
+      if (Date.now() - ts < CHAPTER_LIST_TTL && Array.isArray(data)) return data;
+    }
+  } catch (_) {}
+  const fresh = await getMangaChapters(mangaId);
+  if (fresh.length > 0) {
+    AsyncStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: fresh })).catch(() => {});
+  }
+  return fresh;
 }
 
 // ── Bulk manga fetching (Popular / Recently Updated) ────────────────────────
