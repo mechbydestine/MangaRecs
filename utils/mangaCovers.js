@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, Linking } from 'react-native';
+import { View, StyleSheet, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { searchMangaDex } from './mangaDexApi';
 
@@ -335,7 +336,9 @@ export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', style, c
         <Image
           source={{ uri: coverUrl }}
           style={StyleSheet.absoluteFill}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="disk"
+          transition={140}
           onError={onError}
         />
       )}

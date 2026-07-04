@@ -7,8 +7,16 @@ const DAILY_LOG_KEY   = '@panelr_daily_log';
 const LAST_READ_KEY   = '@panelr_last_read';
 const HISTORY_KEY     = '@panelr_reading_history';
 
+// Date key in the user's LOCAL timezone. toISOString() is UTC — for users in
+// UTC+ zones (JP/KR) it shifts reads to the previous day and breaks streaks.
+export function localDateKey(d = new Date()) {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey();
 }
 
 /**
@@ -210,13 +218,13 @@ export async function getMergedDailyLog(cloudLog = {}) {
 export function calculateStreak(dailyLog) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tKey = today.toISOString().slice(0, 10);
+  const tKey = localDateKey(today);
   const startOffset = (dailyLog[tKey] || 0) > 0 ? 0 : 1;
   let streak = 0;
   for (let i = startOffset; i < 365; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
+    const k = localDateKey(d);
     if ((dailyLog[k] || 0) > 0) {
       streak++;
     } else {

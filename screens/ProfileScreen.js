@@ -15,7 +15,7 @@ import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
 import { MangaCover } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
-import { getMergedDailyLog, calculateStreak } from '../utils/readerUtils';
+import { getMergedDailyLog, calculateStreak, localDateKey } from '../utils/readerUtils';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ function StreakCalendar({ dailyLog }) {
     for (let i = WEEKS * DAYS - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      arr.push(dailyLog[d.toISOString().slice(0, 10)] || 0);
+      arr.push(dailyLog[localDateKey(d)] || 0);
     }
     return arr;
   })();
@@ -627,7 +627,7 @@ export default function ProfileScreen() {
                 <View style={styles.todayBadge}>
                   <Ionicons name="time" size={11} color="#534AB7" />
                   <Text style={styles.todayBadgeText}>{(() => {
-                    const hrs = dailyLog[new Date().toISOString().slice(0, 10)] || 0;
+                    const hrs = dailyLog[localDateKey()] || 0;
                     if (hrs <= 0) return 'Start reading';
                     if (hrs < 1)  return `${Math.round(hrs * 60)}m today`;
                     return `${Math.floor(hrs)}h ${Math.round((hrs % 1) * 60)}m Today `;

@@ -15,7 +15,7 @@ import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_
 import { searchMangaDex } from '../utils/mangaDexApi';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
-import { updateDailyLog, setLastRead, incrementSharesCount } from '../utils/readerUtils';
+import { updateDailyLog, setLastRead, incrementSharesCount, localDateKey } from '../utils/readerUtils';
 import { PRESETS as AMBIENCE_PRESETS, play as ambiencePlay, stop as ambienceStop, setVolume as ambienceSetVolume, subscribe as ambienceSubscribe, getState as ambienceGetState } from '../utils/ambiencePlayer';
 import { useTheme } from '../utils/ThemeContext';
 
@@ -994,7 +994,7 @@ export default function ReaderScreen({ route, navigation }) {
 
   useEffect(() => {
     // Record today as a reading day so ProfileScreen's calculateStreak() can compute streak correctly
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     AsyncStorage.getItem('@panelr_last_read_date').then((stored) => {
       if (stored !== today) AsyncStorage.setItem('@panelr_last_read_date', today).catch(() => {});
     }).catch(() => {});

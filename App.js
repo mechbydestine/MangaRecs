@@ -33,6 +33,7 @@ import FriendProfileScreen from './screens/FriendProfileScreen';
 import DiscussionScreen from './screens/DiscussionScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import GuidelinesScreen from './screens/GuidelinesScreen';
+import IntroScreen from './screens/IntroScreen';
 import CreatorDashboardScreen from './screens/CreatorDashboardScreen';
 import DMScreen from './screens/DMScreen';
 import LegalScreen from './screens/LegalScreen';
@@ -41,6 +42,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
 
 const navigationRef = createNavigationContainerRef();
+
+const CURRENT_APP_VERSION = Constants.expoConfig?.version || '1.0.0';
+const LAST_SEEN_VERSION_KEY = '@mangarecs/last_seen_version';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
 let Notifications = null;
@@ -384,18 +388,22 @@ export default function App() {
   const [loading, setLoading]                 = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [needsGuidelines, setNeedsGuidelines] = useState(false);
+  const [showIntro, setShowIntro]             = useState(null); // null = not determined yet
+  const [introDone, setIntroDone]             = useState(false);
 
   useEffect(() => {
     loadSavedAmbience();
 
     const init = async () => {
       try {
-        const [sessionResult, onboardingDone, guidelinesLocal] = await Promise.all([
+        const [sessionResult, onboardingDone, guidelinesLocal, lastSeenVersion] = await Promise.all([
           supabase.auth.getSession(),
           AsyncStorage.getItem('onboarding_complete'),
           AsyncStorage.getItem('@panelr/guidelines_accepted'),
+          AsyncStorage.getItem(LAST_SEEN_VERSION_KEY),
           hydrateCoverCache(),
         ]);
+        setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION);
         const s = sessionResult?.data?.session ?? null;
         setSession(s);
         setNeedsOnboarding(onboardingDone !== 'true');
@@ -499,7 +507,7 @@ export default function App() {
     };
   }, []);
 
-  if (loading) {
+  if (loading || showIntro === null) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0D0D0F', alignItems: 'center', justifyContent: 'center' }}>
         <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -509,6 +517,17 @@ export default function App() {
         <ActivityIndicator size="small" color="#534AB7" style={{ marginTop: 8 }} />
         <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading MangaRecs...</Text>
       </View>
+    );
+  }
+
+  if (showIntro && !introDone) {
+    return (
+      <IntroScreen
+        onComplete={() => {
+          AsyncStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION).catch(() => {});
+          setIntroDone(true);
+        }}
+      />
     );
   }
 

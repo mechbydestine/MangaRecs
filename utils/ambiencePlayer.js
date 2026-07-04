@@ -11,10 +11,10 @@ const SOUND_ASSETS = {
 };
 
 export const PRESETS = [
-  { id: 'rain',   label: 'Rain',   icon: 'rainy-outline', asset: SOUND_ASSETS.rain   },
-  { id: 'forest', label: 'Forest', icon: 'leaf-outline',  asset: SOUND_ASSETS.forest },
-  { id: 'ocean',  label: 'Ocean',  icon: 'water-outline', asset: SOUND_ASSETS.ocean  },
-  { id: 'night',  label: 'Night',  icon: 'moon-outline',  asset: SOUND_ASSETS.night  },
+  { id: 'rain',   label: 'Rain',   icon: 'rainy-outline', iconActive: 'rainy', color: '#4A9BD9', asset: SOUND_ASSETS.rain   },
+  { id: 'forest', label: 'Forest', icon: 'leaf-outline',  iconActive: 'leaf',  color: '#3BA55C', asset: SOUND_ASSETS.forest },
+  { id: 'ocean',  label: 'Ocean',  icon: 'water-outline', iconActive: 'water', color: '#2BB3C0', asset: SOUND_ASSETS.ocean  },
+  { id: 'night',  label: 'Night',  icon: 'moon-outline',  iconActive: 'moon',  color: '#8A7CFF', asset: SOUND_ASSETS.night  },
 ];
 
 let _player    = null;
