@@ -16,10 +16,10 @@ import { MangaCover } from '../utils/mangaCovers';
 import { MANGA_POOL } from '../utils/mangaPool';
 
 const THEME_COLORS = {
-  default: '#534AB7', rose: '#D4537E', sky: '#378ADD',
+  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
   emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD',
 };
-function themeColor(id) { return THEME_COLORS[id] || '#534AB7'; }
+function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
 
 function timeLabel(ts) {
   const d = new Date(ts);
@@ -52,7 +52,7 @@ const QUICK_PICKS = [
 
 function RecommendationCard({ manga, isOwn, onOpen, colors }) {
   return (
-    <View style={[styles.recCard, { backgroundColor: isOwn ? 'rgba(83,74,183,0.18)' : colors.card, borderColor: isOwn ? 'rgba(83,74,183,0.35)' : colors.border }]}>
+    <View style={[styles.recCard, { backgroundColor: isOwn ? 'rgba(123,92,255,0.18)' : colors.card, borderColor: isOwn ? 'rgba(123,92,255,0.35)' : colors.border }]}>
       <View style={styles.recRow}>
         <View style={[styles.recCoverWrap, { backgroundColor: manga.color || '#1A1A2E' }]}>
           <MangaCover
@@ -82,7 +82,7 @@ function RecommendationCard({ manga, isOwn, onOpen, colors }) {
             <Text style={[styles.recMetaText, { color: colors.muted }]}>{manga.chapters} ch</Text>
           </View>
           <TouchableOpacity style={styles.recOpenBtn} onPress={() => onOpen(manga)} activeOpacity={0.8}>
-            <Ionicons name="play-circle" size={13} color="#534AB7" />
+            <Ionicons name="play-circle" size={13} color="#7B5CFF" />
             <Text style={styles.recOpenText}>Read it</Text>
           </TouchableOpacity>
         </View>
@@ -92,7 +92,7 @@ function RecommendationCard({ manga, isOwn, onOpen, colors }) {
 }
 
 function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry }) {
-  const bgOwn = '#534AB7';
+  const bgOwn = '#7B5CFF';
   const bgOther = colors.card;
   const isSending = !!msg._sending;
   const hasFailed = !!msg._failed;
@@ -100,7 +100,7 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
   if (msg.message_type === 'recommendation' && msg.manga_data) {
     return (
       <View style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther, isSending && { opacity: 0.6 }]}>
-        <View style={[styles.recLabel, { backgroundColor: isOwn ? 'rgba(83,74,183,0.2)' : colors.inputBg }]}>
+        <View style={[styles.recLabel, { backgroundColor: isOwn ? 'rgba(123,92,255,0.2)' : colors.inputBg }]}>
           <Ionicons name="paper-plane-outline" size={11} color={isOwn ? '#A09CE0' : colors.muted} />
           <Text style={[styles.recLabelText, { color: isOwn ? '#A09CE0' : colors.muted }]}>
             {isOwn ? 'You recommended' : 'Recommended for you'}
@@ -385,7 +385,7 @@ export default function DMScreen() {
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#534AB7" />
+            <ActivityIndicator size="large" color="#7B5CFF" />
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyWrap}>
@@ -423,7 +423,7 @@ export default function DMScreen() {
         {/* Input bar */}
         <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }]}>
           <TouchableOpacity style={styles.recBtn} onPress={() => setShowPicker(true)} activeOpacity={0.8}>
-            <Ionicons name="paper-plane-outline" size={22} color="#534AB7" />
+            <Ionicons name="paper-plane-outline" size={22} color="#7B5CFF" />
           </TouchableOpacity>
 
           <TextInput
@@ -513,12 +513,12 @@ const styles = StyleSheet.create({
   recInfo: { flex: 1, justifyContent: 'space-between' },
   recTitle: { fontSize: 13, fontWeight: '700', lineHeight: 17, marginBottom: 4 },
   recGenres: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 4 },
-  recGenreTag: { backgroundColor: 'rgba(83,74,183,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  recGenreTag: { backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   recGenreText: { color: '#A09CE0', fontSize: 10, fontWeight: '600' },
   recMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   recMetaText: { fontSize: 11, marginLeft: 3 },
-  recOpenBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(83,74,183,0.12)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
-  recOpenText: { color: '#534AB7', fontSize: 11, fontWeight: '700' },
+  recOpenBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
+  recOpenText: { color: '#7B5CFF', fontSize: 11, fontWeight: '700' },
 
   // Empty state
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
@@ -536,8 +536,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     fontSize: 15, maxHeight: 100, marginRight: 8,
   },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  sendBtnDisabled: { backgroundColor: 'rgba(83,74,183,0.35)' },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  sendBtnDisabled: { backgroundColor: 'rgba(123,92,255,0.35)' },
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginRight: 6 },
   retryText: { color: '#FF453A', fontSize: 10, fontWeight: '600' },
 

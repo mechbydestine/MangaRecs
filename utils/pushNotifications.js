@@ -18,6 +18,14 @@ if (!isExpoGo) {
   });
 }
 
+// Keeps the app icon's native badge count in sync with in-app unread state —
+// otherwise it stays stuck at whatever a push notification last set it to,
+// even after the user has read everything inside the app.
+export async function syncBadgeCount(count) {
+  if (isExpoGo || !Notifications) return;
+  try { await Notifications.setBadgeCountAsync(Math.max(0, count)); } catch (_) {}
+}
+
 export async function registerPushToken(userId) {
   if (isExpoGo || !Notifications || !Device.isDevice) return;
   try {

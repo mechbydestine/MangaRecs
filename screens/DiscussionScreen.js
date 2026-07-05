@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   sortBtnActive: { borderRadius: 8 },
   sortBtnText: { fontSize: 12, fontWeight: '600' },
   spoilerBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, borderWidth: 1, gap: 5 },
-  spoilerBtnOn: { borderColor: '#7B5CFF', backgroundColor: 'rgba(83,74,183,0.1)' },
+  spoilerBtnOn: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.1)' },
   spoilerBtnText: { fontSize: 12, fontWeight: '500' },
   // Comments
   commentRow: { flexDirection: 'row', paddingLeft: 16, paddingRight: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1 },

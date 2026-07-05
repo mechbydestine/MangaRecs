@@ -7,7 +7,7 @@ const STORAGE_KEY = 'mangarecs_theme';
 const darkColors = {
   background: '#0D0D0F',
   card: '#13131A',
-  primary: '#534AB7',
+  primary: '#7B5CFF',
   muted: '#888892',
   border: '#1C1C1E',
   accent: '#1D9E75',
@@ -20,7 +20,7 @@ const darkColors = {
 const lightColors = {
   background: '#F5F5F7',
   card: '#FFFFFF',
-  primary: '#534AB7',
+  primary: '#7B5CFF',
   muted: '#6E6E78',
   border: '#E2E2E7',
   accent: '#1D9E75',
