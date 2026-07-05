@@ -403,7 +403,10 @@ export default function App() {
           AsyncStorage.getItem(LAST_SEEN_VERSION_KEY),
           hydrateCoverCache(),
         ]);
-        setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION);
+        // TEMP (pre-launch review): always replay the intro so it can be checked
+        // for bugs on every launch. Before release, revert to:
+        //   setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION);
+        setShowIntro(true);
         const s = sessionResult?.data?.session ?? null;
         setSession(s);
         setNeedsOnboarding(onboardingDone !== 'true');
