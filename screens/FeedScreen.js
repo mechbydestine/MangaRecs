@@ -398,11 +398,13 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   const [liked,      setLiked]      = useState(item.liked      ?? false);
   const [bookmarked, setBookmarked] = useState(item.bookmarked ?? false);
   const [likeCount,  setLikeCount]  = useState(item.likeCount  ?? item.likes ?? 0);
+  const [saveCount,  setSaveCount]  = useState(item.bookmarkCount ?? item.bookmark_count ?? 0);
 
   // Sync when parent pushes async updates (initial savedMap / server-likes / realtime)
   useEffect(() => { setLiked(item.liked ?? false); }, [item.liked]);
   useEffect(() => { setBookmarked(item.bookmarked ?? false); }, [item.bookmarked]);
   useEffect(() => { setLikeCount(item.likeCount ?? item.likes ?? 0); }, [item.likeCount, item.likes]);
+  useEffect(() => { setSaveCount(item.bookmarkCount ?? item.bookmark_count ?? 0); }, [item.bookmarkCount, item.bookmark_count]);
 
   // Priority: Supabase cover_url → pre-baked static URL → in-memory API cache → null
   const [coverUrl, setCoverUrl] = useState(
@@ -463,6 +465,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   function handleBookmarkTap() {
     const next = !bookmarked;
     setBookmarked(next);
+    setSaveCount((c) => Math.max(0, next ? c + 1 : c - 1));
     pulse(saveScale, () => onBookmark(item.id, next));
   }
 
@@ -573,14 +576,14 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
           <Animated.View style={{ transform: [{ scale: likeScale }] }}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? '#E8527A' : cardText} />
           </Animated.View>
-          {likeCount > 0 && <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(likeCount)}</Text>}
+          <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(likeCount)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => pulse(chatScale, () => onComment(item))} activeOpacity={0.7}>
           <Animated.View style={{ transform: [{ scale: chatScale }] }}>
             <Ionicons name="chatbubble-ellipses-outline" size={28} color={cardText} />
           </Animated.View>
-          {item.commentCount > 0 && <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(item.commentCount)}</Text>}
+          <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(item.commentCount || 0)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => pulse(shareScale, () => onShare(item))} activeOpacity={0.7}>
@@ -597,6 +600,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
               color={bookmarked ? '#A09CE0' : cardText}
             />
           </Animated.View>
+          <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(saveCount)}</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -1383,7 +1387,7 @@ export default function FeedScreen() {
       <Modal visible={commentsOpen} animationType="slide" transparent onRequestClose={() => setCommentsOpen(false)}>
         <KeyboardAvoidingView
           style={styles.commentsWrap}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCommentsOpen(false)} />
 
           <View style={[styles.commentsSheet, { backgroundColor: colors.card }]}>

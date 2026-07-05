@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
+import StarLogo from '../components/StarLogo';
 
 const GUIDELINES = [
   {
@@ -23,6 +24,16 @@ const GUIDELINES = [
     emoji: '🖼️',
     title: 'Original profile images only',
     desc: 'Only upload images you own or have clear rights to use. No copyrighted character art.',
+  },
+  {
+    emoji: '🔞',
+    title: 'Tag mature content honestly',
+    desc: 'Keep 18+ series marked as adult content so age verification and filters work correctly for every reader.',
+  },
+  {
+    emoji: '🎭',
+    title: 'No spoiler dumping',
+    desc: 'Mark major spoilers before posting, and keep chapter-specific reveals inside that chapter\'s discussion.',
   },
   {
     emoji: '🚩',
@@ -82,10 +93,11 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
         bounces={false}>
 
         <View style={styles.logoWrap}>
-          <View style={styles.logo}>
-            <Ionicons name="book" size={28} color="#fff" />
+          <StarLogo size={52} />
+          <View style={styles.logoTextRow}>
+            <Text style={styles.logoTextWhite}>Manga</Text>
+            <Text style={styles.logoTextPurple}>Recs</Text>
           </View>
-          <Text style={styles.logoText}>MangaRecs</Text>
         </View>
 
         <Text style={styles.title}>Community Guidelines</Text>
@@ -105,15 +117,17 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
           </View>
         ))}
 
-        <View style={styles.linksRow}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://mangarecs.app/privacy')}>
-            <Text style={styles.linkText}>Privacy Policy</Text>
-          </TouchableOpacity>
-          <Text style={styles.linkSep}>·</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://mangarecs.app/terms')}>
-            <Text style={styles.linkText}>Terms of Service</Text>
-          </TouchableOpacity>
-        </View>
+        {isInfoMode && (
+          <View style={styles.linksRow}>
+            <TouchableOpacity onPress={() => navigation.navigate('Legal', { tab: 'privacy' })}>
+              <Text style={styles.linkText}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={styles.linkSep}>·</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Legal', { tab: 'terms' })}>
+              <Text style={styles.linkText}>Terms of Service</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={{ height: isInfoMode ? 40 : 110 }} />
       </ScrollView>
@@ -152,12 +166,12 @@ const styles = StyleSheet.create({
   },
 
   logoWrap: { alignItems: 'center', marginBottom: 32 },
-  logo: {
-    width: 60, height: 60, borderRadius: 20,
-    backgroundColor: '#534AB7',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  logoTextRow: { flexDirection: 'row', marginTop: 12 },
+  logoTextWhite: { color: '#fff', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
+  logoTextPurple: {
+    color: '#B18CFF', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5,
+    textShadowColor: '#9B6BFF', textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 },
   },
-  logoText: { color: '#fff', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
 
   title: { color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
   subtitle: { color: '#9B9AA3', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
@@ -169,7 +183,7 @@ const styles = StyleSheet.create({
   cardDesc: { color: '#9B9AA3', fontSize: 12, lineHeight: 18 },
 
   linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
-  linkText: { color: '#534AB7', fontSize: 12, fontWeight: '500' },
+  linkText: { color: '#7B5CFF', fontSize: 12, fontWeight: '500' },
   linkSep: { color: '#9B9AA3', marginHorizontal: 10, fontSize: 12 },
 
   bottomBar: {
@@ -178,7 +192,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: '#1A1A1F',
     paddingTop: 16, paddingHorizontal: 24,
   },
-  agreeBtn: { backgroundColor: '#534AB7', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  agreeBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   agreeBtnLoading: { opacity: 0.7 },
   agreeBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

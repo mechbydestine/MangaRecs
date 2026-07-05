@@ -141,6 +141,7 @@ export default function FriendProfileScreen({ route }) {
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [showPeople, setShowPeople]       = useState(null); // null | 'friends' | 'followers' | 'following'
+  const [showAllFaves, setShowAllFaves]   = useState(false);
   const [iFollow, setIFollow]             = useState(false);
   const [followBusy, setFollowBusy]       = useState(false);
   const [iBlocked, setIBlocked]           = useState(false);
@@ -378,10 +379,12 @@ export default function FriendProfileScreen({ route }) {
   );
 
   const badgeFlatData = useMemo(() => {
+    // Only earned badges, plus non-hidden grey/starter badges (shown locked as a preview) —
+    // matches ProfileScreen so friends can't see the full locked badge catalog.
     const groups = Object.keys(BADGE_GRADES).map((gradeKey) => ({
       gradeKey,
       grade: BADGE_GRADES[gradeKey],
-      badges: ALL_BADGES.filter((b) => b.grade === gradeKey && (!b.hidden || earnedIds.has(b.id))),
+      badges: ALL_BADGES.filter((b) => b.grade === gradeKey && (earnedIds.has(b.id) || (b.grade === 'grey' && !b.hidden))),
     })).filter((g) => g.badges.length > 0);
 
     const rows = [];
@@ -621,6 +624,35 @@ export default function FriendProfileScreen({ route }) {
           }}
         />
 
+        {/* View all favorites modal — read-only, this is someone else's list */}
+        <Modal visible={showAllFaves} animationType="slide" transparent onRequestClose={() => setShowAllFaves(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAllFaves(false)} />
+            <View style={[styles.addFaveSheet, { backgroundColor: colors.card }]}>
+              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+              <View style={styles.addFaveHeaderRow}>
+                <Text style={[styles.addFaveTitle, { color: colors.text }]}>{profile.username}'s Favorites</Text>
+                <TouchableOpacity onPress={() => setShowAllFaves(false)}>
+                  <Ionicons name="close" size={20} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={favorites}
+                keyExtractor={(item) => item.id || item.title}
+                numColumns={3}
+                columnWrapperStyle={{ gap: 10 }}
+                contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
+                renderItem={({ item }) => (
+                  <View style={styles.allFavesCell}>
+                    <MangaCover title={item.title} searchKey={item.searchKey} lang={item.lang} color={item.color} style={styles.allFavesCover} />
+                    <Text style={[styles.allFavesTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
+                  </View>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+
         {/* Reading Streak + Faves */}
         <View style={[styles.streakSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.streakSectionHeader}>
@@ -658,7 +690,7 @@ export default function FriendProfileScreen({ route }) {
                   <Text style={styles.favesEmptyText}>No faves yet</Text>
                 </View>
               ) : (
-                <View style={styles.faveFeatCard}>
+                <TouchableOpacity style={styles.faveFeatCard} onPress={() => setShowAllFaves(true)} activeOpacity={0.85}>
                   <MangaCover
                     title={favorites[0].title}
                     searchKey={favorites[0].searchKey}
@@ -672,8 +704,13 @@ export default function FriendProfileScreen({ route }) {
                     >
                       <Text style={styles.faveFeatTitle} numberOfLines={3}>{favorites[0].title}</Text>
                     </LinearGradient>
+                    {favorites.length > 1 && (
+                      <View style={styles.faveMoreBadge}>
+                        <Text style={styles.faveMoreBadgeText}>+{favorites.length - 1}</Text>
+                      </View>
+                    )}
                   </MangaCover>
-                </View>
+                </TouchableOpacity>
               )}
               <View style={styles.favesPanelFoot}>
                 <Text style={[styles.favesCountText, { color: colors.muted }]}>{favorites.length}/5</Text>
@@ -878,6 +915,7 @@ const styles = StyleSheet.create({
   statIconChip: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 
   actionIconsRow: { flexDirection: 'row', gap: 10, alignSelf: 'flex-end', marginTop: 8 },
+  peopleRowInCard: { marginTop: 10, marginBottom: 2 },
   actionIconBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
