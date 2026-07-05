@@ -1,5 +1,5 @@
 -- ============================================================
--- Inklore — Full Supabase Migration
+-- MangaRecs — Full Supabase Migration
 -- Run this in the Supabase SQL Editor (Dashboard → SQL Editor)
 -- All statements are idempotent (safe to re-run)
 -- ============================================================

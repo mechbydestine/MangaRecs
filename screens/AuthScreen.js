@@ -1,13 +1,16 @@
-﻿import {
+import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
+import { useKeyboardPadding } from '../utils/keyboard';
+import StarLogo from '../components/StarLogo';
 
-function IconField({ icon, ...props }) {
+function IconField({ icon, secure, rightSlot, ...props }) {
+  const [hidden, setHidden] = useState(true);
   return (
     <View style={styles.fieldWrap}>
       <Ionicons name={icon} size={16} color="#9B9AA3" style={styles.fieldIcon} />
@@ -15,10 +18,52 @@ function IconField({ icon, ...props }) {
         style={styles.input}
         placeholderTextColor="#9B9AA3"
         autoCapitalize="none"
+        secureTextEntry={secure ? hidden : false}
         {...props}
       />
+      {secure ? (
+        <TouchableOpacity
+          onPress={() => setHidden((h) => !h)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color="#9B9AA3" />
+        </TouchableOpacity>
+      ) : rightSlot}
     </View>
   );
+}
+
+// Debounced username availability check against the profiles table.
+// Returns 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+export function useUsernameAvailability(username) {
+  const [status, setStatus] = useState('idle');
+  const timer = useRef(null);
+
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+    const name = username.trim().toLowerCase();
+    if (!name) { setStatus('idle'); return; }
+    if (name.length < 3) { setStatus('invalid'); return; }
+    setStatus('checking');
+    timer.current = setTimeout(async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', name)
+        .limit(1);
+      if (error) { setStatus('idle'); return; } // network hiccup: don't block signup
+      setStatus(data && data.length > 0 ? 'taken' : 'available');
+    }, 450);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [username]);
+
+  return status;
+}
+
+export function UsernameStatusIcon({ status }) {
+  if (status === 'checking') return <ActivityIndicator size="small" color="#9B9AA3" />;
+  if (status === 'available') return <Ionicons name="checkmark-circle" size={18} color="#1D9E75" />;
+  if (status === 'taken') return <Ionicons name="close-circle" size={18} color="#FF453A" />;
+  return null;
 }
 
 function GoogleButton({ onPress, loading }) {
@@ -56,6 +101,9 @@ export default function AuthScreen() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
+  const keyboardPadding = useKeyboardPadding();
+  const usernameStatus = useUsernameAvailability(mode === 'register' ? username : '');
+
   function switchMode(next) {
     setMode(next);
     setError('');
@@ -86,6 +134,14 @@ export default function AuthScreen() {
     setError('');
     if (username.length < 3) {
       setError('Username must be at least 3 characters (letters and numbers only).');
+      return;
+    }
+    if (usernameStatus === 'taken') {
+      setError('That username is already taken — try another.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
     if (password !== confirmPassword) {
@@ -167,12 +223,19 @@ export default function AuthScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}>Panelr</Text>
-        <Text style={styles.tagline}>Your manga universe awaits</Text>
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: 24 + keyboardPadding }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.brandRow}>
+          <StarLogo size={64} />
+        </View>
+        <View style={styles.wordmarkRow}>
+          <Text style={styles.wordmarkWhite}>Manga</Text>
+          <Text style={styles.wordmarkPurple}>Recs</Text>
+        </View>
+        <Text style={styles.tagline}>Your next story, recommended.</Text>
 
         <View style={styles.card}>
           {mode === 'login' && (
@@ -196,7 +259,7 @@ export default function AuthScreen() {
                 placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secure
               />
 
               <TouchableOpacity onPress={() => switchMode('forgot-email')}>
@@ -233,7 +296,14 @@ export default function AuthScreen() {
                 onChangeText={(t) => setUsername(t.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())}
                 maxLength={24}
                 autoCorrect={false}
+                rightSlot={<UsernameStatusIcon status={usernameStatus} />}
               />
+              {usernameStatus === 'taken' && (
+                <Text style={styles.fieldHint}>@{username} is taken — try another.</Text>
+              )}
+              {usernameStatus === 'available' && (
+                <Text style={[styles.fieldHint, { color: '#1D9E75' }]}>@{username} is available!</Text>
+              )}
               <IconField
                 icon="mail-outline"
                 placeholder="Email"
@@ -243,17 +313,17 @@ export default function AuthScreen() {
               />
               <IconField
                 icon="lock-closed-outline"
-                placeholder="Password"
+                placeholder="Password (6+ characters)"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secure
               />
               <IconField
                 icon="lock-closed-outline"
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry
+                secure
               />
 
               <TouchableOpacity
@@ -321,7 +391,7 @@ export default function AuthScreen() {
                 placeholder="New password"
                 value={newPassword}
                 onChangeText={setNewPassword}
-                secureTextEntry
+                secure
               />
 
               <TouchableOpacity
@@ -340,7 +410,7 @@ export default function AuthScreen() {
           )}
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -354,26 +424,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+    paddingTop: 60,
   },
-  logo: {
-    color: '#534AB7',
-    fontSize: 42,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    marginBottom: 8,
+  brandRow: {
+    marginBottom: 14,
+  },
+  wordmarkRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  wordmarkWhite: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  wordmarkPurple: {
+    color: '#B18CFF',
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textShadowColor: '#9B6BFF',
+    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 0 },
   },
   tagline: {
     color: '#9B9AA3',
-    fontSize: 16,
-    marginBottom: 40,
+    fontSize: 14,
+    marginBottom: 32,
   },
   card: {
-    backgroundColor: '#1A1A1F',
-    borderRadius: 20,
+    backgroundColor: '#16161B',
+    borderRadius: 22,
     padding: 24,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#2A2A2F',
+    borderColor: 'rgba(123,92,255,0.18)',
   },
   cardTitle: {
     color: '#fff',
@@ -440,6 +526,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
   },
+  fieldHint: {
+    color: '#FF453A',
+    fontSize: 12,
+    marginTop: -6,
+    marginBottom: 10,
+    marginLeft: 4,
+  },
   notice: {
     color: '#1D9E75',
     fontSize: 13,
@@ -451,7 +544,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   forgotLink: {
-    color: '#534AB7',
+    color: '#7B5CFF',
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'right',
@@ -459,12 +552,17 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   btn: {
-    backgroundColor: '#534AB7',
+    backgroundColor: '#7B5CFF',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
     marginTop: 4,
+    shadowColor: '#7B5CFF',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   btnDisabled: {
     opacity: 0.6,
@@ -480,7 +578,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   switchLink: {
-    color: '#534AB7',
+    color: '#7B5CFF',
     fontWeight: '600',
   },
 });

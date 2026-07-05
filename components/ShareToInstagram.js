@@ -27,7 +27,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
   async function handleCopyLink() {
     try {
       await Share.share({
-        message: `https://panelr.app/series/${series?.id || 'discover'}`,
+        message: `https://mangarecs.app/series/${series?.id || 'discover'}`,
       });
       setShared(true);
       setTimeout(() => setShared(false), 2000);
@@ -37,7 +37,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
   async function handleInstagram() {
     try {
       await Share.share({
-        message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on Panelr! 📚\nhttps://panelr.app/series/${series?.id || 'discover'}`,
+        message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on MangaRecs! 📚\nhttps://mangarecs.app/series/${series?.id || 'discover'}`,
       });
     } catch (_) {}
     onClose();
@@ -86,10 +86,10 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
             <View style={[styles.storyCard, { backgroundColor: storyBg }]}>
               <View style={styles.storyDimOverlay} />
 
-              {/* Panelr watermark */}
+              {/* MangaRecs watermark */}
               <View style={styles.watermark}>
                 <View style={styles.watermarkPill}>
-                  <Text style={styles.watermarkText}>panelr</Text>
+                  <Text style={styles.watermarkText}>mangarecs</Text>
                 </View>
               </View>
 
@@ -117,7 +117,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
                     <Text style={styles.storyTitle} numberOfLines={2}>
                       {series?.title || 'Series Title'}
                     </Text>
-                    <Text style={styles.storyChapter}>Ch. {chapter || 1} · Panelr</Text>
+                    <Text style={styles.storyChapter}>Ch. {chapter || 1} · MangaRecs</Text>
                   </>
                 )}
                 {selectedCard === 'rating' && (

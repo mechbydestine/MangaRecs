@@ -1,7 +1,7 @@
 ﻿import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const AMBIENCE_KEY = '@panelr/ambience';
+const AMBIENCE_KEY = '@mangarecs/ambience';
 
 const SOUND_ASSETS = {
   rain:   require('../assets/sounds/rain.mp3'),

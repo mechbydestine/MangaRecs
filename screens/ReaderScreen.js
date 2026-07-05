@@ -1,7 +1,9 @@
-﻿import {
+import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar,
-  Modal, Animated, ScrollView, TextInput, Dimensions, Alert, ActivityIndicator, Image, FlatList, Platform, Share,
+  Modal, Animated, ScrollView, TextInput, Dimensions, Alert, ActivityIndicator, Image, FlatList, Platform, Share, Pressable,
+  useWindowDimensions,
 } from 'react-native';
+import { PinchGestureHandler, PanGestureHandler, State as GHState } from 'react-native-gesture-handler';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -12,21 +14,21 @@ import * as MediaLibrary from 'expo-media-library';
 import { TOP_SITES, buildSearchUrl, getDefaultSite, getReadingSiteForLang } from '../utils/mangaSearch';
 import { getFaviconUrl } from '../utils/mangaCovers';
 import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_JS, HOMEPAGE_DETECT_JS, SEARCH_WATCHDOG_JS, MANGADEX_CHAPTER_NAV_JS } from '../utils/siteResolver';
-import { searchMangaDex } from '../utils/mangaDexApi';
+import { searchMangaDex, getMangaChaptersCached, getChapterPages } from '../utils/mangaDexApi';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { updateDailyLog, setLastRead, incrementSharesCount, localDateKey } from '../utils/readerUtils';
 import { PRESETS as AMBIENCE_PRESETS, play as ambiencePlay, stop as ambienceStop, setVolume as ambienceSetVolume, subscribe as ambienceSubscribe, getState as ambienceGetState } from '../utils/ambiencePlayer';
+import { useKeepAwake } from 'expo-keep-awake';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../utils/ThemeContext';
 
-const SAVED_SITES_KEY = '@panelr/savedSites';
-const LAST_SITE_KEY   = '@panelr/lastSite';
-const LIBRARY_KEY     = '@panelr_saved';
-const RESUME_KEY_PFX  = '@panelr/resume/';
-const READER_MODE_KEY = '@panelr/readerMode';
-const PAGE_ANIM_KEY   = '@panelr/pageAnim';
+const SAVED_SITES_KEY = '@mangarecs/savedSites';
+const LAST_SITE_KEY   = '@mangarecs/lastSite';
+const LIBRARY_KEY     = '@mangarecs_saved';
+const RESUME_KEY_PFX  = '@mangarecs/resume/';
 const CHAPTERS_DIR    = FileSystem.documentDirectory + 'chapters/';
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CHAPTER_ROW_H = 62;
 
 // ── Site list ──────────────────────────────────────────────────────────────
@@ -95,6 +97,57 @@ const READER_MODES = [
   { id: 'manga',   label: 'Manga',   desc: 'Tap sides',   Icon: MangaIcon },
 ];
 
+// ── Ambience preset button — springs on tap, icon pulses while playing ─────
+
+function AmbienceButton({ preset, active, onPress }) {
+  const { isDark } = useTheme();
+  const scale = useRef(new Animated.Value(1)).current;
+  const pulse = useRef(new Animated.Value(1)).current;
+  const idleBg = isDark
+    ? { backgroundColor: '#0D0D0F', borderColor: '#2A2A2F' }
+    : { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.1)' };
+
+  useEffect(() => {
+    if (active) {
+      const loop = Animated.loop(Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.18, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1.0,  duration: 700, useNativeDriver: true }),
+      ]));
+      loop.start();
+      return () => { loop.stop(); pulse.setValue(1); };
+    }
+    pulse.setValue(1);
+  }, [active]);
+
+  function handlePress() {
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 80, bounciness: 0 }),
+      Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 10 }),
+    ]).start();
+    onPress();
+  }
+
+  return (
+    <Animated.View style={{ flex: 1, transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={[styles.ambienceBtn, idleBg, active && { borderColor: preset.color, backgroundColor: `${preset.color}22` }]}
+        onPress={handlePress}
+        activeOpacity={0.75}>
+        <Animated.View style={{ transform: [{ scale: pulse }] }}>
+          <Ionicons
+            name={active ? (preset.iconActive || preset.icon) : preset.icon}
+            size={24}
+            color={active ? preset.color : '#9B9AA3'}
+          />
+        </Animated.View>
+        <Text style={[styles.ambienceBtnLabel, active && { color: preset.color }]}>{preset.label}</Text>
+        <Text style={styles.ambienceBtnSub}>{active ? 'Tap to stop' : 'Tap to play'}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+
 
 // ── Ad network patterns — used in both onShouldStartLoadWithRequest and onOpenWindow ──
 const AD_NETWORK_PATTERNS = [
@@ -109,6 +162,10 @@ const AD_NETWORK_PATTERNS = [
   'adsrvr','scorecardresearch','quantserve','chartbeat',
   'setupad','33across','vidoomy','infolinks','mgid','revcontent',
   'ligatus','media.net','zedo','tribal','cdn.carbonads','advertising.com',
+  'exosrv','magsrv','tsyndicate','trafficstars','exdynsrv','adtng',
+  'nitropay','bidvertiser','deloplen','glersakr','onclicka','pemsrv',
+  'venatusmedia','a-ads.com','coinzilla','cointraffic','adoperator',
+  'creative-serving','betweendigital','tagcade','loopme','vlitag',
 ];
 
 // ── Injected JS ───────────────────────────────────────────────────────────
@@ -131,6 +188,10 @@ const AD_BLOCK_JS = `
     'adsrvr','scorecardresearch','quantserve','chartbeat',
     'setupad','33across','vidoomy','infolinks','mgid','revcontent',
     'ligatus','averdivertising','media.net','zedo','tribal',
+    'exosrv','magsrv','tsyndicate','trafficstars','exdynsrv','adtng',
+    'nitropay','bidvertiser','deloplen','glersakr','onclicka','pemsrv',
+    'venatusmedia','a-ads.com','coinzilla','cointraffic','adoperator',
+    'creative-serving','betweendigital','tagcade','loopme','vlitag',
   ];
   function isAd(u) {
     var s = (u || '').toLowerCase();
@@ -265,10 +326,19 @@ const AD_BLOCK_JS = `
   } catch(_) {}
 
   // ── 5. Block window.open / alert / confirm / prompt ───────────────────────
-  window.alert   = function() {};
-  window.confirm = function() { return false; };
-  window.prompt  = function() { return null; };
-  window.open = function(url) {
+  // defineProperty(writable:false, configurable:false) — ad scripts commonly do
+  // "delete window.open" to restore the native popup; a plain assignment loses.
+  function lockFn(name, fn) {
+    try {
+      Object.defineProperty(window, name, { value: fn, writable: false, configurable: false });
+    } catch (_) {
+      try { window[name] = fn; } catch (_) {}
+    }
+  }
+  lockFn('alert',   function() {});
+  lockFn('confirm', function() { return false; });
+  lockFn('prompt',  function() { return null; });
+  lockFn('open', function(url) {
     if (!url) return null;
     var u = String(url);
     if (!u.startsWith('http') || isAd(u)) return null;
@@ -276,7 +346,7 @@ const AD_BLOCK_JS = `
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openWindow', url: u }));
     }
     return null;
-  };
+  });
 
   true;
 })();
@@ -317,6 +387,48 @@ const TAP_TOGGLE_JS = `
   true;
 })();
 `;
+
+// Force-dark for websites: inverts page colors but counter-inverts images/video
+// so manga pages render normally. Skips pages that are already dark — inverting
+// those would flash them white. Idempotent — safe to re-inject on every load.
+function buildForceDarkJS(enable) {
+  return `
+(function(){
+  var st = document.getElementById('__inkForceDark');
+  function pageIsDark() {
+    try {
+      var el = document.body, bg = null;
+      while (el) {
+        var c = window.getComputedStyle(el).backgroundColor;
+        if (c && c !== 'transparent' && c.indexOf('rgba(0, 0, 0, 0)') !== 0) { bg = c; break; }
+        el = el.parentElement;
+      }
+      if (!bg) return false;
+      var m = bg.match(/rgba?\\(([^)]+)\\)/);
+      if (!m) return false;
+      var p = m[1].split(',').map(parseFloat);
+      if (p.length >= 4 && p[3] === 0) return false;
+      var lum = 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+      return lum < 80;
+    } catch (_) { return false; }
+  }
+  if (${enable ? 'true' : 'false'} && !pageIsDark()) {
+    if (!st) {
+      st = document.createElement('style');
+      st.id = '__inkForceDark';
+      // Pre-invert background must be LIGHT so it renders dark after inversion
+      st.textContent =
+        'html{filter:invert(1) hue-rotate(180deg)!important;background-color:#f2f2f2!important;}' +
+        'img,video,canvas,picture,svg,[style*="background-image"]{filter:invert(1) hue-rotate(180deg)!important;}';
+      (document.head || document.documentElement).appendChild(st);
+    }
+  } else if (st) {
+    st.parentNode.removeChild(st);
+  }
+  true;
+})();
+`;
+}
 
 const EXTRACT_PAGE_INFO_JS = `
 (function(){
@@ -359,15 +471,22 @@ const COLLECT_IMAGES_JS = `
 })();
 `;
 
-const AUTO_SCROLL_START_JS = `(function(){if(window.__is)clearInterval(window.__is);window.__is=setInterval(function(){window.scrollBy(0,2);},30);true;})();`;
+const AUTO_SCROLL_SPEEDS = [
+  { id: 'slow',   label: 'Slow',   px: 1 },
+  { id: 'normal', label: 'Normal', px: 2 },
+  { id: 'fast',   label: 'Fast',   px: 4 },
+];
+function buildAutoScrollJS(px) {
+  return `(function(){if(window.__is)clearInterval(window.__is);window.__is=setInterval(function(){window.scrollBy(0,${px});},30);true;})();`;
+}
 const AUTO_SCROLL_STOP_JS  = `(function(){if(window.__is){clearInterval(window.__is);window.__is=null;}true;})();`;
 
 // Detects actual chapter/episode count on a manga detail/series page.
 // Skips reader pages, search pages, and homepages so it never fires in wrong context.
 const EXTRACT_CHAPTER_COUNT_JS = `
 (function(){
-  if (window.__panelrChCounted) return true;
-  window.__panelrChCounted = true;
+  if (window.__inkloreChCounted) return true;
+  window.__inkloreChCounted = true;
   var url = window.location.href;
   var path = window.location.pathname;
   if (!path || path === '/' || path === '') return true;
@@ -472,6 +591,25 @@ const PREV_CHAPTER_JS = chapterNavScript(-1);
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+// Root domain of a URL ("chapter.mangafire.to" → "mangafire.to")
+function rootDomain(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
+  } catch (_) {
+    return null;
+  }
+}
+
+// Popunder gate: a window.open / target=_blank is only followed when it stays
+// on the current site or targets a known manga site. Ad popunders always jump
+// to a fresh off-site domain — the ad blocklist can never keep up with those.
+function isTrustedPopup(targetUrl, currentUrl) {
+  const target = rootDomain(targetUrl);
+  if (!target) return false;
+  if (target === rootDomain(currentUrl)) return true;
+  return !!detectSiteFromUrl(targetUrl);
+}
+
 function isLoginUrl(url) {
   if (!url) return false;
   // MangaDex uses Keycloak on its own auth subdomain
@@ -533,28 +671,178 @@ function searchSites(query) {
 
 // ── PageImage — auto aspect ratio via Image.getSize ───────────────────────
 
-function PageImage({ uri, onLayout }) {
-  const [height, setHeight] = useState(SCREEN_W * 1.5);
+function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
+  const { width: winW } = useWindowDimensions();
+  const [height, setHeight] = useState(winW * 1.5);
+  const lastTapRef = useRef(0);
+  const singleTimerRef = useRef(null);
+
   useEffect(() => {
     Image.getSize(
       uri,
       (w, h) => {
         if (w > 0) {
-          const next = (h / w) * SCREEN_W;
+          const next = (h / w) * winW;
           setHeight(next);
           onLayout?.(next);
         }
       },
       () => {}
     );
-  }, [uri]);
+  }, [uri, winW]);
+
+  useEffect(() => () => { if (singleTimerRef.current) clearTimeout(singleTimerRef.current); }, []);
+
+  function handlePress() {
+    const now = Date.now();
+    if (now - lastTapRef.current < 280) {
+      lastTapRef.current = 0;
+      if (singleTimerRef.current) { clearTimeout(singleTimerRef.current); singleTimerRef.current = null; }
+      onDoubleTap?.(uri);
+    } else {
+      lastTapRef.current = now;
+      singleTimerRef.current = setTimeout(() => {
+        singleTimerRef.current = null;
+        onSingleTap?.();
+      }, 285);
+    }
+  }
+
   return (
-    <Image
-      source={{ uri, cache: 'force-cache' }}
-      style={{ width: SCREEN_W, height }}
-      resizeMode="cover"
-      fadeDuration={0}
-    />
+    <Pressable onPress={handlePress}>
+      <Image
+        source={{ uri, cache: 'force-cache' }}
+        style={{ width: winW, height }}
+        resizeMode="cover"
+        fadeDuration={0}
+      />
+    </Pressable>
+  );
+}
+
+// ── Zoom viewer — full-screen pinch/pan/double-tap, isolated from the list ──
+
+function ZoomViewer({ uri, onClose }) {
+  const { width: winW, height: winH } = useWindowDimensions();
+  const [imgH, setImgH] = useState(winH * 0.8);
+  useEffect(() => {
+    Image.getSize(uri, (w, h) => {
+      if (w > 0) setImgH(Math.min((h / w) * winW, winH));
+    }, () => {});
+  }, [uri, winW, winH]);
+
+  const pinchRef = useRef(null);
+  const panRef   = useRef(null);
+  const baseScale  = useRef(new Animated.Value(1)).current;
+  const pinchScale = useRef(new Animated.Value(1)).current;
+  const scale      = useRef(Animated.multiply(baseScale, pinchScale)).current;
+  const lastScale  = useRef(1);
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const lastOffset = useRef({ x: 0, y: 0 });
+  const lastTapRef = useRef(0);
+
+  const onPinchEvent = Animated.event([{ nativeEvent: { scale: pinchScale } }], { useNativeDriver: true });
+  const onPanEvent   = Animated.event(
+    [{ nativeEvent: { translationX: translateX, translationY: translateY } }],
+    { useNativeDriver: true }
+  );
+
+  function resetAll(animated = true) {
+    lastScale.current = 1;
+    lastOffset.current = { x: 0, y: 0 };
+    translateX.setOffset(0);
+    translateY.setOffset(0);
+    if (animated) {
+      Animated.parallel([
+        Animated.spring(baseScale,  { toValue: 1, useNativeDriver: true, speed: 24, bounciness: 4 }),
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, speed: 24, bounciness: 4 }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, speed: 24, bounciness: 4 }),
+      ]).start();
+    } else {
+      baseScale.setValue(1);
+      translateX.setValue(0);
+      translateY.setValue(0);
+    }
+    pinchScale.setValue(1);
+  }
+
+  function onPinchStateChange(e) {
+    if (e.nativeEvent.oldState === GHState.ACTIVE) {
+      lastScale.current = Math.min(5, Math.max(1, lastScale.current * e.nativeEvent.scale));
+      baseScale.setValue(lastScale.current);
+      pinchScale.setValue(1);
+      if (lastScale.current <= 1.02) resetAll();
+    }
+  }
+
+  function onPanStateChange(e) {
+    if (e.nativeEvent.oldState === GHState.ACTIVE) {
+      lastOffset.current.x += e.nativeEvent.translationX;
+      lastOffset.current.y += e.nativeEvent.translationY;
+      translateX.setOffset(lastOffset.current.x);
+      translateX.setValue(0);
+      translateY.setOffset(lastOffset.current.y);
+      translateY.setValue(0);
+    }
+  }
+
+  function handleTap() {
+    const now = Date.now();
+    if (now - lastTapRef.current < 280) {
+      lastTapRef.current = 0;
+      if (lastScale.current > 1.02) {
+        resetAll();
+      } else {
+        lastScale.current = 2.5;
+        Animated.spring(baseScale, { toValue: 2.5, useNativeDriver: true, speed: 24, bounciness: 4 }).start();
+      }
+    } else {
+      lastTapRef.current = now;
+    }
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.97)' }}>
+      <PanGestureHandler
+        ref={panRef}
+        simultaneousHandlers={pinchRef}
+        onGestureEvent={onPanEvent}
+        onHandlerStateChange={onPanStateChange}
+        minPointers={1}
+        maxPointers={2}>
+        <Animated.View style={{ flex: 1 }}>
+          <PinchGestureHandler
+            ref={pinchRef}
+            simultaneousHandlers={panRef}
+            onGestureEvent={onPinchEvent}
+            onHandlerStateChange={onPinchStateChange}>
+            <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable onPress={handleTap}>
+                <Animated.Image
+                  source={{ uri, cache: 'force-cache' }}
+                  style={{
+                    width: winW,
+                    height: imgH,
+                    transform: [{ translateX }, { translateY }, { scale }],
+                  }}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            </Animated.View>
+          </PinchGestureHandler>
+        </Animated.View>
+      </PanGestureHandler>
+      <TouchableOpacity
+        style={{ position: 'absolute', top: 54, right: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 20, padding: 9 }}
+        onPress={onClose}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Ionicons name="close" size={20} color="#fff" />
+      </TouchableOpacity>
+      <Text style={{ position: 'absolute', bottom: 34, alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+        Pinch to zoom · Double-tap to toggle
+      </Text>
+    </View>
   );
 }
 
@@ -618,6 +906,7 @@ export default function ReaderScreen({ route, navigation }) {
   const { profile, userId, updateProfile } = useProfile();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  useKeepAwake(); // screen must not sleep mid-chapter
 
   // HUD palette — switches with the app theme
   const hudBg     = isDark ? 'rgba(13,13,15,0.92)'    : 'rgba(255,255,255,0.94)';
@@ -625,6 +914,16 @@ export default function ReaderScreen({ route, navigation }) {
   const hudMuted  = isDark ? '#9B9AA3'                 : '#6E6E78';
   const hudBorder = isDark ? '#2A2A2F'                 : 'rgba(0,0,0,0.08)';
   const hudCard   = isDark ? '#1A1A1F'                 : 'rgba(0,0,0,0.06)';
+
+  // Bottom-sheet palette — the sheets were hardcoded dark and unreadable in light mode
+  const sheetC = {
+    sheet:     { backgroundColor: isDark ? '#1A1A1F' : '#FFFFFF' },
+    handle:    { backgroundColor: isDark ? '#2A2A2F' : 'rgba(0,0,0,0.14)' },
+    title:     { color: hudText },
+    rowBorder: { borderTopColor: hudBorder },
+    rowText:   { color: hudText },
+    itemBg:    { backgroundColor: isDark ? '#0D0D0F' : 'rgba(0,0,0,0.04)', borderColor: hudBorder },
+  };
 
   // core
   const [mode,               setMode]               = useState('webtoon');
@@ -656,8 +955,15 @@ export default function ReaderScreen({ route, navigation }) {
   // modals
   const [showAmbience,       setShowAmbience]       = useState(false);
   const [ambienceState,      setAmbienceState]      = useState(ambienceGetState);
+
+  // reader comfort settings
+  const [forceDarkSites,     setForceDarkSites]     = useState(false);
+  const [dimmer,             setDimmer]             = useState(0); // 0–0.7 black overlay opacity
+  const [autoScrollSpeed,    setAutoScrollSpeed]    = useState('normal');
+  const [allowLandscape,     setAllowLandscape]     = useState(false);
   const [showChapterSelect,  setShowChapterSelect]  = useState(false);
   const [showShare,          setShowShare]          = useState(false);
+
   const [showReaderSettings, setShowReaderSettings] = useState(false);
   const [showSitePicker,     setShowSitePicker]     = useState(false);
 
@@ -698,6 +1004,12 @@ export default function ReaderScreen({ route, navigation }) {
   const [dlLabel,            setDlLabel]            = useState('');
   const pendingImagesRef = useRef(null);
 
+  // zoom viewer (API mode)
+  const [zoomUri,            setZoomUri]            = useState(null);
+
+  // next-chapter prefetch cache: chapterId → page URLs
+  const prefetchedPagesRef = useRef({});
+
   // toast
   const [savedToast,         setSavedToast]         = useState(false);
   const [toastMessage,       setToastMessage]       = useState('');
@@ -711,6 +1023,7 @@ export default function ReaderScreen({ route, navigation }) {
   const nextChapterX      = useRef(new Animated.Value(0)).current;
   const chapterTransAnim  = useRef(new Animated.Value(1)).current;
   const webviewRef        = useRef(null);
+
   const sessionStartRef   = useRef(null);
   const hoursReadRef      = useRef(profile?.hours_read || 0);
   const bottomTimerRef    = useRef(null);
@@ -723,6 +1036,25 @@ export default function ReaderScreen({ route, navigation }) {
   const displayChapter = chapterLabel || `Chapter ${currentChapter}`;
   const siteSuggestions = siteSearch.trim() ? searchSites(siteSearch) : null;
   const resumeKey = searchQuery ? RESUME_KEY_PFX + encodeURIComponent(searchQuery) : null;
+
+  // Enters the native API reader with a fresh chapter list. Loads the start
+  // chapter's pages directly (state isn't committed yet inside boot).
+  async function enterApiMode(mdId, chapterList, startIdx, title) {
+    const idx = Math.max(0, Math.min(startIdx || 0, chapterList.length - 1));
+    const ch = chapterList[idx];
+    setMangaId(mdId);
+    setApiChapters(chapterList);
+    setCurrentChapterIdx(idx);
+    setCurrentChapter(Math.ceil(ch.chapter) || idx + 1);
+    if (title) animateTitle(title, ch.title ? `Ch. ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}`);
+    setReaderMode('api');
+    setResolving(false);
+    setPagesLoading(true);
+    const urls = (Array.isArray(ch.pages) && ch.pages.length > 0) ? ch.pages : await getChapterPages(ch.id);
+    setPages(urls);
+    setPagesLoading(false);
+    return urls.length > 0;
+  }
 
   // ── Boot ────────────────────────────────────────────────────────────────
 
@@ -805,6 +1137,23 @@ export default function ReaderScreen({ route, navigation }) {
             if (resumeRaw) {
               const resume = JSON.parse(resumeRaw);
 
+              // API-mode resume — restore straight into the native reader at
+              // the saved chapter. (Previously saved but never restored, which
+              // silently sent every return visit back through the WebView.)
+              if (resume?.mode === 'api' && resume?.mangaId) {
+                setResolvingSiteName('MangaDex');
+                const chapterList = await getMangaChaptersCached(resume.mangaId);
+                if (chapterList?.length > 0) {
+                  let idx = resume.chapterIdx ?? 0;
+                  // Chapter list may have grown/shifted since save — re-find by id
+                  const byId = chapterList.findIndex((c) => c.id === resume.chapterId);
+                  if (byId >= 0) idx = byId;
+                  const ok = await enterApiMode(resume.mangaId, chapterList, idx, resume.mangaTitle || routeTitle);
+                  if (ok) return;
+                }
+                // MangaDex unreachable/empty — fall through to WebView paths
+              }
+
               if (resume?.mode === 'webview' && resume?.url) {
                 setResuming(true);
                 setCurrentUrl(resume.url);
@@ -857,7 +1206,32 @@ export default function ReaderScreen({ route, navigation }) {
             return;
           }
 
-          // Navigate directly to the manga — use known ID for MangaDex title page,
+          // Step 2: Native API reader first — direct MangaDex images, no ads,
+          // no site breakage. WebView only when MangaDex has no chapters.
+          try {
+            setResolvingSiteName('MangaDex');
+            let mdId = paramMangaId;
+            let mdTitle = (routeTitle && routeTitle !== 'Reader') ? routeTitle : searchQuery;
+            if (!mdId) {
+              const info = await searchMangaDex(searchQuery);
+              if (info?.id) { mdId = info.id; mdTitle = info.title || mdTitle; }
+            }
+            if (mdId) {
+              const chapterList = await getMangaChaptersCached(mdId);
+              if (chapterList?.length > 0) {
+                // Resume by chapter number if the route carried progress
+                let startIdx = 0;
+                if (currentChapter > 1) {
+                  const found = chapterList.findIndex((c) => Math.ceil(c.chapter) >= currentChapter);
+                  if (found >= 0) startIdx = found;
+                }
+                const ok = await enterApiMode(mdId, chapterList, startIdx, mdTitle);
+                if (ok) return;
+              }
+            }
+          } catch (_) {}
+
+          // Step 3: Navigate directly to the manga — use known ID for MangaDex title page,
           // then build a rich fallback chain so dead-ends auto-advance to the next source.
           const defSite = getReadingSiteForLang(routeLang);
           setResolvingSiteName(defSite.name);
@@ -951,13 +1325,72 @@ export default function ReaderScreen({ route, navigation }) {
   }, [showUI]);
 
   useEffect(() => { webviewRef.current?.injectJavaScript(mode === 'manga' ? MANGA_MODE_JS : WEBTOON_MODE_JS); }, [mode]);
-  useEffect(() => { webviewRef.current?.injectJavaScript(autoScroll ? AUTO_SCROLL_START_JS : AUTO_SCROLL_STOP_JS); }, [autoScroll]);
+  useEffect(() => {
+    const speed = AUTO_SCROLL_SPEEDS.find((s) => s.id === autoScrollSpeed) || AUTO_SCROLL_SPEEDS[1];
+    webviewRef.current?.injectJavaScript(autoScroll ? buildAutoScrollJS(speed.px) : AUTO_SCROLL_STOP_JS);
+  }, [autoScroll, autoScrollSpeed]);
 
   useEffect(() => {
     if (bottomTimerRef.current) { clearTimeout(bottomTimerRef.current); bottomTimerRef.current = null; }
   }, [currentUrl, currentChapterIdx]);
 
   useEffect(() => { hoursReadRef.current = profile?.hours_read || 0; }, [profile?.hours_read]);
+
+  // Load reader comfort prefs; force-dark defaults to following the app theme
+  useEffect(() => {
+    AsyncStorage.multiGet([FORCE_DARK_KEY, DIMMER_KEY, SCROLL_SPEED_KEY, LANDSCAPE_KEY]).then(([[, fdRaw], [, dimRaw], [, spdRaw], [, lsRaw]]) => {
+      setForceDarkSites(fdRaw === null ? isDark : fdRaw === 'true');
+      if (dimRaw !== null) {
+        const v = parseFloat(dimRaw);
+        if (!Number.isNaN(v)) setDimmer(Math.min(0.7, Math.max(0, v)));
+      }
+      if (spdRaw && AUTO_SCROLL_SPEEDS.some((s) => s.id === spdRaw)) setAutoScrollSpeed(spdRaw);
+      setAllowLandscape(lsRaw === 'true');
+    }).catch(() => {});
+  }, []);
+
+  // Re-apply force-dark to the live page whenever the toggle changes
+  useEffect(() => {
+    if (readerMode === 'webview') {
+      webviewRef.current?.injectJavaScript(buildForceDarkJS(forceDarkSites));
+    }
+  }, [forceDarkSites]);
+
+  function toggleForceDark() {
+    setForceDarkSites((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(FORCE_DARK_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }
+
+  function adjustDimmer(delta) {
+    setDimmer((prev) => {
+      const next = Math.min(0.7, Math.max(0, Math.round((prev + delta) * 100) / 100));
+      AsyncStorage.setItem(DIMMER_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }
+
+  function toggleLandscape() {
+    setAllowLandscape((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(LANDSCAPE_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }
+
+  // Rotation is unlocked only while this screen is mounted AND the preference
+  // is on; always restored to portrait on unmount so the rest of the app
+  // (which was never designed for landscape) isn't affected.
+  useEffect(() => {
+    if (allowLandscape) {
+      ScreenOrientation.unlockAsync().catch(() => {});
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
+    return () => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {}); };
+  }, [allowLandscape]);
 
   useEffect(() => {
     sessionStartRef.current = Date.now();
@@ -993,11 +1426,22 @@ export default function ReaderScreen({ route, navigation }) {
   }, [currentChapter, mangaTitle, userId]);
 
   useEffect(() => {
-    // Record today as a reading day so ProfileScreen's calculateStreak() can compute streak correctly
-    const today = localDateKey();
-    AsyncStorage.getItem('@panelr_last_read_date').then((stored) => {
-      if (stored !== today) AsyncStorage.setItem('@panelr_last_read_date', today).catch(() => {});
-    }).catch(() => {});
+    (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        const stored = await AsyncStorage.getItem('@mangarecs_last_read_date');
+        if (stored === today) {
+          // same day
+        } else if (stored) {
+          const diffDays = Math.round((new Date(today) - new Date(stored)) / 86400000);
+          updateProfile({ streak_count: diffDays === 1 ? (profile?.streak_count || 0) + 1 : 1 });
+          await AsyncStorage.setItem('@mangarecs_last_read_date', today);
+        } else {
+          updateProfile({ streak_count: 1 });
+          await AsyncStorage.setItem('@mangarecs_last_read_date', today);
+        }
+      } catch (_) {}
+    })();
   }, []);
 
   // ── Resume save — API mode ────────────────────────────────────────────────
@@ -1026,6 +1470,17 @@ export default function ReaderScreen({ route, navigation }) {
       lang: 'ja',
       chapters: apiChapters.length,
     });
+    // Register/update the chapter watch — the server cron uses this to send
+    // "new chapter" pushes for series the user actually reads.
+    if (userId && mangaId) {
+      supabase.from('chapter_watch').upsert({
+        user_id: userId,
+        manga_id: mangaId,
+        series_title: mangaTitle || routeTitle,
+        last_seen_chapter: chNum,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,manga_id' }).then(() => {});
+    }
   }, [currentChapterIdx, readerMode]);
 
   // ── Resume save — WebView mode ────────────────────────────────────────────
@@ -1181,9 +1636,27 @@ export default function ReaderScreen({ route, navigation }) {
     setPagesLoading(true);
     setPages([]);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    const pageUrls = (ch.pages && ch.pages.length > 0) ? ch.pages : [];
+    // Creator chapters embed page URLs; MangaDex chapters carry a page COUNT —
+    // their URLs come from the at-home server per chapter. The prefetch cache
+    // (filled while reading the previous chapter) makes transitions instant.
+    let pageUrls = (Array.isArray(ch.pages) && ch.pages.length > 0)
+      ? ch.pages
+      : (prefetchedPagesRef.current[ch.id] || []);
+    if (pageUrls.length === 0 && ch.id && !creatorSeriesId) {
+      pageUrls = await getChapterPages(ch.id);
+    }
     setPages(pageUrls);
     setPagesLoading(false);
+
+    // Background: prefetch the NEXT chapter's page list + warm its first images
+    const nextCh = apiChapters[idx + 1];
+    if (nextCh?.id && !creatorSeriesId && !Array.isArray(nextCh.pages) && !prefetchedPagesRef.current[nextCh.id]) {
+      getChapterPages(nextCh.id).then((urls) => {
+        if (!urls?.length) return;
+        prefetchedPagesRef.current[nextCh.id] = urls;
+        urls.slice(0, 3).forEach((u) => Image.prefetch(u).catch(() => {}));
+      }).catch(() => {});
+    }
     if (pageAnim !== 'none') {
       chapterTransAnim.setValue(0);
       Animated.timing(chapterTransAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
@@ -1353,21 +1826,18 @@ export default function ReaderScreen({ route, navigation }) {
     webviewRef.current?.injectJavaScript(COLLECT_IMAGES_JS);
   }
 
-  async function executeChapterDownload(images) {
-    if (!images || images.length === 0) {
-      Alert.alert('No pages found', 'Could not detect manga pages on this page. Try scrolling to load them first.');
-      return;
-    }
-    const label = mangaTitle || activeSite?.name || 'Chapter';
+  // Core: downloads one chapter's pages and records the library entry.
+  // Returns pages saved (0 on failure). Caller owns the `downloading` state.
+  async function downloadPagesCore(images, chNum, chLabelText) {
+    const label = mangaTitle || activeSite?.name || routeTitle || 'Chapter';
     const slug  = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const dir   = `${CHAPTERS_DIR}${slug}/ch${currentChapter}/`;
+    const dir   = `${CHAPTERS_DIR}${slug}/ch${chNum}/`;
     let referer;
     try { referer = currentUrl ? new URL(currentUrl).origin + '/' : undefined; } catch (_) {}
-    setDlLabel(`${label} — Ch. ${currentChapter}`);
     setDlTotal(images.length);
     setDlProgress(0);
-    setDownloading(true);
     let saved = 0;
+    let totalBytes = 0;
     try {
       await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
       for (let i = 0; i < images.length; i++) {
@@ -1377,6 +1847,8 @@ export default function ReaderScreen({ route, navigation }) {
           const dlOpts = referer ? { headers: { Referer: referer } } : undefined;
           await FileSystem.downloadAsync(images[i], dest, dlOpts);
           saved++;
+          const info = await FileSystem.getInfoAsync(dest).catch(() => null);
+          if (info?.size) totalBytes += info.size;
         } catch (_) {}
         setDlProgress(i + 1);
       }
@@ -1385,15 +1857,16 @@ export default function ReaderScreen({ route, navigation }) {
           const existing = await AsyncStorage.getItem(LIBRARY_KEY);
           const lib = existing ? JSON.parse(existing) : [];
           const entry = {
-            id: (readerMode === 'api' ? `md_${mangaId}` : currentUrl) + `_dl_ch${currentChapter}`,
+            id: (readerMode === 'api' ? `md_${mangaId}` : currentUrl) + `_dl_ch${chNum}`,
             title: label,
             url: currentUrl,
-            chapter: currentChapter,
-            chapterLabel: displayChapter,
+            chapter: chNum,
+            chapterLabel: chLabelText,
             siteName: activeSite?.name || 'MangaDex',
             siteEmoji: activeSite?.emoji || '📚',
             downloadDir: dir,
             pageCount: saved,
+            bytes: totalBytes,
             color: '#1D9E75',
             downloaded: true,
             savedAt: Date.now(),
@@ -1401,15 +1874,53 @@ export default function ReaderScreen({ route, navigation }) {
           const updated = [entry, ...lib.filter((s) => s.id !== entry.id)];
           await AsyncStorage.setItem(LIBRARY_KEY, JSON.stringify(updated));
         } catch (_) {}
-        showToast(`${saved} of ${images.length} pages saved`);
-      } else {
-        Alert.alert('Download failed', 'Pages could not be downloaded — the site may block external downloads.');
       }
-    } catch (err) {
-      Alert.alert('Download failed', 'Could not create download folder.');
-    } finally {
-      setDownloading(false);
+    } catch (_) {}
+    return saved;
+  }
+
+  async function executeChapterDownload(images) {
+    if (!images || images.length === 0) {
+      Alert.alert('No pages found', 'Could not detect manga pages on this page. Try scrolling to load them first.');
+      return;
     }
+    setDlLabel(`${mangaTitle || activeSite?.name || 'Chapter'} — Ch. ${currentChapter}`);
+    setDownloading(true);
+    const saved = await downloadPagesCore(images, currentChapter, displayChapter);
+    setDownloading(false);
+    if (saved > 0) {
+      showToast(`${saved} of ${images.length} pages saved`);
+    } else {
+      Alert.alert('Download failed', 'Pages could not be downloaded — the site may block external downloads.');
+    }
+  }
+
+  // Batch: download this chapter + the next (count-1) — API mode only
+  async function downloadNextChapters(count = 5) {
+    setShowReaderSettings(false);
+    if (readerMode !== 'api' || apiChapters.length === 0 || downloading) return;
+    setDownloading(true);
+    let done = 0;
+    for (let i = 0; i < count; i++) {
+      const idx = currentChapterIdx + i;
+      const ch = apiChapters[idx];
+      if (!ch) break;
+      const chNum = Math.ceil(ch.chapter) || idx + 1;
+      setDlLabel(`${mangaTitle || routeTitle} — Ch. ${chNum} (${i + 1}/${Math.min(count, apiChapters.length - currentChapterIdx)})`);
+      let chPages = (Array.isArray(ch.pages) && ch.pages.length > 0) ? ch.pages : [];
+      if (chPages.length === 0 && ch.id && !creatorSeriesId) {
+        chPages = await getChapterPages(ch.id);
+      }
+      if (chPages.length === 0) continue;
+      const saved = await downloadPagesCore(
+        chPages,
+        chNum,
+        ch.title ? `Ch. ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}`
+      );
+      if (saved > 0) done++;
+    }
+    setDownloading(false);
+    showToast(done > 0 ? `${done} chapter${done === 1 ? '' : 's'} saved for offline` : 'Download failed');
   }
 
   // ── Misc settings ─────────────────────────────────────────────────────────
@@ -1606,7 +2117,13 @@ export default function ReaderScreen({ route, navigation }) {
                 ref={flatListRef}
                 data={pages}
                 keyExtractor={(uri) => uri}
-                renderItem={({ item }) => <PageImage uri={item} />}
+                renderItem={({ item }) => (
+                  <PageImage
+                    uri={item}
+                    onSingleTap={() => setShowUI((v) => !v)}
+                    onDoubleTap={(u) => setZoomUri(u)}
+                  />
+                )}
                 onScroll={handleScrollProgress}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -1683,9 +2200,10 @@ export default function ReaderScreen({ route, navigation }) {
             onLoadEnd={() => {
               webviewRef.current?.injectJavaScript(mode === 'manga' ? MANGA_MODE_JS : WEBTOON_MODE_JS);
               webviewRef.current?.injectJavaScript(AD_BLOCK_JS);
+              if (forceDarkSites) webviewRef.current?.injectJavaScript(buildForceDarkJS(true));
               webviewRef.current?.injectJavaScript(EXTRACT_PAGE_INFO_JS);
               if (searchQuery) {
-                webviewRef.current?.injectJavaScript(`window.__panelrQuery = ${JSON.stringify(searchQuery)};`);
+                webviewRef.current?.injectJavaScript(`window.__mangarecsQuery = ${JSON.stringify(searchQuery)};`);
                 webviewRef.current?.injectJavaScript(AUTO_NAV_SEARCH_JS);
                 webviewRef.current?.injectJavaScript(AUTO_NAV_CHAPTER_JS);
                 webviewRef.current?.injectJavaScript(MANGADEX_CHAPTER_NAV_JS);
@@ -1753,9 +2271,10 @@ export default function ReaderScreen({ route, navigation }) {
                   } else if (msg.type === 'saveImage') {
                     saveImageToGallery(msg.src);
                   } else if (msg.type === 'openWindow') {
-                    // window.open() called in-page — navigate in-app (same as onOpenWindow)
+                    // window.open() called in-page — follow only same-site /
+                    // known-site targets; off-site opens are popunder ads
                     const u = msg.url || '';
-                    if (u.startsWith('http')) setCurrentUrl(u);
+                    if (u.startsWith('http') && isTrustedPopup(u, currentUrl)) setCurrentUrl(u);
                   }
                 } catch (_) {}
               }
@@ -1766,6 +2285,7 @@ export default function ReaderScreen({ route, navigation }) {
               const targetUrl = syntheticEvent?.nativeEvent?.targetUrl;
               if (!targetUrl || !targetUrl.startsWith('http')) return;
               if (AD_NETWORK_PATTERNS.some((p) => targetUrl.toLowerCase().includes(p))) return;
+              if (!isTrustedPopup(targetUrl, currentUrl)) return;
               setCurrentUrl(targetUrl);
             }}
             onShouldStartLoadWithRequest={(req) => {
@@ -1812,6 +2332,19 @@ export default function ReaderScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
         </View>
+      )}
+
+      {/* ── Page zoom viewer ─────────────────────────────────────────────── */}
+      <Modal visible={!!zoomUri} transparent animationType="fade" onRequestClose={() => setZoomUri(null)}>
+        {zoomUri ? <ZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} /> : null}
+      </Modal>
+
+      {/* ── Screen dimmer — sits over content, under the HUD ─────────────── */}
+      {dimmer > 0 && (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0,0,0,${dimmer})` }]}
+        />
       )}
 
       {/* ── Bottom bar ───────────────────────────────────────────────────── */}
@@ -1948,10 +2481,10 @@ export default function ReaderScreen({ route, navigation }) {
       {/* ── Site picker modal ────────────────────────────────────────────── */}
       <Modal visible={showSitePicker} animationType="slide" transparent onRequestClose={() => { setShowSitePicker(false); setSiteSearch(''); }}>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => { setShowSitePicker(false); setSiteSearch(''); }}>
-          <View style={styles.siteSheet}>
-            <View style={styles.sheetHandle} />
+          <View style={[styles.siteSheet, sheetC.sheet]}>
+            <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Reading Browser</Text>
+              <Text style={[styles.sheetTitle, sheetC.title]}>Reading Browser</Text>
               <TouchableOpacity onPress={() => { setShowSitePicker(false); setSiteSearch(''); }}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
@@ -2027,10 +2560,10 @@ export default function ReaderScreen({ route, navigation }) {
       {/* ── Ambience ─────────────────────────────────────────────────────── */}
       <Modal visible={showAmbience} animationType="slide" transparent onRequestClose={() => setShowAmbience(false)}>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowAmbience(false)}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+          <View style={[styles.sheet, sheetC.sheet]}>
+            <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Ambience</Text>
+              <Text style={[styles.sheetTitle, sheetC.title]}>Ambience</Text>
               {ambienceState.presetId && (
                 <View style={styles.playingBadge}><Text style={styles.playingText}>Playing</Text></View>
               )}
@@ -2078,10 +2611,10 @@ export default function ReaderScreen({ route, navigation }) {
       {/* ── Reader settings ──────────────────────────────────────────────── */}
       <Modal visible={showReaderSettings} animationType="slide" transparent onRequestClose={() => setShowReaderSettings(false)}>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowReaderSettings(false)}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+          <View style={[styles.sheet, sheetC.sheet]}>
+            <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Reader Settings</Text>
+              <Text style={[styles.sheetTitle, sheetC.title]}>Reader Settings</Text>
               <TouchableOpacity onPress={() => setShowReaderSettings(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
             </View>
             {readerMode !== 'api' && (
@@ -2105,27 +2638,94 @@ export default function ReaderScreen({ route, navigation }) {
                 </View>
               </>
             )}
-            <TouchableOpacity style={styles.settingsRow} onPress={requestChapterDownload}>
+            {readerMode === 'webview' && mode === 'webtoon' && (
+              <View style={[styles.settingsRow, sheetC.rowBorder]}>
+                <Ionicons name="play-forward-outline" size={18} color="#9B9AA3" />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Auto-scroll speed</Text>
+                </View>
+                {AUTO_SCROLL_SPEEDS.map((s) => (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={[styles.speedChip, autoScrollSpeed === s.id && styles.speedChipActive]}
+                    onPress={() => {
+                      setAutoScrollSpeed(s.id);
+                      AsyncStorage.setItem(SCROLL_SPEED_KEY, s.id).catch(() => {});
+                    }}>
+                    <Text style={[styles.speedChipText, autoScrollSpeed === s.id && styles.speedChipTextActive]}>{s.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {readerMode === 'webview' && (
+              <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleForceDark}>
+                <Ionicons name={forceDarkSites ? 'moon' : 'moon-outline'} size={18} color={forceDarkSites ? '#7B5CFF' : '#9B9AA3'} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Force dark on websites</Text>
+                  <Text style={styles.settingsRowSub}>Inverts page colors — manga pages stay normal</Text>
+                </View>
+                <View style={[styles.settingsToggle, forceDarkSites && styles.settingsToggleOn]}>
+                  <View style={[styles.settingsToggleDot, forceDarkSites && styles.settingsToggleDotOn]} />
+                </View>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleLandscape}>
+              <Ionicons name={allowLandscape ? 'phone-landscape' : 'phone-portrait-outline'} size={18} color={allowLandscape ? '#7B5CFF' : '#9B9AA3'} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>Allow landscape</Text>
+                <Text style={styles.settingsRowSub}>Rotate your device to read in landscape</Text>
+              </View>
+              <View style={[styles.settingsToggle, allowLandscape && styles.settingsToggleOn]}>
+                <View style={[styles.settingsToggleDot, allowLandscape && styles.settingsToggleDotOn]} />
+              </View>
+            </TouchableOpacity>
+            <View style={[styles.settingsRow, sheetC.rowBorder]}>
+              <Ionicons name="sunny-outline" size={18} color="#EF9F27" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>Screen dimmer</Text>
+                <Text style={styles.settingsRowSub}>{dimmer === 0 ? 'Off' : `${Math.round(dimmer / 0.7 * 100)}% dim`}</Text>
+              </View>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                <Ionicons name="remove" size={16} color="#9B9AA3" />
+              </TouchableOpacity>
+              <View style={styles.dimmerTrack}>
+                <View style={[styles.dimmerFill, { width: `${Math.round(dimmer / 0.7 * 100)}%` }]} />
+              </View>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                <Ionicons name="add" size={16} color="#9B9AA3" />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={requestChapterDownload}>
               <Ionicons name="cloud-download-outline" size={18} color="#1D9E75" />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.settingsRowText}>Download Chapter</Text>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>Download Chapter</Text>
                 <Text style={styles.settingsRowSub}>Save pages to your Library for offline reading</Text>
               </View>
               <Ionicons name="chevron-forward" size={14} color="#9B9AA3" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsRow} onPress={toggleReaderHidden}>
+            {readerMode === 'api' && apiChapters.length > currentChapterIdx + 1 && (
+              <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={() => downloadNextChapters(5)}>
+                <Ionicons name="albums-outline" size={18} color="#1D9E75" />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Download next 5 chapters</Text>
+                  <Text style={styles.settingsRowSub}>Batch-save from here for offline reading</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color="#9B9AA3" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleReaderHidden}>
               <Ionicons name={readerHidden ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9B9AA3" />
-              <Text style={styles.settingsRowText}>{readerHidden ? 'Show reader UI' : 'Hide reader UI'}</Text>
+              <Text style={[styles.settingsRowText, sheetC.rowText]}>{readerHidden ? 'Show reader UI' : 'Hide reader UI'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsRow} onPress={handleClearCache}>
+            <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={handleClearCache}>
               <Ionicons name="reload-outline" size={18} color="#9B9AA3" />
-              <Text style={styles.settingsRowText}>{readerMode === 'api' ? 'Reload chapter' : 'Clear cache & reload'}</Text>
+              <Text style={[styles.settingsRowText, sheetC.rowText]}>{readerMode === 'api' ? 'Reload chapter' : 'Clear cache & reload'}</Text>
             </TouchableOpacity>
             {searchQuery && (
-              <TouchableOpacity style={styles.settingsRow} onPress={handleStartFromBeginning}>
+              <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={handleStartFromBeginning}>
                 <Ionicons name="refresh-circle-outline" size={18} color="#E8527A" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.settingsRowText}>Start from beginning</Text>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Start from beginning</Text>
                   <Text style={styles.settingsRowSub}>Clear resume and go to Chapter 1</Text>
                 </View>
               </TouchableOpacity>
@@ -2137,14 +2737,14 @@ export default function ReaderScreen({ route, navigation }) {
       {/* ── Share ─────────────────────────────────────────────────────────── */}
       <Modal visible={showShare} animationType="slide" transparent onRequestClose={() => setShowShare(false)}>
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowShare(false)}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+          <View style={[styles.sheet, sheetC.sheet]}>
+            <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Share</Text>
+              <Text style={[styles.sheetTitle, sheetC.title]}>Share</Text>
               <TouchableOpacity onPress={() => setShowShare(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
             </View>
             <View style={styles.sharePreview}>
-              <Text style={styles.sharePreviewLogo}>Panelr</Text>
+              <Text style={styles.sharePreviewLogo}>MangaRecs</Text>
               <View style={{ flex: 1 }} />
               <Text style={styles.sharePreviewLabel}>Currently reading</Text>
               <Text style={styles.sharePreviewTitle}>{displayTitle}</Text>
@@ -2155,7 +2755,7 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
             <View style={styles.shareButtonsRow}>
               <TouchableOpacity style={styles.copyLinkBtn} onPress={() => {
-                const msg = `I'm reading "${displayTitle}" on Panelr!`;
+                const msg = `I'm reading "${displayTitle}" on MangaRecs!`;
                 Share.share({ message: msg, title: displayTitle })
                   .then((result) => {
                     if (result.action === Share.sharedAction) {
@@ -2169,7 +2769,7 @@ export default function ReaderScreen({ route, navigation }) {
                 <Text style={styles.copyLinkText}>Copy Link</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.shareStoryBtn} onPress={() => {
-                const msg = `Check out "${displayTitle}" on Panelr — the best manga reader app!`;
+                const msg = `Check out "${displayTitle}" on MangaRecs — the best manga reader app!`;
                 Share.share({ message: msg, title: displayTitle })
                   .then((result) => {
                     if (result.action === Share.sharedAction) {
@@ -2296,6 +2896,7 @@ const styles = StyleSheet.create({
   ambienceBtnLabel:       { color: '#9B9AA3', fontSize: 13, fontWeight: '600', marginTop: 8 },
   ambienceBtnLabelActive: { color: '#534AB7' },
   ambienceBtnSub:         { color: '#9B9AA3', fontSize: 10, marginTop: 4 },
+
   ambienceVolRow:         { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   ambienceVolBtn:         { padding: 6 },
   ambienceVolTrack:       { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden' },
@@ -2310,6 +2911,17 @@ const styles = StyleSheet.create({
   settingsRow:            { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2A2A2F' },
   settingsRowText:        { color: '#fff', fontSize: 14, marginLeft: 12 },
   settingsRowSub:         { color: '#9B9AA3', fontSize: 11, marginLeft: 12, marginTop: 2 },
+  settingsToggle:         { width: 40, height: 22, borderRadius: 11, backgroundColor: '#2A2A2F', padding: 2, justifyContent: 'center' },
+  settingsToggleOn:       { backgroundColor: 'rgba(123,92,255,0.45)' },
+  settingsToggleDot:      { width: 18, height: 18, borderRadius: 9, backgroundColor: '#9B9AA3' },
+  settingsToggleDotOn:    { backgroundColor: '#7B5CFF', alignSelf: 'flex-end' },
+  speedChip:              { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(155,154,163,0.12)', marginLeft: 6 },
+  speedChipActive:        { backgroundColor: 'rgba(123,92,255,0.25)' },
+  speedChipText:          { color: '#9B9AA3', fontSize: 11, fontWeight: '600' },
+  speedChipTextActive:    { color: '#7B5CFF' },
+  dimmerBtn:              { padding: 4 },
+  dimmerTrack:            { width: 72, height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden', marginHorizontal: 2 },
+  dimmerFill:             { height: 4, backgroundColor: '#EF9F27', borderRadius: 2 },
   sharePreview:           { backgroundColor: '#2D1B69', borderRadius: 16, padding: 20, height: 200, marginBottom: 16 },
   sharePreviewLogo:       { color: '#fff', fontSize: 14, fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   sharePreviewLabel:      { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
@@ -2322,6 +2934,7 @@ const styles = StyleSheet.create({
   copyLinkText:           { color: '#fff', fontSize: 13, fontWeight: '600', marginLeft: 6 },
   shareStoryBtn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D8336B', paddingVertical: 14, borderRadius: 12 },
   shareStoryText:         { color: '#fff', fontSize: 13, fontWeight: '600', marginLeft: 6 },
+
   // site picker
   apiModeBanner:          { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)' },
   apiModeBannerText:      { color: '#534AB7', fontSize: 12, marginLeft: 6, flex: 1 },

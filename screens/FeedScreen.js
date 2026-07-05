@@ -3,6 +3,7 @@
   Modal, TextInput, RefreshControl, KeyboardAvoidingView,
   Platform, Animated, Image, ActivityIndicator, ScrollView,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchMangaInfo, getCachedCoverUrl, getFaviconUrl, AI_REC_KEY, prewarmCoverCache } from '../utils/mangaCovers';
@@ -26,6 +27,8 @@ const NOTIF_H    = Math.round(height * 0.40);
 const COMMENTS_H = Math.round(height * 0.88);
 const COVER_W    = Math.round(width * 0.58);
 const COVER_H    = Math.round(COVER_W * 1.44);
+
+const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
 
 
 // ── Completed series IDs ─────────────────────────────────────────────────────
@@ -68,7 +71,7 @@ let _queueFetching = false;
 
 // Genre preference weights for per-user algorithm
 // Updated when user likes/saves; persisted to AsyncStorage
-const PREFS_KEY = '@panelr_genre_prefs';
+const PREFS_KEY = '@mangarecs_genre_prefs';
 let _genreWeights = {};
 let _aiRecEnabled = true;
 
@@ -477,10 +480,11 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
       {/* ── Background: color base + blurred cover + dark overlay ── */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: item.color || '#0D1A2D' }]} />
       {coverUrl && !coverError && (
-        <Image
+        <ExpoImage
           source={{ uri: coverUrl }}
           style={[styles.cardBgImage, { opacity: cardBgOpacity }]}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="disk"
           blurRadius={Platform.OS === 'ios' ? 18 : 6}
           onError={() => setCoverError(true)}
         />
@@ -495,10 +499,11 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
           <View style={[styles.coverCard, { width: COVER_W, height: COVER_H }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: item.color || '#0D1A2D' }]} />
             {coverUrl && !coverError ? (
-              <Animated.Image
+              <AnimatedExpoImage
                 source={{ uri: coverUrl }}
                 style={[StyleSheet.absoluteFill, styles.coverImg, { opacity: fadeAnim }]}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="disk"
                 onLoad={onImageLoad}
                 onError={() => { setCoverError(true); fadeAnim.setValue(1); }}
               />
@@ -535,7 +540,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
           {item._section === 'creator' && (
             <View style={[styles.sectionBadge, styles.sectionBadgeCreator]}>
               <Text style={styles.sectionBadgeIcon}>✨</Text>
-              <Text style={styles.sectionBadgeText}>Panelr Creator</Text>
+              <Text style={styles.sectionBadgeText}>MangaRecs Creator</Text>
             </View>
           )}
           <View style={styles.genres}>
@@ -766,6 +771,7 @@ export default function FeedScreen() {
   const [sendSentTo, setSendSentTo]         = useState({});
   const [activeItem, setActiveItem]   = useState(null);
   const [commentInput, setCommentInput] = useState('');
+  const [commentSpoiler, setCommentSpoiler] = useState(false);
   const [siteInput, setSiteInput]     = useState('');
   const [refreshing, setRefreshing]   = useState(false);
 
@@ -803,7 +809,7 @@ export default function FeedScreen() {
     loadFeedPrefs();
     loadUserInfo();
     reloadNotifs();
-    AsyncStorage.getItem('@panelr_saved').then((val) => {
+    AsyncStorage.getItem('@mangarecs_saved').then((val) => {
       if (!val) return;
       try {
         const saved = JSON.parse(val);
@@ -812,7 +818,7 @@ export default function FeedScreen() {
         setFeed((prev) => prev.map((item) => ({ ...item, bookmarked: map.has(item.id) })));
       } catch (_) {}
     });
-    AsyncStorage.getItem('@panelr_liked_posts').then((val) => {
+    AsyncStorage.getItem('@mangarecs_liked_posts').then((val) => {
       try {
         const ids = val ? JSON.parse(val) : [];
         const localSet = new Set(ids);
@@ -831,7 +837,7 @@ export default function FeedScreen() {
           setLikedIds((prev) => {
             const merged = new Set([...prev, ...serverIds]);
             if (merged.size === prev.size) return prev;
-            AsyncStorage.setItem('@panelr_liked_posts', JSON.stringify([...merged])).catch(() => {});
+            AsyncStorage.setItem('@mangarecs_liked_posts', JSON.stringify([...merged])).catch(() => {});
             return merged;
           });
           setFeed((prev) => prev.map((item) => ({
@@ -851,9 +857,9 @@ export default function FeedScreen() {
       let savedIds = new Set();
       let likedSet = new Set();
       try {
-        const savedRaw = await AsyncStorage.getItem('@panelr_saved');
+        const savedRaw = await AsyncStorage.getItem('@mangarecs_saved');
         if (savedRaw) (JSON.parse(savedRaw) || []).forEach((s) => savedIds.add(s.id));
-        const likedRaw = await AsyncStorage.getItem('@panelr_liked_posts');
+        const likedRaw = await AsyncStorage.getItem('@mangarecs_liked_posts');
         if (likedRaw) (JSON.parse(likedRaw) || []).forEach((id) => likedSet.add(id));
       } catch (_) {}
 
@@ -887,12 +893,12 @@ export default function FeedScreen() {
             id: `creator-${s.id}`,
             creatorSeriesId: s.id,
             title: s.title,
-            description: s.description || 'A new series from an Panelr creator.',
+            description: s.description || 'A new series from a MangaRecs creator.',
             genres: s.genre ? [s.genre] : ['Original'],
             rating: null,
             chapters: s.chapters || 1,
             readers: s.views ? `${s.views.toLocaleString()}` : '0',
-            author: 'Panelr Creator',
+            author: 'MangaRecs Creator',
             updated: 'just now',
             color: '#1A1633',
             likeCount: 0,
@@ -970,7 +976,7 @@ export default function FeedScreen() {
     setLikedIds((prev) => {
       const next = new Set(prev);
       isNowLiked ? next.add(id) : next.delete(id);
-      AsyncStorage.setItem('@panelr_liked_posts', JSON.stringify([...next])).catch(() => {});
+      AsyncStorage.setItem('@mangarecs_liked_posts', JSON.stringify([...next])).catch(() => {});
       return next;
     });
 
@@ -1018,7 +1024,7 @@ export default function FeedScreen() {
     setSavedMap((prev) => {
       const next = new Map(prev);
       isNowSaved ? next.set(id, { ...item, bookmarked: true }) : next.delete(id);
-      AsyncStorage.setItem('@panelr_saved', JSON.stringify([...next.values()])).catch(() => {});
+      AsyncStorage.setItem('@mangarecs_saved', JSON.stringify([...next.values()])).catch(() => {});
       return next;
     });
 
@@ -1042,6 +1048,7 @@ export default function FeedScreen() {
   function handleCommentOpen(item) {
     setActiveItem(item);
     setCommentsOpen(true);
+    setCommentSpoiler(false);
     loadPostComments(item);
   }
 
@@ -1130,6 +1137,7 @@ export default function FeedScreen() {
   async function handleSendComment() {
     const text = commentInput.trim();
     if (!text || !activeItem) return;
+    const isSpoiler = commentSpoiler;
     const optimistic = {
       id: `opt-${Date.now()}`,
       user: currentUsername,
@@ -1138,7 +1146,7 @@ export default function FeedScreen() {
       text,
       likes: 0,
       liked: false,
-      spoiler: false,
+      spoiler: isSpoiler,
       replyCount: 0,
     };
     setComments((prev) => ({ ...prev, [activeItem.id]: [optimistic, ...(prev[activeItem.id] || [])] }));
@@ -1147,8 +1155,9 @@ export default function FeedScreen() {
       item.id === activeItem.id ? { ...item, commentCount: (item.commentCount || 0) + 1 } : item
     ));
     setCommentInput('');
+    setCommentSpoiler(false);
     if (currentUserId) {
-      await supabase.from('comments').insert({ user_id: currentUserId, series_title: activeItem.title, text, spoiler: false });
+      await supabase.from('comments').insert({ user_id: currentUserId, series_title: activeItem.title, text, spoiler: isSpoiler });
       supabase.from('profiles').select('username').eq('id', currentUserId).maybeSingle().then(({ data }) => {
         sendCommentPush(activeItem.title, data?.username || 'Someone');
       });
@@ -1444,11 +1453,22 @@ export default function FeedScreen() {
                 style={[styles.commentInput, { color: colors.text, backgroundColor: colors.inputBg }]}
                 value={commentInput}
                 onChangeText={setCommentInput}
-                placeholder="Add comment..."
+                placeholder={commentSpoiler ? 'Add spoiler comment...' : 'Add comment...'}
                 placeholderTextColor={colors.muted}
                 multiline
                 maxLength={300}
               />
+              <TouchableOpacity
+                style={[
+                  styles.commentSpoilerBtn,
+                  { backgroundColor: colors.inputBg },
+                  commentSpoiler && styles.commentSpoilerBtnActive,
+                ]}
+                onPress={() => setCommentSpoiler((v) => !v)}
+                accessibilityLabel="Mark comment as spoiler"
+                accessibilityState={{ selected: commentSpoiler }}>
+                <Ionicons name={commentSpoiler ? 'eye-off' : 'eye-off-outline'} size={16} color={commentSpoiler ? '#FF3B30' : colors.muted} />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.commentSendBtn, { opacity: commentInput.trim() ? 1 : 0.35 }]}
                 onPress={handleSendComment}
@@ -1797,6 +1817,8 @@ const styles = StyleSheet.create({
   commentInputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 10, borderTopWidth: 1 },
   commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(83,74,183,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   commentInput: { flex: 1, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 80 },
+  commentSpoilerBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  commentSpoilerBtnActive: { backgroundColor: 'rgba(255,59,48,0.16)' },
   commentSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 
   // Notification panel

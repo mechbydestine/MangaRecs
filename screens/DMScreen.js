@@ -6,6 +6,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNotifications } from '../utils/NotificationsContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
@@ -168,6 +169,7 @@ export default function DMScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { markDmNotifsRead } = useNotifications();
 
   const [myId, setMyId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -217,7 +219,9 @@ export default function DMScreen() {
             if (prev.find((m) => m.id === msg.id)) return prev;
             return [...prev, msg];
           });
+          // User is looking at this thread: mark read + clear its notification immediately
           markRead(myId);
+          markDmNotifsRead(friendId);
           setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
         }
       )
@@ -229,8 +233,17 @@ export default function DMScreen() {
     if (myId) {
       loadMessages(myId);
       markRead(myId);
+      markDmNotifsRead(friendId);
     }
-  }, [myId]));
+    return () => {
+      // Leaving the thread: everything on screen has been seen — clear read state
+      // and the notification badge on the way out too.
+      if (myId) {
+        markRead(myId);
+        markDmNotifsRead(friendId);
+      }
+    };
+  }, [myId, friendId]));
 
   async function loadMessages(uid) {
     const { data } = await supabase

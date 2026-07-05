@@ -13,6 +13,7 @@ import { useTheme } from '../utils/ThemeContext';
 import { MangaCover } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 import { PeopleListModal, PeopleRow } from './ProfileScreen';
+import { localDateKey } from '../utils/readerUtils';
 
 const PROFILE_THEMES = [
   { id: 'default', label: 'Default', ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'], banner: ['#7B5CFF', '#0D0D0F'] },
@@ -99,7 +100,7 @@ function StreakCalendar({ dailyLog }) {
               ) : null}
             </View>
             {week.map((day, dayIdx) => {
-              const dateStr = day ? day.toISOString().slice(0, 10) : null;
+              const dateStr = day ? localDateKey(day) : null;
               const hours   = dateStr ? (log[dateStr] || 0) : 0;
               const future  = day && day > today;
               const inMonth = isCurrentMonth(day);
@@ -432,7 +433,7 @@ export default function FriendProfileScreen({ route }) {
   const favorites      = profile && Array.isArray(profile.favorites) ? profile.favorites : [];
   const dailyLog       = profile?.daily_log || {};
 
-  const todayKey   = new Date().toISOString().slice(0, 10);
+  const todayKey   = localDateKey();
   const todayHrs   = dailyLog[todayKey] || 0;
   const todayLabel = todayHrs <= 0
     ? null

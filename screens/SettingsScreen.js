@@ -14,9 +14,9 @@ import { clearBadgeCache } from '../utils/badgeEngine';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 
-const NOTIFS_KEY      = '@panelr/notifPrefs';
-const READER_MODE_KEY = '@panelr/readerMode';
-const PAGE_ANIM_KEY   = '@panelr/pageAnim';
+const NOTIFS_KEY      = '@mangarecs/notifPrefs';
+const READER_MODE_KEY = '@mangarecs/readerMode';
+const PAGE_ANIM_KEY   = '@mangarecs/pageAnim';
 
 function WebtoonIcon({ active }) {
   const arrowY = useRef(new Animated.Value(0)).current;
@@ -209,7 +209,7 @@ export default function SettingsScreen({ navigation }) {
   const [maxBilling, setMaxBilling] = useState('monthly');
 
   useEffect(() => {
-    AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@panelr/mal_username', '@panelr/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
+    AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@mangarecs/mal_username', '@mangarecs/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
       if (aiRecRaw !== null) setAiRecState(aiRecRaw === 'true');
       if (notifsRaw) {
         try { setNotifs(JSON.parse(notifsRaw)); } catch (_) {}
@@ -249,6 +249,19 @@ export default function SettingsScreen({ navigation }) {
         supabase.from('profiles').update(patch).eq('id', session.user.id).then(() => {});
       }
     });
+  }
+
+  const showActivity = profile?.show_activity !== false;
+  const isBusy = !!profile?.is_busy;
+
+  async function toggleShowActivity(value) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await updateProfile({ show_activity: value });
+  }
+
+  async function toggleBusy(value) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await updateProfile({ is_busy: value });
   }
 
   async function handleSaveUsername() {
@@ -305,14 +318,14 @@ export default function SettingsScreen({ navigation }) {
 
   async function handleExportLibrary() {
     try {
-      const [libRaw, histRaw] = await AsyncStorage.multiGet(['@panelr_saved', '@panelr_reading_history']).then((pairs) => pairs.map(([, v]) => v));
+      const [libRaw, histRaw] = await AsyncStorage.multiGet(['@mangarecs_saved', '@mangarecs_reading_history']).then((pairs) => pairs.map(([, v]) => v));
       const lib = libRaw ? JSON.parse(libRaw) : [];
       const hist = histRaw ? JSON.parse(histRaw) : {};
       const libLines = lib.map((s) => `• ${s.title} — Ch. ${s.chapter || 1}`).join('\n') || 'None';
       const histValues = Object.values(hist);
       const histLines = histValues.map((h) => `• ${h.title} — Ch. ${h.chapter || 1}`).join('\n') || 'None';
-      const text = `📚 My Panelr Library\n\nBookmarked (${lib.length}):\n${libLines}\n\nReading History (${histValues.length}):\n${histLines}`;
-      await Share.share({ message: text, title: 'My Panelr Library' });
+      const text = `📚 My MangaRecs Library\n\nBookmarked (${lib.length}):\n${libLines}\n\nReading History (${histValues.length}):\n${histLines}`;
+      await Share.share({ message: text, title: 'My MangaRecs Library' });
     } catch (_) {}
   }
 
@@ -323,7 +336,7 @@ export default function SettingsScreen({ navigation }) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
 
         <SectionCard title="Username" icon="person-outline">
-          <Text style={[styles.cardSub, { color: colors.muted }]}>Display name shown across Panelr</Text>
+          <Text style={[styles.cardSub, { color: colors.muted }]}>Display name shown across MangaRecs</Text>
           <View style={styles.urlRow}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
@@ -376,7 +389,7 @@ export default function SettingsScreen({ navigation }) {
 
         <SectionCard title="Reading Sources" icon="globe-outline">
           <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 12 }]}>
-            Panelr automatically picks the best site based on content type — no setup needed.
+            MangaRecs automatically picks the best site based on content type — no setup needed.
           </Text>
           {ALL_SUPPORTED_SITES.map((site) => (
             <View key={site.url} style={[styles.sourceSiteRow, { borderColor: colors.border }]}>
@@ -462,9 +475,37 @@ export default function SettingsScreen({ navigation }) {
           ))}
         </SectionCard>
 
+        <SectionCard title="Status" icon="radio-button-on-outline">
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Show online status</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Let friends see when you're online, idle, or reading</Text>
+            </View>
+            <Switch
+              value={showActivity}
+              onValueChange={toggleShowActivity}
+              trackColor={{ false: colors.border, true: '#534AB7' }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Appear busy</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
+            </View>
+            <Switch
+              value={isBusy}
+              onValueChange={toggleBusy}
+              trackColor={{ false: colors.border, true: '#E5534B' }}
+              thumbColor="#fff"
+              disabled={!showActivity}
+            />
+          </View>
+        </SectionCard>
+
         <SectionCard title="External Trackers" icon="sync-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>
-            Link your tracker profiles to jump to any series directly from Panelr.
+            Link your tracker profiles to jump to any series directly from MangaRecs.
           </Text>
           <Text style={[styles.cardTitle, { color: colors.text }]}>MyAnimeList Username</Text>
           <View style={styles.urlRow}>
@@ -511,8 +552,8 @@ export default function SettingsScreen({ navigation }) {
                 const mal = malUsername.trim();
                 const anilist = anilistUsername.trim();
                 await AsyncStorage.multiSet([
-                  ['@panelr/mal_username', mal],
-                  ['@panelr/anilist_username', anilist],
+                  ['@mangarecs/mal_username', mal],
+                  ['@mangarecs/anilist_username', anilist],
                 ]);
                 updateProfile({ mal_username: mal || null, anilist_username: anilist || null });
                 setTrackerSaved(true);
@@ -611,10 +652,10 @@ export default function SettingsScreen({ navigation }) {
         </SectionCard>
 
         <SectionCard title="About" icon="information-circle-outline">
-          <SettingsRow icon="help-circle-outline" label="Help & Support" desc="FAQs, contact us, report a bug" onPress={() => Linking.openURL('mailto:support@panelr.app?subject=Help%20%26%20Support')} />
+          <SettingsRow icon="help-circle-outline" label="Help & Support" desc="FAQs, contact us, report a bug" onPress={() => Linking.openURL('mailto:support@mangarecs.app?subject=Help%20%26%20Support')} />
           <SettingsRow icon="people-outline" label="Community Guidelines" desc="Read our community standards" onPress={() => navigation.navigate('Guidelines')} />
-          <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => Linking.openURL('https://panelr.app/privacy')} />
-          <SettingsRow icon="document-text-outline" label="Terms of Use" onPress={() => Linking.openURL('https://panelr.app/terms')} />
+          <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
+          <SettingsRow icon="document-text-outline" label="Terms of Use" onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
           <View style={[styles.settingsRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
             <Ionicons name="information-circle-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
             <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>App Version</Text>
@@ -655,7 +696,7 @@ export default function SettingsScreen({ navigation }) {
             </View>
             <Text style={[styles.deleteTitle, { color: colors.text }]}>Delete your account?</Text>
             <Text style={[styles.deleteSub, { color: colors.muted }]}>
-              This will permanently delete your Panelr account, reading history, badges, friends, and all saved data. This action cannot be undone.
+              This will permanently delete your MangaRecs account, reading history, badges, friends, and all saved data. This action cannot be undone.
             </Text>
             <View style={styles.deleteActions}>
               <TouchableOpacity

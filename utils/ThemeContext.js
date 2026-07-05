@@ -2,7 +2,7 @@
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'panelr_theme';
+const STORAGE_KEY = 'mangarecs_theme';
 
 const darkColors = {
   background: '#0D0D0F',

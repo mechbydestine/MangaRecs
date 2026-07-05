@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { ALL_BADGES, computeEarnedBadgeIds, profileToBadgeStats } from './badges';
 import { success as hapticSuccess } from './haptics';
 
-const EARNED_KEY = '@panelr/earnedBadgeIds_v1';
+const EARNED_KEY = '@mangarecs/earnedBadgeIds_v1';
 
 async function getStoredEarnedIds() {
   try {
