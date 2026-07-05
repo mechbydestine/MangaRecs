@@ -535,51 +535,52 @@ export default function FriendProfileScreen({ route }) {
               </View>
             ) : null}
 
-            {/* Icon actions — bottom-right corner of the profile card */}
+            {/* Friends · Followers · Following — below bio/joined date, above the action icons */}
+            <PeopleRow
+              friends={friendsList}
+              followers={followersList}
+              following={followingList}
+              colors={colors}
+              onOpen={(key) => setShowPeople(key)}
+              style={styles.peopleRowInCard}
+            />
+
+            {/* Icon actions — bottom-right corner of the profile card, plain icons, no chip background */}
             {myId && myId !== profile.id && (
               <View style={styles.actionIconsRow}>
                 {!iBlocked && (
                   <TouchableOpacity
-                    style={[styles.actionIconBtn, iFollow ? styles.actionIconBtnActive : null]}
                     onPress={toggleFollow}
                     disabled={followBusy}
-                    activeOpacity={0.75}>
-                    <Ionicons name={iFollow ? 'person-remove-outline' : 'person-add-outline'} size={17} color={iFollow ? '#1D9E75' : '#7B5CFF'} />
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.6}>
+                    <Ionicons name={iFollow ? 'person-remove-outline' : 'person-add-outline'} size={19} color={iFollow ? '#1D9E75' : '#7B5CFF'} />
                   </TouchableOpacity>
                 )}
                 {!iBlocked && (
                   <TouchableOpacity
-                    style={styles.actionIconBtn}
                     onPress={() => navigation.navigate('DM', {
                       friendId: profile.id,
                       friendName: profile.username,
                       friendColor: profile.color,
                       friendAvatarUrl: profile.avatar_url || null,
                     })}
-                    activeOpacity={0.75}>
-                    <Ionicons name="chatbubble-outline" size={16} color="#7B5CFF" />
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.6}>
+                    <Ionicons name="chatbubble-outline" size={18} color="#7B5CFF" />
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  style={[styles.actionIconBtn, iBlocked && styles.actionIconBtnBlocked]}
                   onPress={handleBlockToggle}
                   disabled={blockBusy}
-                  activeOpacity={0.75}>
-                  <Ionicons name={iBlocked ? 'ban' : 'ban-outline'} size={16} color="#E5534B" />
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.6}>
+                  <Ionicons name={iBlocked ? 'ban' : 'ban-outline'} size={18} color="#E5534B" />
                 </TouchableOpacity>
               </View>
             )}
           </View>
         </View>
-
-        {/* Friends · Followers · Following — above the stats */}
-        <PeopleRow
-          friends={friendsList}
-          followers={followersList}
-          following={followingList}
-          colors={colors}
-          onOpen={(key) => setShowPeople(key)}
-        />
 
         {/* Stats — same compact style as ProfileScreen */}
         <View style={styles.statsRow}>

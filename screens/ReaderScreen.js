@@ -23,10 +23,14 @@ import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../utils/ThemeContext';
 
-const SAVED_SITES_KEY = '@mangarecs/savedSites';
-const LAST_SITE_KEY   = '@mangarecs/lastSite';
-const LIBRARY_KEY     = '@mangarecs_saved';
-const RESUME_KEY_PFX  = '@mangarecs/resume/';
+const SAVED_SITES_KEY  = '@mangarecs/savedSites';
+const LAST_SITE_KEY    = '@mangarecs/lastSite';
+const LIBRARY_KEY      = '@mangarecs_saved';
+const RESUME_KEY_PFX   = '@mangarecs/resume/';
+const FORCE_DARK_KEY   = '@mangarecs/forceDark';
+const DIMMER_KEY       = '@mangarecs/dimmer';
+const SCROLL_SPEED_KEY = '@mangarecs/autoScrollSpeed';
+const LANDSCAPE_KEY    = '@mangarecs/allowLandscape';
 const CHAPTERS_DIR    = FileSystem.documentDirectory + 'chapters/';
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CHAPTER_ROW_H = 62;
