@@ -103,6 +103,34 @@ const rareBadgeStyles = StyleSheet.create({
   icon: { fontSize: 11, lineHeight: 14 },
 });
 
+// Highest-tier badge a user has earned — mythic > gold > purple > indigo > blue > green > grey
+const LB_GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
+function topBadgeFor(badgeIds) {
+  if (!badgeIds?.length) return null;
+  let best = null;
+  for (const id of badgeIds) {
+    const badge = ALL_BADGES.find((b) => b.id === id);
+    if (!badge) continue;
+    if (!best || (LB_GRADE_RANK[badge.grade] ?? 9) < (LB_GRADE_RANK[best.grade] ?? 9)) best = badge;
+  }
+  return best;
+}
+
+// Featured badge + time-read, shown side by side per leaderboard row
+function FeaturedBadgeStat({ badge }) {
+  if (!badge) return null;
+  const grade = BADGE_GRADES[badge.grade];
+  return (
+    <View style={[lbFeaturedStyles.pill, { backgroundColor: grade.bg, borderColor: grade.border }]}>
+      <Text style={lbFeaturedStyles.icon}>{badge.icon}</Text>
+    </View>
+  );
+}
+const lbFeaturedStyles = StyleSheet.create({
+  pill: { width: 26, height: 26, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  icon: { fontSize: 14 },
+});
+
 // Friend avatar with a corner presence dot — tap to peek status/reading via
 // toast, long-press to open their profile. Replaces the old always-expanded
 // "Friends Reading" list with a compact strip that scales to any friend count.
@@ -309,7 +337,7 @@ export default function SocialScreen() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
-  const [leaderboardTab, setLeaderboardTab] = useState('hours');
+  const [leaderboardScope, setLeaderboardScope] = useState('global'); // 'global' | 'friends'
   const [suggestedFriends, setSuggestedFriends] = useState([]);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -922,9 +950,10 @@ export default function SocialScreen() {
     setTimeout(() => setReportToast(false), 2000);
   }
 
+  const friendIdSet = new Set(friends.map((f) => f.id));
   const sortedLeaderboard = [...leaderboard]
-    .sort((a, b) => leaderboardTab === 'hours' ? b.hours - a.hours : b.badges.length - a.badges.length)
-    .slice(0, 15);
+    .filter((e) => leaderboardScope === 'global' || e.isMe || friendIdSet.has(e.id))
+    .sort((a, b) => b.hours - a.hours);
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -1354,16 +1383,16 @@ export default function SocialScreen() {
 
             <View style={[styles.lbTabBar, { backgroundColor: colors.background }]}>
               <TouchableOpacity
-                style={[styles.lbTab, leaderboardTab === 'hours' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
-                onPress={() => setLeaderboardTab('hours')}>
-                <Ionicons name="time-outline" size={11} color={leaderboardTab === 'hours' ? colors.text : colors.muted} />
-                <Text style={[styles.lbTabText, { color: leaderboardTab === 'hours' ? colors.text : colors.muted }]}>Hours Read</Text>
+                style={[styles.lbTab, leaderboardScope === 'global' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
+                onPress={() => setLeaderboardScope('global')}>
+                <Ionicons name="globe-outline" size={11} color={leaderboardScope === 'global' ? colors.text : colors.muted} />
+                <Text style={[styles.lbTabText, { color: leaderboardScope === 'global' ? colors.text : colors.muted }]}>Global</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.lbTab, leaderboardTab === 'badges' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
-                onPress={() => setLeaderboardTab('badges')}>
-                <Text style={styles.lbTabEmoji}>🏆</Text>
-                <Text style={[styles.lbTabText, { color: leaderboardTab === 'badges' ? colors.text : colors.muted }]}>Badge Count</Text>
+                style={[styles.lbTab, leaderboardScope === 'friends' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
+                onPress={() => setLeaderboardScope('friends')}>
+                <Ionicons name="people-outline" size={11} color={leaderboardScope === 'friends' ? colors.text : colors.muted} />
+                <Text style={[styles.lbTabText, { color: leaderboardScope === 'friends' ? colors.text : colors.muted }]}>Friends</Text>
               </TouchableOpacity>
             </View>
 
@@ -1413,19 +1442,13 @@ export default function SocialScreen() {
                         )}
                         {entry.online && <View style={styles.lbOnlineDot} />}
                       </View>
-                      {entry.badges?.length > 0 && (
-                        <View style={styles.lbBadgeRow}>
-                          {entry.badges.slice(0, 3).map(bid => <RareBadge key={bid} badgeId={bid} />)}
-                        </View>
-                      )}
                     </View>
-                    <View style={styles.lbStat}>
-                      <Text style={[styles.lbStatValue, { color: colors.text }]}>
-                        {leaderboardTab === 'hours' ? formatTime(entry.hours) : entry.badges.length}
-                      </Text>
-                      <Text style={[styles.lbStatLabel, { color: colors.muted }]}>
-                        {leaderboardTab === 'hours' ? 'read' : 'badges'}
-                      </Text>
+                    <View style={styles.lbFeaturedStatGroup}>
+                      <FeaturedBadgeStat badge={topBadgeFor(entry.badges)} />
+                      <View style={styles.lbStat}>
+                        <Text style={[styles.lbStatValue, { color: colors.text }]}>{formatTime(entry.hours)}</Text>
+                        <Text style={[styles.lbStatLabel, { color: colors.muted }]}>read</Text>
+                      </View>
                     </View>
                   </View>
                 ))}
@@ -1601,6 +1624,7 @@ const styles = StyleSheet.create({
   youChipText: { color: '#7B5CFF', fontSize: 8, fontWeight: '700' },
   lbOnlineDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10b981' },
   lbBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
+  lbFeaturedStatGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lbStat: { alignItems: 'flex-end', minWidth: 44 },
   lbStatValue: { fontSize: 14, fontWeight: 'bold' },
   lbStatLabel: { fontSize: 9, marginTop: 1 },

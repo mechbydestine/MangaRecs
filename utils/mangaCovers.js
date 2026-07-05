@@ -130,11 +130,26 @@ const ANILIST_QUERY = `
   query ($search: String, $country: CountryCode, $isAdult: Boolean) {
     Media(search: $search, type: MANGA, countryOfOrigin: $country, isAdult: $isAdult) {
       id
+      title { romaji english native }
       coverImage { extraLarge large }
       siteUrl
     }
   }
 `;
+
+// Shared normalize + length-ratio fuzzy match, same rule used by Jikan/Comick below —
+// AniList's own "search" is a loose full-text match and previously took its top hit
+// unconditionally, which is how e.g. unrelated titles could win the cover for "unOrdinary".
+function titleLooksLike(candidate, query) {
+  const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+  const c = norm(candidate);
+  const q = norm(query);
+  if (!c || !q) return false;
+  if (c === q) return true;
+  const ratio = (c.length - q.length) / q.length;
+  if (Math.abs(ratio) > 0.4) return false;
+  return c.startsWith(q) || q.startsWith(c);
+}
 
 async function fetchFromAniList(title, lang, allowNsfw) {
   const variables = { search: title };
@@ -151,6 +166,8 @@ async function fetchFromAniList(title, lang, allowNsfw) {
   const json = await resp.json();
   const media = json?.data?.Media;
   if (!media) return null;
+  const candidates = [media.title?.romaji, media.title?.english, media.title?.native];
+  if (!candidates.some((c) => titleLooksLike(c, title))) return null;
   const coverUrl = media.coverImage?.extraLarge || media.coverImage?.large || null;
   return coverUrl ? { coverUrl } : null;
 }

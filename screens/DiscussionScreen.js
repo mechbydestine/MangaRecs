@@ -63,6 +63,7 @@ export default function DiscussionScreen() {
   const [revealedSpoilers, setRevealedSpoilers] = useState({});
   const [expandedReplies, setExpandedReplies] = useState({});
   const [sortBy, setSortBy] = useState('top');
+  const [selectedChapter, setSelectedChapter] = useState(latestChapter || 1);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null); // { commentId, name } | null
   const [urlError, setUrlError] = useState('');
@@ -72,23 +73,35 @@ export default function DiscussionScreen() {
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
 
+  // Chapter chip selector — last 3 chapters only, never a full scroll list
+  const recentChapters = [0, 1, 2]
+    .map((n) => (latestChapter || 1) - n)
+    .filter((n) => n > 0);
+
   useEffect(() => {
     loadComments();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.id) setCurrentUserId(session.user.id);
     });
-  }, []);
+  }, [selectedChapter]);
 
   async function loadComments() {
     if (!title) { setFetchingComments(false); return; }
     setFetchingComments(true);
 
-    // 1. Fetch top-level comments only
-    const { data, error } = await supabase
+    // 1. Fetch top-level comments only, scoped to the selected chapter.
+    // Legacy comments (posted before per-chapter tagging existed) have no
+    // chapter set — treat those as belonging to the latest chapter so they
+    // don't just vanish from the thread.
+    let query = supabase
       .from('comments')
       .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username)')
       .eq('series_title', title)
-      .is('parent_id', null)
+      .is('parent_id', null);
+    query = selectedChapter === latestChapter
+      ? query.or(`chapter.eq.${selectedChapter},chapter.is.null`)
+      : query.eq('chapter', selectedChapter);
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -171,6 +184,7 @@ export default function DiscussionScreen() {
     const payload = {
       user_id: currentUserId,
       series_title: title,
+      chapter: selectedChapter,
       text,
       spoiler: replyingTo ? false : isSpoilerPost,
       ...(replyingTo ? { parent_id: replyingTo.commentId } : {}),
@@ -332,7 +346,7 @@ export default function DiscussionScreen() {
               <Text style={[styles.infoTitle, { color: colors.text }]}>{title}</Text>
               <Text style={[styles.infoChap, { color: colors.muted }]}>Chapter {latestChapter} · Latest</Text>
               <View style={styles.infoStats}>
-                <Ionicons name="chatbubble-ellipses" size={12} color="#534AB7" />
+                <Ionicons name="chatbubble-ellipses" size={12} color="#7B5CFF" />
                 <Text style={styles.infoDiscussing}>
                   {(discussing || 0).toLocaleString()} discussing
                 </Text>
@@ -340,18 +354,41 @@ export default function DiscussionScreen() {
             </View>
           </View>
 
+          {/* ── Chapter chips — last 3 only, never a full scroll list ── */}
+          {recentChapters.length > 1 && (
+            <View style={styles.chapterChipRow}>
+              {recentChapters.map((num) => {
+                const active = num === selectedChapter;
+                return (
+                  <TouchableOpacity
+                    key={num}
+                    style={[
+                      styles.chapterChip,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      active && styles.chapterChipActive,
+                    ]}
+                    onPress={() => setSelectedChapter(num)}>
+                    <Text style={[styles.chapterChipText, { color: active ? '#fff' : colors.muted }]}>
+                      Ch. {num}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
           {/* ── Controls ── */}
           <View style={styles.controlsRow}>
             <View style={[styles.sortPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <TouchableOpacity
                 style={[styles.sortBtn, sortBy === 'top' && [styles.sortBtnActive, { backgroundColor: colors.background }]]}
                 onPress={() => setSortBy('top')}>
-                <Text style={[styles.sortBtnText, { color: sortBy === 'top' ? '#534AB7' : colors.muted }]}>Top</Text>
+                <Text style={[styles.sortBtnText, { color: sortBy === 'top' ? '#7B5CFF' : colors.muted }]}>Top</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.sortBtn, sortBy === 'new' && [styles.sortBtnActive, { backgroundColor: colors.background }]]}
                 onPress={() => setSortBy('new')}>
-                <Text style={[styles.sortBtnText, { color: sortBy === 'new' ? '#534AB7' : colors.muted }]}>New</Text>
+                <Text style={[styles.sortBtnText, { color: sortBy === 'new' ? '#7B5CFF' : colors.muted }]}>New</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -360,9 +397,9 @@ export default function DiscussionScreen() {
               <Ionicons
                 name={spoilerFilter ? 'eye-off-outline' : 'eye-outline'}
                 size={13}
-                color={spoilerFilter ? colors.muted : '#534AB7'}
+                color={spoilerFilter ? colors.muted : '#7B5CFF'}
               />
-              <Text style={[styles.spoilerBtnText, { color: spoilerFilter ? colors.muted : '#534AB7' }]}>
+              <Text style={[styles.spoilerBtnText, { color: spoilerFilter ? colors.muted : '#7B5CFF' }]}>
                 Spoilers
               </Text>
             </TouchableOpacity>
@@ -371,7 +408,7 @@ export default function DiscussionScreen() {
           {/* ── Comments ── */}
           {fetchingComments && (
             <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#534AB7" />
+              <ActivityIndicator size="small" color="#7B5CFF" />
             </View>
           )}
           {!fetchingComments && sorted.length === 0 && (
@@ -443,7 +480,7 @@ export default function DiscussionScreen() {
 
                       {hasReplies && (
                         <TouchableOpacity style={styles.actionBtn} onPress={() => toggleReplies(comment.id)}>
-                          <Text style={[styles.actionText, { color: '#534AB7' }]}>
+                          <Text style={[styles.actionText, { color: '#7B5CFF' }]}>
                             {repliesOpen
                               ? 'Hide replies'
                               : `${comment.replies.length} repl${comment.replies.length === 1 ? 'y' : 'ies'}`}
@@ -523,9 +560,9 @@ export default function DiscussionScreen() {
         {/* ── Fixed comment input ── */}
         {replyingTo && (
           <View style={[styles.replyingToBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-            <Ionicons name="return-down-forward-outline" size={13} color="#534AB7" />
+            <Ionicons name="return-down-forward-outline" size={13} color="#7B5CFF" />
             <Text style={[styles.replyingToText, { color: colors.muted }]}>
-              Replying to <Text style={{ color: '#534AB7', fontWeight: '600' }}>@{replyingTo.name}</Text>
+              Replying to <Text style={{ color: '#7B5CFF', fontWeight: '600' }}>@{replyingTo.name}</Text>
             </Text>
             <TouchableOpacity
               onPress={() => { setReplyingTo(null); setCommentText(''); }}
@@ -582,7 +619,7 @@ export default function DiscussionScreen() {
                   activeOpacity={0.75}>
                   <Text style={[styles.reportOptionText, { color: colors.text }]}>{reason}</Text>
                   {reportSubmitting
-                    ? <ActivityIndicator size="small" color="#534AB7" />
+                    ? <ActivityIndicator size="small" color="#7B5CFF" />
                     : <Ionicons name="chevron-forward" size={14} color={colors.muted} />}
                 </TouchableOpacity>
               ))}
@@ -615,14 +652,14 @@ const styles = StyleSheet.create({
   infoTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   infoChap: { fontSize: 12, marginBottom: 6 },
   infoStats: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  infoDiscussing: { color: '#534AB7', fontSize: 11, fontWeight: '600' },
+  infoDiscussing: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
   controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4, gap: 8 },
   sortPill: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   sortBtn: { paddingHorizontal: 16, paddingVertical: 8 },
   sortBtnActive: { borderRadius: 8 },
   sortBtnText: { fontSize: 12, fontWeight: '600' },
   spoilerBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, borderWidth: 1, gap: 5 },
-  spoilerBtnOn: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.1)' },
+  spoilerBtnOn: { borderColor: '#7B5CFF', backgroundColor: 'rgba(83,74,183,0.1)' },
   spoilerBtnText: { fontSize: 12, fontWeight: '500' },
   // Comments
   commentRow: { flexDirection: 'row', paddingLeft: 16, paddingRight: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1 },
@@ -630,6 +667,10 @@ const styles = StyleSheet.create({
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   threadLine: { width: 2, flex: 1, marginTop: 6, borderRadius: 1, minHeight: 16 },
   avatarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  chapterChipRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 10, gap: 8 },
+  chapterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
+  chapterChipActive: { backgroundColor: '#7B5CFF', borderColor: '#7B5CFF' },
+  chapterChipText: { fontSize: 12, fontWeight: '700' },
   commentBody: { flex: 1 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8, flexWrap: 'wrap' },
   commenterName: { fontSize: 13, fontWeight: '700' },
@@ -655,7 +696,7 @@ const styles = StyleSheet.create({
   urlErrorText: { color: '#E8527A', fontSize: 12, flex: 1 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1 },
   inputField: { flex: 1, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, maxHeight: 100, marginRight: 10 },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   spoilerToggleBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginRight: 6, flexShrink: 0 },
   spoilerToggleBtnActive: { backgroundColor: 'rgba(232,82,122,0.12)' },
   // Report
