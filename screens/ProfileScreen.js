@@ -70,57 +70,115 @@ function getBadgeScale(anim, grade) {
 
 // ── StatCard ───────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, color, anim }) {
+function StatCard({ icon, label, value, color, anim, onPress }) {
   const { colors } = useTheme();
   const scale      = anim.interpolate({ inputRange: [0, 0.65, 0.85, 1], outputRange: [0.78, 1.06, 0.97, 1], extrapolate: 'clamp' });
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
   return (
-    <Animated.View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: anim, transform: [{ scale }, { translateY }] }]}>
-      <Ionicons name={icon} size={18} color={color} />
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>
+    <Animated.View style={[styles.statCard, { opacity: anim, transform: [{ scale }, { translateY }] }]}>
+      <TouchableOpacity
+        style={styles.statCardInner}
+        activeOpacity={onPress ? 0.6 : 1}
+        onPress={onPress}
+        disabled={!onPress}>
+        <Ionicons name={icon} size={14} color={color} />
+        <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>{value}</Text>
+        <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>
+      </TouchableOpacity>
     </Animated.View>
   );
 }
 
-// ── StreakCalendar ─────────────────────────────────────────────────────────
+// ── StreakCalendar — matches FriendProfileScreen's calendar-accurate grid ───
+
+const MONTH_ABBRS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_LABELS  = ['S','M','T','W','T','F','S'];
 
 function StreakCalendar({ dailyLog }) {
-  const WEEKS = 10;
-  const DAYS  = 7;
+  const log = dailyLog || {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // 70-day window ending today, oldest first
-  const cells = (() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const arr = [];
-    for (let i = WEEKS * DAYS - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      arr.push(dailyLog[localDateKey(d)] || 0);
+  const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const startSunday = new Date(firstOfLastMonth);
+  startSunday.setDate(startSunday.getDate() - startSunday.getDay());
+
+  const allDays = [];
+  const cursor = new Date(startSunday);
+  while (cursor <= today) {
+    allDays.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  while (allDays.length % 7 !== 0) allDays.push(null);
+
+  const weeks = [];
+  for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
+
+  const monthHeaders = weeks.map((week, idx) => {
+    for (const day of week) {
+      if (day && day.getDate() === 1) return MONTH_ABBRS[day.getMonth()];
     }
-    return arr;
-  })();
+    if (idx === 0) {
+      const first = week.find((d) => d);
+      return first ? MONTH_ABBRS[first.getMonth()] : null;
+    }
+    return null;
+  });
+
+  const currentMonth = today.getMonth();
+  const currentYear  = today.getFullYear();
+
+  function isCurrentMonth(date) {
+    return date && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  }
 
   function getColor(hours) {
-    if (hours <= 0)   return '#0D0D0F';
+    if (!hours || hours <= 0) return '#1C1C1E';
     if (hours < 0.25) return '#2D2872';
     if (hours < 0.75) return '#3D3580';
     if (hours < 1.5)  return '#4A40A0';
     return '#7B5CFF';
   }
 
-  // Columns = weeks (left = oldest, right = most recent)
-  // Rows = days within the week (top to bottom)
   return (
     <View style={styles.streakGrid}>
-      {Array.from({ length: WEEKS }).map((_, week) => (
-        <View key={week} style={styles.streakWeekCol}>
-          {Array.from({ length: DAYS }).map((_, day) => (
-            <View key={day} style={[styles.streakCell, { backgroundColor: getColor(cells[week * DAYS + day]) }]} />
-          ))}
-        </View>
-      ))}
+      <View style={styles.streakDayLabels}>
+        <View style={styles.streakMonthSpacer} />
+        {DAY_LABELS.map((label, i) => (
+          <View key={i} style={styles.streakDayLabelRow}>
+            <Text style={styles.streakDayLabelText}>{label}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row' }}>
+        {weeks.map((week, weekIdx) => (
+          <View key={weekIdx} style={styles.streakWeekCol}>
+            <View style={styles.streakMonthHeader}>
+              {monthHeaders[weekIdx] ? (
+                <Text style={styles.streakMonthText}>{monthHeaders[weekIdx]}</Text>
+              ) : null}
+            </View>
+            {week.map((day, dayIdx) => {
+              const dateStr = day ? localDateKey(day) : null;
+              const hours   = dateStr ? (log[dateStr] || 0) : 0;
+              const future  = day && day > today;
+              const inMonth = isCurrentMonth(day);
+              return (
+                <View
+                  key={dayIdx}
+                  style={[
+                    styles.streakCell,
+                    {
+                      backgroundColor: getColor(future ? 0 : hours),
+                      opacity: !day || future ? 0.15 : inMonth ? 1 : 0.45,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -142,8 +200,8 @@ export function PeopleRow({ friends = [], followers = [], following = [], colors
           activeOpacity={0.6}
           onPress={() => onOpen(it.key)}
           hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
-          <Text style={[styles.peopleCellCount, { color: colors.text }]}>{it.count}</Text>
           <Text style={[styles.peopleCellLabel, { color: colors.muted }]}>{it.label}</Text>
+          <Text style={[styles.peopleCellCount, { color: colors.text }]}>{it.count}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -219,6 +277,7 @@ export default function ProfileScreen() {
   const [joinDate, setJoinDate]           = useState('');
   const [favorites, setFavorites]         = useState([]);
   const [showAddFave, setShowAddFave]     = useState(false);
+  const [showAllFaves, setShowAllFaves]   = useState(false);
   const [faveSearch, setFaveSearch]       = useState('');
   const [faveTab, setFaveTab]             = useState('library');
   const [dailyLog, setDailyLog]           = useState({});
@@ -573,7 +632,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
 
         {/* Header */}
         <Animated.View style={[styles.topHeader, { opacity: headerAnim, transform: [{ translateY: headerY }] }]}>
@@ -655,6 +714,18 @@ export default function ProfileScreen() {
 
             <Text style={[styles.handle, { color: colors.muted }]}>@{username.toLowerCase()} · Joined {joinDate || 'Dec 2024'}</Text>
 
+            {/* Friends · Followers · Following — below the joined-date line, same spot as FriendProfileScreen */}
+            <Animated.View style={{ opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }}>
+              <PeopleRow
+                friends={friends}
+                followers={followersList}
+                following={followingList}
+                colors={colors}
+                onOpen={(key) => setShowPeople(key)}
+                style={styles.peopleRowInCard}
+              />
+            </Animated.View>
+
             <TouchableOpacity style={styles.themeToggle} onPress={() => setShowThemes((v) => !v)}>
               <Ionicons name="color-palette-outline" size={12} color={colors.muted} />
               <Text style={[styles.themeToggleText, { color: colors.muted }]}>Profile Theme</Text>
@@ -666,7 +737,7 @@ export default function ProfileScreen() {
                 {PROFILE_THEMES.map((t) => (
                   <TouchableOpacity
                     key={t.id}
-                    style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(83,74,183,0.12)' }]}
+                    style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(123,92,255,0.12)' }]}
                     onPress={() => { setThemeId(t.id); setShowThemes(false); updateProfile({ color: t.id }); }}>
                     <View style={[styles.themeChipDot, { backgroundColor: t.gradient[0] }]} />
                     <Text style={[styles.themeChipText, { color: colors.muted }, themeId === t.id && { color: t.ring }]}>{t.label}</Text>
@@ -675,18 +746,6 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
-        </Animated.View>
-
-        {/* Friends · Followers · Following — above the stats */}
-        <Animated.View style={{ opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }}>
-          <PeopleRow
-            friends={friends}
-            followers={followersList}
-            following={followingList}
-            colors={colors}
-            onOpen={(key) => setShowPeople(key)}
-            style={{ justifyContent: 'center', marginBottom: 16 }}
-          />
         </Animated.View>
 
         {/* Stats */}
@@ -708,9 +767,11 @@ export default function ProfileScreen() {
           }}
         />
 
-        {/* Reading Streak + Faves — scales up */}
+        {/* Reading Streak + Faves — scales up, matches FriendProfileScreen's layout */}
         <Animated.View style={[styles.streakSection, { backgroundColor: colors.card, borderColor: colors.border, opacity: streakAnim, transform: [{ scale: streakScale }] }]}>
-          <Text style={[styles.streakTitle, { color: colors.text }]}>Reading Streak</Text>
+          <View style={styles.streakSectionHeader}>
+            <Text style={[styles.streakTitle, { color: colors.text }]}>Reading Streak </Text>
+          </View>
 
           {/* Heatmap + Faves side by side */}
           <View style={styles.streakBody}>
@@ -732,7 +793,7 @@ export default function ProfileScreen() {
               </View>
               <StreakCalendar dailyLog={dailyLog} />
               <View style={styles.streakLegend}>
-                {[{ bg: colors.background, label: 'None' }, { bg: '#4A40A0', label: 'Some' }, { bg: '#7B5CFF', label: 'Lots' }].map(({ bg, label }) => (
+                {[{ bg: '#4A40A0', label: 'Some' }, { bg: '#7B5CFF', label: 'Lots' }].map(({ bg, label }) => (
                   <View key={label} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: bg }]} />
                     <Text style={[styles.legendText, { color: colors.muted }]}>{label}</Text>
@@ -742,27 +803,27 @@ export default function ProfileScreen() {
             </View>
 
             {/* Faves panel */}
-            <View style={[styles.favesPanel, { borderColor: colors.border }]}>
-              <View style={styles.favesPanelHead}>
-                <Ionicons name="star" size={11} color="#FFD700" />
-                <Text style={styles.favesPanelHeadText}>Favorite</Text>
-              </View>
-
+            <View style={styles.favesPanel}>
               {favorites.length === 0 ? (
-                <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(83,74,183,0.25)' }]} onPress={() => setShowAddFave(true)}>
-                  <Ionicons name="add" size={16} color="rgba(83,74,183,0.5)" />
+                <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(123,92,255,0.25)' }]} onPress={() => setShowAddFave(true)}>
+                  <Ionicons name="add" size={16} color="rgba(123,92,255,0.5)" />
                   <Text style={styles.favesEmptyText}>save </Text>
                 </TouchableOpacity>
               ) : (
-                <View style={styles.faveFeatCard}>
+                <TouchableOpacity style={styles.faveFeatCard} onPress={() => setShowAllFaves(true)} activeOpacity={0.85}>
                   <MangaCover title={favorites[0].title} searchKey={favorites[0].searchKey} lang={favorites[0].lang} color={favorites[0].color} style={styles.faveFeatGrad}>
                     <LinearGradient
                       colors={['transparent', 'rgba(0, 0, 0, 0.88)']}
                       style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 80, justifyContent: 'flex-end', padding: 8 }}>
                       <Text style={styles.faveFeatTitle} numberOfLines={3}>{favorites[0].title}</Text>
                     </LinearGradient>
+                    {favorites.length > 1 && (
+                      <View style={styles.faveMoreBadge}>
+                        <Text style={styles.faveMoreBadgeText}>+{favorites.length - 1}</Text>
+                      </View>
+                    )}
                   </MangaCover>
-                </View>
+                </TouchableOpacity>
               )}
 
               <View style={styles.favesPanelFoot}>
@@ -781,6 +842,46 @@ export default function ProfileScreen() {
             </View>
           </View>
         </Animated.View>
+
+        {/* View all favorites modal — editable, this is the user's own list */}
+        <Modal visible={showAllFaves} animationType="slide" transparent onRequestClose={() => setShowAllFaves(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAllFaves(false)} />
+            <View style={[styles.addFaveSheet, { backgroundColor: colors.card }]}>
+              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+              <View style={styles.addFaveHeaderRow}>
+                <Text style={[styles.addFaveTitle, { color: colors.text }]}>Favorites</Text>
+                <TouchableOpacity onPress={() => setShowAllFaves(false)}>
+                  <Ionicons name="close" size={20} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={favorites}
+                keyExtractor={(item) => item.id || item.title}
+                numColumns={3}
+                columnWrapperStyle={{ gap: 10 }}
+                contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
+                renderItem={({ item }) => (
+                  <View style={styles.allFavesCell}>
+                    <MangaCover title={item.title} searchKey={item.searchKey} lang={item.lang} color={item.color} style={styles.allFavesCover} />
+                    <TouchableOpacity style={styles.allFavesRemoveBtn} onPress={() => removeFave(item.id)}>
+                      <Ionicons name="close" size={11} color="#fff" />
+                    </TouchableOpacity>
+                    <Text style={[styles.allFavesTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
+                  </View>
+                )}
+              />
+              {favorites.length < 5 && (
+                <TouchableOpacity
+                  style={styles.allFavesAddRow}
+                  onPress={() => { setShowAllFaves(false); setShowAddFave(true); }}>
+                  <Ionicons name="add-circle-outline" size={16} color="#7B5CFF" />
+                  <Text style={styles.allFavesAddText}>Add another favorite</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </Modal>
 
         {/* Badges */}
         <View style={styles.section}>
@@ -993,9 +1094,9 @@ const styles = StyleSheet.create({
   nameBioBlock: { flex: 1, marginLeft: 12, marginTop: 36 },
   username: { fontSize: 16, fontWeight: 'bold' },
   bioText: { fontSize: 12, marginTop: 3, lineHeight: 16 },
-  bioEditHint: { color: 'rgba(83,74,183,0.6)', fontSize: 9, marginTop: 2 },
+  bioEditHint: { color: 'rgba(123,92,255,0.6)', fontSize: 9, marginTop: 2 },
   bioInput: { borderWidth: 1, borderRadius: 10, padding: 8, fontSize: 12, marginTop: 4, minHeight: 44 },
-  bioSuggestion: { color: 'rgba(83,74,183,0.8)', fontSize: 10, marginTop: 4 },
+  bioSuggestion: { color: 'rgba(123,92,255,0.8)', fontSize: 10, marginTop: 4 },
   bioEditActions: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   bioSaveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#7B5CFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 8 },
   bioSaveText: { color: '#fff', fontSize: 11, fontWeight: '500', marginLeft: 4, paddingRight: 2 },
@@ -1008,26 +1109,28 @@ const styles = StyleSheet.create({
   themeChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)', marginRight: 8, marginBottom: 8 },
   themeChipDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
   themeChipText: { fontSize: 11, fontWeight: '500', paddingRight: 2 },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 24 },
-  statCard: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', marginHorizontal: 4, borderWidth: 1 },
-  statValue: { fontSize: 18, fontWeight: 'bold', marginTop: 6, marginBottom: 2 },
-  statLabel: { fontSize: 10, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 28, marginBottom: 20 },
+  statCard: { flex: 1 },
+  statCardInner: { alignItems: 'center', paddingVertical: 4 },
+  statValue: { fontSize: 13, fontWeight: '700', marginTop: 3, marginBottom: 1 },
+  statLabel: { fontSize: 9, textAlign: 'center' },
   section: { paddingHorizontal: 20, marginBottom: 24 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitleText: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
   seeAllRow: { flexDirection: 'row', alignItems: 'center' },
   seeAllText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500', marginRight: 2 },
-  friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(83,74,183,0.5)', alignItems: 'center', justifyContent: 'center' },
+  friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(123,92,255,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendAvatarImg: { width: '100%', height: '100%', borderRadius: 24 },
 
   // People stats row (Friends / Followers / Following)
   peopleRow: { flexDirection: 'row', gap: 22 },
+  peopleRowInCard: { marginTop: 10, marginBottom: 2 },
   peopleCell: { alignItems: 'center' },
-  peopleCellCount: { fontSize: 14, fontWeight: '700' },
-  peopleCellLabel: { fontSize: 10, marginTop: 1 },
+  peopleCellCount: { fontSize: 14, fontWeight: '700', marginTop: 1 },
+  peopleCellLabel: { fontSize: 10 },
 
   // People list modal
   peopleModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24 },
@@ -1042,9 +1145,10 @@ const styles = StyleSheet.create({
 
   // Streak + Faves
   streakSection: { marginHorizontal: 20, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1 },
-  streakTitle: { fontSize: 16, fontWeight: '600', marginBottom: 14 },
+  streakSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  streakTitle: { fontSize: 16, fontWeight: '600' },
   streakBadges: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
   todayBadgeText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   fireBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.12)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
@@ -1052,7 +1156,13 @@ const styles = StyleSheet.create({
   streakBody: { flexDirection: 'row', alignItems: 'flex-start' },
   streakLeft: { flex: 1 },
   streakGrid: { flexDirection: 'row', marginBottom: 10 },
+  streakDayLabels: { marginRight: 5 },
+  streakMonthSpacer: { height: 16 },
+  streakDayLabelRow: { height: 11, marginBottom: 3, justifyContent: 'center' },
+  streakDayLabelText: { fontSize: 8, color: '#888892', width: 8, textAlign: 'center' },
   streakWeekCol: { marginRight: 3 },
+  streakMonthHeader: { height: 16, justifyContent: 'flex-end', paddingBottom: 2 },
+  streakMonthText: { fontSize: 8, color: '#888892' },
   streakCell: { width: 11, height: 11, borderRadius: 2, marginBottom: 3 },
   streakLegend: { flexDirection: 'row', alignItems: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
@@ -1060,14 +1170,20 @@ const styles = StyleSheet.create({
   legendText: { fontSize: 11 },
 
   // Faves panel
-  favesPanel: { width: 120, marginLeft: 14, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden' },
-  favesPanelHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingTop: 10, paddingBottom: 6 },
-  favesPanelHeadText: { color: '#FFD700', fontSize: 13, fontWeight: '700', marginLeft: 4 },
+  favesPanel: { width: 136, marginLeft: 14, borderRadius: 12, overflow: 'hidden' },
   faveFeatCard: { marginHorizontal: 6, borderRadius: 8, overflow: 'hidden' },
-  faveFeatGrad: { height: 126 },
+  faveFeatGrad: { height: 174 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
-  favesEmptyCard: { marginHorizontal: 6, height: 126, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  favesEmptyText: { color: 'rgba(83,74,183,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
+  faveMoreBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  faveMoreBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  allFavesCell: { flex: 1 / 3, alignItems: 'center' },
+  allFavesCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
+  allFavesRemoveBtn: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
+  allFavesTitle: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
+  allFavesAddRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
+  allFavesAddText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600' },
+  favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
   favesRemoveBtn: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#E5534B', alignItems: 'center', justifyContent: 'center' },
   favesCountText: { fontSize: 11, fontWeight: '500' },
@@ -1085,8 +1201,8 @@ const styles = StyleSheet.create({
   seeAllBadgesText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500' },
 
   // Creator
-  creatorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.08)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.3)', borderRadius: 16, padding: 16 },
-  creatorIconWrap: { backgroundColor: 'rgba(83,74,183,0.2)', borderRadius: 20, padding: 8 },
+  creatorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.08)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)', borderRadius: 16, padding: 16 },
+  creatorIconWrap: { backgroundColor: 'rgba(123,92,255,0.2)', borderRadius: 20, padding: 8 },
   creatorInfo: { flex: 1, marginLeft: 12 },
   creatorTitle: { fontSize: 14, fontWeight: '600' },
   creatorSub: { fontSize: 11, marginTop: 2 },

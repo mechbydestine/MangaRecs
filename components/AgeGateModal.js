@@ -68,7 +68,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
       <View style={s.overlay}>
         <Animated.View style={[s.sheet, { transform: [{ translateX: shakeAnim }] }]}>
           <View style={s.iconWrap}>
-            <Ionicons name="shield-checkmark" size={32} color="#534AB7" />
+            <Ionicons name="shield-checkmark" size={32} color="#7B5CFF" />
           </View>
           <Text style={s.title}>Age Verification</Text>
           <Text style={s.sub}>
@@ -150,7 +150,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   sheet: { backgroundColor: '#13131A', borderRadius: 24, padding: 28, width: '100%', borderWidth: 1, borderColor: '#2A2A2F', alignItems: 'center' },
-  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(83,74,183,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(123,92,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8, textAlign: 'center' },
   sub: { fontSize: 13, color: '#9B9AA3', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   dobRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginBottom: 8, width: '100%' },
@@ -159,7 +159,7 @@ const s = StyleSheet.create({
   input: { width: '100%', backgroundColor: '#1A1A1F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
   dobSep: { color: '#5C5B63', fontSize: 22, fontWeight: '300', paddingBottom: 10, paddingHorizontal: 2 },
   error: { color: '#FF6B6B', fontSize: 12, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  confirmBtn: { backgroundColor: '#534AB7', borderRadius: 14, paddingVertical: 14, width: '100%', alignItems: 'center', marginTop: 8, marginBottom: 8 },
+  confirmBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, paddingVertical: 14, width: '100%', alignItems: 'center', marginTop: 8, marginBottom: 8 },
   confirmBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   cancelBtn: { paddingVertical: 10, width: '100%', alignItems: 'center' },
   cancelBtnText: { color: '#9B9AA3', fontSize: 14 },

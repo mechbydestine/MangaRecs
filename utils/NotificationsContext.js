@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { syncBadgeCount } from './pushNotifications';
 
 const NotificationsContext = createContext(null);
 
@@ -50,6 +51,9 @@ export function NotificationsProvider({ children }) {
   const [userId, setUserId] = useState(null);
 
   const unreadCount = items.filter(n => !n.read).length;
+
+  // Keep the OS-level app icon badge in sync with in-app unread count
+  useEffect(() => { syncBadgeCount(unreadCount); }, [unreadCount]);
 
   const load = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();

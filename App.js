@@ -305,7 +305,7 @@ function AppNavigator() {
   const { colors } = useTheme();
   return (
     <ErrorBoundary>
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
       <Stack.Screen
         name="Reader"

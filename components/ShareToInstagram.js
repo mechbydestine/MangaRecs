@@ -65,9 +65,9 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
                 style={[
                   styles.cardOption,
                   {
-                    borderColor: selectedCard === c.id ? '#534AB7' : colors.border,
+                    borderColor: selectedCard === c.id ? '#7B5CFF' : colors.border,
                     backgroundColor: selectedCard === c.id
-                      ? 'rgba(83,74,183,0.1)'
+                      ? 'rgba(123,92,255,0.1)'
                       : 'rgba(255,255,255,0.03)',
                   },
                 ]}
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 3,
-    backgroundColor: '#534AB7',
+    backgroundColor: '#7B5CFF',
     borderRadius: 2,
   },
   storyPct: { fontSize: 7, color: 'rgba(255,255,255,0.5)', marginTop: 2 },

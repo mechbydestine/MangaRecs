@@ -96,9 +96,9 @@ function RadarChart({ tasteProfile, onGenreTap }) {
           const outer = getPoint(i, 100);
           return <Line key={i} x1={RADAR_CENTER} y1={RADAR_CENTER} x2={outer.x} y2={outer.y} stroke={colors.border} strokeWidth={1} />;
         })}
-        <Polygon points={polygonPoints} fill="#534AB7" fillOpacity={0.25} stroke="#534AB7" strokeWidth={2} />
+        <Polygon points={polygonPoints} fill="#7B5CFF" fillOpacity={0.25} stroke="#7B5CFF" strokeWidth={2} />
         {dataPoints.map((p, i) => (
-          <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#534AB7" />
+          <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#7B5CFF" />
         ))}
       </Svg>
 
@@ -120,7 +120,7 @@ function RadarChart({ tasteProfile, onGenreTap }) {
               justifyContent: 'center',
             }}
             onPress={() => onGenreTap(t.genre)}>
-            <Ionicons name={iconName} size={RADAR_ICON_SIZE} color={active ? '#534AB7' : colors.muted} />
+            <Ionicons name={iconName} size={RADAR_ICON_SIZE} color={active ? '#7B5CFF' : colors.muted} />
           </TouchableOpacity>
         );
       })}
@@ -155,14 +155,14 @@ function RadarCard({ colors, focusKey, tasteProfile }) {
   }
 
   return (
-    <Animated.View style={[styles.tasteCard, { backgroundColor: colors.card, borderColor: colors.border, opacity, transform: [{ scale }] }]}>
+    <Animated.View style={[styles.tasteCard, { opacity, transform: [{ scale }] }]}>
       <View style={styles.tasteTitleRow}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.tasteTitle, { color: colors.text }]}>Your Taste Profile</Text>
         </View>
         {selectedGenre && (
           <View style={[styles.genrePill, { flexShrink: 0 }]}>
-            <Ionicons name={MOOD_ICON_MAP[selectedGenre] || 'book-outline'} size={13} color="#534AB7" />
+            <Ionicons name={MOOD_ICON_MAP[selectedGenre] || 'book-outline'} size={13} color="#7B5CFF" />
             <Text style={styles.genrePillText} numberOfLines={1}>{selectedGenre}</Text>
           </View>
         )}
@@ -752,11 +752,11 @@ export default function ForYouScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#534AB7" colors={['#534AB7']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
 
         <View style={IS_TABLET ? styles.tabletWrap : null}>
         <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}>
-          <Ionicons name="sparkles" size={20} color="#534AB7" />
+          <Ionicons name="sparkles" size={20} color="#7B5CFF" />
           <Text style={[styles.headerTitle, { color: colors.text }]}>For You</Text>
         </Animated.View>
         <Animated.Text style={[styles.headerSub, { color: colors.muted, opacity: headerOpacity }]}>
@@ -765,7 +765,7 @@ export default function ForYouScreen() {
 
         {aiRecEnabled && Object.keys(genreWeights).length === 0 && (
           <View style={[styles.newUserHint, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="compass-outline" size={16} color="#534AB7" />
+            <Ionicons name="compass-outline" size={16} color="#7B5CFF" />
             <Text style={[styles.newUserHintText, { color: colors.muted }]}>
               Your taste profile is empty — like, save, or read a few series and
               recommendations here will start matching your taste.
@@ -780,10 +780,10 @@ export default function ForYouScreen() {
             style={[styles.aiOffBanner, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'Settings' })}
             activeOpacity={0.8}>
-            <Ionicons name="sparkles-outline" size={16} color="#534AB7" />
+            <Ionicons name="sparkles-outline" size={16} color="#7B5CFF" />
             <Text style={[styles.aiOffText, { color: colors.muted }]}>
               AI Recommendations are off — showing popular picks.{' '}
-              <Text style={{ color: '#534AB7', fontWeight: '600' }}>Enable in Settings</Text>
+              <Text style={{ color: '#7B5CFF', fontWeight: '600' }}>Enable in Settings</Text>
             </Text>
           </TouchableOpacity>
         )}
@@ -864,7 +864,7 @@ export default function ForYouScreen() {
 
         {activeMood === 'Adult' && ageVerified && !allowNsfw ? (
           <View style={[styles.adultLock, { backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 16 }]}>
-            <Ionicons name="lock-closed" size={32} color="#534AB7" />
+            <Ionicons name="lock-closed" size={32} color="#7B5CFF" />
             <Text style={[styles.adultLockTitle, { color: colors.text }]}>Adult Content is Off</Text>
             <Text style={[styles.adultLockSub, { color: colors.muted }]}>
               You're verified but adult content is disabled. Enable it in Settings → Content.
@@ -913,17 +913,17 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, marginBottom: 4 },
   headerTitle: { fontSize: 28, fontWeight: 'bold', marginLeft: 8 },
   headerSub: { fontSize: 14, paddingHorizontal: 20, marginBottom: 20 },
-  tasteCard: { marginHorizontal: 20, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1 },
+  tasteCard: { marginHorizontal: 20, paddingHorizontal: 16, marginBottom: 24 },
   tasteTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
   tasteTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
   tasteSub: { fontSize: 11 },
-  genrePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.14)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, gap: 5 },
-  genrePillText: { fontSize: 12, fontWeight: '600', color: '#534AB7' },
+  genrePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.14)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, gap: 5 },
+  genrePillText: { fontSize: 12, fontWeight: '600', color: '#7B5CFF' },
   radarWrap: { alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { fontSize: 15, fontWeight: '600', paddingHorizontal: 20, marginBottom: 12 },
   moodRow: { paddingLeft: 20, marginBottom: 24 },
   moodBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, marginRight: 8, borderWidth: 1 },
-  moodBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
+  moodBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
   moodIcon: { marginRight: 6 },
   moodLabel: { fontSize: 12, fontWeight: '500', paddingRight: 2 },
   moodLabelActive: { color: '#fff' },
@@ -953,6 +953,6 @@ const styles = StyleSheet.create({
   adultLock: { alignItems: 'center', paddingVertical: 56, paddingHorizontal: 40 },
   adultLockTitle: { fontSize: 17, fontWeight: '700', marginTop: 16, marginBottom: 8 },
   adultLockSub: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
-  adultLockBtn: { backgroundColor: '#534AB7', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 },
+  adultLockBtn: { backgroundColor: '#7B5CFF', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 },
   adultLockBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 });

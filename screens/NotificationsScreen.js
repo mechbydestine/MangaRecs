@@ -11,21 +11,21 @@ import { useNotifications } from '../utils/NotificationsContext';
 import StarLogo from '../components/StarLogo';
 
 const TYPE_META = {
-  friend_request:  { icon: 'person-add',           color: '#534AB7' },
+  friend_request:  { icon: 'person-add',           color: '#7B5CFF' },
   friend_accepted: { icon: 'people',               color: '#1D9E75' },
   like:            { icon: 'heart',                color: '#E8527A' },
   comment:         { icon: 'chatbubble',           color: '#1D9E75' },
-  reply:           { icon: 'chatbubble-ellipses',  color: '#534AB7' },
+  reply:           { icon: 'chatbubble-ellipses',  color: '#7B5CFF' },
   badge:           { icon: 'trophy',               color: '#f59e0b' },
   system:          { icon: 'notifications',        color: '#EF9F27' },
-  direct_message:  { icon: 'chatbubble-ellipses',  color: '#534AB7' },
+  direct_message:  { icon: 'chatbubble-ellipses',  color: '#7B5CFF' },
 };
 
 function NotifItem({ item, onAccept, onNavigate, colors }) {
   const meta = TYPE_META[item.type] || TYPE_META.system;
   return (
     <TouchableOpacity
-      style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(83,74,183,0.08)', borderBottomColor: colors.border }]}
+      style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(123,92,255,0.08)', borderBottomColor: colors.border }]}
       activeOpacity={0.75}
       onPress={() => onNavigate && onNavigate(item)}>
       <View style={[styles.iconWrap, { backgroundColor: item.isMangaRec ? 'rgba(123,92,255,0.15)' : `${meta.color}22` }]}>
@@ -41,7 +41,7 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
         {item.type === 'friend_request' && !item.read && item.friendshipId && (
           <View style={styles.actions}>
             <TouchableOpacity
-              style={[styles.acceptBtn, { backgroundColor: '#534AB7' }]}
+              style={[styles.acceptBtn, { backgroundColor: '#7B5CFF' }]}
               onPress={() => onAccept(item.friendshipId)}>
               <Text style={styles.acceptText}>Accept</Text>
             </TouchableOpacity>
@@ -75,7 +75,7 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="small" color="#534AB7" />
+          <ActivityIndicator size="small" color="#7B5CFF" />
         </View>
       ) : (
         <FlatList

@@ -585,26 +585,20 @@ export default function FriendProfileScreen({ route }) {
           </View>
         </View>
 
-        {/* Stats — same compact style as ProfileScreen */}
+        {/* Stats — plain icon + value + label, no box/chip */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <View style={[styles.statIconChip, { backgroundColor: 'rgba(123,92,255,0.1)' }]}>
-              <Ionicons name="book" size={14} color="#7B5CFF" />
-            </View>
+            <Ionicons name="book" size={14} color="#7B5CFF" />
             <Text style={[styles.statValue, { color: colors.text }]}>{entriesRead}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Read</Text>
           </View>
           <View style={styles.statCard}>
-            <View style={[styles.statIconChip, { backgroundColor: 'rgba(29,158,117,0.1)' }]}>
-              <Ionicons name="time" size={14} color="#1D9E75" />
-            </View>
+            <Ionicons name="time" size={14} color="#1D9E75" />
             <Text style={[styles.statValue, { color: colors.text }]}>{fmtHrs(profile.hours_read)}</Text>
             <Text style={[styles.statLabel, { color: colors.muted }]}>Time Read</Text>
           </View>
           <View style={styles.statCard}>
-            <View style={[styles.statIconChip, { backgroundColor: 'rgba(255,215,0,0.1)' }]}>
-              <Ionicons name="trophy" size={14} color="#FFD700" />
-            </View>
+            <Ionicons name="trophy" size={14} color="#FFD700" />
             <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>
               {profile.favorite_genre || '—'}
             </Text>
@@ -912,7 +906,6 @@ const styles = StyleSheet.create({
   // Stats — same as ProfileScreen
   statsRow: { flexDirection: 'row', paddingHorizontal: 28, marginBottom: 22 },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  statIconChip: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 
   actionIconsRow: { flexDirection: 'row', gap: 10, alignSelf: 'flex-end', marginTop: 8 },
   peopleRowInCard: { marginTop: 10, marginBottom: 2 },
@@ -959,6 +952,11 @@ const styles = StyleSheet.create({
   faveFeatCard: { marginHorizontal: 6, borderRadius: 8, overflow: 'hidden' },
   faveFeatGrad: { height: 174 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  faveMoreBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  faveMoreBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  allFavesCell: { flex: 1 / 3, alignItems: 'center' },
+  allFavesCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
+  allFavesTitle: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
   favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center' },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },

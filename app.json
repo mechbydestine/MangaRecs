@@ -46,7 +46,7 @@
       [
         "expo-notifications",
         {
-          "color": "#534AB7",
+          "color": "#7B5CFF",
           "sounds": ["./assets/sounds/notification.mp3"]
         }
       ],
