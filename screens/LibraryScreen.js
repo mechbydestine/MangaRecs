@@ -1,8 +1,9 @@
 ﻿import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Modal,
-  ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator,
+  ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { MangaCover } from '../utils/mangaCovers';
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -12,13 +13,13 @@ import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead } from '../utils/readerUtils';
-import { getLatestChapter } from '../utils/mangaDexApi';
+import { getLatestChapter, searchMangaDexList } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL } from '../utils/mangaPool';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
 const TABS = ['Reading', 'Completed', 'Bookmarked', 'Downloaded'];
-const UPDATE_CACHE_KEY = '@panelr/updates_cache';
+const UPDATE_CACHE_KEY = '@mangarecs/updates_cache';
 const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
 
 
@@ -128,13 +129,27 @@ function TabButton({ tab, active, onPress }) {
   return (
     <Animated.View style={[styles.tab, active && [styles.tabActive, { backgroundColor: colors.card }], { transform: [{ scale }] }]}>
       <TouchableOpacity onPress={handlePress} style={styles.tabInner}>
-        <Text style={[styles.tabText, { color: colors.muted }, active && [styles.tabTextActive, { color: colors.text }]]} numberOfLines={1}>
+        <Text
+          style={[styles.tabText, { color: colors.muted }, active && [styles.tabTextActive, { color: colors.text }]]}
+          numberOfLines={1}
+          allowFontScaling={false}
+          adjustsFontSizeToFit={Platform.OS === 'ios'}
+          minimumFontScale={0.75}
+        >
           {tab}
         </Text>
       </TouchableOpacity>
     </Animated.View>
   );
 }
+
+// Derive column count from screen width so tablets get more columns
+const { width: SCREEN_W } = Dimensions.get('window');
+const NUM_COLS = SCREEN_W >= 768 ? 4 : 3;
+const ITEM_MARGIN_H = 1.0; // % each side
+// Budget 99% not 100% — an exactly-full row wraps its last item due to
+// sub-pixel rounding, collapsing the grid to 2 columns.
+const ITEM_W_PCT = (99 - NUM_COLS * ITEM_MARGIN_H * 2) / NUM_COLS;
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 
@@ -183,7 +198,7 @@ export default function LibraryScreen() {
         const uid = session?.user?.id;
 
         // Load local bookmarks first, then merge with Supabase (avoids race condition)
-        AsyncStorage.getItem('@panelr_saved').then((val) => {
+        AsyncStorage.getItem('@mangarecs_saved').then((val) => {
           let localItems = [];
           try { localItems = val ? JSON.parse(val) : []; } catch (_) {}
 
@@ -225,7 +240,7 @@ export default function LibraryScreen() {
 
   function openSearch() {
     setSearchOpen(true);
-    AsyncStorage.getItem('@panelr_search_history').then((val) => {
+    AsyncStorage.getItem('@mangarecs_search_history').then((val) => {
       try { if (val) setRecentSearches(JSON.parse(val)); } catch (_) {}
     });
     setTimeout(() => inputRef.current?.focus(), 80);
@@ -241,7 +256,7 @@ export default function LibraryScreen() {
     if (!q.trim()) return;
     const updated = [q, ...recentSearches.filter((r) => r !== q)].slice(0, 5);
     setRecentSearches(updated);
-    AsyncStorage.setItem('@panelr_search_history', JSON.stringify(updated)).catch(() => {});
+    AsyncStorage.setItem('@mangarecs_search_history', JSON.stringify(updated)).catch(() => {});
     closeSearch();
     navigation.navigate('Reader', { searchQuery: q.trim(), title: q.trim(), chapters: 999 });
   }
@@ -249,7 +264,7 @@ export default function LibraryScreen() {
   function removeRecent(term) {
     const updated = recentSearches.filter((r) => r !== term);
     setRecentSearches(updated);
-    AsyncStorage.setItem('@panelr_search_history', JSON.stringify(updated)).catch(() => {});
+    AsyncStorage.setItem('@mangarecs_search_history', JSON.stringify(updated)).catch(() => {});
   }
 
   // Live pool search — filters MANGA_POOL as the user types
@@ -263,10 +278,40 @@ export default function LibraryScreen() {
       ).slice(0, 15)
     : [];
 
+  // MangaDex API search — covers everything not in the local pool (debounced)
+  const [apiResults, setApiResults] = useState([]);
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) { setApiResults([]); return; }
+    const timer = setTimeout(() => {
+      searchMangaDexList(term, { limit: 8 }).then((items) => {
+        setApiResults(items.map((m) => ({
+          id: `mdx-${m.id}`,
+          mangaId: m.id,
+          title: m.title,
+          searchKey: m.title,
+          lang: m.lang,
+          chapters: m.chapters || 999,
+          color: '#1A1A2E',
+          genres: [],
+          fromApi: true,
+        })));
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Local pool first, then API results deduped by normalized title
+  const localTitleSet = new Set(searchResults.map((m) => (m.title || '').toLowerCase()));
+  const mergedResults = [
+    ...searchResults,
+    ...apiResults.filter((m) => !localTitleSet.has((m.title || '').toLowerCase())),
+  ];
+
   function openFromSearch(item) {
     const updated = [item.title, ...recentSearches.filter((r) => r !== item.title)].slice(0, 5);
     setRecentSearches(updated);
-    AsyncStorage.setItem('@panelr_search_history', JSON.stringify(updated)).catch(() => {});
+    AsyncStorage.setItem('@mangarecs_search_history', JSON.stringify(updated)).catch(() => {});
     closeSearch();
     saveLastRead({
       title: item.title,
@@ -281,6 +326,7 @@ export default function LibraryScreen() {
       searchQuery: item.searchKey || item.title,
       title: item.title,
       chapters: item.chapters || 1,
+      mangaId: item.mangaId,
       lang: item.lang || 'ja',
     });
   }
@@ -306,7 +352,7 @@ export default function LibraryScreen() {
     };
   })();
 
-  const INVALID_HIST_TITLE = /^(reader|browser|panelr|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak)$/i;
+  const INVALID_HIST_TITLE = /^(reader|browser|mangarecs|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak)$/i;
 
   const baseReadingSeries = staticPool
     .filter((s) => s.progress < 1 && !deletedIds.has(s.id) && !completedIds.has(s.id))
@@ -518,7 +564,7 @@ export default function LibraryScreen() {
           continue;
         }
 
-        const resumeKey = '@panelr/resume/' + encodeURIComponent(cacheKey);
+        const resumeKey = '@mangarecs/resume/' + encodeURIComponent(cacheKey);
         const resumeRaw = await AsyncStorage.getItem(resumeKey).catch(() => null);
         if (!resumeRaw) { cache[cacheKey] = { ts: now, hasUpdate: false }; continue; }
 
@@ -546,10 +592,18 @@ export default function LibraryScreen() {
     const series = contextMenu.series;
     closeContextMenu();
     hapticWarning();
+    if (series?.downloaded && series?.downloadDir) {
+      // Downloaded chapter: remove the files AND the library entry
+      const updated = savedItems.filter((s) => s.id !== series.id);
+      setSavedItems(updated);
+      await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(updated.filter((s) => !s.id?.startsWith?.('sb-')))).catch(() => {});
+      FileSystem.deleteAsync(series.downloadDir, { idempotent: true }).catch(() => {});
+      return;
+    }
     if (series?.savedFromFeed || series?.id?.startsWith?.('sb-')) {
       const updated = savedItems.filter((s) => s.id !== series.id);
       setSavedItems(updated);
-      await AsyncStorage.setItem('@panelr_saved', JSON.stringify(updated.filter((s) => !s.id?.startsWith?.('sb-')))).catch(() => {});
+      await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(updated.filter((s) => !s.id?.startsWith?.('sb-')))).catch(() => {});
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
         supabase.from('reading_progress').delete()
@@ -572,12 +626,12 @@ export default function LibraryScreen() {
       // Remove from local reading history so hist-* items don't come back on focus
       if (series.id.startsWith('hist-')) {
         try {
-          const raw = await AsyncStorage.getItem('@panelr_reading_history');
+          const raw = await AsyncStorage.getItem('@mangarecs_reading_history');
           if (raw) {
             const hist = JSON.parse(raw);
             delete hist[series.searchKey];
             if (series.title) delete hist[series.title];
-            await AsyncStorage.setItem('@panelr_reading_history', JSON.stringify(hist));
+            await AsyncStorage.setItem('@mangarecs_reading_history', JSON.stringify(hist));
             setHistoryItems((prev) => prev.filter((h) => h.searchKey !== series.searchKey && h.title !== series.title));
           }
         } catch (_) {}
@@ -598,7 +652,7 @@ export default function LibraryScreen() {
     };
     const updated = [newItem, ...savedItems];
     setSavedItems(updated);
-    await AsyncStorage.setItem('@panelr_saved', JSON.stringify(updated)).catch(() => {});
+    await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(updated)).catch(() => {});
     // Persist bookmark to Supabase (won't overwrite existing reading/completed progress)
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
@@ -681,7 +735,7 @@ export default function LibraryScreen() {
         .then(({ data }) => {
           if (data) {
             setProgressRows(data.filter((r) => r.status !== 'bookmarked'));
-            AsyncStorage.getItem('@panelr_saved').then((val) => {
+            AsyncStorage.getItem('@mangarecs_saved').then((val) => {
               let localItems = [];
               try { localItems = val ? JSON.parse(val) : []; } catch (_) {}
               const localTitles = new Set(localItems.map((s) => s.title));
@@ -793,6 +847,18 @@ export default function LibraryScreen() {
           ))}
         </View>
 
+        {activeTab === 'Downloaded' && filtered.length > 0 && (
+          <Text style={[styles.storageLine, { color: colors.muted }]}>
+            {filtered.length} {filtered.length === 1 ? 'chapter' : 'chapters'}
+            {(() => {
+              const total = filtered.reduce((s, i) => s + (i.bytes || 0), 0);
+              if (total <= 0) return '';
+              const mb = total / (1024 * 1024);
+              return ` · ${mb >= 1000 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`} on device · hold to delete`;
+            })()}
+          </Text>
+        )}
+
         {activeTab === 'Downloaded' && filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cloud-download-outline" size={36} color={colors.muted} style={{ marginBottom: 12 }} />
@@ -895,13 +961,13 @@ export default function LibraryScreen() {
             </View>
             <View style={styles.searchBody}>
               {query.trim().length > 0 ? (
-                searchResults.length > 0 ? (
+                mergedResults.length > 0 ? (
                   <View style={styles.searchSection}>
                     <View style={styles.searchSectionHeader}>
                       <Ionicons name="book-outline" size={11} color={colors.muted} />
                       <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>Results</Text>
                     </View>
-                    {searchResults.map((item) => (
+                    {mergedResults.map((item) => (
                       <TouchableOpacity
                         key={item.id}
                         style={styles.searchResultRow}
@@ -910,11 +976,13 @@ export default function LibraryScreen() {
                         <View style={[styles.searchResultDot, { backgroundColor: item.color || '#534AB7' }]} />
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.searchResultTitle, { color: colors.text }]}>{item.title}</Text>
-                          {item.genres?.length > 0 && (
+                          {item.genres?.length > 0 ? (
                             <Text style={[styles.searchResultMeta, { color: colors.muted }]}>
                               {item.genres.slice(0, 2).join(' · ')}
                             </Text>
-                          )}
+                          ) : item.fromApi ? (
+                            <Text style={[styles.searchResultMeta, { color: colors.muted }]}>MangaDex</Text>
+                          ) : null}
                         </View>
                         <Ionicons name="chevron-forward" size={13} color={colors.muted} />
                       </TouchableOpacity>
@@ -982,6 +1050,7 @@ const styles = StyleSheet.create({
   streakBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   streakText: { color: '#FF9500', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
+  storageLine: { fontSize: 11, paddingHorizontal: 20, marginBottom: 10, marginTop: -4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(155,154,163,0.08)', borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 11, marginHorizontal: 20, marginBottom: 16 },
   searchPlaceholder: { fontSize: 13, marginLeft: 10 },
   continueCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(83,74,183,0.15)', borderWidth: 1, borderColor: 'rgba(83,74,183,0.2)', borderRadius: 16, padding: 12, marginHorizontal: 20, marginBottom: 16 },
@@ -995,13 +1064,13 @@ const styles = StyleSheet.create({
   continueProgressBar: { height: 3, backgroundColor: 'rgba(83,74,183,0.18)', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
   continueProgressFill: { height: 3, backgroundColor: '#534AB7', borderRadius: 2 },
   tabsRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 20, marginBottom: 20 },
-  tab: { flex: 1, borderRadius: 9 },
-  tabInner: { paddingVertical: 8, alignItems: 'center' },
+  tab: { flex: 1, borderRadius: 9, overflow: 'hidden' },
+  tabInner: { paddingVertical: 8, paddingHorizontal: 2, alignItems: 'center' },
   tabActive: {},
-  tabText: { fontSize: 11.5, fontWeight: '500' },
+  tabText: { fontSize: 11, fontWeight: '500' },
   tabTextActive: { fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16 },
-  gridItem: { width: '31%', marginHorizontal: '1.16%', marginBottom: 20 },
+  gridItem: { width: `${ITEM_W_PCT}%`, marginHorizontal: `${ITEM_MARGIN_H}%`, marginBottom: 20 },
   cover: { width: '100%', aspectRatio: 0.66, borderRadius: 12, overflow: 'hidden', marginBottom: 6 },
   progressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(0,0,0,0.4)' },
   progressFill: { height: 3, backgroundColor: '#534AB7' },

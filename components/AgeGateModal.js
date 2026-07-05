@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
-export const AGE_VERIFIED_KEY = '@panelr/age_verified';
+export const AGE_VERIFIED_KEY = '@mangarecs/age_verified';
 
 function pad(n) { return String(n).padStart(2, '0'); }
 

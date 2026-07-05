@@ -2,10 +2,10 @@
 import { supabase } from '../supabase';
 
 const _openedThisSession = new Set();
-const GENRE_PREFS_KEY = '@panelr_genre_prefs';
-const DAILY_LOG_KEY   = '@panelr_daily_log';
-const LAST_READ_KEY   = '@panelr_last_read';
-const HISTORY_KEY     = '@panelr_reading_history';
+const GENRE_PREFS_KEY = '@mangarecs_genre_prefs';
+const DAILY_LOG_KEY   = '@mangarecs_daily_log';
+const LAST_READ_KEY   = '@mangarecs_last_read';
+const HISTORY_KEY     = '@mangarecs_reading_history';
 
 // Date key in the user's LOCAL timezone. toISOString() is UTC — for users in
 // UTC+ zones (JP/KR) it shifts reads to the previous day and breaks streaks.
@@ -69,7 +69,7 @@ export function incrementSharesCount(userId) {
  * Save the most recently opened series so Library can show accurate "Continue Reading".
  */
 const INVALID_TITLES = new Set([
-  'reader', 'browser', 'panelr',
+  'reader', 'browser', 'mangarecs',
   'mangadex', 'mangafire', 'webtoon', 'asura scans', 'weeb central',
   'manga plus', 'mangahub', 'cubari proxy', 'dynasty reader', 'scans.gg',
   'likemanga', 'mangago', 'mangakatana', 'mangapill', 'manhuaplus',

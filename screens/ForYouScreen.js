@@ -1,6 +1,9 @@
 ﻿import {
-  View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl, Animated,
+  View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl, Animated, Dimensions,
 } from 'react-native';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const IS_TABLET = SCREEN_W >= 768;
 import { Ionicons } from '@expo/vector-icons';
 import { MangaCover, AI_REC_KEY, prewarmCoverCache, NSFW_KEY } from '../utils/mangaCovers';
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
@@ -228,7 +231,7 @@ function MoodButton({ mood, active, onPress }) {
 
 // ── Rec card — stagger entrance, replays on animKey change ─────────────────
 
-function RecCard({ series, reason, onPress, index, animKey }) {
+function RecCard({ series, reason, onPress, onDismiss, index, animKey }) {
   const { colors } = useTheme();
   const anim  = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -282,7 +285,16 @@ function RecCard({ series, reason, onPress, index, animKey }) {
             <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.readers}</Text>
           </View>
         </View>
-        <Ionicons name="arrow-forward" size={16} color={colors.muted} />
+        <View style={{ alignItems: 'center', gap: 10 }}>
+          <Ionicons name="arrow-forward" size={16} color={colors.muted} />
+          {onDismiss && (
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation?.(); onDismiss(); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={14} color={colors.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -368,8 +380,35 @@ export default function ForYouScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const DISMISSED_KEY = '@mangarecs_dismissed_recs';
   const [activeMood, setActiveMood] = useState(null);
+  const [dismissedIds, setDismissedIds] = useState(new Set());
   const [refreshing, setRefreshing] = useState(false);
+
+  // Restore dismissed recommendations so "not interested" sticks across sessions
+  useEffect(() => {
+    AsyncStorage.getItem(DISMISSED_KEY).then((raw) => {
+      if (!raw) return;
+      try { setDismissedIds(new Set(JSON.parse(raw))); } catch (_) {}
+    }).catch(() => {});
+  }, []);
+
+  function dismissRec(series) {
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(series.id);
+      // Cap so the list doesn't grow forever
+      const arr = [...next].slice(-300);
+      AsyncStorage.setItem(DISMISSED_KEY, JSON.stringify(arr)).catch(() => {});
+      return new Set(arr);
+    });
+    // Negative taste signal — dismissals should teach the algorithm
+    if (userId && series.genres?.length) {
+      series.genres.forEach((genre) => {
+        supabase.rpc('upsert_genre_weight', { p_user_id: userId, p_genre: genre, p_delta: -2 }).then(() => {});
+      });
+    }
+  }
   const [focusKey, setFocusKey] = useState(0);
   const [genreWeights, setGenreWeights] = useState({});
   const [tasteProfile, setTasteProfile] = useState(TASTE_PROFILE);
@@ -461,7 +500,7 @@ export default function ForYouScreen() {
         Animated.spring(headerY, { toValue: 0, useNativeDriver: true, damping: 22, stiffness: 220 }),
       ]).start();
 
-      AsyncStorage.multiGet([AI_REC_KEY, '@panelr_genre_prefs', AGE_VERIFIED_KEY, NSFW_KEY]).then(
+      AsyncStorage.multiGet([AI_REC_KEY, '@mangarecs_genre_prefs', AGE_VERIFIED_KEY, NSFW_KEY]).then(
         ([[, aiRaw], [, genreRaw], [, ageRaw], [, nsfwRaw]]) => {
           const aiOn = aiRaw === null ? true : aiRaw === 'true';
           setAiRecEnabled(aiOn);
@@ -496,7 +535,7 @@ export default function ForYouScreen() {
                   const weights = {};
                   data.forEach(({ genre, weight }) => { weights[genre] = weight; });
                   applyWeights(weights);
-                  AsyncStorage.setItem('@panelr_genre_prefs', JSON.stringify(weights)).catch(() => {});
+                  AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(weights)).catch(() => {});
                   fetchBecauseYouRead(weights);
                 } else if (!genreRaw) {
                   // Final fallback: profiles.genre_weights (legacy path)
@@ -505,7 +544,7 @@ export default function ForYouScreen() {
                       const weights = pd?.genre_weights;
                       if (!weights || Object.keys(weights).length === 0) return;
                       applyWeights(weights);
-                      AsyncStorage.setItem('@panelr_genre_prefs', JSON.stringify(weights)).catch(() => {});
+                      AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(weights)).catch(() => {});
                       fetchBecauseYouRead(weights);
                     });
                 }
@@ -586,9 +625,10 @@ export default function ForYouScreen() {
       return { ...s, _hotScore: weightScore * 1000 + tieBreaker };
     });
     return scored
+      .filter((s) => !dismissedIds.has(s.id))
       .sort((a, b) => b._hotScore - a._hotScore)
       .slice(0, 30);
-  }, [fullPool, aiRecEnabled, genreWeights]);
+  }, [fullPool, aiRecEnabled, genreWeights, dismissedIds]);
 
   const recAnimKey = `${focusKey}-${activeMood || 'all'}`;
 
@@ -646,7 +686,7 @@ export default function ForYouScreen() {
     setFocusKey((k) => k + 1);
     setSupabaseRecs([]);
 
-    AsyncStorage.multiGet([AI_REC_KEY, '@panelr_genre_prefs']).then(
+    AsyncStorage.multiGet([AI_REC_KEY, '@mangarecs_genre_prefs']).then(
       ([[, aiRaw], [, genreRaw]]) => {
         const aiOn = aiRaw === null ? true : aiRaw === 'true';
         setAiRecEnabled(aiOn);
@@ -672,7 +712,7 @@ export default function ForYouScreen() {
                 data.forEach(({ genre, weight }) => { weights[genre] = weight; });
                 setGenreWeights(weights);
                 setTasteProfile(buildTasteProfile(weights));
-                AsyncStorage.setItem('@panelr_genre_prefs', JSON.stringify(weights)).catch(() => {});
+                AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(weights)).catch(() => {});
                 fetchBecauseYouRead(weights);
               });
           });
@@ -714,13 +754,24 @@ export default function ForYouScreen() {
         overScrollMode="never"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#534AB7" colors={['#534AB7']} />}>
 
+        <View style={IS_TABLET ? styles.tabletWrap : null}>
         <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}>
           <Ionicons name="sparkles" size={20} color="#534AB7" />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Recs</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>For You</Text>
         </Animated.View>
         <Animated.Text style={[styles.headerSub, { color: colors.muted, opacity: headerOpacity }]}>
           AI-powered recommendations
         </Animated.Text>
+
+        {aiRecEnabled && Object.keys(genreWeights).length === 0 && (
+          <View style={[styles.newUserHint, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="compass-outline" size={16} color="#534AB7" />
+            <Text style={[styles.newUserHintText, { color: colors.muted }]}>
+              Your taste profile is empty — like, save, or read a few series and
+              recommendations here will start matching your taste.
+            </Text>
+          </View>
+        )}
 
         {aiRecEnabled ? (
           <RadarCard colors={colors} focusKey={focusKey} tasteProfile={tasteProfile} />
@@ -756,7 +807,7 @@ export default function ForYouScreen() {
 
         {creatorSeries.length > 0 && (
           <>
-            <SectionTitle colors={colors} delay={160} focusKey={focusKey}>✨ From Panelr Creators</SectionTitle>
+            <SectionTitle colors={colors} delay={160} focusKey={focusKey}>✨ From MangaRecs Creators</SectionTitle>
             <FlatList
               horizontal
               data={creatorSeries}
@@ -795,7 +846,7 @@ export default function ForYouScreen() {
             </SectionTitle>
             <FlatList
               horizontal
-              data={becauseYouReadRecs}
+              data={becauseYouReadRecs.filter((s) => !dismissedIds.has(s.id))}
               keyExtractor={(item) => `byr-${item.id}`}
               renderItem={({ item }) => <HotCard series={item} onPress={() => openReader(item)} />}
               showsHorizontalScrollIndicator={false}
@@ -827,13 +878,22 @@ export default function ForYouScreen() {
           </View>
         ) : (
           <View style={styles.recList}>
-            {displayRecs.slice(0, 15).map((series, index) => (
-              <RecCard key={series.id} series={series} animKey={recAnimKey} index={index} reason={buildReason(series)} onPress={() => openReader(series)} />
+            {displayRecs.filter((s) => !dismissedIds.has(s.id)).slice(0, 15).map((series, index) => (
+              <RecCard
+                key={series.id}
+                series={series}
+                animKey={recAnimKey}
+                index={index}
+                reason={buildReason(series)}
+                onPress={() => openReader(series)}
+                onDismiss={() => dismissRec(series)}
+              />
             ))}
           </View>
         )}
 
         <View style={{ height: 88 }} />
+        </View>
       </ScrollView>
 
       <AgeGateModal
@@ -847,6 +907,9 @@ export default function ForYouScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
+  newUserHint: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 14, padding: 12, borderRadius: 12, borderWidth: 1, gap: 8 },
+  newUserHintText: { flex: 1, fontSize: 12, lineHeight: 17 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, marginBottom: 4 },
   headerTitle: { fontSize: 28, fontWeight: 'bold', marginLeft: 8 },
   headerSub: { fontSize: 14, paddingHorizontal: 20, marginBottom: 20 },

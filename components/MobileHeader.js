@@ -29,7 +29,7 @@ export default function MobileHeader({ title, right, leftContent, noBorder = fal
             <View style={styles.logoMark}>
               <Ionicons name="book" size={13} color="#fff" />
             </View>
-            <Text style={[styles.logoText, { color: colors.text }]}>Panelr</Text>
+            <Text style={[styles.logoText, { color: colors.text }]}>MangaRecs</Text>
           </View>
         )}
       </View>

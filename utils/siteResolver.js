@@ -131,11 +131,11 @@ export async function fetchMadaraUrl(siteUrl, title) {
 // Cloudflare challenge pages get up to ~9s before we give up (they typically auto-redirect in 5s).
 export const SEARCH_WATCHDOG_JS = `
 (function() {
-  if (window.__panelr404) return true;
-  window.__panelr404 = true;
+  if (window.__mangarecs404) return true;
+  window.__mangarecs404 = true;
   var cfStrikes = 0;
   function check() {
-    if (window.__panelrNavDone) return;
+    if (window.__mangarecsNavDone) return;
     var t = (document.title || '').toLowerCase();
     var u = window.location.href.toLowerCase();
     var b = document.body ? (document.body.innerText || '').substring(0, 2000).toLowerCase() : '';
@@ -217,8 +217,8 @@ export const HOMEPAGE_DETECT_JS = `
 // If exhausted with no result, sends 'searchFailed' to trigger the fallback chain.
 export const AUTO_NAV_SEARCH_JS = `
 (function() {
-  if (window.__panelrAuto) return true;
-  window.__panelrAuto = true;
+  if (window.__mangarecsAuto) return true;
+  window.__mangarecsAuto = true;
   var url = window.location.href;
   if (!/[?&](s|q|search|keyword|query|term|name|word)=|\/search[/?#]|\/filter[/?#]/.test(url)) return true;
 
@@ -295,15 +295,15 @@ export const AUTO_NAV_SEARCH_JS = `
     for (var i = 0; i < SELS.length; i++) {
       var el = document.querySelector(SELS[i]);
       if (el && isValidMangaHref(el.href)) {
-        window.__panelrNavDone = true;
+        window.__mangarecsNavDone = true;
         el.click();
         return true;
       }
     }
     // Generic fallback: prefer links whose href slug or text matches the search query.
-    // Re-read __panelrQuery on every call because the query injection may arrive
+    // Re-read __mangarecsQuery on every call because the query injection may arrive
     // slightly after this script runs (first interval tick gives it time to land).
-    var rawQ = (window.__panelrQuery || '').toLowerCase();
+    var rawQ = (window.__mangarecsQuery || '').toLowerCase();
     var qSlug = rawQ.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     var links = document.querySelectorAll('a[href]');
     var firstValid = null;
@@ -322,7 +322,7 @@ export const AUTO_NAV_SEARCH_JS = `
     }
     var picked = titleMatch || firstValid;
     if (picked) {
-      window.__panelrNavDone = true;
+      window.__mangarecsNavDone = true;
       picked.click();
       return true;
     }
@@ -360,16 +360,16 @@ export const AUTO_NAV_SEARCH_JS = `
 // Self-guards — does nothing on any other page.
 export const MANGADEX_CHAPTER_NAV_JS = `
 (function() {
-  if (window.__panelrChapNav) return true;
+  if (window.__mangarecsChapNav) return true;
   if (!/\/title\/[a-f0-9-]+/i.test(window.location.pathname)) return true;
-  window.__panelrChapNav = true;
+  window.__mangarecsChapNav = true;
 
   function tryClick() {
     var links = Array.from(document.querySelectorAll('a[href*="/chapter/"]'));
     for (var i = 0; i < links.length; i++) {
       var href = links[i].href;
       if (/\/chapter\/[a-f0-9-]{32,}/i.test(href)) {
-        window.__panelrNavDone = true;
+        window.__mangarecsNavDone = true;
         links[i].click();
         return true;
       }
@@ -403,8 +403,8 @@ export const MANGADEX_CHAPTER_NAV_JS = `
 // auto-click the first listed chapter so the user goes straight into reading.
 export const AUTO_NAV_CHAPTER_JS = `
 (function() {
-  if (window.__panelrChapClick) return true;
-  window.__panelrChapClick = true;
+  if (window.__mangarecsChapClick) return true;
+  window.__mangarecsChapClick = true;
 
   var url = window.location.href;
   // Skip: search pages, homepage, pages we're already reading
@@ -492,7 +492,7 @@ export const AUTO_NAV_CHAPTER_JS = `
       }
     }
     if (best) {
-      window.__panelrNavDone = true;
+      window.__mangarecsNavDone = true;
       best.click();
       return true;
     }

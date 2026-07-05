@@ -3,9 +3,9 @@ import Constants from 'expo-constants';
 import { supabase } from '../supabase';
 import { searchMangaDex, getLatestChapter } from './mangaDexApi';
 
-const CHECK_TS_KEY    = '@panelr_chapter_check_ts';
-const NOTIFIED_KEY    = '@panelr_notified_chapters';
-const NOTIF_PREFS_KEY = '@panelr_notif_prefs';
+const CHECK_TS_KEY    = '@mangarecs_chapter_check_ts';
+const NOTIFIED_KEY    = '@mangarecs_notified_chapters';
+const NOTIF_PREFS_KEY = '@mangarecs_notif_prefs';
 const CHECK_INTERVAL  = 4 * 60 * 60 * 1000; // 4 hours between checks
 const MAX_SERIES      = 5;                    // check at most 5 series per run
 

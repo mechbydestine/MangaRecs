@@ -32,7 +32,7 @@ const GUIDELINES = [
   {
     emoji: '🔗',
     title: 'Your URLs, your responsibility',
-    desc: 'You are solely responsible for any links you share. Panelr is not liable for third-party content.',
+    desc: 'You are solely responsible for any links you share. MangaRecs is not liable for third-party content.',
   },
   {
     emoji: '🤝',
@@ -52,7 +52,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
   async function handleAgree() {
     setLoading(true);
     try {
-      await AsyncStorage.setItem('@panelr/guidelines_accepted', 'true');
+      await AsyncStorage.setItem('@mangarecs/guidelines_accepted', 'true');
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
         await supabase.from('profiles').upsert({
@@ -85,14 +85,14 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
           <View style={styles.logo}>
             <Ionicons name="book" size={28} color="#fff" />
           </View>
-          <Text style={styles.logoText}>Panelr</Text>
+          <Text style={styles.logoText}>MangaRecs</Text>
         </View>
 
         <Text style={styles.title}>Community Guidelines</Text>
         <Text style={styles.subtitle}>
           {isInfoMode
-            ? 'Our community standards keep Panelr a great place for every reader.'
-            : 'Before you enter, please read and agree to our community standards. These rules keep Panelr a great place for every reader.'}
+            ? 'Our community standards keep MangaRecs a great place for every reader.'
+            : 'Before you enter, please read and agree to our community standards. These rules keep MangaRecs a great place for every reader.'}
         </Text>
 
         {GUIDELINES.map((g) => (
@@ -106,11 +106,11 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
         ))}
 
         <View style={styles.linksRow}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://panelr.app/privacy')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://mangarecs.app/privacy')}>
             <Text style={styles.linkText}>Privacy Policy</Text>
           </TouchableOpacity>
           <Text style={styles.linkSep}>·</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://panelr.app/terms')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://mangarecs.app/terms')}>
             <Text style={styles.linkText}>Terms of Service</Text>
           </TouchableOpacity>
         </View>

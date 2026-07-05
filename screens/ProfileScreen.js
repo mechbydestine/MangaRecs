@@ -35,7 +35,7 @@ const BIO_SUGGESTIONS = [
   'Reading between the panels. 🖤',
 ];
 
-const FAVES_KEY = '@panelr_favorites';
+const FAVES_KEY = '@mangarecs_favorites';
 
 const fmtHrs = (h) => {
   if (!h || h <= 0) return '0m';
@@ -124,6 +124,103 @@ function StreakCalendar({ dailyLog }) {
   );
 }
 
+// ── PeopleRow (Friends / Followers / Following) ─────────────────────────────
+
+export function PeopleRow({ friends = [], followers = [], following = [], colors, onOpen }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="people-outline" size={14} color={colors.muted} />
+          <Text style={[styles.sectionTitleText, { color: colors.text }]}>People</Text>
+        </View>
+      </View>
+
+      <View style={styles.peopleStatsRow}>
+        <TouchableOpacity style={styles.peopleStatCell} activeOpacity={0.7} onPress={() => onOpen('friends')}>
+          <Text style={[styles.peopleStatValue, { color: colors.text }]}>{friends.length}</Text>
+          <Text style={[styles.peopleStatLabel, { color: colors.muted }]}>Friends</Text>
+        </TouchableOpacity>
+        <View style={[styles.peopleStatDivider, { backgroundColor: colors.border }]} />
+        <TouchableOpacity style={styles.peopleStatCell} activeOpacity={0.7} onPress={() => onOpen('followers')}>
+          <Text style={[styles.peopleStatValue, { color: colors.text }]}>{followers.length}</Text>
+          <Text style={[styles.peopleStatLabel, { color: colors.muted }]}>Followers</Text>
+        </TouchableOpacity>
+        <View style={[styles.peopleStatDivider, { backgroundColor: colors.border }]} />
+        <TouchableOpacity style={styles.peopleStatCell} activeOpacity={0.7} onPress={() => onOpen('following')}>
+          <Text style={[styles.peopleStatValue, { color: colors.text }]}>{following.length}</Text>
+          <Text style={[styles.peopleStatLabel, { color: colors.muted }]}>Following</Text>
+        </TouchableOpacity>
+      </View>
+
+      {friends.length === 0 ? (
+        <Text style={[styles.emptyFriendsText, { color: colors.muted }]}>No friends yet — find people on Social</Text>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {friends.slice(0, 12).map((friend) => (
+            <TouchableOpacity
+              key={friend.id}
+              style={styles.friendItem}
+              activeOpacity={0.75}
+              onPress={() => onOpen('friends')}>
+              <View style={[styles.friendAvatar, friend.online && styles.friendAvatarOnline]}>
+                {friend.avatarUrl ? (
+                  <Image source={{ uri: friend.avatarUrl }} style={styles.friendAvatarImg} />
+                ) : (
+                  <Text style={styles.friendAvatarText}>{friend.avatar}</Text>
+                )}
+              </View>
+              <Text style={[styles.friendName, { color: colors.muted }]} numberOfLines={1}>{friend.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+// ── PeopleListModal ──────────────────────────────────────────────────────────
+
+export function PeopleListModal({ visible, title, people = [], colors, onClose, onOpenPerson }) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.peopleModalOverlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.peopleModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.peopleModalHeader}>
+            <Text style={[styles.peopleModalTitle, { color: colors.text }]}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={22} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+          {people.length === 0 ? (
+            <Text style={[styles.peopleModalEmptyText, { color: colors.muted }]}>Nobody here yet</Text>
+          ) : (
+            <FlatList
+              data={people}
+              keyExtractor={(p) => String(p.id)}
+              style={styles.peopleModalList}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.peopleModalRow} activeOpacity={0.7} onPress={() => onOpenPerson?.(item)}>
+                  <View style={[styles.friendAvatar, item.online && styles.friendAvatarOnline]}>
+                    {item.avatarUrl ? (
+                      <Image source={{ uri: item.avatarUrl }} style={styles.friendAvatarImg} />
+                    ) : (
+                      <Text style={styles.friendAvatarText}>{item.avatar}</Text>
+                    )}
+                  </View>
+                  <Text style={[styles.peopleModalName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                  {item.online && <View style={styles.peopleModalOnlineDot} />}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ── Main screen ────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
@@ -145,6 +242,9 @@ export default function ProfileScreen() {
   const [showThemes, setShowThemes]       = useState(false);
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [friends, setFriends]             = useState([]);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [showPeople, setShowPeople]       = useState(null); // null | 'friends' | 'followers' | 'following'
   const [joinDate, setJoinDate]           = useState('');
   const [favorites, setFavorites]         = useState([]);
   const [showAddFave, setShowAddFave]     = useState(false);
@@ -213,7 +313,7 @@ export default function ProfileScreen() {
   // ── Load local images + favorites on mount ───────────────────────────────
 
   useEffect(() => {
-    AsyncStorage.multiGet(['@panelr_avatar', '@panelr_banner', FAVES_KEY]).then(([[, av], [, bn], [, fv]]) => {
+    AsyncStorage.multiGet(['@mangarecs_avatar', '@mangarecs_banner', FAVES_KEY]).then(([[, av], [, bn], [, fv]]) => {
       if (av) setAvatarUri(av);
       if (bn) setBannerUri(bn);
       if (fv) { try { setFavorites(JSON.parse(fv)); } catch (_) {} }
@@ -336,9 +436,35 @@ export default function ProfileScreen() {
           friendIds.map(id => {
             const p = byId[id];
             if (!p) return null;
-            return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), online: p.online || false };
+            return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: p.online || false };
           }).filter(Boolean)
         );
+      });
+  }, [userId]);
+
+  // ── Load followers / following ───────────────────────────────────────────
+
+  function toPerson(p) {
+    return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
+  }
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('followers')
+      .select('follower:follower_id(id, username, avatar_url, online)')
+      .eq('followed_id', userId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setFollowersList((data || []).map(r => r.follower).filter(Boolean).map(toPerson));
+      });
+    supabase
+      .from('followers')
+      .select('followed:followed_id(id, username, avatar_url, online)')
+      .eq('follower_id', userId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setFollowingList((data || []).map(r => r.followed).filter(Boolean).map(toPerson));
       });
   }, [userId]);
 
@@ -424,7 +550,7 @@ export default function ProfileScreen() {
       setAvatarUri(uri);
       const { url } = await uploadAvatar(uri, 'avatar');
       if (url) {
-        await AsyncStorage.setItem('@panelr_avatar', url);
+        await AsyncStorage.setItem('@mangarecs_avatar', url);
         setAvatarUri(url);
       }
     }
@@ -437,7 +563,7 @@ export default function ProfileScreen() {
       setBannerUri(uri);
       const { url } = await uploadAvatar(uri, 'banner');
       if (url) {
-        await AsyncStorage.setItem('@panelr_banner', url);
+        await AsyncStorage.setItem('@mangarecs_banner', url);
         setBannerUri(url);
       }
     }
@@ -585,36 +711,28 @@ export default function ProfileScreen() {
           <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} />
         </View>
 
-        {/* Friends */}
-        <Animated.View style={[styles.section, { opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }]}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="people-outline" size={14} color={colors.muted} />
-              <Text style={[styles.sectionTitleText, { color: colors.text }]}>Friends</Text>
-            </View>
-            <TouchableOpacity style={styles.seeAllRow} onPress={() => navigation.navigate('Social')}>
-              <Text style={styles.seeAllText}>See all</Text>
-              <Ionicons name="chevron-forward" size={12} color="#534AB7" />
-            </TouchableOpacity>
-          </View>
-          {friends.length === 0 ? (
-            <Text style={[styles.emptyFriendsText, { color: colors.muted }]}>No friends yet — find people on Social</Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {friends.map((friend) => (
-                <TouchableOpacity
-                  key={friend.id}
-                  style={styles.friendItem}
-                  onPress={() => navigation.navigate('FriendProfile', { id: friend.id })}>
-                  <View style={[styles.friendAvatar, friend.online && styles.friendAvatarOnline]}>
-                    <Text style={styles.friendAvatarText}>{friend.avatar}</Text>
-                  </View>
-                  <Text style={[styles.friendName, { color: colors.muted }]} numberOfLines={1}>{friend.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
+        {/* Friends · Followers · Following */}
+        <Animated.View style={{ opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }}>
+          <PeopleRow
+            friends={friends}
+            followers={followersList}
+            following={followingList}
+            colors={colors}
+            onOpen={(key) => setShowPeople(key)}
+          />
         </Animated.View>
+
+        <PeopleListModal
+          visible={!!showPeople}
+          title={showPeople === 'followers' ? 'Followers' : showPeople === 'following' ? 'Following' : 'Friends'}
+          people={showPeople === 'followers' ? followersList : showPeople === 'following' ? followingList : friends}
+          colors={colors}
+          onClose={() => setShowPeople(null)}
+          onOpenPerson={(p) => {
+            setShowPeople(null);
+            navigation.navigate('FriendProfile', { id: p.id });
+          }}
+        />
 
         {/* Reading Streak + Faves — scales up */}
         <Animated.View style={[styles.streakSection, { backgroundColor: colors.card, borderColor: colors.border, opacity: streakAnim, transform: [{ scale: streakScale }] }]}>
@@ -932,6 +1050,25 @@ const styles = StyleSheet.create({
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendName: { fontSize: 10, marginTop: 6, textAlign: 'center' },
+  friendAvatarImg: { width: '100%', height: '100%', borderRadius: 24 },
+
+  // People stats row (Friends / Followers / Following)
+  peopleStatsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  peopleStatCell: { flex: 1, alignItems: 'center', paddingVertical: 6 },
+  peopleStatValue: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+  peopleStatLabel: { fontSize: 11 },
+  peopleStatDivider: { width: 1, height: 24 },
+
+  // People list modal
+  peopleModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  peopleModalCard: { width: '100%', maxWidth: 420, maxHeight: '70%', borderRadius: 16, borderWidth: 1, padding: 16 },
+  peopleModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  peopleModalTitle: { fontSize: 16, fontWeight: '600' },
+  peopleModalEmptyText: { fontSize: 13, fontStyle: 'italic', textAlign: 'center', paddingVertical: 20 },
+  peopleModalList: { maxHeight: '100%' },
+  peopleModalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  peopleModalName: { fontSize: 14, fontWeight: '500', marginLeft: 12, flex: 1 },
+  peopleModalOnlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1D9E75' },
 
   // Streak + Faves
   streakSection: { marginHorizontal: 20, borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1 },

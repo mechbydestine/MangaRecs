@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Inklore — paste this entire file into the Supabase SQL Editor and run it.
+-- MangaRecs — paste this entire file into the Supabase SQL Editor and run it.
 -- Safe to run multiple times (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS).
 -- ─────────────────────────────────────────────────────────────────────────────
 
@@ -877,3 +877,100 @@ GRANT  EXECUTE ON FUNCTION get_suggested_friends(UUID, INT) TO authenticated;
 
 -- ── 48. notification_prefs column (allows cross-device pref persistence) ──────
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{}';
+
+-- ── 49. Presence: online/idle/busy/offline status ─────────────────────────────
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_activity BOOLEAN DEFAULT true;
+
+-- ── 50. Followers (separate from friendships — one-directional, no accept step) ─
+CREATE TABLE IF NOT EXISTS followers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  follower_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  followed_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT followers_check CHECK (follower_id <> followed_id),
+  UNIQUE (follower_id, followed_id)
+);
+CREATE INDEX IF NOT EXISTS followers_follower_idx ON followers(follower_id);
+CREATE INDEX IF NOT EXISTS followers_followed_idx ON followers(followed_id);
+
+ALTER TABLE followers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "followers_select" ON followers;
+CREATE POLICY "followers_select" ON followers FOR SELECT USING (true);
+DROP POLICY IF EXISTS "followers_insert_own" ON followers;
+CREATE POLICY "followers_insert_own" ON followers FOR INSERT WITH CHECK (follower_id = auth.uid());
+DROP POLICY IF EXISTS "followers_delete_own" ON followers;
+CREATE POLICY "followers_delete_own" ON followers FOR DELETE USING (follower_id = auth.uid());
+
+-- ── 51. Blocking: blocked_users table + server-enforced DM block ──────────────
+CREATE TABLE IF NOT EXISTS blocked_users (
+  blocker_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  blocked_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (blocker_id, blocked_id)
+);
+
+ALTER TABLE blocked_users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Own blocks" ON blocked_users;
+CREATE POLICY "Own blocks" ON blocked_users FOR ALL USING (auth.uid() = blocker_id) WITH CHECK (auth.uid() = blocker_id);
+
+CREATE OR REPLACE FUNCTION is_blocked_pair(a UUID, b UUID)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM blocked_users
+    WHERE (blocker_id = a AND blocked_id = b) OR (blocker_id = b AND blocked_id = a)
+  );
+$$;
+
+-- RESTRICTIVE: ANDs with the existing permissive "Own DM send" policy, so a
+-- blocked pair can never insert a DM regardless of any other policy.
+DROP POLICY IF EXISTS "No DMs between blocked pairs" ON direct_messages;
+CREATE POLICY "No DMs between blocked pairs" ON direct_messages AS RESTRICTIVE FOR INSERT
+  WITH CHECK (NOT is_blocked_pair(sender_id, recipient_id));
+
+-- ── 52. get_trending_discussions RPC — AI-ranked trending for AllDiscussionsScreen ─
+CREATE OR REPLACE FUNCTION get_trending_discussions(p_user_id UUID DEFAULT NULL, p_limit INT DEFAULT 10)
+RETURNS TABLE(series_title TEXT, search_key TEXT, lang TEXT, color TEXT, chapters INT, genres TEXT[], recent_count BIGINT, total_count BIGINT, score NUMERIC)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  top_genres TEXT[];
+BEGIN
+  IF p_user_id IS NOT NULL THEN
+    SELECT array_agg(genre) INTO top_genres FROM (
+      SELECT genre FROM user_genre_preferences
+      WHERE user_id = p_user_id ORDER BY weight DESC LIMIT 5
+    ) g;
+  END IF;
+
+  RETURN QUERY
+  WITH counts AS (
+    SELECT
+      c.series_title AS st,
+      COUNT(*) FILTER (WHERE c.created_at > now() - interval '48 hours') AS recent_count,
+      COUNT(*) AS total_count
+    FROM comments c
+    WHERE c.parent_id IS NULL
+    GROUP BY c.series_title
+  )
+  SELECT
+    co.st,
+    mp.search_key,
+    mp.lang,
+    mp.color,
+    mp.chapters,
+    mp.genres,
+    co.recent_count,
+    co.total_count,
+    (co.recent_count * 3 + co.total_count +
+      CASE WHEN top_genres IS NOT NULL AND mp.genres IS NOT NULL AND mp.genres && top_genres THEN 8 ELSE 0 END
+    )::numeric AS score
+  FROM counts co
+  LEFT JOIN manga_pool mp ON mp.title = co.st
+  ORDER BY score DESC
+  LIMIT p_limit;
+END;
+$$;
+REVOKE ALL ON FUNCTION get_trending_discussions(UUID, INT) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION get_trending_discussions(UUID, INT) TO authenticated, anon;

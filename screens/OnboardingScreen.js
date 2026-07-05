@@ -1,4 +1,4 @@
-﻿import {
+import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator,
 } from 'react-native';
@@ -9,6 +9,9 @@ import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
 import { MangaCover } from '../utils/mangaCovers';
 import { GENRES as GENRE_OPTIONS } from '../utils/genres';
+import { useKeyboardPadding } from '../utils/keyboard';
+import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
+import StarLogo from '../components/StarLogo';
 
 const ACCENT = '#1D9E75';
 
@@ -47,6 +50,7 @@ function SignUpGate({ onDone }) {
   const [mode, setMode] = useState('prompt');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordHidden, setPasswordHidden] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -120,8 +124,13 @@ function SignUpGate({ onDone }) {
             placeholderTextColor="#9B9AA3"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={passwordHidden}
           />
+          <TouchableOpacity
+            onPress={() => setPasswordHidden((h) => !h)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name={passwordHidden ? 'eye-outline' : 'eye-off-outline'} size={18} color="#9B9AA3" />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -260,7 +269,7 @@ function Screen3() {
         {HIGHLIGHTS.map((h) => (
           <View key={h.label} style={styles.highlightCard}>
             <View style={styles.highlightIconWrap}>
-              <Ionicons name={h.icon} size={14} color="#534AB7" />
+              <Ionicons name={h.icon} size={14} color="#7B5CFF" />
             </View>
             <Text style={styles.highlightLabel}>{h.label}</Text>
           </View>
@@ -281,7 +290,7 @@ function Screen4() {
         {FEATURES.map((f) => (
           <View key={f.label} style={styles.featureRow}>
             <View style={styles.featureIconWrap}>
-              <Ionicons name={f.icon} size={14} color="#534AB7" />
+              <Ionicons name={f.icon} size={14} color="#7B5CFF" />
             </View>
             <Text style={styles.featureLabel}>{f.label}</Text>
             <View style={styles.featureCheck}>
@@ -313,7 +322,7 @@ function Screen5({ selected, onToggle }) {
               style={[styles.genreBtn, active && styles.genreBtnActive, maxed && styles.genreBtnMaxed]}>
               <Text style={styles.genreEmoji}>{g.emoji}</Text>
               <Text style={[styles.genreLabel, active && styles.genreLabelActive]}>{g.label}</Text>
-              {active && <Ionicons name="checkmark" size={14} color="#534AB7" />}
+              {active && <Ionicons name="checkmark" size={14} color="#7B5CFF" />}
             </TouchableOpacity>
           );
         })}
@@ -355,7 +364,7 @@ function ScreenTaste({ vibe, onVibe, frequency, onFrequency }) {
                 <Text style={[styles.tasteOptionLabel, active && { color: '#fff' }]}>{v.label}</Text>
                 <Text style={styles.tasteOptionDesc}>{v.desc}</Text>
               </View>
-              {active && <Ionicons name="checkmark-circle" size={20} color="#534AB7" />}
+              {active && <Ionicons name="checkmark-circle" size={20} color="#7B5CFF" />}
             </TouchableOpacity>
           );
         })}
@@ -380,17 +389,21 @@ function ScreenTaste({ vibe, onVibe, frequency, onFrequency }) {
   );
 }
 
-function Screen6({ username, onChange }) {
+function Screen6({ username, onChange, status }) {
   return (
     <View style={styles.screenPad}>
       <View style={styles.gateOrb}>
         <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>@</Text>
       </View>
       <Text style={styles.headline}>What should we call you?</Text>
-      <Text style={styles.highlightText}>Choose a username for your Panelr profile.</Text>
+      <Text style={styles.highlightText}>Choose a username for your MangaRecs profile.</Text>
       <Text style={styles.sub}>This is how friends and the community will find you.</Text>
 
-      <View style={styles.usernameWrap}>
+      <View style={[
+        styles.usernameWrap,
+        status === 'available' && { borderColor: 'rgba(29,158,117,0.6)' },
+        status === 'taken' && { borderColor: 'rgba(255,69,58,0.6)' },
+      ]}>
         <Text style={styles.usernameAt}>@</Text>
         <TextInput
           style={styles.usernameInput}
@@ -400,9 +413,13 @@ function Screen6({ username, onChange }) {
           onChangeText={(v) => onChange(v.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())}
           maxLength={20}
           autoCapitalize="none"
+          autoCorrect={false}
         />
+        <UsernameStatusIcon status={status} />
       </View>
-      {username.length > 0 && <Text style={styles.usernamePreview}>@{username} looks great!</Text>}
+      {status === 'available' && <Text style={styles.usernamePreview}>@{username} is available — looks great!</Text>}
+      {status === 'taken' && <Text style={[styles.usernamePreview, { color: '#FF453A' }]}>@{username} is already taken — try another.</Text>}
+      {status === 'invalid' && <Text style={[styles.usernamePreview, { color: '#9B9AA3' }]}>Usernames need at least 3 characters.</Text>}
       <Text style={styles.sub}>You can always change this later in your profile settings.</Text>
     </View>
   );
@@ -416,6 +433,9 @@ export default function OnboardingScreen({ onComplete }) {
   const [username, setUsername] = useState('');
   const [finishing, setFinishing] = useState(false);
 
+  const keyboardPadding = useKeyboardPadding();
+  const usernameStatus = useUsernameAvailability(step === 6 ? username : '');
+
   const totalSteps = 7;
 
   function toggleGenre(g) {
@@ -424,7 +444,10 @@ export default function OnboardingScreen({ onComplete }) {
 
   function canProceed() {
     if (step === 4) return genres.length === 3;
-    if (step === 6) return username.trim().length !== 1; // empty = skip, ≥2 = valid
+    if (step === 6) {
+      if (username.trim().length === 0) return true; // empty = skip
+      return username.trim().length >= 2 && usernameStatus !== 'taken' && usernameStatus !== 'checking';
+    }
     return true;
   }
 
@@ -442,7 +465,7 @@ export default function OnboardingScreen({ onComplete }) {
       } else if (vibe === 'mix') {
         GENRE_OPTIONS.forEach((g) => { initialWeights[g.label] = (initialWeights[g.label] || 0) + 2; });
       }
-      await AsyncStorage.setItem('@panelr_genre_prefs', JSON.stringify(initialWeights));
+      await AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(initialWeights));
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         const updates = {};
@@ -482,9 +505,14 @@ export default function OnboardingScreen({ onComplete }) {
     return (
       <View style={styles.container}>
         <View style={styles.topBar}>
-          <Text style={styles.logo}>Panelr</Text>
+          <View style={styles.logoRow}>
+            <StarLogo size={22} />
+            <Text style={styles.logo}>MangaRecs</Text>
+          </View>
         </View>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
+          keyboardShouldPersistTaps="handled">
           <SignUpGate onDone={() => setStep(0)} />
         </ScrollView>
       </View>
@@ -494,7 +522,10 @@ export default function OnboardingScreen({ onComplete }) {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <Text style={styles.logo}>Panelr</Text>
+        <View style={styles.logoRow}>
+          <StarLogo size={22} />
+          <Text style={styles.logo}>MangaRecs</Text>
+        </View>
         {step < 5 && (
           <TouchableOpacity onPress={handleSkipAll}>
             <Text style={styles.skipText}>Skip</Text>
@@ -516,14 +547,17 @@ export default function OnboardingScreen({ onComplete }) {
         ))}
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
+        keyboardShouldPersistTaps="handled">
         {step === 0 && <Screen1 />}
         {step === 1 && <Screen2 />}
         {step === 2 && <Screen3 />}
         {step === 3 && <Screen4 />}
         {step === 4 && <Screen5 selected={genres} onToggle={toggleGenre} />}
         {step === 5 && <ScreenTaste vibe={vibe} onVibe={setVibe} frequency={frequency} onFrequency={setFrequency} />}
-        {step === 6 && <Screen6 username={username} onChange={setUsername} />}
+        {step === 6 && <Screen6 username={username} onChange={setUsername} status={usernameStatus} />}
       </ScrollView>
 
       <View style={styles.bottomBar}>
@@ -560,21 +594,22 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 8,
   },
-  logo: { color: '#534AB7', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logo: { color: '#7B5CFF', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
   skipText: { color: '#9B9AA3', fontSize: 12, textAlign: 'center', marginTop: 12 },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 12 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#9B9AA3' },
-  dotActive: { width: 24, backgroundColor: '#534AB7' },
+  dotActive: { width: 24, backgroundColor: '#7B5CFF' },
   screenPad: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
   headline: { color: '#fff', fontSize: 26, fontWeight: 'bold', marginBottom: 8, lineHeight: 32 },
-  highlightText: { color: '#534AB7', fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
+  highlightText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
   sub: { color: '#9B9AA3', fontSize: 12, lineHeight: 18, marginBottom: 4 },
   bottomBar: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   ctaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#534AB7',
+    backgroundColor: '#7B5CFF',
     borderRadius: 16,
     paddingVertical: 16,
     gap: 8,
@@ -587,7 +622,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#534AB7',
+    backgroundColor: '#7B5CFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -632,14 +667,14 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#2A2A2F',
   },
   activityAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#534AB7',
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#7B5CFF',
     alignItems: 'center', justifyContent: 'center',
   },
   activityAvatarText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
   activityText: { fontSize: 12, lineHeight: 17 },
   activityUser: { color: '#fff', fontWeight: '600' },
   activityAction: { color: '#9B9AA3' },
-  activityTitle: { color: '#534AB7', fontWeight: '600' },
+  activityTitle: { color: '#7B5CFF', fontWeight: '600' },
   activityTime: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
 
   recCard: {
@@ -658,7 +693,7 @@ const styles = StyleSheet.create({
     padding: 12, backgroundColor: '#1A1A1F', borderWidth: 1, borderColor: '#2A2A2F',
     borderRadius: 12, marginBottom: 8,
   },
-  highlightIconWrap: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.15)' },
+  highlightIconWrap: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.15)' },
   highlightLabel: { color: '#fff', fontSize: 11, fontWeight: '500', flex: 1 },
 
   featureRow: {
@@ -666,7 +701,7 @@ const styles = StyleSheet.create({
     padding: 12, backgroundColor: '#1A1A1F', borderWidth: 1, borderColor: '#2A2A2F',
     borderRadius: 12, marginBottom: 8,
   },
-  featureIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(83,74,183,0.15)', alignItems: 'center', justifyContent: 'center' },
+  featureIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   featureLabel: { color: '#fff', fontSize: 13, fontWeight: '500', flex: 1 },
   featureCheck: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(29,158,117,0.2)', alignItems: 'center', justifyContent: 'center' },
 
@@ -676,7 +711,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12,
     borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#1A1A1F', marginBottom: 4,
   },
-  genreBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.15)' },
+  genreBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
   genreBtnMaxed: { opacity: 0.4 },
   genreEmoji: { fontSize: 18 },
   genreLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
@@ -688,7 +723,7 @@ const styles = StyleSheet.create({
     padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#2A2A2F',
     backgroundColor: '#1A1A1F', marginBottom: 10,
   },
-  tasteOptionActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.12)' },
+  tasteOptionActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.12)' },
   tasteOptionEmoji: { fontSize: 22, width: 30, textAlign: 'center' },
   tasteOptionLabel: { color: '#9B9AA3', fontSize: 14, fontWeight: '600', marginBottom: 2 },
   tasteOptionDesc: { color: 'rgba(155,154,163,0.55)', fontSize: 11 },
@@ -698,7 +733,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
     borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#1A1A1F',
   },
-  freqBtnActive: { borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.12)' },
+  freqBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.12)' },
   freqEmoji: { fontSize: 16 },
   freqLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
 

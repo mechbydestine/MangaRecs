@@ -2,7 +2,7 @@
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, ActivityIndicator, Animated, Platform, AppState, StyleSheet } from 'react-native';
+import { View, Text, Image, Animated, Platform, AppState, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,7 +67,7 @@ const queryClient = new QueryClient();
 async function checkGuidelinesAccepted(userId) {
   // Fast path: local cache (avoids Supabase round-trip on every launch)
   try {
-    const local = await AsyncStorage.getItem('@panelr/guidelines_accepted');
+    const local = await AsyncStorage.getItem('@mangarecs/guidelines_accepted');
     if (local === 'true') return true;
   } catch (_) {}
 
@@ -79,7 +79,7 @@ async function checkGuidelinesAccepted(userId) {
       .eq('id', userId)
       .maybeSingle();
     if (data?.accepted_guidelines === true) {
-      AsyncStorage.setItem('@panelr/guidelines_accepted', 'true').catch(() => {});
+      AsyncStorage.setItem('@mangarecs/guidelines_accepted', 'true').catch(() => {});
       return true;
     }
     return false;
@@ -399,7 +399,7 @@ export default function App() {
         const [sessionResult, onboardingDone, guidelinesLocal, lastSeenVersion] = await Promise.all([
           supabase.auth.getSession(),
           AsyncStorage.getItem('onboarding_complete'),
-          AsyncStorage.getItem('@panelr/guidelines_accepted'),
+          AsyncStorage.getItem('@mangarecs/guidelines_accepted'),
           AsyncStorage.getItem(LAST_SEEN_VERSION_KEY),
           hydrateCoverCache(),
         ]);
@@ -426,7 +426,7 @@ export default function App() {
       setSession(session);
       if (session?.user?.id) {
         registerPushToken(session.user.id);
-        const guidelinesLocal = await AsyncStorage.getItem('@panelr/guidelines_accepted').catch(() => null);
+        const guidelinesLocal = await AsyncStorage.getItem('@mangarecs/guidelines_accepted').catch(() => null);
         if (guidelinesLocal === 'true') {
           setNeedsGuidelines(false);
         } else {
@@ -509,13 +509,13 @@ export default function App() {
 
   if (loading || showIntro === null) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0D0D0F', alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: '#534AB7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-          <Ionicons name="book" size={24} color="#fff" />
+      <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120, marginBottom: 18 }} resizeMode="contain" />
+        <View style={{ flexDirection: 'row' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 }}>Manga</Text>
+          <Text style={{ color: '#B18CFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
         </View>
-        <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', letterSpacing: 1, marginBottom: 8 }}>MangaRecs</Text>
-        <ActivityIndicator size="small" color="#534AB7" style={{ marginTop: 8 }} />
-        <Text style={{ color: '#9B9AA3', fontSize: 12, marginTop: 10 }}>Loading MangaRecs...</Text>
+        <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
       </View>
     );
   }

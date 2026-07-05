@@ -4,8 +4,8 @@ import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { searchMangaDex } from './mangaDexApi';
 
-export const NSFW_KEY   = '@panelr/allowNsfw';
-export const AI_REC_KEY = '@panelr/aiRecommendations';
+export const NSFW_KEY   = '@mangarecs/allowNsfw';
+export const AI_REC_KEY = '@mangarecs/aiRecommendations';
 
 // In-memory cache: key → result object, null (known failure), or undefined (never fetched)
 const _cache = {};
@@ -53,7 +53,7 @@ export function clearAllCoversCache() {
 // ── Persistent cover URL store ─────────────────────────────────────────────
 // Survives app restarts so covers never need re-fetching after the first session.
 
-const COVER_URL_STORE_KEY = '@panelr/cover_urls_v3';
+const COVER_URL_STORE_KEY = '@mangarecs/cover_urls_v3';
 
 export async function hydrateCoverCache() {
   try {

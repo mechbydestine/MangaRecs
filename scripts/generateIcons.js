@@ -2,7 +2,7 @@ const { createCanvas } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
-// ── Panelr icon — manga panel grid forming a "P" on deep cyan-navy ──────────
+// ── MangaRecs icon — manga panel grid forming a "P" on deep cyan-navy ──────────
 
 function drawIcon(size) {
   const c = createCanvas(size, size);
@@ -187,4 +187,4 @@ const favicon = drawIcon(64);
 fs.writeFileSync(path.join(ASSETS, 'favicon.png'), favicon.toBuffer('image/png'));
 console.log('✓ favicon.png');
 
-console.log('\nAll Panelr icons generated.');
+console.log('\nAll MangaRecs icons generated.');
