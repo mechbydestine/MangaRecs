@@ -256,11 +256,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
 
   return (
     <Animated.View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: cardOpacity, transform: [{ scale: cardScale }] }]}>
-      <View style={styles.pollHeader}>
-        <View style={styles.pollTitleRow}>
-          <Ionicons name="bar-chart" size={12} color="#7B5CFF" />
-          <Text style={styles.pollLabel}>Poll of the Week</Text>
-        </View>
+      <View style={[styles.pollHeader, { justifyContent: 'flex-end' }]}>
         {justVoted ? (
           <View style={[styles.liveChip, { backgroundColor: 'rgba(29,158,117,0.15)', borderColor: 'rgba(29,158,117,0.3)' }]}>
             <Ionicons name="checkmark-circle" size={11} color="#1D9E75" />
@@ -1163,6 +1159,31 @@ export default function SocialScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              {pendingRequests.length > 0 && (
+                <View style={styles.msgPendingSection}>
+                  <Text style={[styles.msgPendingLabel, { color: colors.muted }]}>
+                    {pendingRequests.length} pending friend request{pendingRequests.length > 1 ? 's' : ''}
+                  </Text>
+                  {pendingRequests.map((req) => (
+                    <View key={req.friendshipId} style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                      <AvatarCircle username={req.username} avatarUrl={req.avatar_url} color={req.color} size={40} />
+                      <View style={styles.dmConvoContent}>
+                        <Text style={[styles.dmConvoName, { color: colors.text }]} numberOfLines={1}>{req.username}</Text>
+                        <Text style={[styles.dmConvoPreview, { color: colors.muted }]} numberOfLines={1}>wants to be friends</Text>
+                      </View>
+                      <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptRequest(req.friendshipId)}>
+                        <Ionicons name="checkmark" size={14} color="#1D9E75" />
+                        <Text style={styles.acceptBtnText}>Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.declineBtn, { borderColor: colors.border }]}
+                        onPress={() => handleDeclineRequest(req.friendshipId)}>
+                        <Ionicons name="close" size={14} color={colors.muted} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
               {dmConvos.length > 0 ? (
                 dmConvos.map((convo) => (
                   <TouchableOpacity
@@ -1241,7 +1262,7 @@ export default function SocialScreen() {
       {/* ── Add Friend Modal ── */}
       <Modal visible={showAddFriend} animationType="slide" transparent onRequestClose={closeAddFriend}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeAddFriend}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
@@ -1489,7 +1510,6 @@ const styles = StyleSheet.create({
   // ── Poll ──
   pollCard: { marginHorizontal: 20, marginBottom: 24, borderRadius: 16, borderWidth: 1, overflow: 'hidden', padding: 16 },
   pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  pollTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pollLabel: { color: '#7B5CFF', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
   pollQuestion: { fontSize: 15, fontWeight: '700', lineHeight: 22, marginBottom: 14 },
   pollOption: { borderRadius: 10, borderWidth: 1, marginBottom: 8, overflow: 'hidden', height: 44, justifyContent: 'center' },
@@ -1593,6 +1613,8 @@ const styles = StyleSheet.create({
   modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '85%' },
   modalHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  msgPendingSection: { marginBottom: 14, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(155,154,163,0.2)' },
+  msgPendingLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
   modalSub: { fontSize: 12, marginBottom: 16 },
 

@@ -8,6 +8,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
 import { useNotifications } from '../utils/NotificationsContext';
+import StarLogo from '../components/StarLogo';
 
 const TYPE_META = {
   friend_request:  { icon: 'person-add',           color: '#534AB7' },
@@ -27,8 +28,8 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
       style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(83,74,183,0.08)', borderBottomColor: colors.border }]}
       activeOpacity={0.75}
       onPress={() => onNavigate && onNavigate(item)}>
-      <View style={[styles.iconWrap, { backgroundColor: `${meta.color}22` }]}>
-        <Ionicons name={meta.icon} size={18} color={meta.color} />
+      <View style={[styles.iconWrap, { backgroundColor: item.isMangaRec ? 'rgba(123,92,255,0.15)' : `${meta.color}22` }]}>
+        {item.isMangaRec ? <StarLogo size={18} /> : <Ionicons name={meta.icon} size={18} color={meta.color} />}
       </View>
       <View style={styles.body}>
         <Text style={[styles.user, { color: colors.text }]} numberOfLines={2}>
@@ -56,7 +57,7 @@ export default function NotificationsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
-  const { items, loading, load, clearAll: handleClearAll, acceptFriendRequest: handleAccept, markOneRead } = useNotifications();
+  const { items, loading, load, clearAll: handleClearAll, acceptFriendRequest: handleAccept, markOneRead, deleteNotification } = useNotifications();
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -86,7 +87,11 @@ export default function NotificationsScreen() {
               onAccept={handleAccept}
               colors={colors}
               onNavigate={(n) => {
-                markOneRead(n.id);
+                if (n.type === 'direct_message') {
+                  deleteNotification(n.id);
+                } else {
+                  markOneRead(n.id);
+                }
                 if ((n.type === 'friend_request' || n.type === 'friend_accepted') && n.actorId) {
                   navigation.navigate('FriendProfile', { id: n.actorId });
                 } else if (n.type === 'reply' && n.seriesTitle) {

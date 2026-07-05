@@ -12,7 +12,7 @@ function relTime(iso) {
 }
 
 function buildNotification(row) {
-  const isMangaRec = row.type === 'badge' || (row.type === 'direct_message' && row.data?.message_type === 'recommendation' && !row.actor);
+  const isMangaRec = row.type === 'badge' || (row.type === 'direct_message' && row.data?.message_type === 'recommendation');
   const name = isMangaRec ? 'MangaRecs' : (row.actor?.username || 'Someone');
   const d = row.data || {};
   let text = '';

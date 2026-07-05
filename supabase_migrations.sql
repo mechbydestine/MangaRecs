@@ -974,3 +974,19 @@ END;
 $$;
 REVOKE ALL ON FUNCTION get_trending_discussions(UUID, INT) FROM PUBLIC;
 GRANT  EXECUTE ON FUNCTION get_trending_discussions(UUID, INT) TO authenticated, anon;
+
+-- 58. Live bookmark/share counts on manga_pool (FeedScreen always-visible counters)
+ALTER TABLE public.manga_pool ADD COLUMN IF NOT EXISTS bookmark_count integer NOT NULL DEFAULT 0;
+ALTER TABLE public.manga_pool ADD COLUMN IF NOT EXISTS share_count integer NOT NULL DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION increment_manga_bookmarks(p_manga_id text, p_delta integer)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE manga_pool SET bookmark_count = GREATEST(0, bookmark_count + p_delta) WHERE id = p_manga_id;
+END; $$;
+
+CREATE OR REPLACE FUNCTION increment_manga_shares(p_manga_id text, p_delta integer)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE manga_pool SET share_count = GREATEST(0, share_count + p_delta) WHERE id = p_manga_id;
+END; $$;

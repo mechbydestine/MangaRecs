@@ -3,6 +3,20 @@ import { View, StyleSheet, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { searchMangaDex } from './mangaDexApi';
+import { MANGA_POOL } from './mangaPool';
+import { POOL_COVER_URLS } from './mangaPoolCovers';
+
+// Manually-curated pool titles must never go through the fuzzy 5-source live
+// race below — a common-word title like "unOrdinary" can and did match the
+// wrong unrelated series on a fast-but-loose source. Build title/searchKey →
+// baked cover URL once, up front, so pool titles resolve instantly and correctly.
+const _poolCoverByTitle = {};
+for (const m of MANGA_POOL) {
+  const url = POOL_COVER_URLS[m.id];
+  if (!url) continue;
+  _poolCoverByTitle[m.title.toLowerCase().trim()] = url;
+  if (m.searchKey) _poolCoverByTitle[m.searchKey.toLowerCase().trim()] = url;
+}
 
 export const NSFW_KEY   = '@mangarecs/allowNsfw';
 export const AI_REC_KEY = '@mangarecs/aiRecommendations';
@@ -286,6 +300,15 @@ export async function fetchMangaInfo(title, lang) {
   const altKey = `${base}:${!allowNsfw}:${lang || ''}`;
 
   if (_cache[key] !== undefined) return _cache[key];
+
+  // Known pool title — use the manually-verified cover, skip the live race entirely.
+  const bakedUrl = _poolCoverByTitle[base];
+  if (bakedUrl) {
+    const result = { coverUrl: bakedUrl };
+    _cache[key] = result;
+    _cache[altKey] = result;
+    return result;
+  }
 
   // Cross-check the opposite nsfw slot to avoid a redundant network round-trip.
   // Prewarmed covers and covers already fetched in the other slot are reused here.

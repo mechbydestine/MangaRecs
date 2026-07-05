@@ -908,12 +908,17 @@ export default function LibraryScreen() {
       <Modal visible={contextMenu.visible} transparent animationType="fade" onRequestClose={closeContextMenu}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeContextMenu} />
         {contextMenu.pos && (() => {
-          const { width: sw } = Dimensions.get('window');
+          const { width: sw, height: sh } = Dimensions.get('window');
           const menuW = 210;
+          const menuH = 148; // 3 rows + 2 dividers, approx
           const { x, y, width: iw, height: ih } = contextMenu.pos;
-          let menuLeft = x + iw + 6;
-          if (menuLeft + menuW > sw - 8) menuLeft = x - menuW - 6;
-          const menuTop = Math.max(60, y);
+          // Center under the tile, clamped so it never runs off either edge —
+          // the old left/right-of-tile math glitched for middle-column items.
+          let menuLeft = x + iw / 2 - menuW / 2;
+          menuLeft = Math.min(Math.max(menuLeft, 8), sw - menuW - 8);
+          // Prefer below the tile; flip above it if there's no room at the bottom.
+          let menuTop = y + ih + 8;
+          if (menuTop + menuH > sh - 20) menuTop = Math.max(60, y - menuH - 8);
           return (
             <View style={[styles.contextMenu, { top: menuTop, left: menuLeft }]}>
               <TouchableOpacity style={styles.contextMenuItem} onPress={handleDeleteFromLibrary}>

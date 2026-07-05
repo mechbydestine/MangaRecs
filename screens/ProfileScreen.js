@@ -33,6 +33,7 @@ const BIO_SUGGESTIONS = [
   "Here for the plot twists. 📖✨",
   "Webtoon addict. Can't stop, won't stop. 🎨",
   'Reading between the panels. 🖤',
+  'Currently binging way too many series. 📚',
 ];
 
 const FAVES_KEY = '@mangarecs_favorites';
@@ -126,55 +127,25 @@ function StreakCalendar({ dailyLog }) {
 
 // ── PeopleRow (Friends / Followers / Following) ─────────────────────────────
 
-export function PeopleRow({ friends = [], followers = [], following = [], colors, onOpen }) {
+export function PeopleRow({ friends = [], followers = [], following = [], colors, onOpen, style }) {
+  const items = [
+    { key: 'friends',   count: friends.length,   label: 'Friends' },
+    { key: 'followers', count: followers.length, label: 'Followers' },
+    { key: 'following', count: following.length, label: 'Following' },
+  ];
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="people-outline" size={14} color={colors.muted} />
-          <Text style={[styles.sectionTitleText, { color: colors.text }]}>People</Text>
-        </View>
-      </View>
-
-      <View style={styles.peopleStatsRow}>
-        <TouchableOpacity style={styles.peopleStatCell} activeOpacity={0.7} onPress={() => onOpen('friends')}>
-          <Text style={[styles.peopleStatValue, { color: colors.text }]}>{friends.length}</Text>
-          <Text style={[styles.peopleStatLabel, { color: colors.muted }]}>Friends</Text>
+    <View style={[styles.peopleRow, style]}>
+      {items.map((it) => (
+        <TouchableOpacity
+          key={it.key}
+          style={styles.peopleCell}
+          activeOpacity={0.6}
+          onPress={() => onOpen(it.key)}
+          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+          <Text style={[styles.peopleCellCount, { color: colors.text }]}>{it.count}</Text>
+          <Text style={[styles.peopleCellLabel, { color: colors.muted }]}>{it.label}</Text>
         </TouchableOpacity>
-        <View style={[styles.peopleStatDivider, { backgroundColor: colors.border }]} />
-        <TouchableOpacity style={styles.peopleStatCell} activeOpacity={0.7} onPress={() => onOpen('followers')}>
-          <Text style={[styles.peopleStatValue, { color: colors.text }]}>{followers.length}</Text>
-          <Text style={[styles.peopleStatLabel, { color: colors.muted }]}>Followers</Text>
-        </TouchableOpacity>
-        <View style={[styles.peopleStatDivider, { backgroundColor: colors.border }]} />
-        <TouchableOpacity style={styles.peopleStatCell} activeOpacity={0.7} onPress={() => onOpen('following')}>
-          <Text style={[styles.peopleStatValue, { color: colors.text }]}>{following.length}</Text>
-          <Text style={[styles.peopleStatLabel, { color: colors.muted }]}>Following</Text>
-        </TouchableOpacity>
-      </View>
-
-      {friends.length === 0 ? (
-        <Text style={[styles.emptyFriendsText, { color: colors.muted }]}>No friends yet — find people on Social</Text>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {friends.slice(0, 12).map((friend) => (
-            <TouchableOpacity
-              key={friend.id}
-              style={styles.friendItem}
-              activeOpacity={0.75}
-              onPress={() => onOpen('friends')}>
-              <View style={[styles.friendAvatar, friend.online && styles.friendAvatarOnline]}>
-                {friend.avatarUrl ? (
-                  <Image source={{ uri: friend.avatarUrl }} style={styles.friendAvatarImg} />
-                ) : (
-                  <Text style={styles.friendAvatarText}>{friend.avatar}</Text>
-                )}
-              </View>
-              <Text style={[styles.friendName, { color: colors.muted }]} numberOfLines={1}>{friend.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+      ))}
     </View>
   );
 }
@@ -324,7 +295,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (!profile) return;
-    setBio(profile.bio || 'Manga enthusiast. Dark fantasy lover. 🌙');
+    setBio(profile.bio || '');
     setThemeId(profile.color || 'default');
     if (profile.avatar_url) setAvatarUri((prev) => prev || profile.avatar_url);
     if (profile.banner_url) setBannerUri((prev) => prev || profile.banner_url);
@@ -673,7 +644,9 @@ export default function ProfileScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity onPress={() => { setBioDraft(bio); setEditingBio(true); }}>
-                    <Text style={[styles.bioText, { color: colors.muted }]}>{bio}</Text>
+                    <Text style={[styles.bioText, { color: bio ? colors.muted : 'rgba(155,154,163,0.45)' }]}>
+                      {bio || 'Add a bio so friends know your taste…'}
+                    </Text>
                     <Text style={styles.bioEditHint}>tap to edit bio</Text>
                   </TouchableOpacity>
                 )}
@@ -704,14 +677,7 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <StatCard icon="book"   label="Read" value={String(entriesRead)} color="#7B5CFF" anim={stat0Anim} />
-          <StatCard icon="time"   label="Time Read" value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((s, h) => s + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} />
-          <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} />
-        </View>
-
-        {/* Friends · Followers · Following */}
+        {/* Friends · Followers · Following — above the stats */}
         <Animated.View style={{ opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }}>
           <PeopleRow
             friends={friends}
@@ -719,8 +685,16 @@ export default function ProfileScreen() {
             following={followingList}
             colors={colors}
             onOpen={(key) => setShowPeople(key)}
+            style={{ justifyContent: 'center', marginBottom: 16 }}
           />
         </Animated.View>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <StatCard icon="book"   label="Read" value={String(entriesRead)} color="#7B5CFF" anim={stat0Anim} />
+          <StatCard icon="time"   label="Time Read" value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((s, h) => s + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} />
+          <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} />
+        </View>
 
         <PeopleListModal
           visible={!!showPeople}
@@ -1044,20 +1018,16 @@ const styles = StyleSheet.create({
   sectionTitleText: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
   seeAllRow: { flexDirection: 'row', alignItems: 'center' },
   seeAllText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500', marginRight: 2 },
-  emptyFriendsText: { fontSize: 12, fontStyle: 'italic' },
-  friendItem: { alignItems: 'center', marginRight: 16, width: 64 },
   friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(83,74,183,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  friendName: { fontSize: 10, marginTop: 6, textAlign: 'center' },
   friendAvatarImg: { width: '100%', height: '100%', borderRadius: 24 },
 
   // People stats row (Friends / Followers / Following)
-  peopleStatsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  peopleStatCell: { flex: 1, alignItems: 'center', paddingVertical: 6 },
-  peopleStatValue: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-  peopleStatLabel: { fontSize: 11 },
-  peopleStatDivider: { width: 1, height: 24 },
+  peopleRow: { flexDirection: 'row', gap: 22 },
+  peopleCell: { alignItems: 'center' },
+  peopleCellCount: { fontSize: 14, fontWeight: '700' },
+  peopleCellLabel: { fontSize: 10, marginTop: 1 },
 
   // People list modal
   peopleModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24 },

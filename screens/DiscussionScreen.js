@@ -310,7 +310,7 @@ export default function DiscussionScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={insets.top + 56}>
 
       <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
