@@ -59,48 +59,38 @@ const StarLogo = forwardRef(function StarLogo({ size = 38, continuous = false },
     >
       <Svg width={size} height={size} viewBox="0 0 1024 1024">
         <Defs>
-          <RadialGradient id="sl_starGrad" cx="50%" cy="30%" r="65%">
+          {/* Star fill — Figma starGrad: white core → cool lavender tips */}
+          <RadialGradient id="sl_starGrad" cx="50%" cy="32%" r="62%">
             <Stop offset="0%"   stopColor="#FFFFFF" />
-            <Stop offset="30%"  stopColor="#F0E8FF" />
-            <Stop offset="65%"  stopColor="#C4A8FF" />
+            <Stop offset="38%"  stopColor="#EDE5FF" />
+            <Stop offset="78%"  stopColor="#C4A8FF" />
             <Stop offset="100%" stopColor="#9B70FF" />
           </RadialGradient>
 
-          {/* Outer soft glow field */}
-          <RadialGradient id="sl_outerGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%"   stopColor="#7B5CFF" stopOpacity="0.32" />
-            <Stop offset="60%"  stopColor="#5030D0" stopOpacity="0.12" />
-            <Stop offset="100%" stopColor="#3010A0" stopOpacity="0"    />
-          </RadialGradient>
-
-          {/* Ambient halo */}
+          {/* Ambient halo — Figma haloGrad */}
           <RadialGradient id="sl_haloGrad" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%"   stopColor="#7B5CFF" stopOpacity="0.75" />
-            <Stop offset="55%"  stopColor="#4A1FA8" stopOpacity="0.35" />
+            <Stop offset="0%"   stopColor="#6B2FD9" stopOpacity="0.55" />
+            <Stop offset="60%"  stopColor="#4A1FA8" stopOpacity="0.2"  />
             <Stop offset="100%" stopColor="#2D1469" stopOpacity="0"    />
           </RadialGradient>
         </Defs>
 
-        {/* Wide outer glow field */}
-        <Ellipse cx="512" cy="512" rx="510" ry="510" fill="url(#sl_outerGlow)" />
+        {/* Diffuse violet halo (Figma: cx 512 cy 490, rx 320 ry 310) */}
+        <Ellipse cx="512" cy="490" rx="320" ry="310" fill="url(#sl_haloGrad)" />
 
-        {/* Tight ambient halo */}
-        <Ellipse cx="512" cy="495" rx="350" ry="340" fill="url(#sl_haloGrad)" />
-
-        {/* Outer glow ring of the star */}
+        {/* Glow layer — blurred-star stand-in via scaled violet rings
+            (react-native-svg blur filters are unreliable on Android) */}
         <Path
           d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"
           fill="#7C3AFF"
-          opacity="0.35"
-          transform="translate(512 512) scale(1.16) translate(-512 -512)"
+          opacity="0.4"
+          transform="translate(512 512) scale(1.14) translate(-512 -512)"
         />
-
-        {/* Inner glow ring */}
         <Path
           d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"
           fill="#8B50FF"
-          opacity="0.58"
-          transform="translate(512 512) scale(1.07) translate(-512 -512)"
+          opacity="0.55"
+          transform="translate(512 512) scale(1.06) translate(-512 -512)"
         />
 
         {/* Main star */}
@@ -109,11 +99,9 @@ const StarLogo = forwardRef(function StarLogo({ size = 38, continuous = false },
           fill="url(#sl_starGrad)"
         />
 
-        {/* Center void */}
-        <Circle cx="512" cy="512" r="44" fill="#000000" />
-
-        {/* Violet rim */}
-        <Circle cx="512" cy="512" r="44" fill="none" stroke="#7B5CFF" strokeWidth="3" opacity="0.65" />
+        {/* Center void + violet rim — Figma: r 46, fill #0E0820, stroke #5B2FD6 */}
+        <Circle cx="512" cy="512" r="46" fill="#0E0820" />
+        <Circle cx="512" cy="512" r="46" fill="none" stroke="#5B2FD6" strokeWidth="2.5" opacity="0.6" />
       </Svg>
     </Animated.View>
   );

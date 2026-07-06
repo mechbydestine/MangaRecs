@@ -186,7 +186,9 @@ async function refillQueue() {
         ...m,
         genres:        Array.isArray(m.genres) ? m.genres : [],
         likeCount:     m.like_count   || 0,
-        commentCount:  0,
+        commentCount:  m.comment_count || 0,
+        bookmarkCount: m.bookmark_count || 0,
+        shareCount:    m.share_count   || 0,
         liked:         false,
         bookmarked:    false,
         _fromSupabase: true,
@@ -399,12 +401,14 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   const [bookmarked, setBookmarked] = useState(item.bookmarked ?? false);
   const [likeCount,  setLikeCount]  = useState(item.likeCount  ?? item.likes ?? 0);
   const [saveCount,  setSaveCount]  = useState(item.bookmarkCount ?? item.bookmark_count ?? 0);
+  const [shareCount, setShareCount] = useState(item.shareCount ?? item.share_count ?? 0);
 
   // Sync when parent pushes async updates (initial savedMap / server-likes / realtime)
   useEffect(() => { setLiked(item.liked ?? false); }, [item.liked]);
   useEffect(() => { setBookmarked(item.bookmarked ?? false); }, [item.bookmarked]);
   useEffect(() => { setLikeCount(item.likeCount ?? item.likes ?? 0); }, [item.likeCount, item.likes]);
   useEffect(() => { setSaveCount(item.bookmarkCount ?? item.bookmark_count ?? 0); }, [item.bookmarkCount, item.bookmark_count]);
+  useEffect(() => { setShareCount(item.shareCount ?? item.share_count ?? 0); }, [item.shareCount, item.share_count]);
 
   // Priority: Supabase cover_url → pre-baked static URL → in-memory API cache → null
   const [coverUrl, setCoverUrl] = useState(
@@ -586,10 +590,11 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
           <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(item.commentCount || 0)}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={() => pulse(shareScale, () => onShare(item))} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => { setShareCount((c) => c + 1); pulse(shareScale, () => onShare(item)); }} activeOpacity={0.7}>
           <Animated.View style={{ transform: [{ scale: shareScale }] }}>
             <Ionicons name="share-social-outline" size={28} color={cardText} />
           </Animated.View>
+          <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(shareCount)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={handleBookmarkTap} activeOpacity={0.7}>
@@ -607,12 +612,14 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
     </Animated.View>
   );
 }, (prev, next) => (
-  prev.item.feedKey      === next.item.feedKey      &&
-  prev.item.liked        === next.item.liked        &&
-  prev.item.bookmarked   === next.item.bookmarked   &&
-  prev.item.likeCount    === next.item.likeCount    &&
-  prev.item.likes        === next.item.likes        &&
-  prev.item.commentCount === next.item.commentCount
+  prev.item.feedKey       === next.item.feedKey       &&
+  prev.item.liked         === next.item.liked         &&
+  prev.item.bookmarked    === next.item.bookmarked    &&
+  prev.item.likeCount     === next.item.likeCount     &&
+  prev.item.likes         === next.item.likes         &&
+  prev.item.commentCount  === next.item.commentCount  &&
+  prev.item.bookmarkCount === next.item.bookmarkCount &&
+  prev.item.shareCount    === next.item.shareCount
 ));
 
 // ── CommentItem ─────────────────────────────────────────────────────────────
@@ -1059,6 +1066,8 @@ export default function FeedScreen() {
   }
 
   async function handleShareOpen(item) {
+    // Persist the share for the live counter (matches the optimistic +1 on tap)
+    if (item?.id) supabase.rpc('increment_manga_shares', { p_manga_id: item.id, p_delta: 1 }).then(() => {});
     setActiveItem(item);
     setShareProgress(0);
     setShareChapter(1);
@@ -1261,9 +1270,17 @@ export default function FeedScreen() {
       .channel('manga-pool-likes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'manga_pool' }, (payload) => {
         if (payload.new?.id) {
+          const n = payload.new;
           setFeed((prev) => prev.map((item) =>
-            item.id === payload.new.id
-              ? { ...item, likeCount: payload.new.likes ?? item.likeCount, likes: payload.new.likes ?? item.likes }
+            item.id === n.id
+              ? {
+                  ...item,
+                  likeCount:     n.likes ?? item.likeCount,
+                  likes:         n.likes ?? item.likes,
+                  commentCount:  n.comment_count  ?? item.commentCount,
+                  bookmarkCount: n.bookmark_count ?? item.bookmarkCount,
+                  shareCount:    n.share_count    ?? item.shareCount,
+                }
               : item
           ));
         }

@@ -1,7 +1,7 @@
 ﻿import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Dimensions,
-  Animated, RefreshControl,
+  Animated, Easing, RefreshControl,
 } from 'react-native';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -314,6 +314,9 @@ export default function SocialScreen() {
   const logoRef = useRef(null);
   useScrollToTop(scrollRef);
 
+  // Content entrance — fade + rise on every focus for a polished feel
+  const contentAnim = useRef(new Animated.Value(0)).current;
+
   // Tab-icon tap while already on this tab → same refresh + logo spin as pull-to-refresh
   useEffect(() => {
     if (route.params?.refreshAt) { logoRef.current?.spin(); onRefresh(); }
@@ -325,7 +328,16 @@ export default function SocialScreen() {
       loadFriends(uidRef.current);
       loadDMConvos(uidRef.current);
     }
+    contentAnim.setValue(0);
+    Animated.timing(contentAnim, {
+      toValue: 1,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
   }, []));
+
+  const contentTranslateY = contentAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
 
   // Existing state
   const [friends, setFriends] = useState([]);
@@ -962,7 +974,7 @@ export default function SocialScreen() {
         overScrollMode="never"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
 
-        <View style={IS_TABLET ? styles.tabletWrap : null}>
+        <Animated.View style={[IS_TABLET ? styles.tabletWrap : null, { opacity: contentAnim, transform: [{ translateY: contentTranslateY }] }]}>
         {/* Header */}
         <View style={styles.header}>
           <StarLogo ref={logoRef} size={32} />
@@ -1144,7 +1156,7 @@ export default function SocialScreen() {
         ) : null}
 
         <View style={{ height: 88 }} />
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* ── Messages Modal ── */}
