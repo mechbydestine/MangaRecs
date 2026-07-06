@@ -16,6 +16,7 @@ import { useProfile } from '../utils/ProfileContext';
 import { MangaCover } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 import { getMergedDailyLog, calculateStreak, localDateKey } from '../utils/readerUtils';
+import { showAppToast } from '../utils/appToast';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -600,9 +601,16 @@ export default function ProfileScreen() {
   }
 
   async function saveBio() {
-    setBio(bioDraft);
+    const clean = bioDraft.trim();
+    setBio(clean);
     setEditingBio(false);
-    await updateProfile({ bio: bioDraft });
+    const { error } = await updateProfile({ bio: clean });
+    if (error) {
+      showAppToast("Couldn't save bio — try again");
+      setBio(profile?.bio || ''); // roll back to what's actually stored
+    } else {
+      showAppToast('Bio updated', 'success');
+    }
   }
 
   function handleSettingsPress() {

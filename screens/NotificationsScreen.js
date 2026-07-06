@@ -1,5 +1,5 @@
 ﻿import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback } from 'react';
@@ -13,6 +13,7 @@ import StarLogo from '../components/StarLogo';
 const TYPE_META = {
   friend_request:  { icon: 'person-add',           color: '#7B5CFF' },
   friend_accepted: { icon: 'people',               color: '#1D9E75' },
+  follow:          { icon: 'person-add',           color: '#378ADD' },
   like:            { icon: 'heart',                color: '#E8527A' },
   comment:         { icon: 'chatbubble',           color: '#1D9E75' },
   reply:           { icon: 'chatbubble-ellipses',  color: '#7B5CFF' },
@@ -21,16 +22,55 @@ const TYPE_META = {
   direct_message:  { icon: 'chatbubble-ellipses',  color: '#7B5CFF' },
 };
 
-function NotifItem({ item, onAccept, onNavigate, colors }) {
+// Same palette as ProfileScreen/FriendProfileScreen's theme picker — resolves a
+// profile's stored `color` (a theme id like 'rose', or a raw hex for older
+// accounts) down to an actual hex value for the avatar fallback background.
+const THEME_HEX = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD' };
+function resolveAvatarColor(color) {
+  if (!color) return THEME_HEX.default;
+  if (color.startsWith('#')) return color;
+  return THEME_HEX[color] || THEME_HEX.default;
+}
+
+function NotifAvatar({ item }) {
+  // App-generated notifications (badge unlocks, MangaRecs-branded recs):
+  // just the glowy star, no background shape of any kind.
+  if (item.isMangaRec) {
+    return (
+      <View style={styles.starWrap}>
+        <StarLogo size={26} />
+      </View>
+    );
+  }
+  // Real friend/actor: show their actual pfp — image if they have one,
+  // otherwise their profile color with their initial, never a generic icon.
+  if (item.actorId) {
+    return (
+      <View style={[styles.iconWrap, { backgroundColor: resolveAvatarColor(item.actorColor), overflow: 'hidden' }]}>
+        {item.actorAvatarUrl ? (
+          <Image source={{ uri: item.actorAvatarUrl }} style={styles.avatarImg} />
+        ) : (
+          <Text style={styles.avatarInitial}>{item.avatar}</Text>
+        )}
+      </View>
+    );
+  }
+  // No actor and not app-branded (e.g. new-chapter alerts) — generic type icon.
   const meta = TYPE_META[item.type] || TYPE_META.system;
+  return (
+    <View style={[styles.iconWrap, { backgroundColor: `${meta.color}22` }]}>
+      <Ionicons name={meta.icon} size={18} color={meta.color} />
+    </View>
+  );
+}
+
+function NotifItem({ item, onAccept, onNavigate, colors }) {
   return (
     <TouchableOpacity
       style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(123,92,255,0.08)', borderBottomColor: colors.border }]}
       activeOpacity={0.75}
       onPress={() => onNavigate && onNavigate(item)}>
-      <View style={[styles.iconWrap, { backgroundColor: item.isMangaRec ? 'rgba(123,92,255,0.15)' : `${meta.color}22` }]}>
-        {item.isMangaRec ? <StarLogo size={18} /> : <Ionicons name={meta.icon} size={18} color={meta.color} />}
-      </View>
+      <NotifAvatar item={item} />
       <View style={styles.body}>
         <Text style={[styles.user, { color: colors.text }]} numberOfLines={2}>
           <Text style={styles.bold}>{item.type === 'badge' && item.badgeIcon ? `${item.badgeIcon} ` : ''}{item.user}</Text>
@@ -173,6 +213,16 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginTop: 2,
   },
+  starWrap: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  avatarImg: { width: '100%', height: '100%' },
+  avatarInitial: { color: '#fff', fontSize: 15, fontWeight: '700' },
   body:     { flex: 1 },
   user:     { fontSize: 14, lineHeight: 20 },
   bold:     { fontWeight: '600' },
