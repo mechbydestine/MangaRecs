@@ -1,4 +1,4 @@
-﻿{
+{
   "expo": {
     "name": "MangaRecs",
     "slug": "inklore",
@@ -22,7 +22,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Used to upload your profile photo.",
         "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -31,7 +33,7 @@
         "backgroundColor": "#080614"
       },
       "edgeToEdgeEnabled": true,
-      "softwareKeyboardLayoutMode": "adjustResize",
+      "softwareKeyboardLayoutMode": "resize",
       "package": "com.mangarecs.app",
       "permissions": [
         "android.permission.RECORD_AUDIO"
@@ -47,7 +49,9 @@
         "expo-notifications",
         {
           "color": "#7B5CFF",
-          "sounds": ["./assets/sounds/notification.mp3"]
+          "sounds": [
+            "./assets/sounds/notification.mp3"
+          ]
         }
       ],
       [
@@ -55,7 +59,9 @@
         {
           "photosPermission": "Used to select your profile photo."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-asset"
     ],
     "extra": {
       "eas": {
