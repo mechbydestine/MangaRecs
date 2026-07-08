@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
 import { useNotifications } from '../utils/NotificationsContext';
 import StarLogo from '../components/StarLogo';
+import { RowSkeleton } from '../components/Skeleton';
+import { useResponsive } from '../utils/responsive';
 
 const TYPE_META = {
   friend_request:  { icon: 'person-add',           color: '#7B5CFF' },
@@ -72,7 +74,7 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
       onPress={() => onNavigate && onNavigate(item)}>
       <NotifAvatar item={item} />
       <View style={styles.body}>
-        <Text style={[styles.user, { color: colors.text }]} numberOfLines={2}>
+        <Text style={[styles.user, { color: colors.text }]}>
           <Text style={styles.bold}>{item.type === 'badge' && item.badgeIcon ? `${item.badgeIcon} ` : ''}{item.user}</Text>
           {'  '}
           <Text style={[styles.bodyText, { color: colors.muted }]}>{item.text}</Text>
@@ -96,10 +98,16 @@ export default function NotificationsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const tabBarHeight = useBottomTabBarHeight();
-  const { items, loading, load, clearAll: handleClearAll, acceptFriendRequest: handleAccept, markOneRead, deleteNotification } = useNotifications();
+  const { items, loading, load, clearAll: handleClearAll, acceptFriendRequest: handleAccept, markOneRead, markAllSeen, deleteNotification } = useNotifications();
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  // Leaving the screen means everything on it has been seen — clear the badge
+  // (pending friend requests stay unread so their Accept button survives)
+  useFocusEffect(useCallback(() => {
+    load();
+    return () => { markAllSeen(); };
+  }, [load]));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -114,11 +122,12 @@ export default function NotificationsScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="small" color="#7B5CFF" />
+        <View style={[{ paddingTop: 12 }, isTablet && styles.tabletWrap]}>
+          <RowSkeleton count={6} />
         </View>
       ) : (
         <FlatList
+          style={isTablet ? styles.tabletWrap : null}
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -170,7 +179,7 @@ export default function NotificationsScreen() {
             <View style={styles.empty}>
               <Ionicons name="notifications-off-outline" size={40} color={colors.muted} style={{ marginBottom: 12 }} />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>All caught up</Text>
-              <Text style={[styles.emptySub, { color: colors.muted }]}>Friend requests, likes, and badges will show here</Text>
+              <Text style={[styles.emptySub, { color: colors.muted }]}>Friend requests, comments, and messages will show here</Text>
             </View>
           }
         />
@@ -181,6 +190,7 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

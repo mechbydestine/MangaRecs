@@ -1,11 +1,9 @@
 ﻿import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Dimensions,
+  TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
   Animated, Easing, RefreshControl,
 } from 'react-native';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const IS_TABLET = SCREEN_W >= 768;
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigation, useRoute, useScrollToTop, useFocusEffect } from '@react-navigation/native';
@@ -20,8 +18,16 @@ import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats } 
 import { fetchPopularManga } from '../utils/mangaDexApi';
 import { prewarmCoverCache } from '../utils/mangaCovers';
 import StarLogo from '../components/StarLogo';
+import BadgeIcon from '../components/BadgeIcon';
 import { computePresenceStatus, PRESENCE_COLORS, PRESENCE_LABELS } from '../utils/presence';
 import { light } from '../utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useResponsive } from '../utils/responsive';
+
+// Persisted map of partnerId → last time the user opened that DM thread.
+// Survives restarts so unread badges stay cleared even if the server-side
+// read_at write raced or failed.
+const DM_OPENED_KEY = '@mangarecs_dm_opened_at';
 
 const BLOCKED_DOMAINS = [
   'mega.nz', 'drive.google.com', 'mediafire.com', 'zippyshare.com',
@@ -43,7 +49,7 @@ function formatTime(hours) {
 // Profile color is stored as a theme ID ('default','rose',…), not a hex value
 const THEME_COLORS = {
   default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD',
+  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
 };
 function themeColor(colorId) {
   return THEME_COLORS[colorId] || '#7B5CFF';
@@ -91,17 +97,13 @@ function RareBadge({ badgeId }) {
   const badge = ALL_BADGES.find(b => b.id === badgeId);
   if (!badge) return null;
   if (!['purple', 'gold', 'mythic'].includes(badge.grade)) return null;
-  const grade = BADGE_GRADES[badge.grade];
+  // The shield already carries the tier color — no pill wrapper needed
   return (
-    <View style={[rareBadgeStyles.pill, { backgroundColor: grade.bg, borderColor: grade.border }]}>
-      <Text style={rareBadgeStyles.icon}>{badge.icon}</Text>
+    <View style={{ marginRight: 3, marginTop: 2 }}>
+      <BadgeIcon badge={badge} size={16} />
     </View>
   );
 }
-const rareBadgeStyles = StyleSheet.create({
-  pill: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, borderWidth: 1, marginRight: 3, marginTop: 2 },
-  icon: { fontSize: 11, lineHeight: 14 },
-});
 
 // Highest-tier badge a user has earned — mythic > gold > purple > indigo > blue > green > grey
 const LB_GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
@@ -116,19 +118,26 @@ function topBadgeFor(badgeIds) {
   return best;
 }
 
-// Featured badge + time-read, shown side by side per leaderboard row
-function FeaturedBadgeStat({ badge }) {
-  if (!badge) return null;
-  const grade = BADGE_GRADES[badge.grade];
+// Pinned showcase shields per leaderboard row — the user's chosen badges,
+// falling back to their single highest-tier badge when nothing is pinned.
+// Plain shields, no pill wrapper: the shield IS the badge shape.
+function FeaturedBadgeStat({ entry }) {
+  let badges = (entry?.showcase || [])
+    .map((id) => ALL_BADGES.find((b) => b.id === id))
+    .filter(Boolean);
+  if (badges.length === 0) {
+    const top = topBadgeFor(entry?.badges);
+    if (top) badges = [top];
+  }
+  if (badges.length === 0) return null;
   return (
-    <View style={[lbFeaturedStyles.pill, { backgroundColor: grade.bg, borderColor: grade.border }]}>
-      <Text style={lbFeaturedStyles.icon}>{badge.icon}</Text>
+    <View style={lbFeaturedStyles.row}>
+      {badges.map((b) => <BadgeIcon key={b.id} badge={b} size={24} />)}
     </View>
   );
 }
 const lbFeaturedStyles = StyleSheet.create({
-  pill: { width: 26, height: 26, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  icon: { fontSize: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 3 },
 });
 
 // Friend avatar with a corner presence dot — tap to peek status/reading via
@@ -309,9 +318,37 @@ export default function SocialScreen() {
   const route = useRoute();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet: IS_TABLET } = useResponsive();
   const scrollRef = useRef(null);
   const uidRef = useRef(null);
   const logoRef = useRef(null);
+  // Per-partner timestamp of when the user last opened that DM thread — used
+  // to clear unread badges instantly and to ignore the markRead race on focus
+  const dmOpenedAtRef = useRef({});
+
+  // Hydrate the opened-at map from storage (keeping the newest timestamp per
+  // thread), then recount so badges for already-read threads don't reappear
+  // after an app restart or after a DM was opened from a notification
+  async function hydrateDmOpened() {
+    try {
+      const raw = await AsyncStorage.getItem(DM_OPENED_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw);
+      for (const [k, v] of Object.entries(stored)) {
+        if (!dmOpenedAtRef.current[k] || v > dmOpenedAtRef.current[k]) dmOpenedAtRef.current[k] = v;
+      }
+    } catch (_) {}
+  }
+
+  useEffect(() => {
+    hydrateDmOpened().then(() => { if (uidRef.current) loadDMConvos(uidRef.current); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function recordDmOpened(partnerId) {
+    dmOpenedAtRef.current[partnerId] = Date.now();
+    AsyncStorage.setItem(DM_OPENED_KEY, JSON.stringify(dmOpenedAtRef.current)).catch(() => {});
+  }
   useScrollToTop(scrollRef);
 
   // Content entrance — fade + rise on every focus for a polished feel
@@ -326,7 +363,7 @@ export default function SocialScreen() {
   useFocusEffect(useCallback(() => {
     if (uidRef.current) {
       loadFriends(uidRef.current);
-      loadDMConvos(uidRef.current);
+      hydrateDmOpened().then(() => loadDMConvos(uidRef.current));
     }
     contentAnim.setValue(0);
     Animated.timing(contentAnim, {
@@ -346,6 +383,7 @@ export default function SocialScreen() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [leaderboardScope, setLeaderboardScope] = useState('global'); // 'global' | 'friends'
+  const [leaderboardMetric, setLeaderboardMetric] = useState('hours'); // 'hours' | 'chapters' | 'streak'
   const [suggestedFriends, setSuggestedFriends] = useState([]);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -468,8 +506,11 @@ export default function SocialScreen() {
     });
 
     // Real-time online presence: update friends' online status when profiles change
+    // Channel name must be unique per mount: supabase-js returns the existing
+    // (already-subscribed) channel for a reused name, and adding postgres_changes
+    // callbacks to it throws "cannot add callbacks ... after subscribe()".
     presenceChannel = supabase
-      .channel('social-presence')
+      .channel(`social-presence-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
         const updated = payload.new;
         if (updated?.id) {
@@ -500,7 +541,7 @@ export default function SocialScreen() {
     if (!currentUserId) return;
     const uid = currentUserId;
     const dmChannel = supabase
-      .channel(`social-dm-${uid}`)
+      .channel(`social-dm-${uid}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${uid}` },
@@ -670,14 +711,18 @@ export default function SocialScreen() {
 
     if (!data || data.length === 0) { setDmConvos([]); return; }
 
-    // Group by conversation partner, keep most recent message per partner
+    // Group by conversation partner, keep most recent message per partner.
+    // Messages older than the moment the user opened that thread count as read
+    // even if read_at hasn't committed yet — the focus reload races DMScreen's
+    // markRead write, and losing that race left stale unread badges behind.
     const byPartner = {};
     for (const msg of data) {
       const partnerId = msg.sender_id === uid ? msg.recipient_id : msg.sender_id;
       if (!byPartner[partnerId]) {
         byPartner[partnerId] = { lastMsg: msg, unread: 0 };
       }
-      if (msg.recipient_id === uid && !msg.read_at) {
+      const seenLocally = new Date(msg.created_at).getTime() <= (dmOpenedAtRef.current[partnerId] || 0);
+      if (msg.recipient_id === uid && !msg.read_at && !seenLocally) {
         byPartner[partnerId].unread++;
       }
     }
@@ -727,20 +772,33 @@ export default function SocialScreen() {
     setDmConvos(convos);
   }
 
-  async function loadLeaderboard(uid) {
+  const LB_METRIC_COL = { hours: 'hours_read', chapters: 'chapters_read', streak: 'streak_count' };
+  const lbMetricMounted = useRef(false);
+
+  useEffect(() => {
+    if (!lbMetricMounted.current) { lbMetricMounted.current = true; return; }
+    if (currentUserId) loadLeaderboard(currentUserId, leaderboardMetric);
+  }, [leaderboardMetric]);
+
+  async function loadLeaderboard(uid, metric = 'hours') {
     setLeaderboardLoading(true);
+    const orderCol = LB_METRIC_COL[metric] || 'hours_read';
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, color, chapters_read, hours_read, streak_count, avatar_url, friends_count, comments_count, likes_given, series_count, completed_count')
+      .select('id, username, color, chapters_read, hours_read, streak_count, avatar_url, friends_count, comments_count, likes_given, series_count, completed_count, showcase_badges')
       .not('username', 'is', null)
       .neq('username', '')
       .or('hours_read.gt.0,chapters_read.gt.0')
-      .order('hours_read', { ascending: false })
+      .order(orderCol, { ascending: false })
       .limit(50);
     if (!error && data) {
       const entries = data.map((p) => {
         const stats = profileToBadgeStats(p);
-        const earnedBadgeIds = Array.from(computeEarnedBadgeIds(stats));
+        const earnedSet = computeEarnedBadgeIds(stats);
+        // Their pinned showcase, validated against what they actually earned
+        const showcase = (Array.isArray(p.showcase_badges) ? p.showcase_badges : [])
+          .filter((id) => earnedSet.has(id))
+          .slice(0, 3);
         return {
           id: p.id,
           name: p.username || 'Reader',
@@ -750,7 +808,8 @@ export default function SocialScreen() {
           hours: p.hours_read || 0,
           chapters: p.chapters_read || 0,
           streak: p.streak_count || 0,
-          badges: earnedBadgeIds,
+          badges: Array.from(earnedSet),
+          showcase,
           online: false,
           isMe: p.id === uid,
         };
@@ -959,9 +1018,10 @@ export default function SocialScreen() {
   }
 
   const friendIdSet = new Set(friends.map((f) => f.id));
+  const LB_METRIC_KEY = { hours: 'hours', chapters: 'chapters', streak: 'streak' };
   const sortedLeaderboard = [...leaderboard]
     .filter((e) => leaderboardScope === 'global' || e.isMe || friendIdSet.has(e.id))
-    .sort((a, b) => b.hours - a.hours);
+    .sort((a, b) => b[LB_METRIC_KEY[leaderboardMetric]] - a[LB_METRIC_KEY[leaderboardMetric]]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -1202,6 +1262,9 @@ export default function SocialScreen() {
                     key={convo.friendId}
                     style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}
                     onPress={() => {
+                      // Opening the thread — clear its unread badge immediately
+                      recordDmOpened(convo.friendId);
+                      setDmConvos((prev) => prev.map((c) => c.friendId === convo.friendId ? { ...c, unread: 0 } : c));
                       setShowMessages(false);
                       navigation.navigate('DM', {
                         friendId: convo.friendId,
@@ -1429,6 +1492,25 @@ export default function SocialScreen() {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.lbMetricRow}>
+              {[
+                { key: 'hours', label: 'Hours', icon: 'time-outline' },
+                { key: 'chapters', label: 'Chapters', icon: 'book-outline' },
+                { key: 'streak', label: 'Streak', icon: 'flame-outline' },
+              ].map((m) => {
+                const active = leaderboardMetric === m.key;
+                return (
+                  <TouchableOpacity
+                    key={m.key}
+                    style={[styles.lbMetricPill, { borderColor: active ? '#FFD700' : colors.border }, active && { backgroundColor: 'rgba(255,215,0,0.12)' }]}
+                    onPress={() => setLeaderboardMetric(m.key)}>
+                    <Ionicons name={m.icon} size={11} color={active ? '#FFD700' : colors.muted} />
+                    <Text style={[styles.lbMetricText, { color: active ? '#FFD700' : colors.muted }]}>{m.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             <View style={[styles.lbDivider, { backgroundColor: colors.border }]} />
 
             {leaderboardLoading ? (
@@ -1477,10 +1559,16 @@ export default function SocialScreen() {
                       </View>
                     </View>
                     <View style={styles.lbFeaturedStatGroup}>
-                      <FeaturedBadgeStat badge={topBadgeFor(entry.badges)} />
+                      <FeaturedBadgeStat entry={entry} />
                       <View style={styles.lbStat}>
-                        <Text style={[styles.lbStatValue, { color: colors.text }]}>{formatTime(entry.hours)}</Text>
-                        <Text style={[styles.lbStatLabel, { color: colors.muted }]}>read</Text>
+                        <Text style={[styles.lbStatValue, { color: colors.text }]}>
+                          {leaderboardMetric === 'hours' ? formatTime(entry.hours)
+                            : leaderboardMetric === 'chapters' ? entry.chapters.toLocaleString()
+                            : entry.streak.toLocaleString()}
+                        </Text>
+                        <Text style={[styles.lbStatLabel, { color: colors.muted }]}>
+                          {leaderboardMetric === 'hours' ? 'read' : leaderboardMetric === 'chapters' ? 'chapters' : 'streak'}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -1641,6 +1729,9 @@ const styles = StyleSheet.create({
   lbTabActive: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   lbTabText: { fontSize: 11, fontWeight: '600' },
   lbTabEmoji: { fontSize: 11 },
+  lbMetricRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  lbMetricPill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, borderRadius: 9, borderWidth: 1, gap: 4 },
+  lbMetricText: { fontSize: 10, fontWeight: '600' },
   lbDivider: { height: 1, marginBottom: 6 },
   lbRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, marginBottom: 5 },
   lbRowMe: { backgroundColor: 'rgba(123,92,255,0.1)' },

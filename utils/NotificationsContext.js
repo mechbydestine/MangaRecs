@@ -72,7 +72,8 @@ export function NotificationsProvider({ children }) {
     setLoading(false);
     if (error || !data) return;
 
-    const built = data.map(buildNotification);
+    // Badge unlocks are hidden until the badge system rework ships
+    const built = data.filter((row) => row.type !== 'badge').map(buildNotification);
     built.sort((a, b) => Number(a.read) - Number(b.read));
 
     if (built.length === 0) {
@@ -100,10 +101,12 @@ export function NotificationsProvider({ children }) {
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
-      .channel(`notifs-${userId}`)
+      .channel(`notifs-${userId}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        // All events (insert/update/delete) so read-state changes and removals
+        // made on another device sync here instantly too
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
         () => { load(); }
       )
       .subscribe();
@@ -114,6 +117,24 @@ export function NotificationsProvider({ children }) {
     setItems(prev => prev.map(n => ({ ...n, read: true })));
     if (!userId) return;
     supabase.from('notifications').update({ read: true }).eq('user_id', userId).then(() => {});
+  }
+
+  // "Seen" pass: called when the user closes the notification panel/screen.
+  // Marks everything read EXCEPT friend requests that still need an action,
+  // so the unread badge clears but the Accept button stays available.
+  async function markAllSeen() {
+    setItems(prev => prev.map(n => n.type === 'friend_request' ? n : { ...n, read: true }));
+    let uid = userId;
+    if (!uid) {
+      const { data: { session } } = await supabase.auth.getSession();
+      uid = session?.user?.id;
+    }
+    if (!uid) return;
+    supabase.from('notifications')
+      .update({ read: true })
+      .eq('user_id', uid)
+      .neq('type', 'friend_request')
+      .then(() => {});
   }
 
   async function markOneRead(id) {
@@ -181,7 +202,7 @@ export function NotificationsProvider({ children }) {
   }
 
   return (
-    <NotificationsContext.Provider value={{ items, unreadCount, loading, load, markAllRead, markOneRead, deleteNotification, markDmNotifsRead, clearAll, acceptFriendRequest }}>
+    <NotificationsContext.Provider value={{ items, unreadCount, loading, load, markAllRead, markAllSeen, markOneRead, deleteNotification, markDmNotifsRead, clearAll, acceptFriendRequest }}>
       {children}
     </NotificationsContext.Provider>
   );

@@ -5,6 +5,10 @@ import { success as hapticSuccess } from './haptics';
 
 const EARNED_KEY = '@mangarecs/earnedBadgeIds_v1';
 
+// Push/notification-row announcements stay off for now, but newly earned
+// badges are always RETURNED so the in-app unlock ceremony can play.
+const ANNOUNCE_BADGE_UNLOCKS = false;
+
 async function getStoredEarnedIds() {
   try {
     const val = await AsyncStorage.getItem(EARNED_KEY);
@@ -44,6 +48,7 @@ export async function checkAndNotifyBadges(userId, profile) {
 
   await storeEarnedIds(newEarned);
   hapticSuccess();
+  if (!ANNOUNCE_BADGE_UNLOCKS) return newlyEarned;
 
   // Insert activity feed events for each newly earned badge
   supabase.from('activity_feed').insert(

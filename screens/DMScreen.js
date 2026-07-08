@@ -14,10 +14,26 @@ import { supabase } from '../supabase';
 import MobileHeader from '../components/MobileHeader';
 import { MangaCover } from '../utils/mangaCovers';
 import { MANGA_POOL } from '../utils/mangaPool';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Bone } from '../components/Skeleton';
+import { useResponsive } from '../utils/responsive';
+
+// Same key SocialScreen reads — records when this thread was last viewed so
+// its unread badge stays cleared even across app restarts
+const DM_OPENED_KEY = '@mangarecs_dm_opened_at';
+async function recordThreadOpened(friendId) {
+  if (!friendId) return;
+  try {
+    const raw = await AsyncStorage.getItem(DM_OPENED_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[friendId] = Date.now();
+    await AsyncStorage.setItem(DM_OPENED_KEY, JSON.stringify(map));
+  } catch (_) {}
+}
 
 const THEME_COLORS = {
   default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD',
+  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
 };
 function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
 
@@ -168,6 +184,7 @@ export default function DMScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const tabBarHeight = useBottomTabBarHeight();
   const { markDmNotifsRead } = useNotifications();
 
@@ -206,7 +223,9 @@ export default function DMScreen() {
   // Realtime: append incoming messages from the other person instantly
   useEffect(() => {
     if (!myId || !friendId) return;
-    const channelKey = `dm-${[myId, friendId].sort().join('-')}`;
+    // Unique per mount — the same thread can be opened from two tab stacks, and a
+    // reused channel name makes supabase-js throw when callbacks are re-added.
+    const channelKey = `dm-${[myId, friendId].sort().join('-')}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
       .channel(channelKey)
       .on(
@@ -230,6 +249,7 @@ export default function DMScreen() {
   }, [myId, friendId]);
 
   useFocusEffect(useCallback(() => {
+    recordThreadOpened(friendId);
     if (myId) {
       loadMessages(myId);
       markRead(myId);
@@ -238,6 +258,7 @@ export default function DMScreen() {
     return () => {
       // Leaving the thread: everything on screen has been seen — clear read state
       // and the notification badge on the way out too.
+      recordThreadOpened(friendId);
       if (myId) {
         markRead(myId);
         markDmNotifsRead(friendId);
@@ -384,8 +405,10 @@ export default function DMScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
 
         {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#7B5CFF" />
+          <View style={[{ flex: 1, justifyContent: 'flex-end', paddingBottom: 16, gap: 12, paddingHorizontal: 16 }, isTablet && styles.tabletWrap]}>
+            {[64, 40, 88, 52, 72].map((w, i) => (
+              <Bone key={i} width={`${w}%`} height={38} radius={16} style={{ alignSelf: i % 2 ? 'flex-end' : 'flex-start' }} />
+            ))}
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyWrap}>
@@ -402,7 +425,7 @@ export default function DMScreen() {
             ref={listRef}
             data={messages}
             keyExtractor={(m) => m.id}
-            contentContainerStyle={styles.msgList}
+            contentContainerStyle={[styles.msgList, isTablet && styles.tabletWrap]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
@@ -421,7 +444,7 @@ export default function DMScreen() {
         )}
 
         {/* Input bar */}
-        <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }]}>
+        <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }, isTablet && styles.tabletWrap]}>
           <TouchableOpacity style={styles.recBtn} onPress={() => setShowPicker(true)} activeOpacity={0.8}>
             <Ionicons name="paper-plane-outline" size={22} color="#7B5CFF" />
           </TouchableOpacity>
@@ -484,6 +507,7 @@ export default function DMScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // Header avatar

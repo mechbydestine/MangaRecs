@@ -13,10 +13,14 @@ import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
 import { clearBadgeCache } from '../utils/badgeEngine';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
+import { CHANGELOG } from '../utils/changelog';
+import { useResponsive } from '../utils/responsive';
 
 const NOTIFS_KEY      = '@mangarecs/notifPrefs';
 const READER_MODE_KEY = '@mangarecs/readerMode';
 const PAGE_ANIM_KEY   = '@mangarecs/pageAnim';
+const APP_VERSION     = Constants.expoConfig?.version || '1.0.0';
 
 function WebtoonIcon({ active }) {
   const arrowY = useRef(new Animated.Value(0)).current;
@@ -171,6 +175,7 @@ export default function SettingsScreen({ navigation }) {
   const { theme, setTheme, colors } = useTheme();
   const { profile, updateProfile } = useProfile();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
 
   const [username, setUsername] = useState('');
   const [usernameDraft, setUsernameDraft] = useState('');
@@ -203,6 +208,7 @@ export default function SettingsScreen({ navigation }) {
 
   const [cacheCleared, setCacheCleared] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('free');
@@ -334,6 +340,7 @@ export default function SettingsScreen({ navigation }) {
       <MobileHeader title="Settings" />
 
       <ScrollView showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
+        <View style={isTablet ? styles.tabletWrap : null}>
 
         <SectionCard title="Username" icon="person-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>Display name shown across MangaRecs</Text>
@@ -427,7 +434,7 @@ export default function SettingsScreen({ navigation }) {
               </View>
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
                 {ageVerified
-                  ? 'Show 18+ content in your Recs feed and search results.'
+                  ? 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.'
                   : 'Verify your age to unlock adult content.'}
               </Text>
             </View>
@@ -656,11 +663,15 @@ export default function SettingsScreen({ navigation }) {
           <SettingsRow icon="people-outline" label="Community Guidelines" desc="Read our community standards" onPress={() => navigation.navigate('Guidelines')} />
           <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
           <SettingsRow icon="document-text-outline" label="Terms of Use" onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
-          <View style={[styles.settingsRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.settingsRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+            onPress={() => setShowChangelog(true)}
+            activeOpacity={0.7}>
             <Ionicons name="information-circle-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
             <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>App Version</Text>
-            <Text style={[styles.versionText, { color: colors.muted }]}>v1.0.0</Text>
-          </View>
+            <Text style={[styles.versionText, { color: colors.muted }]}>v{APP_VERSION}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
         </SectionCard>
 
         <SectionCard title="Account" icon="person-circle-outline">
@@ -685,6 +696,7 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.signOutText}>Log Out</Text>
         </TouchableOpacity>
 
+        </View>
       </ScrollView>
 
       {/* ── Delete Account Confirmation ── */}
@@ -829,6 +841,40 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showChangelog} animationType="slide" transparent onRequestClose={() => setShowChangelog(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>What's New</Text>
+                <Text style={[styles.modalSub, { color: colors.muted }]}>Updates & bug fixes</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowChangelog(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+              {CHANGELOG.map((entry, i) => (
+                <View key={entry.version} style={[styles.changelogEntry, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                  <View style={styles.changelogEntryHeader}>
+                    <Text style={[styles.changelogVersion, { color: colors.text }]}>v{entry.version}</Text>
+                    <Text style={[styles.changelogDate, { color: colors.muted }]}>{entry.date}</Text>
+                  </View>
+                  {entry.highlights.map((h, hi) => (
+                    <View key={hi} style={[styles.featureRow, { alignItems: 'flex-start' }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#7B5CFF" style={{ marginTop: 2 }} />
+                      <Text style={[styles.featureText, { color: colors.text, flex: 1, flexShrink: 1 }]}>{h}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -845,6 +891,7 @@ const iconStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   card: { borderRadius: 16, marginBottom: 16, borderWidth: 1, overflow: 'hidden' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
   cardHeaderTitle: { fontSize: 11, fontWeight: '600', letterSpacing: 1, marginLeft: 8, textTransform: 'uppercase' },
@@ -931,6 +978,10 @@ const styles = StyleSheet.create({
   whatsIncluded: { fontSize: 11, fontWeight: '600', letterSpacing: 1, marginBottom: 12, marginTop: 4 },
   featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   featureText: { fontSize: 14, marginLeft: 10 },
+  changelogEntry: { paddingTop: 12, paddingBottom: 4 },
+  changelogEntryHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 },
+  changelogVersion: { fontSize: 16, fontWeight: '700' },
+  changelogDate: { fontSize: 12 },
   ctaBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
   ctaBtnMax: { backgroundColor: '#FFD700' },
   ctaBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

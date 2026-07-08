@@ -1,6 +1,6 @@
 ﻿import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Modal,
-  ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator, Platform,
+  ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator, Platform, PanResponder,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -13,22 +13,59 @@ import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead } from '../utils/readerUtils';
-import { getLatestChapter, searchMangaDexList } from '../utils/mangaDexApi';
+import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
-import { MANGA_POOL } from '../utils/mangaPool';
+import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds } from '../utils/mangaPool';
+import { CoverGridSkeleton } from '../components/Skeleton';
+import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
+import { rateSeries, getSeriesRating } from '../utils/ratings';
+import { useResponsive, TABLET_GRID_MAX_WIDTH } from '../utils/responsive';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
 const TABS = ['Reading', 'Completed', 'Bookmarked', 'Downloaded'];
 const UPDATE_CACHE_KEY = '@mangarecs/updates_cache';
 const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+const RATINGS_CACHE_KEY = '@mangarecs/ratings_cache';
+const RATINGS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const SORT_MODE_KEY = '@mangarecs/library_sort_mode';
+const CUSTOM_ORDER_KEY = '@mangarecs/library_custom_order';
+const SORT_MODES = [
+  { key: 'recent', label: 'Recent' },
+  { key: 'alpha',  label: 'A–Z' },
+  { key: 'custom', label: 'Custom' },
+];
+
+// Stable identity for a library item across tabs and sessions
+const keyOf = (s) => s.searchKey || s.title;
+
+// Find the pool entry for a library item by title or searchKey (either side)
+function findPoolEntry(title, searchKey) {
+  return MANGA_POOL.find((m) =>
+    m.title === title || m.searchKey === title ||
+    (searchKey && (m.title === searchKey || m.searchKey === searchKey))
+  );
+}
 
 
 // ── GridItem with entrance animation ──────────────────────────────────────
 
-function GridItem({ series, activeTab, onPress, onLongPress, index, opening, hasUpdate }) {
+function GridItem({ series, activeTab, onPress, onLongPress, index, opening, hasUpdate, isNewInPool, arranging, pinned, onSlotLayout, onDragStart, onDrop, widthPct }) {
   const { colors } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
+  const wiggle = useRef(new Animated.Value(0)).current;
+  const pan = useRef(new Animated.ValueXY()).current;
+  const [dragging, setDragging] = useState(false);
   const containerRef = useRef(null);
+
+  // Refs so the once-created PanResponder always sees current values
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const canDragRef = useRef(false);
+  canDragRef.current = arranging && !pinned;
+  const onDragStartRef = useRef(onDragStart);
+  onDragStartRef.current = onDragStart;
+  const onDropRef = useRef(onDrop);
+  onDropRef.current = onDrop;
 
   useEffect(() => {
     anim.setValue(0);
@@ -40,12 +77,49 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, has
     }).start();
   }, [activeTab]);
 
+  // App-icon style jiggle while arrange mode is on (pinned tiles sit still)
+  useEffect(() => {
+    if (!arranging || pinned) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(wiggle, { toValue: 1,  duration: 130, useNativeDriver: true }),
+      Animated.timing(wiggle, { toValue: -1, duration: 260, useNativeDriver: true }),
+      Animated.timing(wiggle, { toValue: 0,  duration: 130, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => { loop.stop(); wiggle.setValue(0); };
+  }, [arranging, pinned]);
+
+  // Drag-to-rearrange: capture the touch before the inner Touchable when
+  // arrange mode is on, follow the finger, and let the parent work out the
+  // drop slot from the release offset.
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponderCapture: () => canDragRef.current,
+    onMoveShouldSetPanResponderCapture: () => canDragRef.current,
+    onPanResponderGrant: () => { setDragging(true); onDragStartRef.current?.(); },
+    onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+    onPanResponderRelease: (_, g) => {
+      setDragging(false);
+      pan.setValue({ x: 0, y: 0 });
+      onDropRef.current?.(indexRef.current, g.dx, g.dy);
+    },
+    onPanResponderTerminate: () => {
+      setDragging(false);
+      pan.setValue({ x: 0, y: 0 });
+      onDropRef.current?.(indexRef.current, 0, 0);
+    },
+  })).current;
+
   const opacity    = anim;
   const scale      = anim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] });
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [6, 0] });
+  const rotate     = wiggle.interpolate({ inputRange: [-1, 1], outputRange: ['-2deg', '2deg'] });
 
   const isSaved     = series.savedFromFeed;
   const progressPct = series.progress ?? 0;
+  // Only claim a percentage when the chapter total is actually known —
+  // fallback progress values (unknown totals) would show made-up numbers
+  const hasRealTotal = (series.chapters || 0) > 0 && (series.chapters || 0) < 999;
+  const showPct = progressPct > 0 && (hasRealTotal || progressPct >= 1) && (activeTab === 'Reading' || activeTab === 'Completed');
 
   function handleLongPress() {
     if (containerRef.current && onLongPress) {
@@ -56,9 +130,14 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, has
   }
 
   return (
-    <Animated.View ref={containerRef} style={[styles.gridItem, { opacity, transform: [{ scale }, { translateY }] }]}>
-      <TouchableOpacity onPress={onPress} onLongPress={handleLongPress} delayLongPress={400} activeOpacity={0.82} disabled={opening}>
-        <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} style={styles.cover}>
+    <Animated.View
+      ref={containerRef}
+      onLayout={(e) => onSlotLayout?.(index, e.nativeEvent.layout)}
+      {...panResponder.panHandlers}
+      style={[styles.gridItem, { width: `${widthPct}%` }, dragging && styles.gridItemDragging, { transform: pan.getTranslateTransform() }]}>
+      <Animated.View style={{ opacity, transform: [{ scale }, { translateY }, { rotate }] }}>
+      <TouchableOpacity onPress={onPress} onLongPress={handleLongPress} delayLongPress={400} activeOpacity={0.82} disabled={opening || arranging}>
+        <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} contentRating={series.contentRating} nsfw={series.nsfw} style={styles.cover}>
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${progressPct * 100}%` }]} />
           </View>
@@ -77,17 +156,27 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, has
             </View>
           )}
 
-          {hasUpdate && (
+          {hasUpdate ? (
+            <View style={[styles.updateBadge, styles.newChapterBadge]}>
+              <Text style={styles.updateBadgeText}>NEW CHAPTER</Text>
+            </View>
+          ) : isNewInPool ? (
             <View style={styles.updateBadge}>
               <Text style={styles.updateBadgeText}>NEW</Text>
             </View>
-          )}
+          ) : null}
 
           {progressPct >= 1 && (
             <View style={styles.completeOverlay}>
               <View style={styles.completePill}>
                 <Text style={styles.completePillText}>COMPLETE</Text>
               </View>
+            </View>
+          )}
+
+          {hasRealTotal && (
+            <View style={styles.chapterCountBadge}>
+              <Text style={styles.chapterCountText}>{series.chapters} ch</Text>
             </View>
           )}
 
@@ -100,13 +189,29 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, has
           {opening ? 'Opening…' : series.title}
         </Text>
         <View style={styles.itemMeta}>
-          <Ionicons name="star" size={10} color="#FFD700" />
-          <Text style={[styles.itemRating, { color: colors.muted }]}>{series.rating}</Text>
-          {progressPct > 0 && (
-            <Text style={[styles.itemProgress, { color: colors.muted }]}>{Math.floor(progressPct * 100)}%</Text>
+          {activeTab === 'Downloaded' ? (
+            // Downloads have no rating — show what actually matters offline
+            <Text style={[styles.itemRating, { color: colors.muted }]} numberOfLines={1}>
+              {series.chapterLabel || `Ch. ${series.chapter || 1}`}{series.pageCount ? ` · ${series.pageCount} pgs` : ''}
+            </Text>
+          ) : (
+            <>
+              {series.rating ? (
+                <>
+                  <Ionicons name="star" size={10} color="#FFD700" />
+                  <Text style={[styles.itemRating, { color: colors.muted }]}>{Number(series.rating).toFixed(1)}</Text>
+                </>
+              ) : null}
+              {showPct && (
+                <Text style={[styles.itemProgress, progressPct >= 1 ? { color: '#1D9E75' } : { color: colors.muted }]}>
+                  {Math.min(100, Math.max(1, Math.round(progressPct * 100)))}%
+                </Text>
+              )}
+            </>
           )}
         </View>
       </TouchableOpacity>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -143,13 +248,16 @@ function TabButton({ tab, active, onPress }) {
   );
 }
 
-// Derive column count from screen width so tablets get more columns
-const { width: SCREEN_W } = Dimensions.get('window');
-const NUM_COLS = SCREEN_W >= 768 ? 4 : 3;
+// Column count and item width are derived per-render from live window width
+// (see useResponsive() in the screen body) so rotating/resizing a tablet
+// updates the grid instead of freezing whatever Dimensions.get() returned at
+// module load.
 const ITEM_MARGIN_H = 1.0; // % each side
 // Budget 99% not 100% — an exactly-full row wraps its last item due to
 // sub-pixel rounding, collapsing the grid to 2 columns.
-const ITEM_W_PCT = (99 - NUM_COLS * ITEM_MARGIN_H * 2) / NUM_COLS;
+function itemWidthPct(numCols) {
+  return (99 - numCols * ITEM_MARGIN_H * 2) / numCols;
+}
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 
@@ -158,6 +266,9 @@ export default function LibraryScreen() {
   const { colors } = useTheme();
   const { profile, updateProfile, refreshProfile } = useProfile();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
+  const numCols = isTablet ? 4 : 3;
+  const gridItemWidthPct = itemWidthPct(numCols);
   const [activeTab, setActiveTab] = useState('Reading');
   const [savedItems, setSavedItems] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -171,12 +282,32 @@ export default function LibraryScreen() {
   const [deletedIds, setDeletedIds] = useState(new Set());
   const [completedIds, setCompletedIds] = useState(new Set());
   const [contextMenu, setContextMenu] = useState({ visible: false, series: null, pos: null });
+  const [rateModal, setRateModal] = useState({ visible: false, series: null, avg: 0, count: 0, yourRating: 0, loading: false, submitting: false });
   const [progressRows, setProgressRows] = useState([]);
   const [lastReadEntry, setLastReadEntry] = useState(null);
   const [historyItems, setHistoryItems] = useState([]);
   const [openingId, setOpeningId] = useState(null);
   const [libLoading, setLibLoading] = useState(true);
   const [updatesSet, setUpdatesSet] = useState(new Set());
+  const [newPoolIds, setNewPoolIds] = useState(new Set());
+  const [ratingsMap, setRatingsMap] = useState({});
+  const ratingsFetchedRef = useRef(new Set());
+  const [sortMode, setSortMode] = useState('recent');
+  const [customOrder, setCustomOrder] = useState([]);
+  const [arranging, setArranging] = useState(false);
+  const [scrollLocked, setScrollLocked] = useState(false);
+  const slotRects = useRef({});
+  const [userId, setUserId] = useState(null);
+
+  // Restore sort preference and the user's custom arrangement
+  useEffect(() => {
+    AsyncStorage.getItem(SORT_MODE_KEY).then((v) => {
+      if (v && SORT_MODES.some((m) => m.key === v)) setSortMode(v);
+    }).catch(() => {});
+    AsyncStorage.getItem(CUSTOM_ORDER_KEY).then((v) => {
+      try { if (v) setCustomOrder(JSON.parse(v)); } catch (_) {}
+    }).catch(() => {});
+  }, []);
 
   // Reload saved items, reading progress, and replay grid animations every time this tab gains focus
   useFocusEffect(
@@ -184,10 +315,14 @@ export default function LibraryScreen() {
       refreshProfile();
       setFocusKey((k) => k + 1);
       setOpeningId(null);
+      setArranging(false);
+      setScrollLocked(false);
       setLibLoading(true);
 
       // Load most recently read series for Continue Reading card
       getLastRead().then((lr) => { if (lr) setLastReadEntry(lr); });
+      // Which pool entries appeared recently (green NEW badge)
+      getRecentlyAddedIds().then(setNewPoolIds);
       // Load full reading history for the Reading tab; also kick off background update check
       getReadingHistory().then((items) => {
         setHistoryItems(items);
@@ -196,6 +331,7 @@ export default function LibraryScreen() {
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         const uid = session?.user?.id;
+        setUserId(uid || null);
 
         // Load local bookmarks first, then merge with Supabase (avoids race condition)
         AsyncStorage.getItem('@mangarecs_saved').then((val) => {
@@ -216,16 +352,20 @@ export default function LibraryScreen() {
                 const localTitles = new Set(localItems.map((s) => s.title));
                 const serverBookmarks = data
                   .filter((r) => r.status === 'bookmarked' && !localTitles.has(r.series_title))
-                  .map((r) => ({
-                    id: `sb-${r.series_title}`,
-                    title: r.series_title,
-                    searchKey: r.series_title,
-                    rating: null,
-                    progress: 0,
-                    chapters: 0,
-                    color: '#1A1A2E',
-                    bookmarked: true,
-                  }));
+                  .map((r) => {
+                    const pool = findPoolEntry(r.series_title);
+                    return {
+                      id: `sb-${r.series_title}`,
+                      title: r.series_title,
+                      searchKey: pool?.searchKey || r.series_title,
+                      lang: pool?.lang || 'ja',
+                      rating: pool?.rating || null,
+                      progress: 0,
+                      chapters: pool?.chapters || 0,
+                      color: pool?.color || '#1A1A2E',
+                      bookmarked: true,
+                    };
+                  });
                 setSavedItems([...serverBookmarks, ...localItems]);
               } else {
                 setSavedItems(localItems);
@@ -333,22 +473,56 @@ export default function LibraryScreen() {
 
   const staticPool = [];
 
+  // ── Auto-complete ─────────────────────────────────────────────────────────
+  // A series read to its final chapter that is *known* to be finished (pool
+  // status or the concluded-series list) moves itself to Completed — no need
+  // to long-press "Mark as Completed".
+
+  function isKnownFinished(title) {
+    const pool = MANGA_POOL.find((m) => m.title === title || m.searchKey === title);
+    if (!pool) return false;
+    return pool.status === 'completed' || COMPLETED_IDS.has(String(pool.id));
+  }
+
+  useEffect(() => {
+    if (!userId || progressRows.length === 0) return;
+    const done = progressRows.filter((r) =>
+      r.status === 'reading' &&
+      (r.total_chapters || 0) > 0 &&
+      (r.current_chapter || 0) >= r.total_chapters &&
+      isKnownFinished(r.series_title)
+    );
+    if (done.length === 0) return;
+    const titles = new Set(done.map((r) => r.series_title));
+    setProgressRows((prev) => prev.map((r) => titles.has(r.series_title) ? { ...r, status: 'completed' } : r));
+    done.forEach((r) => {
+      supabase.from('reading_progress')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('user_id', userId).eq('series_title', r.series_title)
+        .then(() => {});
+    });
+  }, [progressRows, userId]);
+
   const liveReading = (() => {
     if (!profile?.currently_reading) return null;
     const prog = progressRows.find((r) => r.series_title === profile.currently_reading);
-    const liveProgress = prog?.total_chapters
-      ? Math.min((prog.current_chapter || 1) / prog.total_chapters, 0.99)
-      : prog?.current_chapter ? 0.1 : 0;
+    const pool = findPoolEntry(profile.currently_reading);
+    // Real chapter total: synced progress first, then the pool's known count —
+    // never invent a percentage from a fallback total
+    const total = prog?.total_chapters || pool?.chapters || 0;
+    const liveProgress = total
+      ? Math.min((prog?.current_chapter || 1) / total, 0.99)
+      : 0;
     return {
       id: 'live',
       title: profile.currently_reading,
-      searchKey: profile.currently_reading,
-      lang: 'ja',
-      color: '#1A1A2E',
+      searchKey: pool?.searchKey || profile.currently_reading,
+      lang: pool?.lang || 'ja',
+      color: pool?.color || '#1A1A2E',
       currentChapter: prog?.current_chapter || profile.current_chapter || 1,
-      chapters: prog?.total_chapters || 999,
+      chapters: total || 999,
       progress: liveProgress,
-      rating: null,
+      rating: pool?.rating || null,
     };
   })();
 
@@ -374,7 +548,8 @@ export default function LibraryScreen() {
     .filter((r) => !baseReadingSeries.some((s) => s.title === r.series_title))
     .filter((r) => r.series_title && !INVALID_HIST_TITLE.test(r.series_title.trim()) && !r.series_title.startsWith('http'))
     .map((r) => {
-      const pool = MANGA_POOL.find((m) => m.title === r.series_title || m.searchKey === r.series_title);
+      const pool = findPoolEntry(r.series_title);
+      const total = r.total_chapters || pool?.chapters || 0;
       return {
         id: `prog-${r.series_title}`,
         title: r.series_title,
@@ -382,8 +557,8 @@ export default function LibraryScreen() {
         lang: pool?.lang || 'ja',
         color: pool?.color || '#1A1A2E',
         currentChapter: r.current_chapter || 1,
-        chapters: r.total_chapters || 999,
-        progress: r.total_chapters ? Math.min(r.current_chapter / r.total_chapters, 0.99) : 0.1,
+        chapters: total || 999,
+        progress: total ? Math.min((r.current_chapter || 1) / total, 0.99) : 0,
         rating: pool?.rating || null,
       };
     });
@@ -405,20 +580,24 @@ export default function LibraryScreen() {
       if (/\.(com|to|net|io|org|me|pro|xyz|app|moe|gg)\b/.test(h.title.toLowerCase())) return false;
       return true;
     })
-    .map((h) => ({
-      id: `hist-${h.searchKey}`,
-      title: h.title,
-      searchKey: h.searchKey || h.title,
-      lang: h.lang || 'ja',
-      color: h.color || '#1A1A2E',
-      currentChapter: h.chapter || 1,
-      chapterLabel: h.chapterLabel || `Chapter ${h.chapter || 1}`,
-      chapters: h.chapters || 999,
-      progress: h.chapters && h.chapters < 999 ? Math.min((h.chapter || 1) / h.chapters, 0.99) : 0.05,
-      rating: h.rating || null,
-      url: h.url || null,
-      site: h.site || null,
-    }));
+    .map((h) => {
+      const pool = findPoolEntry(h.title, h.searchKey);
+      const total = (h.chapters && h.chapters < 999) ? h.chapters : (pool?.chapters || 0);
+      return {
+        id: `hist-${h.searchKey}`,
+        title: h.title,
+        searchKey: h.searchKey || h.title,
+        lang: h.lang || 'ja',
+        color: h.color || '#1A1A2E',
+        currentChapter: h.chapter || 1,
+        chapterLabel: h.chapterLabel || `Chapter ${h.chapter || 1}`,
+        chapters: total || 999,
+        progress: total ? Math.min((h.chapter || 1) / total, 0.99) : 0,
+        rating: h.rating || pool?.rating || null,
+        url: h.url || null,
+        site: h.site || null,
+      };
+    });
 
   const liveReadingValid = liveReading
     && !deletedIds.has('live')
@@ -438,7 +617,7 @@ export default function LibraryScreen() {
     ...progressRows
       .filter((r) => (r.status === 'completed' || completedIds.has(r.series_title)) && !deletedIds.has(r.series_title))
       .map((r) => {
-        const pool = MANGA_POOL.find((m) => m.title === r.series_title || m.searchKey === r.series_title);
+        const pool = findPoolEntry(r.series_title);
         return {
           id: `comp-${r.series_title}`,
           title: r.series_title,
@@ -446,7 +625,7 @@ export default function LibraryScreen() {
           lang: pool?.lang || 'ja',
           color: pool?.color || '#1A1A2E',
           currentChapter: r.current_chapter || 1,
-          chapters: r.total_chapters || 999,
+          chapters: r.total_chapters || pool?.chapters || 999,
           progress: 1,
           rating: pool?.rating || null,
         };
@@ -474,7 +653,9 @@ export default function LibraryScreen() {
     switch (activeTab) {
       case 'Reading':    return readingSeries;
       case 'Completed':  return completedSeries;
-      case 'Bookmarked': return savedItems.filter((item) => !deletedIds.has(item.id)).map((item) => ({
+      // Downloaded chapters live in the same saved list but belong to their
+      // own tab — keep them out of Bookmarked
+      case 'Bookmarked': return savedItems.filter((item) => !item.downloaded && !deletedIds.has(item.id)).map((item) => ({
         ...item,
         progress: 0,
         savedFromFeed: true,
@@ -485,7 +666,87 @@ export default function LibraryScreen() {
       default:           return [];
     }
   }
-  const filtered = getFilteredSeries();
+
+  // Sort the grid per the user's mode, then pin new-chapter entries to the
+  // top of Reading — sticky updates win over every sort mode, including Custom.
+  function applySort(list) {
+    let sorted = list;
+    if (sortMode === 'alpha') {
+      sorted = [...list].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else if (sortMode === 'custom' && customOrder.length) {
+      const pos = new Map(customOrder.map((k, i) => [k, i]));
+      sorted = list
+        .map((s, i) => ({ s, rank: pos.has(keyOf(s)) ? pos.get(keyOf(s)) : customOrder.length + i }))
+        .sort((a, b) => a.rank - b.rank)
+        .map((x) => x.s);
+    }
+    if (activeTab === 'Reading' && updatesSet.size) {
+      const pinned = sorted.filter((s) => updatesSet.has(keyOf(s)));
+      if (pinned.length) sorted = [...pinned, ...sorted.filter((s) => !updatesSet.has(keyOf(s)))];
+    }
+    return sorted;
+  }
+  const filtered = applySort(getFilteredSeries());
+  const pinnedCount = activeTab === 'Reading'
+    ? filtered.filter((s) => updatesSet.has(keyOf(s))).length
+    : 0;
+
+  function changeSortMode(mode) {
+    light();
+    setArranging(false);
+    setScrollLocked(false);
+    setSortMode(mode);
+    AsyncStorage.setItem(SORT_MODE_KEY, mode).catch(() => {});
+    // Entering Custom for the first time: seed the order from what's on
+    // screen so rearranging starts from a familiar arrangement
+    if (mode === 'custom' && customOrder.length === 0) {
+      const seed = filtered.map(keyOf);
+      setCustomOrder(seed);
+      AsyncStorage.setItem(CUSTOM_ORDER_KEY, JSON.stringify(seed)).catch(() => {});
+    }
+  }
+
+  function toggleArranging() {
+    medium();
+    const next = !arranging;
+    setArranging(next);
+    if (!next) setScrollLocked(false);
+    if (next && customOrder.length === 0) {
+      const seed = filtered.map(keyOf);
+      setCustomOrder(seed);
+      AsyncStorage.setItem(CUSTOM_ORDER_KEY, JSON.stringify(seed)).catch(() => {});
+    }
+  }
+
+  // A tile was dragged and released: find the slot whose center is nearest to
+  // where the tile landed, insert it there, and persist. Drops are clamped
+  // below the pinned new-chapter section so sticky updates never move.
+  function handleDrop(fromIndex, dx, dy) {
+    setScrollLocked(false);
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return; // treat as a stray tap
+    const from = slotRects.current[fromIndex];
+    if (!from) return;
+    const cx = from.x + from.width / 2 + dx;
+    const cy = from.y + from.height / 2 + dy;
+    let target = fromIndex;
+    let best = Infinity;
+    for (let i = 0; i < filtered.length; i++) {
+      const r = slotRects.current[i];
+      if (!r) continue;
+      const d = Math.hypot(r.x + r.width / 2 - cx, r.y + r.height / 2 - cy);
+      if (d < best) { best = d; target = i; }
+    }
+    target = Math.max(target, pinnedCount);
+    if (target === fromIndex) return;
+    const keys = filtered.map(keyOf);
+    const [moved] = keys.splice(fromIndex, 1);
+    keys.splice(target, 0, moved);
+    // Keep custom positions of series from other tabs
+    const merged = [...keys, ...customOrder.filter((k) => !keys.includes(k))];
+    setCustomOrder(merged);
+    AsyncStorage.setItem(CUSTOM_ORDER_KEY, JSON.stringify(merged)).catch(() => {});
+    hapticSuccess();
+  }
 
   async function openReader(series) {
     setOpeningId(series.id);
@@ -587,6 +848,63 @@ export default function LibraryScreen() {
       setUpdatesSet(newUpdates);
     } catch (_) {}
   }
+
+  // Resolve real community ratings for library items the pool doesn't cover:
+  // find each item's MangaDex id (reader resume data, then title search), pull
+  // the statistics endpoint in one batch, cache for 7 days. Items MangaDex has
+  // no rating for yet (brand-new series) stay blank on purpose.
+  async function resolveRatingsInBackground(items) {
+    const need = items
+      .filter((s) => !s.rating && (s.searchKey || s.title) && !ratingsFetchedRef.current.has(s.searchKey || s.title))
+      .slice(0, 20);
+    if (!need.length) return;
+    need.forEach((s) => ratingsFetchedRef.current.add(s.searchKey || s.title));
+    try {
+      const cacheRaw = await AsyncStorage.getItem(RATINGS_CACHE_KEY);
+      const cache = cacheRaw ? JSON.parse(cacheRaw) : {};
+      const now = Date.now();
+      const found = {};
+      const toFetch = [];
+      for (const s of need) {
+        const key = s.searchKey || s.title;
+        const cached = cache[key];
+        if (cached && now - cached.ts < RATINGS_CACHE_TTL) {
+          if (cached.rating) found[key] = cached.rating;
+          continue;
+        }
+        let mangaId = s.mangaId || null;
+        if (!mangaId) {
+          const resumeRaw = await AsyncStorage.getItem('@mangarecs/resume/' + encodeURIComponent(key)).catch(() => null);
+          if (resumeRaw) {
+            try { mangaId = JSON.parse(resumeRaw)?.mangaId || null; } catch (_) {}
+          }
+        }
+        if (!mangaId) {
+          const match = await searchMangaDex(key);
+          mangaId = match?.id || null;
+        }
+        if (mangaId) toFetch.push({ key, mangaId });
+        else cache[key] = { ts: now, rating: null };
+      }
+      if (toFetch.length) {
+        const stats = await getMangaStatistics(toFetch.map((t) => t.mangaId));
+        toFetch.forEach(({ key, mangaId }) => {
+          const rating = stats[mangaId] || null;
+          cache[key] = { ts: now, rating };
+          if (rating) found[key] = rating;
+        });
+      }
+      await AsyncStorage.setItem(RATINGS_CACHE_KEY, JSON.stringify(cache)).catch(() => {});
+      if (Object.keys(found).length) setRatingsMap((prev) => ({ ...prev, ...found }));
+    } catch (_) {}
+  }
+
+  // Kick off rating resolution whenever the visible list changes (debounced)
+  useEffect(() => {
+    if (activeTab === 'Downloaded' || libLoading) return;
+    const timer = setTimeout(() => resolveRatingsInBackground(getFilteredSeries()), 400);
+    return () => clearTimeout(timer);
+  }, [activeTab, progressRows, historyItems, savedItems, libLoading]);
 
   async function handleDeleteFromLibrary() {
     const series = contextMenu.series;
@@ -713,9 +1031,41 @@ export default function LibraryScreen() {
         data: { series_title: series.title },
       }).then(() => {});
 
-      // Increment completed_count in profile for badge tracking
-      const prev = profile?.completed_count || 0;
-      updateProfile({ completed_count: prev + 1 });
+      // Server-side capped increment (completed_count is no longer client-writable)
+      supabase.rpc('increment_completed_count').then(() => refreshProfile?.());
+    }
+  }
+
+  async function handleOpenRateModal() {
+    const series = contextMenu.series;
+    closeContextMenu();
+    if (!series?.title) return;
+    setRateModal({ visible: true, series, avg: 0, count: 0, yourRating: 0, loading: true, submitting: false });
+    const result = await getSeriesRating(series.title);
+    setRateModal((prev) => prev.series?.title === series.title
+      ? { ...prev, avg: result.avg || 0, count: result.count || 0, yourRating: result.yourRating || 0, loading: false }
+      : prev);
+  }
+
+  async function handleSubmitRating(stars) {
+    const series = rateModal.series;
+    if (!series?.title || !userId || rateModal.submitting) return;
+    hapticSuccess();
+    setRateModal((prev) => ({ ...prev, yourRating: stars, submitting: true }));
+    try {
+      const poolEntry = findPoolEntry(series.title, series.searchKey);
+      const genres = series.genres || poolEntry?.genres || [];
+      const result = await rateSeries(userId, series.title, stars, genres);
+      if (result) {
+        setRateModal((prev) => prev.series?.title === series.title
+          ? { ...prev, avg: result.avg, count: result.count, submitting: false }
+          : { ...prev, submitting: false });
+        refreshProfile?.();
+      } else {
+        setRateModal((prev) => ({ ...prev, submitting: false }));
+      }
+    } catch (_) {
+      setRateModal((prev) => ({ ...prev, submitting: false }));
     }
   }
 
@@ -741,16 +1091,20 @@ export default function LibraryScreen() {
               const localTitles = new Set(localItems.map((s) => s.title));
               const serverBookmarks = data
                 .filter((r) => r.status === 'bookmarked' && !localTitles.has(r.series_title))
-                .map((r) => ({
-                  id: `sb-${r.series_title}`,
-                  title: r.series_title,
-                  searchKey: r.series_title,
-                  rating: null,
-                  progress: 0,
-                  chapters: 0,
-                  color: '#1A1A2E',
-                  bookmarked: true,
-                }));
+                .map((r) => {
+                  const pool = findPoolEntry(r.series_title);
+                  return {
+                    id: `sb-${r.series_title}`,
+                    title: r.series_title,
+                    searchKey: pool?.searchKey || r.series_title,
+                    lang: pool?.lang || 'ja',
+                    rating: pool?.rating || null,
+                    progress: 0,
+                    chapters: pool?.chapters || 0,
+                    color: pool?.color || '#1A1A2E',
+                    bookmarked: true,
+                  };
+                });
               setSavedItems([...serverBookmarks, ...localItems]);
             });
           }
@@ -778,6 +1132,7 @@ export default function LibraryScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
+        scrollEnabled={!scrollLocked}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
 
         <View style={styles.headerRow}>
@@ -843,8 +1198,28 @@ export default function LibraryScreen() {
 
         <View style={[styles.tabsRow, { backgroundColor: colors.border }]}>
           {TABS.map((tab) => (
-            <TabButton key={tab} tab={tab} active={activeTab === tab} onPress={setActiveTab} />
+            <TabButton key={tab} tab={tab} active={activeTab === tab} onPress={(t) => { setArranging(false); setScrollLocked(false); setActiveTab(t); }} />
           ))}
+        </View>
+
+        <View style={styles.sortRow}>
+          <Ionicons name="swap-vertical" size={12} color={colors.muted} />
+          {SORT_MODES.map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.sortChip, { backgroundColor: colors.border }, sortMode === key && styles.sortChipActive]}
+              onPress={() => changeSortMode(key)}>
+              <Text style={[styles.sortChipText, { color: sortMode === key ? '#7B5CFF' : colors.muted }]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+          {sortMode === 'custom' && (
+            <TouchableOpacity
+              style={[styles.arrangeBtn, arranging && styles.arrangeBtnActive]}
+              onPress={toggleArranging}>
+              <Ionicons name={arranging ? 'checkmark' : 'move-outline'} size={11} color={arranging ? '#fff' : '#7B5CFF'} />
+              <Text style={[styles.arrangeBtnText, arranging && { color: '#fff' }]}>{arranging ? 'Done' : 'Move'}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {activeTab === 'Downloaded' && filtered.length > 0 && (
@@ -872,26 +1247,38 @@ export default function LibraryScreen() {
             <Text style={[styles.emptySub, { color: colors.muted }]}>Tap Save on any series in your feed </Text>
           </View>
         ) : (
-          <View style={styles.grid}>
-            {filtered.map((series, index) => (
-              <GridItem
-                key={`${focusKey}-${activeTab}-${series.id}`}
-                series={series}
-                activeTab={activeTab}
-                index={index}
-                onPress={() => openReader(series)}
-                onLongPress={handleLongPress}
-                opening={openingId === series.id}
-                hasUpdate={updatesSet.has(series.searchKey || series.title)}
-              />
-            ))}
+          <View style={[styles.grid, isTablet && styles.gridTablet]}>
+            {filtered.map((series, index) => {
+              const metaKey = keyOf(series);
+              const rating = series.rating || ratingsMap[metaKey] || ratingsMap[series.title] || null;
+              const pool = findPoolEntry(series.title, series.searchKey);
+              return (
+                <GridItem
+                  key={`${focusKey}-${activeTab}-${series.id}`}
+                  series={rating === series.rating ? series : { ...series, rating }}
+                  activeTab={activeTab}
+                  index={index}
+                  widthPct={gridItemWidthPct}
+                  onPress={() => { if (!arranging) openReader(series); }}
+                  onLongPress={handleLongPress}
+                  opening={openingId === series.id}
+                  hasUpdate={updatesSet.has(metaKey)}
+                  isNewInPool={!!pool && newPoolIds.has(String(pool.id))}
+                  arranging={arranging}
+                  pinned={index < pinnedCount}
+                  onSlotLayout={(i, layout) => { slotRects.current[i] = layout; }}
+                  onDragStart={() => { setScrollLocked(true); light(); }}
+                  onDrop={handleDrop}
+                />
+              );
+            })}
           </View>
         )}
 
         {filtered.length === 0 && activeTab !== 'Bookmarked' && activeTab !== 'Downloaded' && (
           libLoading ? (
-            <View style={styles.emptyState}>
-              <ActivityIndicator color="#7B5CFF" size="large" />
+            <View style={{ paddingTop: 8 }}>
+              <CoverGridSkeleton count={6} columns={numCols} />
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -910,7 +1297,7 @@ export default function LibraryScreen() {
         {contextMenu.pos && (() => {
           const { width: sw, height: sh } = Dimensions.get('window');
           const menuW = 210;
-          const menuH = 148; // 3 rows + 2 dividers, approx
+          const menuH = 184; // 4 rows + 3 dividers, approx
           const { x, y, width: iw, height: ih } = contextMenu.pos;
           // Center under the tile, clamped so it never runs off either edge —
           // the old left/right-of-tile math glitched for middle-column items.
@@ -935,9 +1322,36 @@ export default function LibraryScreen() {
                 <Ionicons name="checkmark-circle-outline" size={15} color="#1D9E75" />
                 <Text style={[styles.contextMenuText, { color: '#1D9E75' }]}>Mark as Completed</Text>
               </TouchableOpacity>
+              <View style={styles.contextDivider} />
+              <TouchableOpacity style={styles.contextMenuItem} onPress={handleOpenRateModal}>
+                <Ionicons name="star-outline" size={15} color="#FFD700" />
+                <Text style={styles.contextMenuText}>Rate this Series</Text>
+              </TouchableOpacity>
             </View>
           );
         })()}
+      </Modal>
+
+      {/* ── Rate Series Modal ── */}
+      <Modal visible={rateModal.visible} transparent animationType="fade" onRequestClose={() => setRateModal((p) => ({ ...p, visible: false }))}>
+        <TouchableOpacity style={styles.rateOverlay} activeOpacity={1} onPress={() => setRateModal((p) => ({ ...p, visible: false }))}>
+          <TouchableOpacity style={[styles.rateSheet, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={1}>
+            <Text style={[styles.rateTitle, { color: colors.text }]} numberOfLines={1}>{rateModal.series?.title}</Text>
+            {rateModal.loading ? (
+              <ActivityIndicator size="small" color="#7B5CFF" style={{ marginVertical: 20 }} />
+            ) : (
+              <>
+                <StarRatingDisplay avg={rateModal.avg} count={rateModal.count} size={14} />
+                <Text style={[styles.rateSub, { color: colors.muted }]}>
+                  {rateModal.yourRating ? 'Tap to change your rating' : 'Tap to rate'}
+                </Text>
+                <View style={{ marginTop: 10 }}>
+                  <StarRatingInput value={rateModal.yourRating} onRate={handleSubmitRating} size={32} disabled={rateModal.submitting} />
+                </View>
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       <Modal visible={searchOpen} animationType="fade" transparent onRequestClose={closeSearch}>
@@ -1051,7 +1465,7 @@ export default function LibraryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, marginBottom: 16 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold' },
+  headerTitle: { fontSize: 18, fontWeight: '700' },
   streakBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   streakText: { color: '#FF9500', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
@@ -1068,14 +1482,22 @@ const styles = StyleSheet.create({
   continuePlayBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(123,92,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   continueProgressBar: { height: 3, backgroundColor: 'rgba(123,92,255,0.18)', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
   continueProgressFill: { height: 3, backgroundColor: '#7B5CFF', borderRadius: 2 },
-  tabsRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 20, marginBottom: 20 },
+  tabsRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 20, marginBottom: 10 },
+  sortRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
+  sortChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, marginLeft: 6 },
+  sortChipActive: { backgroundColor: 'rgba(123,92,255,0.18)' },
+  sortChipText: { fontSize: 10.5, fontWeight: '600' },
+  arrangeBtn: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(123,92,255,0.14)' },
+  arrangeBtnActive: { backgroundColor: '#7B5CFF' },
+  arrangeBtnText: { fontSize: 10.5, fontWeight: '700', color: '#7B5CFF', marginLeft: 4 },
   tab: { flex: 1, borderRadius: 9, overflow: 'hidden' },
   tabInner: { paddingVertical: 8, paddingHorizontal: 2, alignItems: 'center' },
   tabActive: {},
   tabText: { fontSize: 11, fontWeight: '500' },
   tabTextActive: { fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16 },
-  gridItem: { width: `${ITEM_W_PCT}%`, marginHorizontal: `${ITEM_MARGIN_H}%`, marginBottom: 20 },
+  gridTablet: { maxWidth: TABLET_GRID_MAX_WIDTH, width: '100%', alignSelf: 'center' },
+  gridItem: { marginHorizontal: `${ITEM_MARGIN_H}%`, marginBottom: 20 },
   cover: { width: '100%', aspectRatio: 0.66, borderRadius: 12, overflow: 'hidden', marginBottom: 6 },
   progressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(0,0,0,0.4)' },
   progressFill: { height: 3, backgroundColor: '#7B5CFF' },
@@ -1083,10 +1505,14 @@ const styles = StyleSheet.create({
   downloadedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, padding: 3 },
   cloudBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 },
   updateBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: '#1D9E75', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+  newChapterBadge: { backgroundColor: '#FF3B30' },
+  gridItemDragging: { zIndex: 100, elevation: 8, opacity: 0.92 },
   updateBadgeText: { color: '#fff', fontSize: 8, fontWeight: 'bold', letterSpacing: 0.3 },
   completeOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   completePill: { backgroundColor: '#1D9E75', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   completePillText: { color: '#fff', fontSize: 9, fontWeight: 'bold', paddingRight: 2 },
+  chapterCountBadge: { position: 'absolute', bottom: 7, right: 6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+  chapterCountText: { color: '#fff', fontSize: 8.5, fontWeight: '700', letterSpacing: 0.2 },
   coverCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   coverLetter: { color: 'rgba(255,255,255,0.15)', fontSize: 26, fontWeight: 'bold' },
   itemTitle: { fontSize: 11.5, fontWeight: '600' },
@@ -1100,6 +1526,10 @@ const styles = StyleSheet.create({
   contextMenuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13 },
   contextMenuText: { color: '#E8E8F0', fontSize: 13, fontWeight: '500', marginLeft: 10, flex: 1 },
   contextDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)' },
+  rateOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  rateSheet: { width: '100%', maxWidth: 320, borderRadius: 18, borderWidth: 1, padding: 22, alignItems: 'center' },
+  rateTitle: { fontSize: 15, fontWeight: '700', marginBottom: 10, maxWidth: '100%' },
+  rateSub: { fontSize: 11, marginTop: 10 },
   searchOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   searchPanel: { position: 'absolute', top: 50, left: 16, right: 16, borderRadius: 16, borderWidth: 1, overflow: 'hidden', maxHeight: '75%' },
   searchInputRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 1 },

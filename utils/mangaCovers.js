@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
+import { View, Text, StyleSheet, Linking, Platform } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { searchMangaDex } from './mangaDexApi';
 import { MANGA_POOL } from './mangaPool';
@@ -33,6 +34,13 @@ async function getAllowNsfw() {
   return _nsfwCache;
 }
 export function invalidateNsfwCache() { _nsfwCache = null; }
+
+// MangaDex contentRating values that must stay blurred until the Adult
+// Content toggle is on — "safe" is the only rating that's always shown clear.
+const GATED_RATINGS = new Set(['suggestive', 'erotica', 'pornographic']);
+export function isRatingGated(contentRating) {
+  return GATED_RATINGS.has(contentRating);
+}
 
 // Concurrency limiter: at most 20 cover fetches in flight simultaneously
 let _active = 0;
@@ -353,19 +361,46 @@ export function getCachedCoverUrl(title, lang) {
   );
 }
 
-export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', style, children }) {
+export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', coverUrl: knownCoverUrl, contentRating, nsfw, style, children }) {
   const lookupTitle = searchKey || title;
-  const [coverUrl, setCoverUrl] = useState(() => getCachedCoverUrl(lookupTitle, lang));
+  // A known URL (e.g. stored on a favorite when it was added) wins — no title
+  // search needed, so the cover shows instantly and can't miss. Falls back to
+  // the search pipeline if the known URL ever fails to load.
+  const [knownFailed, setKnownFailed] = useState(false);
+  const useKnown = !!knownCoverUrl && !knownFailed;
+  const [coverUrl, setCoverUrl] = useState(() => knownCoverUrl || getCachedCoverUrl(lookupTitle, lang));
+  const [allowNsfw, setAllowNsfwState] = useState(_nsfwCache === true);
+  useEffect(() => { getAllowNsfw().then(setAllowNsfwState); }, []);
+  const gated = (isRatingGated(contentRating) || nsfw === true) && !allowNsfw;
 
   useEffect(() => {
+    if (useKnown) { setCoverUrl(knownCoverUrl); return; }
     let cancelled = false;
-    fetchMangaInfo(lookupTitle, lang).then((info) => {
-      if (!cancelled && info?.coverUrl) setCoverUrl(info.coverUrl);
-    });
-    return () => { cancelled = true; };
-  }, [title, searchKey, lang]);
+    let timer = null;
+    let attempt = 0;
+    // Failed lookups are not negatively cached (see fetchMangaInfo), so retry
+    // with backoff — otherwise a cover that failed once at mount (rate limit,
+    // flaky network at app start) stays blank until the component remounts.
+    function load() {
+      fetchMangaInfo(lookupTitle, lang).then((info) => {
+        if (cancelled) return;
+        if (info?.coverUrl) { setCoverUrl(info.coverUrl); return; }
+        if (attempt < 3) {
+          attempt++;
+          timer = setTimeout(load, 2500 * attempt);
+        }
+      }).catch(() => {});
+    }
+    load();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [title, searchKey, lang, useKnown, knownCoverUrl]);
 
   function onError() {
+    if (useKnown) {
+      setKnownFailed(true);
+      setCoverUrl(getCachedCoverUrl(lookupTitle, lang));
+      return;
+    }
     clearCoverCache(lookupTitle, lang);
     setCoverUrl(null);
   }
@@ -379,8 +414,15 @@ export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', style, c
           contentFit="cover"
           cachePolicy="disk"
           transition={140}
+          blurRadius={gated ? (Platform.OS === 'ios' ? 26 : 14) : 0}
           onError={onError}
         />
+      )}
+      {gated && (
+        <View style={coverStyles.gateOverlay} pointerEvents="none">
+          <Ionicons name="lock-closed" size={16} color="#fff" />
+          <Text style={coverStyles.gateText}>18+</Text>
+        </View>
       )}
       {children}
     </View>
@@ -407,4 +449,12 @@ export function getFaviconUrl(siteUrl) {
 
 const coverStyles = StyleSheet.create({
   wrap: { overflow: 'hidden' },
+  gateOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    gap: 4,
+  },
+  gateText: { color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
 });

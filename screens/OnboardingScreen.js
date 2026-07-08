@@ -12,6 +12,7 @@ import { GENRES as GENRE_OPTIONS } from '../utils/genres';
 import { useKeyboardPadding } from '../utils/keyboard';
 import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
 import StarLogo from '../components/StarLogo';
+import { useResponsive } from '../utils/responsive';
 
 const ACCENT = '#1D9E75';
 
@@ -320,7 +321,7 @@ function Screen5({ selected, onToggle }) {
               onPress={() => !maxed && onToggle(g.label)}
               disabled={maxed}
               style={[styles.genreBtn, active && styles.genreBtnActive, maxed && styles.genreBtnMaxed]}>
-              <Text style={styles.genreEmoji}>{g.emoji}</Text>
+              <Ionicons name={active ? (g.iconActive || g.icon) : g.icon} size={17} color={active ? '#7B5CFF' : '#9B9AA3'} />
               <Text style={[styles.genreLabel, active && styles.genreLabelActive]}>{g.label}</Text>
               {active && <Ionicons name="checkmark" size={14} color="#7B5CFF" />}
             </TouchableOpacity>
@@ -435,6 +436,7 @@ export default function OnboardingScreen({ onComplete }) {
 
   const keyboardPadding = useKeyboardPadding();
   const usernameStatus = useUsernameAvailability(step === 6 ? username : '');
+  const { isTablet } = useResponsive();
 
   const totalSteps = 7;
 
@@ -513,7 +515,9 @@ export default function OnboardingScreen({ onComplete }) {
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
           keyboardShouldPersistTaps="handled">
-          <SignUpGate onDone={() => setStep(0)} />
+          <View style={isTablet ? styles.tabletWrap : null}>
+            <SignUpGate onDone={() => setStep(0)} />
+          </View>
         </ScrollView>
       </View>
     );
@@ -551,16 +555,18 @@ export default function OnboardingScreen({ onComplete }) {
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
         keyboardShouldPersistTaps="handled">
-        {step === 0 && <Screen1 />}
-        {step === 1 && <Screen2 />}
-        {step === 2 && <Screen3 />}
-        {step === 3 && <Screen4 />}
-        {step === 4 && <Screen5 selected={genres} onToggle={toggleGenre} />}
-        {step === 5 && <ScreenTaste vibe={vibe} onVibe={setVibe} frequency={frequency} onFrequency={setFrequency} />}
-        {step === 6 && <Screen6 username={username} onChange={setUsername} status={usernameStatus} />}
+        <View style={isTablet ? styles.tabletWrap : null}>
+          {step === 0 && <Screen1 />}
+          {step === 1 && <Screen2 />}
+          {step === 2 && <Screen3 />}
+          {step === 3 && <Screen4 />}
+          {step === 4 && <Screen5 selected={genres} onToggle={toggleGenre} />}
+          {step === 5 && <ScreenTaste vibe={vibe} onVibe={setVibe} frequency={frequency} onFrequency={setFrequency} />}
+          {step === 6 && <Screen6 username={username} onChange={setUsername} status={usernameStatus} />}
+        </View>
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, isTablet && styles.tabletWrap]}>
         <TouchableOpacity
           style={[styles.ctaBtn, (!canProceed() || finishing) && styles.ctaBtnDisabled]}
           onPress={handleNext}
@@ -586,6 +592,7 @@ export default function OnboardingScreen({ onComplete }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0D0D0F' },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -713,7 +720,6 @@ const styles = StyleSheet.create({
   },
   genreBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
   genreBtnMaxed: { opacity: 0.4 },
-  genreEmoji: { fontSize: 18 },
   genreLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
   genreLabelActive: { color: '#fff' },
   genreCount: { color: '#9B9AA3', fontSize: 12, textAlign: 'center', marginTop: 16 },
