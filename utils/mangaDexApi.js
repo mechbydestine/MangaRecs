@@ -72,6 +72,7 @@ export async function searchMangaDexList(query, { limit = 8, allowNsfw = false }
         coverUrl,
         lang: manga.attributes?.originalLanguage || 'ja',
         chapters: Number.isFinite(lastCh) && lastCh > 0 ? Math.round(lastCh) : 0,
+        contentRating: manga.attributes?.contentRating || 'safe',
       };
     });
   } catch (_) {
@@ -112,7 +113,7 @@ export async function searchMangaDex(query, { lang, allowNsfw = false } = {}) {
     const titleObj = manga.attributes?.title || {};
     const title = titleObj.en || Object.values(titleObj)[0] || query;
 
-    return { id: manga.id, title, coverUrl };
+    return { id: manga.id, title, coverUrl, contentRating: manga.attributes?.contentRating || 'safe' };
   } catch (_) {
     return null;
   }
@@ -162,6 +163,30 @@ export async function getMangaChapters(mangaId) {
   } catch (_) {
     return [];
   }
+}
+
+// Batch community-rating lookup via the MangaDex statistics endpoint.
+// Returns { [mangaId]: rating } on the app's 5-point scale (1 decimal),
+// omitting ids with no rating yet (brand-new series).
+export async function getMangaStatistics(ids) {
+  const out = {};
+  if (!ids?.length) return out;
+  try {
+    for (let i = 0; i < ids.length; i += 100) {
+      const qs = ids.slice(i, i + 100).map((id) => `manga[]=${encodeURIComponent(id)}`).join('&');
+      const resp = await withTimeout(
+        fetch(`${BASE}/statistics/manga?${qs}`, { headers: { Accept: 'application/json' } }),
+        TIMEOUT
+      );
+      if (!resp?.ok) continue;
+      const json = await resp.json();
+      Object.entries(json?.statistics || {}).forEach(([id, s]) => {
+        const ten = s?.rating?.bayesian || s?.rating?.average; // 0–10 scale
+        if (ten) out[id] = Math.round((ten / 2) * 10) / 10;
+      });
+    }
+  } catch (_) {}
+  return out;
 }
 
 // Chapter-list cache: repeat opens of the same series skip the paginated
@@ -263,12 +288,14 @@ function normalizeManga(manga) {
     discussing: 0,
     latestChapter: chapters,
     coverUrl,
+    contentRating: attrs.contentRating || 'safe',
     fromApi: true,
   };
 }
 
-const POPULAR_CACHE_KEY = '@mangarecs/mdex_popular_v2';
-const RECENT_CACHE_KEY  = '@mangarecs/mdex_recent_v2';
+// v3: entries now carry real community ratings instead of a hardcoded 4.5
+const POPULAR_CACHE_KEY = '@mangarecs/mdex_popular_v3';
+const RECENT_CACHE_KEY  = '@mangarecs/mdex_recent_v3';
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
 async function readCache(key) {
@@ -306,7 +333,11 @@ export async function fetchPopularManga({ limit = 30, allowNsfw = false } = {}) 
     if (!resp?.ok) return [];
     const json = await resp.json();
     const data = (json?.data || []).map(normalizeManga);
-    if (data.length) await writeCache(POPULAR_CACHE_KEY, data);
+    if (data.length) {
+      const stats = await getMangaStatistics(data.map((d) => d.id));
+      data.forEach((d) => { if (stats[d.id]) d.rating = stats[d.id]; });
+      await writeCache(POPULAR_CACHE_KEY, data);
+    }
     return data;
   } catch (_) { return []; }
 }
@@ -329,7 +360,11 @@ export async function fetchRecentlyUpdated({ limit = 20, allowNsfw = false } = {
     if (!resp?.ok) return [];
     const json = await resp.json();
     const data = (json?.data || []).map(normalizeManga);
-    if (data.length) await writeCache(RECENT_CACHE_KEY, data);
+    if (data.length) {
+      const stats = await getMangaStatistics(data.map((d) => d.id));
+      data.forEach((d) => { if (stats[d.id]) d.rating = stats[d.id]; });
+      await writeCache(RECENT_CACHE_KEY, data);
+    }
     return data;
   } catch (_) { return []; }
 }

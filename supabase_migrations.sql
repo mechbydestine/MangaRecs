@@ -609,27 +609,6 @@ CREATE POLICY "Auth upload chapter images" ON storage.objects
 CREATE POLICY "Own delete chapter images" ON storage.objects
   FOR DELETE USING (bucket_id = 'chapters' AND auth.uid()::text = (storage.foldername(name))[1]);
 
--- ── 30. Badge Endorsements ───────────────────────────────────────────────────
--- Records when a user endorses a specific badge on a friend's profile.
--- One endorsement per (endorser, recipient, badge) — enforced by unique constraint.
-CREATE TABLE IF NOT EXISTS badge_endorsements (
-  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  endorser_id  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  recipient_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  badge_id     TEXT NOT NULL,
-  created_at   TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(endorser_id, recipient_id, badge_id)
-);
-CREATE INDEX IF NOT EXISTS badge_endorsements_recipient_idx ON badge_endorsements (recipient_id, badge_id);
-
-ALTER TABLE badge_endorsements ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public read endorsements" ON badge_endorsements;
-DROP POLICY IF EXISTS "Own endorse"              ON badge_endorsements;
-DROP POLICY IF EXISTS "Own un-endorse"           ON badge_endorsements;
-CREATE POLICY "Public read endorsements" ON badge_endorsements FOR SELECT USING (true);
-CREATE POLICY "Own endorse"    ON badge_endorsements FOR INSERT WITH CHECK (auth.uid() = endorser_id);
-CREATE POLICY "Own un-endorse" ON badge_endorsements FOR DELETE USING  (auth.uid() = endorser_id);
-
 -- ── 31. Badge stat RPCs ───────────────────────────────────────────────────────
 -- Atomic increment helpers for badge-tracked profile columns.
 -- Called from the app when reading at night or sharing a series.
@@ -990,3 +969,378 @@ RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
   UPDATE manga_pool SET share_count = GREATEST(0, share_count + p_delta) WHERE id = p_manga_id;
 END; $$;
+
+-- 59. Live comment counts — keep manga_pool.comment_count in sync with the
+-- comments table (top-level comments only, matched by series title) so the
+-- feed can show real counts without a per-card COUNT(*) query.
+CREATE OR REPLACE FUNCTION sync_manga_comment_count()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.parent_id IS NULL THEN
+    UPDATE manga_pool SET comment_count = COALESCE(comment_count, 0) + 1 WHERE title = NEW.series_title;
+  ELSIF TG_OP = 'DELETE' AND OLD.parent_id IS NULL THEN
+    UPDATE manga_pool SET comment_count = GREATEST(0, COALESCE(comment_count, 0) - 1) WHERE title = OLD.series_title;
+  END IF;
+  RETURN NULL;
+END; $$;
+
+DROP TRIGGER IF EXISTS comments_sync_pool_count ON comments;
+CREATE TRIGGER comments_sync_pool_count
+  AFTER INSERT OR DELETE ON comments
+  FOR EACH ROW EXECUTE FUNCTION sync_manga_comment_count();
+
+-- One-time backfill so existing comments are reflected immediately
+UPDATE manga_pool mp SET comment_count = sub.cnt
+FROM (
+  SELECT series_title, COUNT(*)::int AS cnt
+  FROM comments WHERE parent_id IS NULL
+  GROUP BY series_title
+) sub
+WHERE mp.title = sub.series_title;
+
+-- 60. Realtime: DM read receipts (SocialScreen unread badges) and notification
+-- inserts only broadcast if their tables are in the realtime publication.
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE direct_messages;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- ── 36. Security hardening: server-side stats, column lockdown, rate limits ──
+-- Leaderboard stats were client-written (any user could set hours_read=99999
+-- with the anon key). This section makes every stat column writable ONLY via
+-- capped SECURITY DEFINER RPCs, derives social counters from real rows, and
+-- rate-limits comment/DM/notification inserts.
+-- ═════════════════════════════════════════════════════════════════════════════
+
+-- 36a. Badge showcase slots (pinned badge ids shown under the username)
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS showcase_badges JSONB DEFAULT '[]';
+
+-- 36b. Rate-limit infrastructure ---------------------------------------------
+CREATE TABLE IF NOT EXISTS rate_limits (
+  user_id      UUID NOT NULL,
+  action       TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+  hits         INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, action)
+);
+-- RLS with no policies: only SECURITY DEFINER functions can touch it
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION consume_rate(p_uid UUID, p_action TEXT, p_max INT, p_window INTERVAL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_hits INT;
+BEGIN
+  IF p_uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
+  INSERT INTO rate_limits (user_id, action, window_start, hits)
+  VALUES (p_uid, p_action, now(), 1)
+  ON CONFLICT (user_id, action) DO UPDATE SET
+    hits = CASE WHEN rate_limits.window_start < now() - p_window
+                THEN 1 ELSE rate_limits.hits + 1 END,
+    window_start = CASE WHEN rate_limits.window_start < now() - p_window
+                        THEN now() ELSE rate_limits.window_start END
+  RETURNING hits INTO v_hits;
+  IF v_hits > p_max THEN
+    RAISE EXCEPTION 'rate limit exceeded: %', p_action USING ERRCODE = 'P0001';
+  END IF;
+END; $$;
+
+-- 36c. merge_daily_log — the ONLY way to write reading time ------------------
+-- Accepts { "YYYY-MM-DD": hours } from the device, clamps each day to 24h,
+-- rejects future dates, keeps the per-day MAX (multi-device merge), then
+-- recomputes hours_read and streak_count server-side. Cheating ceiling drops
+-- from "any number" to "24h per calendar day".
+CREATE OR REPLACE FUNCTION merge_daily_log(p_log JSONB)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid     UUID := auth.uid();
+  merged  JSONB;
+  rec     RECORD;
+  v       NUMERIC;
+  total   NUMERIC := 0;
+  streak  INT := 0;
+  day_cur DATE;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
+  IF p_log IS NULL OR jsonb_typeof(p_log) <> 'object' THEN RAISE EXCEPTION 'invalid log'; END IF;
+
+  SELECT COALESCE(daily_log, '{}'::jsonb) INTO merged FROM profiles WHERE id = uid;
+
+  FOR rec IN SELECT key, value FROM jsonb_each(p_log) LOOP
+    -- only real, non-future calendar dates
+    CONTINUE WHEN rec.key !~ '^\d{4}-\d{2}-\d{2}$';
+    BEGIN
+      CONTINUE WHEN rec.key::date > current_date;
+    EXCEPTION WHEN others THEN CONTINUE; END;
+    BEGIN
+      v := LEAST(GREATEST((rec.value #>> '{}')::numeric, 0), 24);
+    EXCEPTION WHEN others THEN CONTINUE; END;
+    -- per-day max so multi-device merges never lose hours
+    IF merged ? rec.key THEN
+      v := GREATEST(v, LEAST((merged ->> rec.key)::numeric, 24));
+    END IF;
+    merged := jsonb_set(merged, ARRAY[rec.key], to_jsonb(round(v, 3)));
+  END LOOP;
+
+  SELECT COALESCE(SUM(LEAST(val, 24)), 0) INTO total
+  FROM (SELECT (value #>> '{}')::numeric AS val FROM jsonb_each(merged)) s;
+
+  -- streak: consecutive days ending today (or yesterday if today unread)
+  day_cur := current_date;
+  IF NOT (merged ? day_cur::text AND (merged ->> day_cur::text)::numeric > 0) THEN
+    day_cur := current_date - 1;
+  END IF;
+  WHILE merged ? day_cur::text AND (merged ->> day_cur::text)::numeric > 0 AND streak < 3650 LOOP
+    streak := streak + 1;
+    day_cur := day_cur - 1;
+  END LOOP;
+
+  UPDATE profiles
+  SET daily_log = merged, hours_read = round(total, 2), streak_count = streak
+  WHERE id = uid;
+  RETURN merged;
+END; $$;
+GRANT EXECUTE ON FUNCTION merge_daily_log(JSONB) TO authenticated;
+
+-- 36d. Hardened stat increment RPCs ------------------------------------------
+-- Existing signatures kept (uid param) for older clients, but the parameter is
+-- IGNORED — auth.uid() is authoritative, and every call is rate-capped.
+CREATE OR REPLACE FUNCTION increment_chapters_read(uid UUID DEFAULT NULL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM consume_rate(auth.uid(), 'chapters_read', 40, INTERVAL '1 hour');
+  UPDATE profiles SET chapters_read = COALESCE(chapters_read, 0) + 1 WHERE id = auth.uid();
+END; $$;
+
+CREATE OR REPLACE FUNCTION increment_night_reads(uid UUID DEFAULT NULL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM consume_rate(auth.uid(), 'night_reads', 5, INTERVAL '24 hours');
+  UPDATE profiles SET night_reads = COALESCE(night_reads, 0) + 1 WHERE id = auth.uid();
+END; $$;
+
+CREATE OR REPLACE FUNCTION increment_shares_count(uid UUID DEFAULT NULL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM consume_rate(auth.uid(), 'shares', 30, INTERVAL '24 hours');
+  UPDATE profiles SET shares_count = COALESCE(shares_count, 0) + 1 WHERE id = auth.uid();
+END; $$;
+
+CREATE OR REPLACE FUNCTION increment_completed_count()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM consume_rate(auth.uid(), 'completed', 20, INTERVAL '24 hours');
+  UPDATE profiles SET completed_count = COALESCE(completed_count, 0) + 1 WHERE id = auth.uid();
+END; $$;
+GRANT EXECUTE ON FUNCTION increment_completed_count() TO authenticated;
+
+-- manga_count derived from real reading_progress rows — fully authoritative
+CREATE OR REPLACE FUNCTION recompute_manga_count()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE profiles SET manga_count = (
+    SELECT COUNT(DISTINCT series_title) FROM reading_progress WHERE user_id = auth.uid()
+  ) WHERE id = auth.uid();
+END; $$;
+GRANT EXECUTE ON FUNCTION recompute_manga_count() TO authenticated;
+
+-- 36e. Social counters derived from real rows via triggers --------------------
+CREATE OR REPLACE FUNCTION trg_bump_comments_count()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE profiles
+  SET comments_count = GREATEST(COALESCE(comments_count, 0) + (CASE WHEN TG_OP = 'INSERT' THEN 1 ELSE -1 END), 0)
+  WHERE id = COALESCE(NEW.user_id, OLD.user_id);
+  RETURN COALESCE(NEW, OLD);
+END; $$;
+DROP TRIGGER IF EXISTS comments_count_trg ON comments;
+CREATE TRIGGER comments_count_trg
+  AFTER INSERT OR DELETE ON comments
+  FOR EACH ROW EXECUTE FUNCTION trg_bump_comments_count();
+
+CREATE OR REPLACE FUNCTION trg_bump_likes_given()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE profiles
+  SET likes_given = GREATEST(COALESCE(likes_given, 0) + (CASE WHEN TG_OP = 'INSERT' THEN 1 ELSE -1 END), 0)
+  WHERE id = COALESCE(NEW.user_id, OLD.user_id);
+  RETURN COALESCE(NEW, OLD);
+END; $$;
+DROP TRIGGER IF EXISTS likes_given_trg ON post_likes;
+CREATE TRIGGER likes_given_trg
+  AFTER INSERT OR DELETE ON post_likes
+  FOR EACH ROW EXECUTE FUNCTION trg_bump_likes_given();
+
+-- one-time backfill so existing users keep their counts
+UPDATE profiles p SET comments_count = GREATEST(COALESCE(p.comments_count, 0),
+  (SELECT COUNT(*) FROM comments c WHERE c.user_id = p.id));
+UPDATE profiles p SET likes_given = GREATEST(COALESCE(p.likes_given, 0),
+  (SELECT COUNT(*) FROM post_likes l WHERE l.user_id = p.id));
+
+-- 36f. Column-level lockdown on profiles --------------------------------------
+-- Direct UPDATE is limited to cosmetic/preference columns; every stat column
+-- (hours_read, chapters_read, streak_count, daily_log, manga_count, night_reads,
+-- shares_count, completed_count, comments_count, likes_given, friends_count,
+-- ratings_count) is now writable only through the RPCs/triggers above.
+REVOKE UPDATE ON profiles FROM anon, authenticated;
+GRANT UPDATE (
+  username, bio, color, avatar_url, banner_url, favorites, showcase_badges,
+  genre_weights, genres_count, favorite_genre,
+  currently_reading, current_chapter, online, is_busy, show_activity, last_active_at,
+  push_token, accepted_guidelines, guidelines_accepted_at,
+  mal_username, anilist_username, notification_prefs, default_site
+) ON profiles TO authenticated;
+
+-- 36g. Rate limits on user-generated content ----------------------------------
+CREATE OR REPLACE FUNCTION trg_rl_comments()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM consume_rate(NEW.user_id, 'comment_post', 10, INTERVAL '1 minute');
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS comments_rl_trg ON comments;
+CREATE TRIGGER comments_rl_trg
+  BEFORE INSERT ON comments FOR EACH ROW EXECUTE FUNCTION trg_rl_comments();
+
+CREATE OR REPLACE FUNCTION trg_rl_dms()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM consume_rate(NEW.sender_id, 'dm_send', 25, INTERVAL '1 minute');
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS dms_rl_trg ON direct_messages;
+CREATE TRIGGER dms_rl_trg
+  BEFORE INSERT ON direct_messages FOR EACH ROW EXECUTE FUNCTION trg_rl_dms();
+
+CREATE OR REPLACE FUNCTION trg_rl_notifications()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.actor_id IS NOT NULL THEN
+    PERFORM consume_rate(NEW.actor_id, 'notif_send', 60, INTERVAL '1 minute');
+  END IF;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS notifications_rl_trg ON notifications;
+CREATE TRIGGER notifications_rl_trg
+  BEFORE INSERT ON notifications FOR EACH ROW EXECUTE FUNCTION trg_rl_notifications();
+
+-- ── 37. Badge rarity: % of all readers who meet each badge requirement ───────
+-- Client sends the unique (type, value) requirement pairs once per session;
+-- returns { "chapters:100": 12.4, ... } with one-decimal percentages.
+CREATE OR REPLACE FUNCTION badge_rarity(p_reqs JSONB)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public STABLE AS $$
+DECLARE
+  total  NUMERIC;
+  result JSONB := '{}'::jsonb;
+  rec    RECORD;
+  cnt    NUMERIC;
+  col    TEXT;
+BEGIN
+  SELECT count(*) INTO total FROM profiles;
+  IF total IS NULL OR total = 0 THEN RETURN result; END IF;
+  IF p_reqs IS NULL OR jsonb_typeof(p_reqs) <> 'array' OR jsonb_array_length(p_reqs) > 400 THEN
+    RAISE EXCEPTION 'invalid reqs';
+  END IF;
+
+  FOR rec IN SELECT (e->>'type') AS t, (e->>'value')::numeric AS v
+             FROM jsonb_array_elements(p_reqs) e LOOP
+    IF rec.t = 'account' THEN
+      SELECT count(*) INTO cnt FROM profiles
+      WHERE created_at <= now() - make_interval(days => rec.v::int);
+    ELSIF rec.t = 'profile' THEN
+      SELECT count(*) INTO cnt FROM profiles WHERE avatar_url IS NOT NULL;
+    ELSE
+      col := CASE rec.t
+        WHEN 'chapters'  THEN 'chapters_read'   WHEN 'hours'    THEN 'hours_read'
+        WHEN 'streak'    THEN 'streak_count'    WHEN 'series'   THEN 'series_count'
+        WHEN 'friends'   THEN 'friends_count'   WHEN 'comments' THEN 'comments_count'
+        WHEN 'likes'     THEN 'likes_given'     WHEN 'completed' THEN 'completed_count'
+        WHEN 'midnight'  THEN 'night_reads'     WHEN 'genres'   THEN 'genres_count'
+        WHEN 'shares'    THEN 'shares_count'    WHEN 'manga'    THEN 'manga_count'
+        WHEN 'ratings'   THEN 'ratings_count'   ELSE NULL END;
+      IF col IS NULL THEN CONTINUE; END IF;
+      EXECUTE format('SELECT count(*) FROM profiles WHERE COALESCE(%I, 0) >= $1', col)
+        INTO cnt USING rec.v;
+    END IF;
+    result := result || jsonb_build_object(rec.t || ':' || rec.v, ROUND(cnt * 100.0 / total, 1));
+  END LOOP;
+  RETURN result;
+END; $$;
+GRANT EXECUTE ON FUNCTION badge_rarity(JSONB) TO authenticated;
+
+-- ── 38. Drop unused friend-endorsement / profile-aura system ─────────────────
+-- badge_endorsements (§30) and profile_upvotes/toggle_profile_upvote/
+-- get_profile_aura (formerly §38) were both built with full server-side RPCs
+-- but never got a client UI. Run this once against the live project to tear
+-- down whichever of these were previously applied — safe to re-run.
+DROP FUNCTION IF EXISTS get_profile_aura(UUID);
+DROP FUNCTION IF EXISTS toggle_profile_upvote(UUID);
+DROP TABLE IF EXISTS profile_upvotes;
+DROP TABLE IF EXISTS badge_endorsements;
+
+-- ── 39. Series ratings (1-5 stars) ────────────────────────────────────────────
+-- One rating per (user, series) — re-rating overwrites in place. Feeds the
+-- 'ratings' badge stat (profiles.ratings_count) and, client-side, nudges
+-- genre_weights via the existing upsert_genre_weight RPC.
+CREATE TABLE IF NOT EXISTS series_ratings (
+  user_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  series_title TEXT NOT NULL,
+  stars        SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  updated_at   TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (user_id, series_title)
+);
+CREATE INDEX IF NOT EXISTS series_ratings_series_idx ON series_ratings (series_title);
+
+ALTER TABLE series_ratings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public read ratings" ON series_ratings;
+CREATE POLICY "Public read ratings" ON series_ratings FOR SELECT USING (true);
+-- No direct INSERT/UPDATE policy — all writes go through rate_series() so
+-- ratings_count on profiles stays in sync and can't be forged.
+
+CREATE OR REPLACE FUNCTION rate_series(p_series_title TEXT, p_stars SMALLINT)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid    UUID := auth.uid();
+  is_new BOOLEAN;
+  v_avg  NUMERIC;
+  v_count INT;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
+  IF p_series_title IS NULL OR length(trim(p_series_title)) = 0 THEN RAISE EXCEPTION 'invalid series'; END IF;
+  IF p_stars < 1 OR p_stars > 5 THEN RAISE EXCEPTION 'stars must be 1-5'; END IF;
+  PERFORM consume_rate(uid, 'series_rate', 30, INTERVAL '1 hour');
+
+  INSERT INTO series_ratings (user_id, series_title, stars, updated_at)
+  VALUES (uid, p_series_title, p_stars, now())
+  ON CONFLICT (user_id, series_title)
+  DO UPDATE SET stars = p_stars, updated_at = now()
+  RETURNING (xmax = 0) INTO is_new;
+
+  IF is_new THEN
+    UPDATE profiles SET ratings_count = COALESCE(ratings_count, 0) + 1 WHERE id = uid;
+  END IF;
+
+  SELECT ROUND(AVG(stars), 2), COUNT(*) INTO v_avg, v_count
+  FROM series_ratings WHERE series_title = p_series_title;
+
+  RETURN jsonb_build_object('avg', COALESCE(v_avg, 0), 'count', COALESCE(v_count, 0), 'yourRating', p_stars);
+END; $$;
+REVOKE ALL ON FUNCTION rate_series(TEXT, SMALLINT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION rate_series(TEXT, SMALLINT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION get_series_rating(p_series_title TEXT)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public STABLE AS $$
+DECLARE v_avg NUMERIC; v_count INT; v_mine SMALLINT;
+BEGIN
+  SELECT ROUND(AVG(stars), 2), COUNT(*) INTO v_avg, v_count
+  FROM series_ratings WHERE series_title = p_series_title;
+  IF auth.uid() IS NOT NULL THEN
+    SELECT stars INTO v_mine FROM series_ratings
+    WHERE series_title = p_series_title AND user_id = auth.uid();
+  END IF;
+  RETURN jsonb_build_object('avg', COALESCE(v_avg, 0), 'count', COALESCE(v_count, 0), 'yourRating', v_mine);
+END; $$;
+GRANT EXECUTE ON FUNCTION get_series_rating(TEXT) TO authenticated, anon;

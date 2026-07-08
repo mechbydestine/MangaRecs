@@ -10,23 +10,32 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
-import { BADGE_GRADES, ALL_BADGES, computeEarnedBadgeIds, profileToBadgeStats } from '../utils/badges';
+import {
+  BADGE_GRADES, ALL_BADGES, computeEarnedBadgeIds, profileToBadgeStats,
+  badgeProgress, nextUpBadges, seasonActive, PROGRESS_GRADES,
+  highestGradeEarned, gradeAtLeast, ensureBadgeRarity,
+} from '../utils/badges';
+import BadgeDetail from '../components/BadgeDetail';
 import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
-import { MangaCover } from '../utils/mangaCovers';
+import { MangaCover, fetchMangaInfo } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 import { getMergedDailyLog, calculateStreak, localDateKey } from '../utils/readerUtils';
 import { showAppToast } from '../utils/appToast';
+import { useResponsive } from '../utils/responsive';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
+// minGrade gates a theme behind reaching that badge tier (tier-up reward):
+// 'purple' = Diamond, 'gold' = Master (see GRADE_ORDER in utils/badges)
 const PROFILE_THEMES = [
   { id: 'default', label: 'Default', ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'], banner: ['#7B5CFF', '#0D0D0F'] },
   { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#0D0D0F'] },
   { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#0D0D0F'] },
   { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },
   { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#0D0D0F'] },
-  { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'] },
+  { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'], minGrade: 'purple', gradeLabel: 'Diamond' },
+  { id: 'crimson', label: 'Crimson', ring: '#FF5C7A', gradient: ['#FF5C7A', '#7A0F2E'], banner: ['#FF5C7A', '#0D0D0F'], minGrade: 'gold',   gradeLabel: 'Master' },
 ];
 
 const BIO_SUGGESTIONS = [
@@ -38,6 +47,23 @@ const BIO_SUGGESTIONS = [
 ];
 
 const FAVES_KEY = '@mangarecs_favorites';
+
+// Favorites saved by older app versions can be bare title strings or objects
+// under different keys — coerce everything to { title, searchKey, ... } so the
+// profile card and popup always have something to render. Entries with no
+// recoverable title are dropped (they could never display anything).
+function normalizeFaves(arr) {
+  return (Array.isArray(arr) ? arr : [])
+    .map((f) => {
+      if (typeof f === 'string') return { title: f, searchKey: f };
+      if (f && !f.title && (f.seriesTitle || f.series_title || f.name)) {
+        const t = f.seriesTitle || f.series_title || f.name;
+        return { ...f, title: t, searchKey: f.searchKey || t };
+      }
+      return f;
+    })
+    .filter((f) => f && f.title);
+}
 
 const fmtHrs = (h) => {
   if (!h || h <= 0) return '0m';
@@ -257,6 +283,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets     = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const scrollRef  = useRef(null);
   useScrollToTop(scrollRef);
 
@@ -279,19 +306,54 @@ export default function ProfileScreen() {
   const [favorites, setFavorites]         = useState([]);
   const [showAddFave, setShowAddFave]     = useState(false);
   const [showAllFaves, setShowAllFaves]   = useState(false);
+  const [statDetail, setStatDetail]       = useState(null); // null | 'read' | 'time' | 'genre'
+  const [detailBadge, setDetailBadge]     = useState(null); // badge object → detail popup
+  const [, setRarityReady]                = useState(false); // re-render once rarity % lands
+
+  useEffect(() => { ensureBadgeRarity().then(() => setRarityReady(true)); }, []);
   const [faveSearch, setFaveSearch]       = useState('');
   const [faveTab, setFaveTab]             = useState('library');
   const [dailyLog, setDailyLog]           = useState({});
   const [entriesRead, setEntriesRead]     = useState(0);
   const [libraryItems, setLibraryItems]   = useState(LIBRARY_SERIES);
   const [searchResults, setSearchResults] = useState([]);
+  const [faveFocusKey, setFaveFocusKey]   = useState(0);
 
   const theme = PROFILE_THEMES.find((t) => t.id === themeId) || PROFILE_THEMES[0];
 
+  const badgeStats = useMemo(() => profileToBadgeStats(profile), [profile]);
   const earnedIds = useMemo(
-    () => profile ? computeEarnedBadgeIds(profileToBadgeStats(profile)) : new Set(),
-    [profile]
+    () => profile ? computeEarnedBadgeIds(badgeStats) : new Set(),
+    [profile, badgeStats]
   );
+  const nextUp = useMemo(() => nextUpBadges(badgeStats, earnedIds, 3), [badgeStats, earnedIds]);
+  const highestGrade = useMemo(() => highestGradeEarned(earnedIds), [earnedIds]);
+  const showcaseIds = useMemo(
+    () => (Array.isArray(profile?.showcase_badges) ? profile.showcase_badges : []).filter((id) => earnedIds.has(id)).slice(0, 3),
+    [profile?.showcase_badges, earnedIds]
+  );
+  const showcaseBadges = useMemo(
+    () => showcaseIds.map((id) => ALL_BADGES.find((b) => b.id === id)).filter(Boolean),
+    [showcaseIds]
+  );
+
+  function themeUnlocked(t) {
+    return !t.minGrade || (highestGrade && gradeAtLeast(highestGrade, t.minGrade));
+  }
+
+  function toggleShowcase(badge) {
+    if (!earnedIds.has(badge.id)) return;
+    let next;
+    if (showcaseIds.includes(badge.id)) {
+      next = showcaseIds.filter((id) => id !== badge.id);
+      showAppToast(`Unpinned ${badge.name}`);
+    } else {
+      if (showcaseIds.length >= 3) { showAppToast('Showcase is full — unpin one first'); return; }
+      next = [...showcaseIds, badge.id];
+      showAppToast(`Pinned ${badge.name} to your profile`, 'success');
+    }
+    updateProfile({ showcase_badges: next });
+  }
   const earnedBadges = useMemo(
     () => ALL_BADGES
       .filter((b) => earnedIds.has(b.id))
@@ -303,7 +365,13 @@ export default function ProfileScreen() {
     () => Object.keys(BADGE_GRADES).map((gradeKey) => ({
       gradeKey,
       grade: BADGE_GRADES[gradeKey],
-      badges: ALL_BADGES.filter((b) => b.grade === gradeKey && (earnedIds.has(b.id) || (b.grade === 'grey' && !b.hidden))),
+      // Locked badges are visible (with progress) only for Bronze→Gold tiers;
+      // Platinum and above stay hidden until earned. Seasonal badges appear
+      // only inside their event window.
+      badges: ALL_BADGES.filter((b) =>
+        b.grade === gradeKey &&
+        (!b.season || seasonActive(b) || earnedIds.has(b.id)) &&
+        (earnedIds.has(b.id) || b.image || (PROGRESS_GRADES.has(b.grade) && !b.hidden))),
     })).filter((g) => g.badges.length > 0),
     [earnedIds]
   );
@@ -347,7 +415,7 @@ export default function ProfileScreen() {
     AsyncStorage.multiGet(['@mangarecs_avatar', '@mangarecs_banner', FAVES_KEY]).then(([[, av], [, bn], [, fv]]) => {
       if (av) setAvatarUri(av);
       if (bn) setBannerUri(bn);
-      if (fv) { try { setFavorites(JSON.parse(fv)); } catch (_) {} }
+      if (fv) { try { setFavorites(normalizeFaves(JSON.parse(fv))); } catch (_) {} }
     });
   }, []);
 
@@ -362,13 +430,13 @@ export default function ProfileScreen() {
     // Seed local favorites from cloud if local storage is empty (fresh install / new device)
     if (profile.favorites?.length) {
       // Cloud has data — seed local if it's empty (fresh install / new device)
-      setFavorites((prev) => prev.length > 0 ? prev : profile.favorites);
+      setFavorites((prev) => prev.length > 0 ? prev : normalizeFaves(profile.favorites));
     } else {
       // Cloud is empty — push local favorites up so friends can see them
       AsyncStorage.getItem(FAVES_KEY).then((raw) => {
         if (!raw) return;
         try {
-          const local = JSON.parse(raw);
+          const local = normalizeFaves(JSON.parse(raw));
           if (local.length > 0) {
             setFavorites(local);
             updateProfile({ favorites: local });
@@ -423,7 +491,7 @@ export default function ProfileScreen() {
     const timer = setTimeout(() => {
       supabase
         .from('manga_pool')
-        .select('title, genres, lang')
+        .select('title, genres, lang, cover_url, color, search_key')
         .ilike('title', `%${query}%`)
         .limit(15)
         .then(({ data }) => {
@@ -431,17 +499,63 @@ export default function ProfileScreen() {
           setSearchResults(data.map((m) => ({
             id: `mp-${m.title}`,
             title: m.title,
-            searchKey: m.title,
+            searchKey: m.search_key || m.title,
             lang: m.lang || 'ja',
             genre: Array.isArray(m.genres) ? m.genres.slice(0, 2).join(', ') : (m.genres || ''),
             chapters: 0,
-            color: '#1A1A2E',
+            color: m.color || '#1A1A2E',
+            coverUrl: m.cover_url || null,
           })));
         })
         .catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
   }, [faveSearch]);
+
+  // ── Backfill favorite covers ──────────────────────────────────────────────
+  // Favorites saved before covers were stored (or seeded from the cloud) have
+  // no coverUrl, so the profile card could come up blank. Resolve them from
+  // manga_pool once and persist so the cover always shows instantly.
+
+  const faveCoverTriedRef = useRef(new Set());
+
+  useEffect(() => {
+    const missing = favorites.filter((f) => f?.title && !f.coverUrl && !faveCoverTriedRef.current.has(f.title));
+    if (missing.length === 0) return;
+    missing.forEach((f) => faveCoverTriedRef.current.add(f.title));
+    (async () => {
+      const byTitle = {};
+      try {
+        const { data } = await supabase
+          .from('manga_pool')
+          .select('title, cover_url')
+          .in('title', missing.map((f) => f.title));
+        (data || []).forEach((r) => { if (r.cover_url) byTitle[r.title] = r.cover_url; });
+      } catch (_) {}
+      // Titles the pool doesn't know: resolve through the multi-source cover
+      // search so every favorite ends up with a stored URL — this is also what
+      // makes the covers show up instantly on friends' devices
+      for (const f of missing) {
+        if (byTitle[f.title]) continue;
+        try {
+          const info = await fetchMangaInfo(f.searchKey || f.title, f.lang);
+          if (info?.coverUrl) byTitle[f.title] = info.coverUrl;
+        } catch (_) {}
+      }
+      if (Object.keys(byTitle).length === 0) return;
+      setFavorites((prev) => {
+        let changed = false;
+        const next = prev.map((f) => {
+          if (!f.coverUrl && byTitle[f.title]) { changed = true; return { ...f, coverUrl: byTitle[f.title] }; }
+          return f;
+        });
+        if (!changed) return prev;
+        AsyncStorage.setItem(FAVES_KEY, JSON.stringify(next)).catch(() => {});
+        updateProfile({ favorites: next });
+        return next;
+      });
+    })();
+  }, [favorites]);
 
   // ── Load friends list ────────────────────────────────────────────────────
 
@@ -503,20 +617,20 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Remount the favorites cover so it re-reads the cover cache — a lookup
+      // that failed at first mount would otherwise leave the card blank forever
+      setFaveFocusKey((k) => k + 1);
+
       // Pull latest profile so favorite_genre and hours_read are always current
       refreshProfileRef.current?.();
 
       // Merge local + cloud daily_log so total hours is accurate across devices / reinstalls
       getMergedDailyLog(profileRef.current?.daily_log).then((log) => {
         setDailyLog(log);
-        const streak = calculateStreak(log);
         if (userIdRef.current && profileRef.current) {
-          const totalHours = Math.round(Object.values(log).reduce((s, h) => s + h, 0) * 100) / 100;
-          updateProfile({
-            streak_count: streak,
-            hours_read: totalHours,
-            daily_log: log,
-          });
+          // Server merges per-day maxima, clamps to 24h/day, and recomputes
+          // hours_read + streak_count itself (direct writes are revoked)
+          supabase.rpc('merge_daily_log', { p_log: log }).then(() => refreshProfileRef.current?.());
         }
       });
 
@@ -625,6 +739,7 @@ export default function ProfileScreen() {
     setFavorites(next);
     setShowAddFave(false);
     setFaveSearch('');
+    setShowAllFaves(true); // drop back into the favorites popup so the new pick is visible
     await AsyncStorage.setItem(FAVES_KEY, JSON.stringify(next));
     updateProfile({ favorites: next });
   }
@@ -641,6 +756,7 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
+        <View style={isTablet ? styles.tabletWrap : null}>
 
         {/* Header */}
         <Animated.View style={[styles.topHeader, { opacity: headerAnim, transform: [{ translateY: headerY }] }]}>
@@ -722,6 +838,30 @@ export default function ProfileScreen() {
 
             <Text style={[styles.handle, { color: colors.muted }]}>@{username.toLowerCase()} · Joined {joinDate || 'Dec 2024'}</Text>
 
+            {/* Badge showcase — 3 slots under the name, icon-only. Pinned badges
+                open their details; empty slots are + buttons into the badge sheet */}
+            <View style={styles.showcaseRow}>
+              {Array.from({ length: 3 }).map((_, i) => {
+                const b = showcaseBadges[i];
+                if (b) {
+                  return (
+                    <TouchableOpacity key={b.id} onPress={() => setDetailBadge(b)} activeOpacity={0.75}>
+                      <BadgeIcon badge={b} size={30} />
+                    </TouchableOpacity>
+                  );
+                }
+                return (
+                  <TouchableOpacity
+                    key={`slot-${i}`}
+                    style={[styles.showcaseAddSlot, { borderColor: colors.border }]}
+                    onPress={() => setShowAllBadges(true)}
+                    activeOpacity={0.7}>
+                    <Ionicons name="add" size={15} color={colors.muted} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             {/* Friends · Followers · Following — below the joined-date line, same spot as FriendProfileScreen */}
             <Animated.View style={{ opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }}>
               <PeopleRow
@@ -736,32 +876,115 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={styles.themeToggle} onPress={() => setShowThemes((v) => !v)}>
               <Ionicons name="color-palette-outline" size={12} color={colors.muted} />
-              <Text style={[styles.themeToggleText, { color: colors.muted }]}>Profile Theme</Text>
+              <Text style={[styles.themeToggleText, { color: colors.muted }]}>Chromas</Text>
               <Text style={styles.themeToggleValue}>· {theme.label}</Text>
             </TouchableOpacity>
 
             {showThemes && (
               <View style={styles.themeOptionsRow}>
-                {PROFILE_THEMES.map((t) => (
-                  <TouchableOpacity
-                    key={t.id}
-                    style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(123,92,255,0.12)' }]}
-                    onPress={() => { setThemeId(t.id); setShowThemes(false); updateProfile({ color: t.id }); }}>
-                    <View style={[styles.themeChipDot, { backgroundColor: t.gradient[0] }]} />
-                    <Text style={[styles.themeChipText, { color: colors.muted }, themeId === t.id && { color: t.ring }]}>{t.label}</Text>
-                  </TouchableOpacity>
-                ))}
+                {PROFILE_THEMES.map((t) => {
+                  const unlocked = themeUnlocked(t);
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(123,92,255,0.12)' }, !unlocked && { opacity: 0.5 }]}
+                      onPress={() => {
+                        if (!unlocked) {
+                          showAppToast(`Reach ${t.gradeLabel} tier to unlock ${t.label}`);
+                          return;
+                        }
+                        setThemeId(t.id); setShowThemes(false); updateProfile({ color: t.id });
+                      }}>
+                      <View style={[styles.themeChipDot, { backgroundColor: t.gradient[0] }]} />
+                      <Text style={[styles.themeChipText, { color: colors.muted }, themeId === t.id && { color: t.ring }]}>{t.label}</Text>
+                      {!unlocked && <Ionicons name="lock-closed" size={9} color={colors.muted} style={{ marginLeft: 3 }} />}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
           </View>
         </Animated.View>
 
-        {/* Stats */}
+        {/* Stats — each card opens its detail popup */}
         <View style={styles.statsRow}>
-          <StatCard icon="book"   label="Read" value={String(entriesRead)} color="#7B5CFF" anim={stat0Anim} />
-          <StatCard icon="time"   label="Time Read" value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((s, h) => s + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} />
-          <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} />
+          <StatCard icon="book"   label="Read" value={String(entriesRead)} color="#7B5CFF" anim={stat0Anim} onPress={() => setStatDetail('read')} />
+          <StatCard icon="time"   label="Time Read" value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((s, h) => s + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} onPress={() => setStatDetail('time')} />
+          <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} onPress={() => setStatDetail('genre')} />
         </View>
+
+        {/* Stat detail popup — tapping a stat card opens its breakdown */}
+        <Modal visible={!!statDetail} animationType="fade" transparent onRequestClose={() => setStatDetail(null)}>
+          <TouchableOpacity style={styles.favesPopupOverlay} activeOpacity={1} onPress={() => setStatDetail(null)}>
+            <View style={[styles.favesPopupCard, { backgroundColor: colors.card, borderColor: colors.border }]} onStartShouldSetResponder={() => true}>
+              {(() => {
+                const totalHrs = Object.keys(dailyLog).length > 0
+                  ? Math.round(Object.values(dailyLog).reduce((s, h) => s + h, 0) * 100) / 100
+                  : (profile?.hours_read ?? 0);
+                const todayHrs = dailyLog[localDateKey()] || 0;
+                const weekHrs = (() => {
+                  let sum = 0;
+                  for (let i = 0; i < 7; i++) {
+                    const d = new Date(); d.setDate(d.getDate() - i);
+                    sum += dailyLog[localDateKey(d)] || 0;
+                  }
+                  return Math.round(sum * 100) / 100;
+                })();
+                const bestDay = Object.values(dailyLog).reduce((m, h) => Math.max(m, h), 0);
+                const sections = {
+                  read: {
+                    icon: 'book', color: '#7B5CFF', title: 'Reading',
+                    rows: [
+                      ['Entries read',      String(entriesRead)],
+                      ['Chapters read',     String(profile?.chapters_read ?? 0)],
+                      ['Series in library', String(profile?.series_count ?? 0)],
+                      ['Series completed',  String(profile?.completed_count ?? 0)],
+                      ['Badges earned',     String(earnedIds.size)],
+                    ],
+                  },
+                  time: {
+                    icon: 'time', color: '#1D9E75', title: 'Time Read',
+                    rows: [
+                      ['Total',          fmtHrs(totalHrs)],
+                      ['Today',          fmtHrs(Math.round(todayHrs * 100) / 100)],
+                      ['This week',      fmtHrs(weekHrs)],
+                      ['Best day',       fmtHrs(Math.round(bestDay * 100) / 100)],
+                      ['Current streak', `${calculateStreak(dailyLog)}d`],
+                    ],
+                  },
+                  genre: {
+                    icon: 'trophy', color: '#FFD700', title: 'Taste',
+                    rows: [
+                      ['Favorite genre',  profile?.favorite_genre || '—'],
+                      ['Genres explored', String(profile?.genres_count ?? (profile?.chapters_read > 0 ? 1 : 0))],
+                      ['Ratings given',   String(profile?.ratings_count ?? 0)],
+                      ['Comments',        String(profile?.comments_count ?? 0)],
+                      ['Likes given',     String(profile?.likes_given ?? 0)],
+                    ],
+                  },
+                };
+                const s = sections[statDetail] || sections.read;
+                return (
+                  <>
+                    <View style={styles.favesPopupHeader}>
+                      <Ionicons name={s.icon} size={13} color={s.color} />
+                      <Text style={[styles.favesPopupTitle, { color: colors.text }]}>{s.title}</Text>
+                      <TouchableOpacity onPress={() => setStatDetail(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Ionicons name="close" size={16} color={colors.muted} />
+                      </TouchableOpacity>
+                    </View>
+                    {s.rows.map(([label, value]) => (
+                      <View key={label} style={[styles.statDetailRow, { borderColor: colors.border }]}>
+                        <Text style={[styles.statDetailLabel, { color: colors.muted }]}>{label}</Text>
+                        <Text style={[styles.statDetailValue, { color: colors.text }]} numberOfLines={1}>{value}</Text>
+                      </View>
+                    ))}
+                  </>
+                );
+              })()}
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         <PeopleListModal
           visible={!!showPeople}
@@ -810,16 +1033,21 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* Faves panel */}
+            {/* Faves panel — tap the card to open the favorites popup; adding
+                and removing lives inside the popup (empty slots are the add
+                button), so no extra +/x chrome here */}
             <View style={styles.favesPanel}>
               {favorites.length === 0 ? (
                 <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(123,92,255,0.25)' }]} onPress={() => setShowAddFave(true)}>
                   <Ionicons name="add" size={16} color="rgba(123,92,255,0.5)" />
-                  <Text style={styles.favesEmptyText}>save </Text>
+                  <Text style={styles.favesEmptyText}>Add favorite</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.faveFeatCard} onPress={() => setShowAllFaves(true)} activeOpacity={0.85}>
-                  <MangaCover title={favorites[0].title} searchKey={favorites[0].searchKey} lang={favorites[0].lang} color={favorites[0].color} style={styles.faveFeatGrad}>
+                  <MangaCover key={`feat-${favorites[0].title}-${faveFocusKey}`} title={favorites[0].title} searchKey={favorites[0].searchKey} lang={favorites[0].lang} color={favorites[0].color || '#241F45'} coverUrl={favorites[0].coverUrl} style={styles.faveFeatGrad}>
+                    <View style={styles.faveFeatLetterWrap} pointerEvents="none">
+                      <Text style={styles.faveFeatLetter}>{(favorites[0].title || '?').charAt(0).toUpperCase()}</Text>
+                    </View>
                     <LinearGradient
                       colors={['transparent', 'rgba(0, 0, 0, 0.88)']}
                       style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 80, justifyContent: 'flex-end', padding: 8 }}>
@@ -835,60 +1063,52 @@ export default function ProfileScreen() {
               )}
 
               <View style={styles.favesPanelFoot}>
-                {favorites.length > 0 && (
-                  <TouchableOpacity onPress={() => removeFave(favorites[0].id)} style={styles.favesRemoveBtn}>
-                    <Ionicons name="close" size={9} color="#fff" />
-                  </TouchableOpacity>
-                )}
-                <Text style={[styles.favesCountText, { color: colors.muted }]}>{favorites.length}/5</Text>
-                {favorites.length < 5 && (
-                  <TouchableOpacity onPress={() => setShowAddFave(true)} style={styles.favesAddBtn}>
-                    <Ionicons name="add" size={13} color="#fff" />
-                  </TouchableOpacity>
-                )}
+                <Text style={[styles.favesCountText, { color: colors.muted }]}>Favorites · {favorites.length}/5</Text>
               </View>
             </View>
           </View>
         </Animated.View>
 
-        {/* View all favorites modal — editable, this is the user's own list */}
-        <Modal visible={showAllFaves} animationType="slide" transparent onRequestClose={() => setShowAllFaves(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAllFaves(false)} />
-            <View style={[styles.addFaveSheet, { backgroundColor: colors.card }]}>
-              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-              <View style={styles.addFaveHeaderRow}>
-                <Text style={[styles.addFaveTitle, { color: colors.text }]}>Favorites</Text>
-                <TouchableOpacity onPress={() => setShowAllFaves(false)}>
-                  <Ionicons name="close" size={20} color={colors.muted} />
-                </TouchableOpacity>
+        {/* Favorites popup — compact centered card (Discord favorite-games style),
+            5 fixed slots: covers for picks, tappable + for empty slots */}
+        <Modal visible={showAllFaves} animationType="fade" transparent onRequestClose={() => setShowAllFaves(false)}>
+          <TouchableOpacity style={styles.favesPopupOverlay} activeOpacity={1} onPress={() => setShowAllFaves(false)}>
+            <View style={[styles.favesPopupCard, { backgroundColor: colors.card, borderColor: colors.border }]} onStartShouldSetResponder={() => true}>
+              <View style={styles.favesPopupHeader}>
+                <Ionicons name="heart" size={13} color="#E8527A" />
+                <Text style={[styles.favesPopupTitle, { color: colors.text }]}>Favorites</Text>
+                <Text style={[styles.favesPopupCount, { color: colors.muted }]}>{favorites.length}/5</Text>
               </View>
-              <FlatList
-                data={favorites}
-                keyExtractor={(item) => item.id || item.title}
-                numColumns={3}
-                columnWrapperStyle={{ gap: 10 }}
-                contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
-                renderItem={({ item }) => (
-                  <View style={styles.allFavesCell}>
-                    <MangaCover title={item.title} searchKey={item.searchKey} lang={item.lang} color={item.color} style={styles.allFavesCover} />
-                    <TouchableOpacity style={styles.allFavesRemoveBtn} onPress={() => removeFave(item.id)}>
-                      <Ionicons name="close" size={11} color="#fff" />
-                    </TouchableOpacity>
-                    <Text style={[styles.allFavesTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
-                  </View>
-                )}
-              />
-              {favorites.length < 5 && (
-                <TouchableOpacity
-                  style={styles.allFavesAddRow}
-                  onPress={() => { setShowAllFaves(false); setShowAddFave(true); }}>
-                  <Ionicons name="add-circle-outline" size={16} color="#7B5CFF" />
-                  <Text style={styles.allFavesAddText}>Add another favorite</Text>
-                </TouchableOpacity>
-              )}
+              <View style={styles.favesPopupGrid}>
+                {Array.from({ length: 5 }, (_, i) => {
+                  const fave = favorites[i];
+                  if (!fave) {
+                    return (
+                      <TouchableOpacity
+                        key={`slot-${i}`}
+                        style={[styles.favesPopupSlot, styles.favesPopupSlotEmpty, { borderColor: colors.border }]}
+                        onPress={() => { setShowAllFaves(false); setShowAddFave(true); }}
+                        activeOpacity={0.7}>
+                        <Ionicons name="add" size={20} color={colors.muted} />
+                      </TouchableOpacity>
+                    );
+                  }
+                  return (
+                    <View key={fave.id || fave.title} style={styles.favesPopupSlot}>
+                      <MangaCover title={fave.title} searchKey={fave.searchKey} lang={fave.lang} color={fave.color} coverUrl={fave.coverUrl} style={styles.favesPopupCover} />
+                      <TouchableOpacity
+                        style={styles.favesPopupRemove}
+                        onPress={() => removeFave(fave.id || fave.title)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Ionicons name="close" size={10} color="#fff" />
+                      </TouchableOpacity>
+                      <Text style={[styles.favesPopupName, { color: colors.text }]} numberOfLines={1}>{fave.title}</Text>
+                    </View>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </Modal>
 
         {/* Badges */}
@@ -906,7 +1126,7 @@ export default function ProfileScreen() {
                 <Animated.View key={badge.id} style={[styles.badgeOuter, { opacity: anim, transform: [{ scale }] }]}>
                   <TouchableOpacity
                     style={[styles.badgeCard, { borderColor: grade.border }]}
-                    onPress={() => setShowAllBadges(true)}
+                    onPress={() => setDetailBadge(badge)}
                     activeOpacity={0.8}>
                     <BadgeIcon badge={badge} size={52} />
                     <Text style={[styles.badgeName, { color: grade.color, marginTop: 4 }]} numberOfLines={2}>{badge.name}</Text>
@@ -915,6 +1135,33 @@ export default function ProfileScreen() {
               );
             })}
           </View>
+          {/* Next up — the 3 badges closest to unlocking */}
+          {nextUp.length > 0 && (
+            <View style={styles.nextUpWrap}>
+              <Text style={[styles.nextUpTitle, { color: colors.muted }]}>NEXT UP</Text>
+              <View style={styles.nextUpRow}>
+                {nextUp.map(({ badge, current, target, pct }) => {
+                  const g = BADGE_GRADES[badge.grade];
+                  return (
+                    <TouchableOpacity
+                      key={badge.id}
+                      style={[styles.nextUpCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      onPress={() => setDetailBadge(badge)}
+                      activeOpacity={0.8}>
+                      <BadgeIcon badge={badge} size={40} locked />
+                      <Text style={[styles.nextUpName, { color: colors.text }]} numberOfLines={1}>{badge.name}</Text>
+                      <View style={[styles.badgeProgTrack, { backgroundColor: colors.border, width: '100%' }]}>
+                        <View style={[styles.badgeProgFill, { width: `${Math.round(pct * 100)}%`, backgroundColor: g.color }]} />
+                      </View>
+                      <Text style={[styles.nextUpCount, { color: colors.muted }]}>
+                        {current.toLocaleString()} / {target.toLocaleString()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
           <TouchableOpacity style={styles.seeAllBadgesBtn} onPress={() => setShowAllBadges(true)}>
             <Text style={styles.seeAllBadgesText}>See all {earnedIds.size} earned badges</Text>
           </TouchableOpacity>
@@ -935,6 +1182,7 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <View style={{ height: 88 }} />
+        </View>
       </ScrollView>
 
       {/* All badges modal */}
@@ -981,31 +1229,82 @@ export default function ProfileScreen() {
                       {[item.left, item.right].map((badge, idx) => {
                         if (!badge) return <View key={idx} style={styles.fullBadgeCard} />;
                         const earned = earnedIds.has(badge.id);
+                        const pinned = earned && showcaseIds.includes(badge.id);
+                        const prog = !earned && (PROGRESS_GRADES.has(badge.grade) || badge.image) ? badgeProgress(badge, badgeStats) : null;
                         return (
-                          <View
+                          <TouchableOpacity
                             key={badge.id}
                             style={[
                               styles.fullBadgeCard,
-                              { borderColor: earned ? item.grade.border : colors.border },
+                              { borderColor: pinned ? '#7B5CFF' : earned ? item.grade.border : colors.border },
                               !earned && styles.fullBadgeCardLocked,
-                            ]}>
+                            ]}
+                            onPress={() => setDetailBadge(badge)}
+                            activeOpacity={0.7}>
                             <View style={{ marginRight: 10, marginTop: 2 }}>
                               <BadgeIcon badge={badge} size={44} locked={!earned} />
                             </View>
                             <View style={styles.fullBadgeInfo}>
                               <Text style={[styles.fullBadgeName, { color: earned ? item.grade.color : colors.muted }]}>{badge.name}</Text>
-                              <Text style={[styles.fullBadgeDesc, { color: colors.muted }]}>{badge.desc}</Text>
+                              {pinned && <Text style={[styles.badgePinHint, { color: '#7B5CFF' }]}>★ On profile</Text>}
+                              {prog && (
+                                <View style={styles.badgeProgWrap}>
+                                  <View style={[styles.badgeProgTrack, { backgroundColor: colors.border }]}>
+                                    <View style={[styles.badgeProgFill, { width: `${Math.round(prog.pct * 100)}%`, backgroundColor: item.grade.color }]} />
+                                  </View>
+                                  <Text style={[styles.badgeProgText, { color: colors.muted }]}>
+                                    {prog.current.toLocaleString()} / {prog.target.toLocaleString()}
+                                  </Text>
+                                </View>
+                              )}
                             </View>
-                          </View>
+                          </TouchableOpacity>
                         );
                       })}
                     </View>
                   );
                 }}
               />
+
+              {/* Badge detail overlay — rendered inside the sheet so it stacks
+                  above it (nested native Modals are unreliable on iOS) */}
+              {detailBadge && (
+                <TouchableOpacity
+                  style={styles.badgeDetailOverlay}
+                  activeOpacity={1}
+                  onPress={() => setDetailBadge(null)}>
+                  <BadgeDetail
+                    badge={detailBadge}
+                    earned={earnedIds.has(detailBadge.id)}
+                    colors={colors}
+                    stats={badgeStats}
+                    pinned={showcaseIds.includes(detailBadge.id)}
+                    canPin={showcaseIds.length < 3}
+                    onTogglePin={toggleShowcase}
+                    onClose={() => setDetailBadge(null)}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         )}
+      </Modal>
+
+      {/* Badge detail popup — for taps outside the All Badges sheet (grid,
+          showcase, next-up rail) */}
+      <Modal visible={!!detailBadge && !showAllBadges} animationType="fade" transparent onRequestClose={() => setDetailBadge(null)}>
+        <TouchableOpacity style={styles.badgeDetailOverlay} activeOpacity={1} onPress={() => setDetailBadge(null)}>
+          <BadgeDetail
+            badge={detailBadge}
+            earned={detailBadge ? earnedIds.has(detailBadge.id) : false}
+            colors={colors}
+            stats={badgeStats}
+            pinned={detailBadge ? showcaseIds.includes(detailBadge.id) : false}
+            canPin={showcaseIds.length < 3}
+            onTogglePin={toggleShowcase}
+            onClose={() => setDetailBadge(null)}
+          />
+        </TouchableOpacity>
       </Modal>
 
       {/* Add Favorite modal */}
@@ -1085,8 +1384,9 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   topHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
-  topHeaderTitle: { fontSize: 28, fontWeight: 'bold' },
+  topHeaderTitle: { fontSize: 18, fontWeight: '700' },
   uploadDisclaimer: { color: '#9B9AA3', fontSize: 10, textAlign: 'center', marginTop: 4, paddingHorizontal: 4 },
   bannerCard: { marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', borderWidth: 1, marginBottom: 16 },
   bannerImage: { width: '100%', height: 80 },
@@ -1179,30 +1479,67 @@ const styles = StyleSheet.create({
 
   // Faves panel
   favesPanel: { width: 136, marginLeft: 14, borderRadius: 12, overflow: 'hidden' },
-  faveFeatCard: { marginHorizontal: 6, borderRadius: 8, overflow: 'hidden' },
-  faveFeatGrad: { height: 174 },
+  // Explicit numeric width (panel 136 − 6px margins each side): the cover's
+  // contents are all absolutely positioned, so any auto/stretch-derived width
+  // can resolve to 0 and the card renders as invisible black space
+  // Visible border + strong letter fallback: the card must never be able to
+  // read as empty space, even before the cover image resolves
+  faveFeatCard: { width: 124, alignSelf: 'center', borderRadius: 8, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(123,92,255,0.45)' },
+  faveFeatGrad: { width: 124, height: 174 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  faveFeatLetterWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  faveFeatLetter: { color: 'rgba(255,255,255,0.35)', fontSize: 44, fontWeight: 'bold' },
   faveMoreBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   faveMoreBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  allFavesCell: { flex: 1 / 3, alignItems: 'center' },
-  allFavesCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
-  allFavesRemoveBtn: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
-  allFavesTitle: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
-  allFavesAddRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
-  allFavesAddText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600' },
   favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
-  favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
-  favesRemoveBtn: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#E5534B', alignItems: 'center', justifyContent: 'center' },
+  favesPanelFoot: { alignItems: 'center', paddingTop: 8, paddingBottom: 10 },
   favesCountText: { fontSize: 11, fontWeight: '500' },
-  favesAddBtn: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center' },
+
+  // Badge showcase (pinned shields under the name, icon-only + add slots)
+  showcaseRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  showcaseAddSlot: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.2, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  badgeDetailOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 28, zIndex: 10 },
+
+  // Badge progress bars (locked Bronze→Gold badges + next-up rail)
+  badgeProgWrap: { marginTop: 6 },
+  badgeProgTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
+  badgeProgFill: { height: 4, borderRadius: 2 },
+  badgeProgText: { fontSize: 10, fontWeight: '600', marginTop: 3 },
+  badgePinHint: { fontSize: 9, fontWeight: '600', marginTop: 5 },
+
+  // Next-up rail
+  nextUpWrap: { marginTop: 14 },
+  nextUpTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginBottom: 8 },
+  nextUpRow: { flexDirection: 'row', gap: 8 },
+  nextUpCard: { flex: 1, alignItems: 'center', borderRadius: 14, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 8, gap: 5 },
+  nextUpName: { fontSize: 10.5, fontWeight: '700' },
+  nextUpCount: { fontSize: 9.5, fontWeight: '600' },
+
+  // Stat detail popup rows
+  statDetailRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },
+  statDetailLabel: { fontSize: 13, fontWeight: '500' },
+  statDetailValue: { fontSize: 13, fontWeight: '700', maxWidth: '55%' },
+
+  // Favorites popup (Discord favorite-games style)
+  favesPopupOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 28 },
+  favesPopupCard: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 16 },
+  favesPopupHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
+  favesPopupTitle: { fontSize: 15, fontWeight: '700', flex: 1 },
+  favesPopupCount: { fontSize: 11, fontWeight: '600' },
+  favesPopupGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  favesPopupSlot: { width: '31%', flexGrow: 1, maxWidth: '31.5%' },
+  favesPopupSlotEmpty: { aspectRatio: 0.7, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  favesPopupCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
+  favesPopupRemove: { position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
+  favesPopupName: { fontSize: 10, fontWeight: '600', marginTop: 5, textAlign: 'center' },
 
 
   // Badges
   badgeCountText: { fontSize: 10 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   badgeOuter: { width: '22%', margin: '1.5%' },
-  badgeCard: { paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
+  badgeCard: { paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
   badgeIcon: { fontSize: 24, marginBottom: 5 },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 },
   seeAllBadgesBtn: { paddingVertical: 8, alignItems: 'center' },
@@ -1231,7 +1568,7 @@ const styles = StyleSheet.create({
   gradeGroup: { marginBottom: 20 },
   gradeGroupTitle: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
   gradeBadgeGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  fullBadgeCard: { width: '48%', margin: '1%', padding: 12, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start' },
+  fullBadgeCard: { width: '48%', margin: '1%', padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'flex-start' },
   fullBadgeCardLocked: { backgroundColor: 'rgba(255,255,255,0.02)' },
   fullBadgeIcon: { fontSize: 22, marginRight: 8, marginTop: 1 },
   fullBadgeInfo: { flex: 1 },

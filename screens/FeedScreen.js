@@ -6,7 +6,7 @@
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchMangaInfo, getCachedCoverUrl, getFaviconUrl, AI_REC_KEY, prewarmCoverCache } from '../utils/mangaCovers';
+import { fetchMangaInfo, getCachedCoverUrl, getFaviconUrl, AI_REC_KEY, prewarmCoverCache, NSFW_KEY, isRatingGated } from '../utils/mangaCovers';
 import { fetchPopularManga } from '../utils/mangaDexApi';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,33 +19,21 @@ import { syncReadOpen, setLastRead } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
 import { useNotifications } from '../utils/NotificationsContext';
 
-import { MANGA_POOL } from '../utils/mangaPool';
+import { MANGA_POOL, COMPLETED_IDS } from '../utils/mangaPool';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 
 const { height, width } = Dimensions.get('window');
 const NOTIF_H    = Math.round(height * 0.40);
 const COMMENTS_H = Math.round(height * 0.88);
-const COVER_W    = Math.round(width * 0.58);
+// Cover/text sizing is derived from a capped content width, not the raw
+// screen width — on a tablet the card background still fills edge-to-edge
+// but the cover art and text stay phone-proportioned instead of ballooning.
+const CARD_CONTENT_W = Math.min(width, 480);
+const COVER_W    = Math.round(CARD_CONTENT_W * 0.58);
 const COVER_H    = Math.round(COVER_W * 1.44);
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
 
-
-// ── Completed series IDs ─────────────────────────────────────────────────────
-
-const COMPLETED_IDS = new Set([
-  // Japanese manga (concluded series in pool)
-  'aot','kny','fma','dn','ber','nar','drgbl','blch','mp100','pny',
-  'sev7','komi','fft','jjk','kgya','krkbs','hqq','qnts','gntm','hrmya','nisko',
-  // Korean manhwa (concluded series in pool)
-  'sl','orv','gohs','trb','chstr','itclss','hlbnd','swhm','nvlr','lvalm',
-  'klhr','scls','ovgr','yrthr','nob','rcdem','gam',
-  // Chinese manhua (concluded or novel-complete in pool)
-  'bttw','kngav','tgcf','mdzs','batf','blhvn','cold','awe','issh',
-  'lotm','slt','wdqk','blcs','grtl','ssv','pfw',
-  // English (concluded series in pool)
-  'loly','ily','orgns','alwhm','hmstk','prnce','sgac',
-]);
 
 // ── Module-level feed state ──────────────────────────────────────────────────
 
@@ -63,6 +51,7 @@ const _popularSeen  = new Set();
 const MAX_FEED_LENGTH = 120;  // max cards kept in state — prevents RAM growth
 const TRIM_BATCH      = 60;   // how many to drop from front when cap is hit
 const BATCH_SIZE      = 15;   // cards dispensed per loadMore
+const FEED_CACHE_KEY  = '@mangarecs/feed_cache_v1'; // offline-first snapshot of the last feed
 const QUEUE_REFILL_AT = 80;   // start background refill when queue drops below this
 
 // Pre-fetch buffer — filled from Supabase personalized RPC, falls back to local pool
@@ -419,6 +408,9 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
        ?? null
   );
   const [coverError, setCoverError] = useState(false);
+  const [allowNsfw, setAllowNsfw] = useState(false);
+  useEffect(() => { AsyncStorage.getItem(NSFW_KEY).then((v) => setAllowNsfw(v === 'true')); }, []);
+  const covered = isRatingGated(item.contentRating) && !allowNsfw;
 
   const enterAnim  = useRef(new Animated.Value(0)).current;
   const fadeAnim   = useRef(new Animated.Value(coverUrl ? 1 : 0)).current;
@@ -511,12 +503,19 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
                 style={[StyleSheet.absoluteFill, styles.coverImg, { opacity: fadeAnim }]}
                 contentFit="cover"
                 cachePolicy="disk"
+                blurRadius={covered ? (Platform.OS === 'ios' ? 26 : 14) : 0}
                 onLoad={onImageLoad}
                 onError={() => { setCoverError(true); fadeAnim.setValue(1); }}
               />
             ) : (
               <View style={[StyleSheet.absoluteFill, styles.coverFallback]}>
                 <Text style={styles.coverFallbackText}>{(item.title || '?').charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            {covered && (
+              <View style={styles.nsfwGateOverlay} pointerEvents="none">
+                <Ionicons name="lock-closed" size={18} color="#fff" />
+                <Text style={styles.nsfwGateText}>18+</Text>
               </View>
             )}
             {item.comingSoon && (
@@ -767,7 +766,7 @@ export default function FeedScreen() {
   const [revealedSpoilers, setRevealedSpoilers] = useState(new Set());
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { items: notifications, unreadCount, load: reloadNotifs, clearAll: handleClearAllNotif, acceptFriendRequest } = useNotifications();
+  const { items: notifications, unreadCount, load: reloadNotifs, clearAll: handleClearAllNotif, markAllSeen, acceptFriendRequest } = useNotifications();
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState('Reader');
   const [commentFetching, setCommentFetching] = useState(false);
@@ -863,7 +862,24 @@ export default function FeedScreen() {
   // ── Initial feed load ─────────────────────────────────────────────────────
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Offline-first: hydrate the last session's feed from disk instantly so a
+    // cold start (or no network) never shows a blank screen. The live load
+    // below replaces it as soon as it lands.
+    AsyncStorage.getItem(FEED_CACHE_KEY).then((raw) => {
+      if (!raw || cancelled) return;
+      try {
+        const cached = JSON.parse(raw);
+        if (Array.isArray(cached) && cached.length > 0) {
+          setFeed((prev) => (prev.length > 0 ? prev : cached));
+          setInitialLoading(false);
+        }
+      } catch (_) {}
+    });
+
     (async () => {
+      try {
       // Read local saved/liked state first for immediate use
       let savedIds = new Set();
       let likedSet = new Set();
@@ -925,18 +941,55 @@ export default function FeedScreen() {
         }
       } catch (_) {}
 
+      if (cancelled) return;
       setFeed(firstBatch);
       setInitialLoading(false);
+      syncLiveCounts(firstBatch);
       setupRealtimeSubscription();
+      // Persist the top of the fresh feed for next launch / offline starts
+      AsyncStorage.setItem(FEED_CACHE_KEY, JSON.stringify(firstBatch.slice(0, 12))).catch(() => {});
+      } catch (_) {
+        // Network failed — the cached feed (hydrated above) stays on screen
+        if (!cancelled) setInitialLoading(false);
+      }
     })();
 
     return () => {
+      cancelled = true;
       if (realtimeRef.current) {
         supabase.removeChannel(realtimeRef.current);
         realtimeRef.current = null;
       }
     };
   }, []);
+
+  // ── Live counts ───────────────────────────────────────────────────────────
+  // Cards built from the local pool start at 0 — pull the real like/comment/
+  // save/share counters from manga_pool for every card as soon as it enters
+  // the feed, so counts are live without needing a tap. Realtime keeps them
+  // fresh afterwards.
+  async function syncLiveCounts(items) {
+    const ids = [...new Set(items.filter((i) => i && !i.isCreatorUpload).map((i) => i.id))];
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from('manga_pool')
+      .select('id, likes, comment_count, bookmark_count, share_count')
+      .in('id', ids);
+    if (error || !data?.length) return;
+    const byId = new Map(data.map((r) => [r.id, r]));
+    setFeed((prev) => prev.map((item) => {
+      const r = byId.get(item.id);
+      if (!r) return item;
+      return {
+        ...item,
+        likeCount:     r.likes          ?? item.likeCount,
+        likes:         r.likes          ?? item.likes,
+        commentCount:  r.comment_count  ?? item.commentCount,
+        bookmarkCount: r.bookmark_count ?? item.bookmarkCount,
+        shareCount:    r.share_count    ?? item.shareCount,
+      };
+    }));
+  }
 
   // ── Feed actions ──────────────────────────────────────────────────────────
 
@@ -1243,6 +1296,9 @@ export default function FeedScreen() {
   }
 
   function closeNotif() {
+    // Panel was open, so everything in it has been seen — clear the bell badge
+    // (pending friend requests stay unread so their Accept button survives)
+    markAllSeen();
     Animated.parallel([
       Animated.timing(notifY,    { toValue: -NOTIF_H, duration: 260, useNativeDriver: true }),
       Animated.timing(notifFade, { toValue: 0, duration: 200, useNativeDriver: true }),
@@ -1267,7 +1323,7 @@ export default function FeedScreen() {
   function setupRealtimeSubscription() {
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current);
     const channel = supabase
-      .channel('manga-pool-likes')
+      .channel(`manga-pool-likes-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'manga_pool' }, (payload) => {
         if (payload.new?.id) {
           const n = payload.new;
@@ -1301,6 +1357,7 @@ export default function FeedScreen() {
       const next = [...prev, ...batch];
       return next.length > MAX_FEED_LENGTH ? next.slice(TRIM_BATCH) : next;
     });
+    syncLiveCounts(batch);
     setLoadingMore(false);
     loadingMoreRef.current = false;
   }
@@ -1315,6 +1372,7 @@ export default function FeedScreen() {
     const savedIds = new Set(savedMap.keys());
     const batch = buildSectionedFeed(savedIds, likedIds);
     setFeed(batch);
+    syncLiveCounts(batch);
     setRefreshing(false);
   }
 
@@ -1540,7 +1598,7 @@ export default function FeedScreen() {
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
                 {sendFriends.map((friend) => {
                   const status = sendSentTo[friend.id];
-                  const THEME_COLORS = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD' };
+                  const THEME_COLORS = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A' };
                   const accent = THEME_COLORS[friend.color] || '#7B5CFF';
                   return (
                     <View key={friend.id} style={[feedSendStyles.friendRow, { borderBottomColor: colors.border }]}>
@@ -1615,7 +1673,7 @@ export default function FeedScreen() {
                     </View>
                   </View>
                   <View style={styles.notifContent}>
-                    <Text style={styles.notifTxt} numberOfLines={2}>
+                    <Text style={styles.notifTxt} numberOfLines={3}>
                       <Text style={styles.notifUser}>{n.user}</Text>
                       <Text style={styles.notifAction}> {n.text}</Text>
                     </Text>
@@ -1755,6 +1813,8 @@ const styles = StyleSheet.create({
   },
   coverImg: { borderRadius: 18 },
   coverFallback: { borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  nsfwGateOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)', gap: 4 },
+  nsfwGateText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   coverFallbackText: { fontSize: 72, fontWeight: '800', color: 'rgba(255,255,255,0.25)' },
   feedComingSoonOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', paddingVertical: 10, borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
   feedComingSoonChip: { backgroundColor: 'rgba(123,92,255,0.5)', borderWidth: 1, borderColor: 'rgba(160,156,224,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 4 },
@@ -1763,7 +1823,7 @@ const styles = StyleSheet.create({
   sideActions: { position: 'absolute', right: 14, bottom: 110, alignItems: 'center', justifyContent: 'space-between', height: 220 },
   actionBtn: { alignItems: 'center', justifyContent: 'center', width: 44 },
   actionCount: { fontSize: 12, fontWeight: '600', marginTop: 4 },
-  cardInfo: { paddingTop: 14 },
+  cardInfo: { paddingTop: 14, width: '100%', maxWidth: CARD_CONTENT_W, alignSelf: 'center' },
   sectionBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 8, borderWidth: 1, gap: 5 },
   sectionBadgeHot:      { backgroundColor: 'rgba(255, 86, 24, 0.27)', borderColor: 'rgba(255, 81, 1, 0.57)' },
   sectionBadgeTrending: { backgroundColor: 'rgba(46, 31, 212, 0.49)',  borderColor: 'rgba(10, 0, 104, 0.81)' },

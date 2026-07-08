@@ -1,9 +1,7 @@
 ﻿import {
-  View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl, Animated, Dimensions,
+  View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl, Animated, PanResponder,
 } from 'react-native';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const IS_TABLET = SCREEN_W >= 768;
 import { Ionicons } from '@expo/vector-icons';
 import { MangaCover, AI_REC_KEY, prewarmCoverCache, NSFW_KEY } from '../utils/mangaCovers';
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
@@ -17,7 +15,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { syncReadOpen, updateGenreWeights, setLastRead } from '../utils/readerUtils';
+import { showAppToast } from '../utils/appToast';
 import { MANGA_POOL } from '../utils/mangaPool';
+import { GENRES } from '../utils/genres';
+import { useResponsive } from '../utils/responsive';
 
 // Icon map for all genre labels used in the radar and mood pickers
 const MOOD_ICON_MAP = {};
@@ -26,29 +27,31 @@ const MOOD_ICON_MAP = {};
 const DEFAULT_RADAR_GENRES = ['Action', 'Fantasy', 'Romance', 'Horror', 'Sci-Fi', 'Comedy', 'Thriller', 'Adventure'];
 const TASTE_PROFILE = DEFAULT_RADAR_GENRES.map((genre) => ({ genre, value: 0 }));
 
+// Mood chips = the canonical genre list (same labels + icons everywhere),
+// plus the age-gated Adult chip which is a feed filter, not a real genre.
 const MOODS = [
-  { icon: 'flash-outline',          label: 'Action' },
-  { icon: 'heart-outline',          label: 'Romance' },
-  { icon: 'skull-outline',          label: 'Horror' },
-  { icon: 'sparkles-outline',       label: 'Fantasy' },
-  { icon: 'planet-outline',         label: 'Sci-Fi' },
-  { icon: 'happy-outline',          label: 'Comedy' },
-  { icon: 'eye-outline',            label: 'Thriller' },
-  { icon: 'film-outline',           label: 'Drama' },
-  { icon: 'barbell-outline',        label: 'Martial Arts' },
-  { icon: 'compass-outline',        label: 'Adventure' },
-  { icon: 'help-circle-outline',    label: 'Mystery' },
-  { icon: 'moon-outline',           label: 'Dark Fantasy' },
-  { icon: 'shuffle-outline',        label: 'Isekai' },
-  { icon: 'thunderstorm-outline',   label: 'Supernatural' },
-  { icon: 'library-outline',        label: 'Historical' },
-  { icon: 'trophy-outline',         label: 'Sports' },
-  { icon: 'flower-outline',         label: 'Slice of Life' },
-  { icon: 'flame-outline',          label: 'Adult' },
+  ...GENRES.map((g) => ({ icon: g.icon, iconActive: g.iconActive, label: g.label })),
+  { icon: 'flame-outline', iconActive: 'flame', label: 'Adult' },
 ];
 
 // Populate icon map once MOODS is defined
 MOODS.forEach((m) => { MOOD_ICON_MAP[m.label] = m.icon; });
+// Genres that appear in series data but aren't chips of their own — radar axes
+// built from reading history still deserve an accurate icon, not the book fallback
+Object.assign(MOOD_ICON_MAP, {
+  'Dark Fantasy':  'moon-outline',
+  'Supernatural':  'thunderstorm-outline',
+  'Historical':    'library-outline',
+  'Regression':    'refresh-circle-outline',
+  'Reincarnation': 'refresh-circle-outline',
+});
+
+// Moods that don't map to a single genre tag — matched against several tags
+// plus description keywords instead of a plain genres-contains query.
+const MOOD_OR_FILTER = {
+  'Murim': 'genres.ov.{Murim,"Martial Arts"},description.ilike.%murim%',
+  'Regression/Reincarnation': 'genres.ov.{Regression,Reincarnation},description.ilike.%regress%,description.ilike.%reincarnat%',
+};
 
 
 // ── Radar chart ────────────────────────────────────────────────────────────
@@ -97,9 +100,12 @@ function RadarChart({ tasteProfile, onGenreTap }) {
           return <Line key={i} x1={RADAR_CENTER} y1={RADAR_CENTER} x2={outer.x} y2={outer.y} stroke={colors.border} strokeWidth={1} />;
         })}
         <Polygon points={polygonPoints} fill="#7B5CFF" fillOpacity={0.25} stroke="#7B5CFF" strokeWidth={2} />
-        {dataPoints.map((p, i) => (
-          <Circle key={i} cx={p.x} cy={p.y} r={3.5} fill="#7B5CFF" />
-        ))}
+        {/* Dotted endpoints where the web meets its outer ring — the data
+            polygon itself stays clean, no vertex dots */}
+        {tasteProfile.map((_, i) => {
+          const outer = getPoint(i, 100);
+          return <Circle key={`end-${i}`} cx={outer.x} cy={outer.y} r={1.6} fill={colors.muted} fillOpacity={0.7} />;
+        })}
       </Svg>
 
       {tasteProfile.map((t, i) => {
@@ -158,7 +164,7 @@ function RadarCard({ colors, focusKey, tasteProfile }) {
     <Animated.View style={[styles.tasteCard, { opacity, transform: [{ scale }] }]}>
       <View style={styles.tasteTitleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.tasteTitle, { color: colors.text }]}>Your Taste Profile</Text>
+          <Text style={[styles.tasteTitle, { color: colors.text }]}>Your Taste</Text>
         </View>
         {selectedGenre && (
           <View style={[styles.genrePill, { flexShrink: 0 }]}>
@@ -220,7 +226,7 @@ function MoodButton({ mood, active, onPress }) {
         ]}
         onPress={handlePress}
         activeOpacity={0.8}>
-        <Ionicons name={mood.icon} size={15} color={active ? '#A09CE0' : colors.muted} style={{ marginRight: 6 }} />
+        <Ionicons name={active ? (mood.iconActive || mood.icon) : mood.icon} size={15} color={active ? '#A09CE0' : colors.muted} style={{ marginRight: 6 }} />
         <Text style={[styles.moodLabel, { color: colors.muted }, active && styles.moodLabelActive]}>
           {mood.label}
         </Text>
@@ -231,13 +237,22 @@ function MoodButton({ mood, active, onPress }) {
 
 // ── Rec card — stagger entrance, replays on animKey change ─────────────────
 
-function RecCard({ series, reason, onPress, onDismiss, index, animKey }) {
+// Gmail-style swipeable row: slide right to save to Library, slide left to
+// remove ("not interested"). Tap still opens the reader.
+function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey }) {
   const { colors } = useTheme();
   const anim  = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  // PanResponder is created once — route callbacks through refs so it always
+  // sees the latest props (they close over userId etc. from each render)
+  const onDismissRef = useRef(onDismiss); onDismissRef.current = onDismiss;
+  const onSaveRef    = useRef(onSave);    onSaveRef.current    = onSave;
 
   useEffect(() => {
     anim.setValue(0);
+    translateX.setValue(0);
     Animated.timing(anim, {
       toValue: 1,
       duration: 280,
@@ -245,6 +260,32 @@ function RecCard({ series, reason, onPress, onDismiss, index, animKey }) {
       useNativeDriver: true,
     }).start();
   }, [animKey]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.6,
+      onPanResponderMove: (_, g) => translateX.setValue(g.dx),
+      onPanResponderRelease: (_, g) => {
+        const threshold = SCREEN_W * 0.28;
+        if (g.dx < -threshold && onDismissRef.current) {
+          // Swipe left — slide the row out, then remove it
+          Animated.timing(translateX, { toValue: -SCREEN_W, duration: 180, useNativeDriver: true }).start(() => {
+            onDismissRef.current?.();
+          });
+        } else if (g.dx > threshold && onSaveRef.current) {
+          // Swipe right — bookmark, then spring back into place
+          onSaveRef.current?.();
+          Animated.spring(translateX, { toValue: 0, useNativeDriver: true, speed: 14, bounciness: 7 }).start();
+        } else {
+          Animated.spring(translateX, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
+      },
+    })
+  ).current;
 
   function handlePress() {
     Animated.sequence([
@@ -256,46 +297,51 @@ function RecCard({ series, reason, onPress, onDismiss, index, animKey }) {
 
   const opacity    = anim;
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+  const saveOpacity   = translateX.interpolate({ inputRange: [0, 56],  outputRange: [0, 1], extrapolate: 'clamp' });
+  const removeOpacity = translateX.interpolate({ inputRange: [-56, 0], outputRange: [1, 0], extrapolate: 'clamp' });
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY }, { scale }] }}>
-      <TouchableOpacity
-        style={[styles.recCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={handlePress}
-        activeOpacity={0.9}>
-        <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} style={styles.recCover}>
-          <View style={styles.coverLetterWrap}>
-            <Text style={styles.coverLetterText}>{(series.title || '?').charAt(0).toUpperCase()}</Text>
-          </View>
-          {series.comingSoon && (
-            <View style={styles.comingSoonOverlay}>
-              <Text style={styles.comingSoonLabel}>UNRELEASED</Text>
-              <Text style={styles.comingSoonText}>Coming Soon</Text>
+    <Animated.View style={{ opacity, transform: [{ translateY }], marginBottom: 8 }}>
+      {/* Swipe action underlays */}
+      <Animated.View style={[styles.swipeUnder, styles.swipeUnderSave, { opacity: saveOpacity }]}>
+        <Ionicons name="bookmark" size={18} color="#fff" />
+        <Text style={styles.swipeUnderText}>Save</Text>
+      </Animated.View>
+      <Animated.View style={[styles.swipeUnder, styles.swipeUnderRemove, { opacity: removeOpacity }]}>
+        <Text style={styles.swipeUnderText}>Remove</Text>
+        <Ionicons name="trash" size={18} color="#fff" />
+      </Animated.View>
+
+      <Animated.View {...panResponder.panHandlers} style={{ transform: [{ translateX }, { scale }] }}>
+        <TouchableOpacity
+          style={[styles.recCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 0 }]}
+          onPress={handlePress}
+          activeOpacity={0.9}>
+          <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} contentRating={series.contentRating} nsfw={series.nsfw} style={styles.recCover}>
+            <View style={styles.coverLetterWrap}>
+              <Text style={styles.coverLetterText}>{(series.title || '?').charAt(0).toUpperCase()}</Text>
             </View>
-          )}
-        </MangaCover>
-        <View style={styles.recInfo}>
-          {reason && <Text style={styles.recReason}>{reason}</Text>}
-          <Text style={[styles.recTitle, { color: colors.text }]} numberOfLines={1}>{series.title}</Text>
-          <Text style={[styles.recDesc, { color: colors.muted }]} numberOfLines={1}>{series.description}</Text>
-          <View style={styles.recMeta}>
-            <Ionicons name="star" size={10} color="#FFD700" />
-            <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.rating}</Text>
-            <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.chapters} ch</Text>
-            <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.readers}</Text>
+            {series.comingSoon && (
+              <View style={styles.comingSoonOverlay}>
+                <Text style={styles.comingSoonLabel}>UNRELEASED</Text>
+                <Text style={styles.comingSoonText}>Coming Soon</Text>
+              </View>
+            )}
+          </MangaCover>
+          <View style={styles.recInfo}>
+            {reason && <Text style={styles.recReason}>{reason}</Text>}
+            <Text style={[styles.recTitle, { color: colors.text }]} numberOfLines={1}>{series.title}</Text>
+            <Text style={[styles.recDesc, { color: colors.muted }]} numberOfLines={1}>{series.description}</Text>
+            <View style={styles.recMeta}>
+              <Ionicons name="star" size={10} color="#FFD700" />
+              <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.rating}</Text>
+              <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.chapters} ch</Text>
+              <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.readers}</Text>
+            </View>
           </View>
-        </View>
-        <View style={{ alignItems: 'center', gap: 10 }}>
           <Ionicons name="arrow-forward" size={16} color={colors.muted} />
-          {onDismiss && (
-            <TouchableOpacity
-              onPress={(e) => { e.stopPropagation?.(); onDismiss(); }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={14} color={colors.muted} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -317,7 +363,7 @@ const HotCard = memo(function HotCard({ series, onPress }) {
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       <TouchableOpacity onPress={handlePress} activeOpacity={0.85} style={styles.hotCard}>
-        <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} style={styles.hotCover}>
+        <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} contentRating={series.contentRating} nsfw={series.nsfw} style={styles.hotCover}>
           <View style={styles.hotLetterWrap}>
             <Text style={styles.hotLetterText}>{(series.title || '?').charAt(0).toUpperCase()}</Text>
           </View>
@@ -347,6 +393,8 @@ function buildTasteProfile(weights) {
   const filled = [...weighted];
   for (const m of MOODS) {
     if (filled.length >= 8) break;
+    // Long combined labels (e.g. Regression/Reincarnation) don't fit radar axes
+    if (m.label.length > 12) continue;
     if (!filled.includes(m.label)) filled.push(m.label);
   }
   const genres = filled.length >= 3 ? filled : DEFAULT_RADAR_GENRES;
@@ -380,6 +428,7 @@ export default function ForYouScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet: IS_TABLET } = useResponsive();
   const DISMISSED_KEY = '@mangarecs_dismissed_recs';
   const [activeMood, setActiveMood] = useState(null);
   const [dismissedIds, setDismissedIds] = useState(new Set());
@@ -408,6 +457,34 @@ export default function ForYouScreen() {
         supabase.rpc('upsert_genre_weight', { p_user_id: userId, p_genre: genre, p_delta: -2 }).then(() => {});
       });
     }
+  }
+
+  // Swipe-right action: bookmark the rec into the Library (mirrors FeedScreen's
+  // save flow) and give the algorithm a positive taste signal
+  async function saveRec(series) {
+    try {
+      const raw = await AsyncStorage.getItem('@mangarecs_saved');
+      const saved = raw ? JSON.parse(raw) : [];
+      if (!saved.find((s) => s.id === series.id)) {
+        saved.push({ ...series, bookmarked: true });
+        await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(saved));
+      }
+    } catch (_) {}
+    supabase.rpc('increment_manga_bookmarks', { p_manga_id: series.id, p_delta: 1 }).then(() => {});
+    if (userId) {
+      supabase.from('reading_progress').upsert({
+        user_id: userId,
+        series_title: series.title,
+        status: 'bookmarked',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }).then(() => {});
+      if (series.genres?.length) {
+        series.genres.forEach((genre) => {
+          supabase.rpc('upsert_genre_weight', { p_user_id: userId, p_genre: genre, p_delta: 2 }).then(() => {});
+        });
+      }
+    }
+    showAppToast('Saved to Library', 'success');
   }
   const [focusKey, setFocusKey] = useState(0);
   const [genreWeights, setGenreWeights] = useState({});
@@ -443,7 +520,7 @@ export default function ForYouScreen() {
     if (!topGenre) return;
     setBecauseYouReadGenre(topGenre);
     supabase.from('manga_pool')
-      .select('id, title, description, genres, rating, chapters, readers, author, cover_url, color, likes, status, lang, search_key')
+      .select('id, title, description, genres, rating, chapters, readers, author, cover_url, color, likes, comment_count, status, lang, search_key')
       .contains('genres', [topGenre])
       .eq('nsfw', false)
       .order('likes', { ascending: false, nullsFirst: false })
@@ -454,7 +531,7 @@ export default function ForYouScreen() {
           ...m,
           searchKey: m.search_key,
           likeCount: m.likes || 0,
-          commentCount: 0,
+          commentCount: m.comment_count || 0,
           status: m.status === 'completed' ? 'Completed' : 'Ongoing',
         })));
       })
@@ -468,11 +545,13 @@ export default function ForYouScreen() {
     // Don't fetch adult content if the feature isn't enabled
     if (isAdult && !(ageVerified && allowNsfw)) { setSupabaseRecs([]); return; }
     let q = supabase.from('manga_pool')
-      .select('id, title, description, genres, rating, chapters, readers, author, cover_url, color, likes, status, lang, search_key, nsfw')
+      .select('id, title, description, genres, rating, chapters, readers, author, cover_url, color, likes, comment_count, status, lang, search_key, nsfw')
       .order('likes', { ascending: false, nullsFirst: false })
       .limit(20);
     if (isAdult) {
       q = q.eq('nsfw', true);
+    } else if (MOOD_OR_FILTER[activeMood]) {
+      q = q.or(MOOD_OR_FILTER[activeMood]).eq('nsfw', false);
     } else {
       q = q.contains('genres', [activeMood]).eq('nsfw', false);
     }
@@ -482,7 +561,7 @@ export default function ForYouScreen() {
           ...m,
           searchKey: m.search_key,
           likeCount: m.likes || 0,
-          commentCount: 0,
+          commentCount: m.comment_count || 0,
           status: m.status === 'completed' ? 'Completed' : 'Ongoing',
         })));
       })
@@ -756,7 +835,7 @@ export default function ForYouScreen() {
 
         <View style={IS_TABLET ? styles.tabletWrap : null}>
         <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}>
-          <Ionicons name="sparkles" size={20} color="#7B5CFF" />
+          <Ionicons name="sparkles" size={16} color="#7B5CFF" />
           <Text style={[styles.headerTitle, { color: colors.text }]}>For You</Text>
         </Animated.View>
         <Animated.Text style={[styles.headerSub, { color: colors.muted, opacity: headerOpacity }]}>
@@ -887,6 +966,7 @@ export default function ForYouScreen() {
                 reason={buildReason(series)}
                 onPress={() => openReader(series)}
                 onDismiss={() => dismissRec(series)}
+                onSave={() => saveRec(series)}
               />
             ))}
           </View>
@@ -911,8 +991,8 @@ const styles = StyleSheet.create({
   newUserHint: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 14, padding: 12, borderRadius: 12, borderWidth: 1, gap: 8 },
   newUserHintText: { flex: 1, fontSize: 12, lineHeight: 17 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, marginBottom: 4 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', marginLeft: 8 },
-  headerSub: { fontSize: 14, paddingHorizontal: 20, marginBottom: 20 },
+  headerTitle: { fontSize: 18, fontWeight: '700', marginLeft: 8 },
+  headerSub: { fontSize: 10, paddingHorizontal: 20, marginBottom: 20 },
   tasteCard: { marginHorizontal: 20, paddingHorizontal: 16, marginBottom: 24 },
   tasteTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
   tasteTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
@@ -931,6 +1011,10 @@ const styles = StyleSheet.create({
   aiOffText: { flex: 1, fontSize: 12, lineHeight: 18 },
   recList: { paddingHorizontal: 20, marginBottom: 24 },
   recCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
+  swipeUnder: { ...StyleSheet.absoluteFillObject, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  swipeUnderSave: { backgroundColor: '#1D9E75', justifyContent: 'flex-start', paddingLeft: 18 },
+  swipeUnderRemove: { backgroundColor: '#E5534B', justifyContent: 'flex-end', paddingRight: 18 },
+  swipeUnderText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   recCover: { width: 56, height: 70, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   recInfo: { flex: 1 },
   recReason: { color: '#1D9E75', fontSize: 10, fontWeight: '600', marginBottom: 2 },

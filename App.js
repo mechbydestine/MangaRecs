@@ -40,8 +40,29 @@ import LegalScreen from './screens/LegalScreen';
 import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
+import BadgeCeremony from './components/BadgeCeremony';
 
 const navigationRef = createNavigationContainerRef();
+
+// Deep links: mangarecs://series/<title> opens the Reader on that series,
+// mangarecs://discussion/<title> opens its discussion. Share messages include
+// these links so a friend with the app lands directly on the series.
+const linking = {
+  prefixes: ['mangarecs://'],
+  config: {
+    screens: {
+      Reader: 'series/:searchQuery',
+      Discussion: 'discussion/:title',
+      Tabs: {
+        screens: {
+          Feed: { screens: { FeedHome: 'home', Notifications: 'notifications' } },
+          Social: { screens: { SocialHome: 'social' } },
+          Profile: { screens: { ProfileHome: 'profile' } },
+        },
+      },
+    },
+  },
+};
 
 const CURRENT_APP_VERSION = Constants.expoConfig?.version || '1.0.0';
 const LAST_SEEN_VERSION_KEY = '@mangarecs/last_seen_version';
@@ -374,7 +395,7 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   }
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
       <ThemedStatusBar />
       {session ? <AppNavigator /> : <AuthScreen />}
     </NavigationContainer>
@@ -403,10 +424,8 @@ export default function App() {
           AsyncStorage.getItem(LAST_SEEN_VERSION_KEY),
           hydrateCoverCache(),
         ]);
-        // TEMP (pre-launch review): always replay the intro so it can be checked
-        // for bugs on every launch. Before release, revert to:
-        //   setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION);
-        setShowIntro(true);
+        // Show the intro once per app version (first launch + after updates)
+        setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION);
         const s = sessionResult?.data?.session ?? null;
         setSession(s);
         setNeedsOnboarding(onboardingDone !== 'true');
@@ -549,6 +568,7 @@ export default function App() {
                   onGuidelinesComplete={() => setNeedsGuidelines(false)}
                 />
                 <ToastHost />
+                <BadgeCeremony />
               </NotificationsProvider>
             </ProfileProvider>
           </QueryClientProvider>

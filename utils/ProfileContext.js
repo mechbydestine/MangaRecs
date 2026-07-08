@@ -5,10 +5,20 @@ import { checkAndNotifyBadges } from './badgeEngine';
 
 const ProfileContext = createContext(null);
 
+// Stat columns are server-owned (RPCs/triggers only — see migration section 36).
+// Any client update that still includes one would make the whole UPDATE fail
+// under the column-level grants, so they are stripped here defensively.
+const SERVER_OWNED_FIELDS = new Set([
+  'hours_read', 'chapters_read', 'streak_count', 'daily_log', 'manga_count',
+  'completed_count', 'night_reads', 'shares_count', 'comments_count',
+  'likes_given', 'friends_count', 'ratings_count',
+]);
+
 export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [newBadges, setNewBadges] = useState([]); // newly unlocked, awaiting ceremony
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -42,6 +52,15 @@ export function ProfileProvider({ children }) {
       .maybeSingle();
     setProfile(data || null);
     setLoading(false);
+    // Stats now change server-side (RPCs/triggers), so every fresh profile
+    // fetch is a badge-check point; unlocks queue up for the ceremony modal.
+    if (data) {
+      checkAndNotifyBadges(uid, data)
+        .then((unlocked) => {
+          if (unlocked?.length) setNewBadges((prev) => [...prev, ...unlocked]);
+        })
+        .catch(() => {});
+    }
   }
 
   // Stat fields that, when changed, should trigger a badge check
@@ -54,17 +73,28 @@ export function ProfileProvider({ children }) {
 
   async function updateProfile(changes) {
     if (!userId) return { error: new Error('Not signed in') };
+    const safe = {};
+    for (const [k, v] of Object.entries(changes)) {
+      if (!SERVER_OWNED_FIELDS.has(k)) safe[k] = v;
+    }
+    if (Object.keys(safe).length === 0) return { error: null };
     const { data, error } = await supabase
       .from('profiles')
-      .update(changes)
+      .update(safe)
       .eq('id', userId)
       .select()
       .maybeSingle();
     if (!error && data) {
       setProfile(data);
       // Only run badge check when stat-relevant fields changed
-      const hasStat = Object.keys(changes).some((k) => BADGE_STAT_FIELDS.has(k));
-      if (hasStat) checkAndNotifyBadges(userId, data).catch(() => {});
+      const hasStat = Object.keys(safe).some((k) => BADGE_STAT_FIELDS.has(k));
+      if (hasStat) {
+        checkAndNotifyBadges(userId, data)
+          .then((unlocked) => {
+            if (unlocked?.length) setNewBadges((prev) => [...prev, ...unlocked]);
+          })
+          .catch(() => {});
+      }
     }
     return { error };
   }
@@ -118,6 +148,8 @@ export function ProfileProvider({ children }) {
       updateProfile,
       uploadAvatar,
       refreshProfile: () => userId && fetchProfile(userId),
+      newBadges,
+      clearNewBadges: () => setNewBadges([]),
     }}>
       {children}
     </ProfileContext.Provider>

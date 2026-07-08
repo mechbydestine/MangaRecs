@@ -8,12 +8,15 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
-import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats } from '../utils/badges';
+import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats, ensureBadgeRarity } from '../utils/badges';
+import BadgeDetail from '../components/BadgeDetail';
 import { useTheme } from '../utils/ThemeContext';
-import { MangaCover } from '../utils/mangaCovers';
+import { MangaCover, fetchMangaInfo } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 import { PeopleListModal, PeopleRow } from './ProfileScreen';
 import { localDateKey } from '../utils/readerUtils';
+import { Bone, RowSkeleton } from '../components/Skeleton';
+import { useResponsive } from '../utils/responsive';
 
 const PROFILE_THEMES = [
   { id: 'default', label: 'Default', ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'], banner: ['#7B5CFF', '#0D0D0F'] },
@@ -22,6 +25,7 @@ const PROFILE_THEMES = [
   { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },
   { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#0D0D0F'] },
   { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'] },
+  { id: 'crimson', label: 'Crimson', ring: '#FF5C7A', gradient: ['#FF5C7A', '#7A0F2E'], banner: ['#FF5C7A', '#0D0D0F'] },
 ];
 
 const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
@@ -129,12 +133,11 @@ export default function FriendProfileScreen({ route }) {
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const { id } = route.params || {};
   const [profile, setProfile]           = useState(null);
   const [loading, setLoading]           = useState(true);
   const [myId, setMyId]                 = useState(null);
-  const [endorsed, setEndorsed]         = useState({});
-  const [endorseCounts, setEndorseCounts] = useState({});
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [entriesRead, setEntriesRead]     = useState(0);
   const [friendsList, setFriendsList]     = useState([]);
@@ -146,6 +149,11 @@ export default function FriendProfileScreen({ route }) {
   const [followBusy, setFollowBusy]       = useState(false);
   const [iBlocked, setIBlocked]           = useState(false);
   const [blockBusy, setBlockBusy]         = useState(false);
+  const [faveCovers, setFaveCovers]       = useState({}); // title → cover_url for favorites missing one
+  const [detailBadge, setDetailBadge]     = useState(null); // badge → detail popup (desc + rarity)
+  const [, setRarityReady]                = useState(false);
+
+  useEffect(() => { ensureBadgeRarity().then(() => setRarityReady(true)); }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -210,38 +218,11 @@ export default function FriendProfileScreen({ route }) {
     setEntriesRead(read.size);
   }
 
-  // Live endorsement count updates via Realtime
-  useEffect(() => {
-    if (!id) return;
-    const channel = supabase
-      .channel(`endorsements-${id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'badge_endorsements',
-        filter: `recipient_id=eq.${id}`,
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setEndorseCounts((prev) => ({
-            ...prev,
-            [payload.new.badge_id]: (prev[payload.new.badge_id] || 0) + 1,
-          }));
-        } else if (payload.eventType === 'DELETE') {
-          setEndorseCounts((prev) => ({
-            ...prev,
-            [payload.old.badge_id]: Math.max(0, (prev[payload.old.badge_id] || 0) - 1),
-          }));
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [id]);
-
   // Live profile updates — avatar, banner, theme, online status, currently_reading
   useEffect(() => {
     if (!id) return;
     const channel = supabase
-      .channel(`profile-live-${id}`)
+      .channel(`profile-live-${id}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${id}` }, (payload) => {
         if (payload.new) setProfile((prev) => prev ? { ...prev, ...payload.new } : payload.new);
       })
@@ -259,12 +240,6 @@ export default function FriendProfileScreen({ route }) {
     if (!error && data) {
       setProfile(data);
       setLoading(false);
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user?.id) {
-          loadMyEndorsements(user.id, id);
-          loadAllEndorsementCounts(id);
-        }
-      });
       return;
     }
     setProfile(null);
@@ -346,37 +321,22 @@ export default function FriendProfileScreen({ route }) {
     setFollowBusy(false);
   }
 
-  async function loadMyEndorsements(uid, friendId) {
-    const { data } = await supabase
-      .from('badge_endorsements')
-      .select('badge_id')
-      .eq('endorser_id', uid)
-      .eq('recipient_id', friendId);
-    if (data?.length) {
-      const map = {};
-      data.forEach((r) => { map[r.badge_id] = true; });
-      setEndorsed(map);
-    }
-  }
-
-  async function loadAllEndorsementCounts(friendId) {
-    const { data } = await supabase
-      .from('badge_endorsements')
-      .select('badge_id')
-      .eq('recipient_id', friendId);
-    if (data) {
-      const counts = {};
-      data.forEach((r) => { counts[r.badge_id] = (counts[r.badge_id] || 0) + 1; });
-      setEndorseCounts(counts);
-    }
-  }
-
   // ── Badge data — same computation as ProfileScreen ───────────────────────
 
   const earnedIds = useMemo(
     () => profile ? computeEarnedBadgeIds(profileToBadgeStats(profile)) : new Set(),
     [profile]
   );
+
+  // Pinned showcase badges (validated against what they actually earned)
+  const showcaseBadges = useMemo(() => {
+    const ids = Array.isArray(profile?.showcase_badges) ? profile.showcase_badges : [];
+    return ids
+      .filter((id) => earnedIds.has(id))
+      .slice(0, 3)
+      .map((id) => ALL_BADGES.find((b) => b.id === id))
+      .filter(Boolean);
+  }, [profile?.showcase_badges, earnedIds]);
 
   const badgeFlatData = useMemo(() => {
     // Only earned badges, plus non-hidden grey/starter badges (shown locked as a preview) —
@@ -397,43 +357,41 @@ export default function FriendProfileScreen({ route }) {
     return rows;
   }, [earnedIds]);
 
-  async function handleEndorse(badgeId) {
-    if (!myId || !profile?.id || myId === profile.id) return;
-    const isEndorsed = !!endorsed[badgeId];
-    // Optimistic UI — update both states immediately
-    setEndorsed((prev) => ({ ...prev, [badgeId]: !isEndorsed }));
-    setEndorseCounts((prev) => ({
-      ...prev,
-      [badgeId]: Math.max(0, (prev[badgeId] || 0) + (isEndorsed ? -1 : 1)),
-    }));
-    if (isEndorsed) {
-      await supabase.from('badge_endorsements')
-        .delete()
-        .eq('endorser_id', myId)
-        .eq('recipient_id', profile.id)
-        .eq('badge_id', badgeId);
-    } else {
-      const { error } = await supabase.from('badge_endorsements').insert({
-        endorser_id: myId,
-        recipient_id: profile.id,
-        badge_id: badgeId,
-      });
-      if (error) {
-        // Revert on failure
-        setEndorsed((prev) => ({ ...prev, [badgeId]: false }));
-        setEndorseCounts((prev) => ({
-          ...prev,
-          [badgeId]: Math.max(0, (prev[badgeId] || 0) - 1),
-        }));
-      }
-    }
-  }
-
   // ── Derived display values ──────────────────────────────────────────────
 
   const theme          = profile ? (PROFILE_THEMES.find((t) => t.id === profile.color) || PROFILE_THEMES[0]) : PROFILE_THEMES[0];
   const avatarInitial  = profile ? (profile.username || '?').charAt(0).toUpperCase() : '?';
-  const favorites      = profile && Array.isArray(profile.favorites) ? profile.favorites : [];
+  // Normalize: older accounts stored favorites in looser shapes (even bare
+  // title strings) — coerce everything to { title, searchKey, ... } objects
+  const rawFavorites   = (profile && Array.isArray(profile.favorites) ? profile.favorites : [])
+    .map((f) => (typeof f === 'string' ? { title: f, searchKey: f } : f))
+    .filter((f) => f && f.title);
+  // Older favorites have no stored coverUrl — resolve those from manga_pool so
+  // the covers reliably show on someone else's profile too
+  useEffect(() => {
+    const missing = rawFavorites.filter((f) => !f.coverUrl && !faveCovers[f.title]);
+    if (missing.length === 0) return;
+    (async () => {
+      const found = {};
+      try {
+        const { data } = await supabase
+          .from('manga_pool')
+          .select('title, cover_url')
+          .in('title', missing.map((f) => f.title));
+        (data || []).forEach((r) => { if (r.cover_url) found[r.title] = r.cover_url; });
+      } catch (_) {}
+      // Anything not in the pool: resolve through the multi-source cover search
+      for (const f of missing) {
+        if (found[f.title]) continue;
+        try {
+          const info = await fetchMangaInfo(f.searchKey || f.title, f.lang);
+          if (info?.coverUrl) found[f.title] = info.coverUrl;
+        } catch (_) {}
+      }
+      if (Object.keys(found).length > 0) setFaveCovers((prev) => ({ ...prev, ...found }));
+    })();
+  }, [profile?.id, rawFavorites.length]);
+  const favorites      = rawFavorites.map((f) => f.coverUrl ? f : { ...f, coverUrl: faveCovers[f.title] || null });
   const dailyLog       = profile?.daily_log || {};
 
   const todayKey   = localDateKey();
@@ -477,8 +435,18 @@ export default function FriendProfileScreen({ route }) {
       </View>
 
       {loading ? (
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color="#7B5CFF" />
+        <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 12 }}>
+          <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+            <Bone width="100%" height={110} radius={16} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: -26, paddingLeft: 8 }}>
+              <Bone width={72} height={72} radius={36} />
+              <View style={{ gap: 7, marginTop: 20 }}>
+                <Bone width={130} height={16} />
+                <Bone width={90} height={11} />
+              </View>
+            </View>
+          </View>
+          <RowSkeleton count={4} />
         </View>
       ) : !profile ? (
         <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
@@ -489,6 +457,7 @@ export default function FriendProfileScreen({ route }) {
         </View>
       ) : (
       <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
+        <View style={isTablet ? styles.tabletWrap : null}>
 
         {/* Space for floating bar */}
         <View style={{ height: insets.top + 50 }} />
@@ -526,6 +495,15 @@ export default function FriendProfileScreen({ route }) {
             <Text style={[styles.handle, { color: colors.muted }]}>
               @{(profile.username || '').toLowerCase()}{joinedLabel ? ` · Joined ${joinedLabel}` : ''}
             </Text>
+            {showcaseBadges.length > 0 && (
+              <View style={styles.showcaseRow}>
+                {showcaseBadges.map((b) => (
+                  <TouchableOpacity key={b.id} onPress={() => setDetailBadge(b)} activeOpacity={0.75}>
+                    <BadgeIcon badge={b} size={30} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
             {profile.bio ? (
               <Text style={[styles.bioText, { color: colors.muted }]}>{profile.bio}</Text>
             ) : null}
@@ -618,33 +596,28 @@ export default function FriendProfileScreen({ route }) {
           }}
         />
 
-        {/* View all favorites modal — read-only, this is someone else's list */}
-        <Modal visible={showAllFaves} animationType="slide" transparent onRequestClose={() => setShowAllFaves(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAllFaves(false)} />
-            <View style={[styles.addFaveSheet, { backgroundColor: colors.card }]}>
-              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-              <View style={styles.addFaveHeaderRow}>
-                <Text style={[styles.addFaveTitle, { color: colors.text }]}>{profile.username}'s Favorites</Text>
-                <TouchableOpacity onPress={() => setShowAllFaves(false)}>
-                  <Ionicons name="close" size={20} color={colors.muted} />
-                </TouchableOpacity>
+        {/* Favorites popup — compact centered card (Discord favorite-games style),
+            read-only because this is someone else's list */}
+        <Modal visible={showAllFaves} animationType="fade" transparent onRequestClose={() => setShowAllFaves(false)}>
+          <TouchableOpacity style={styles.favesPopupOverlay} activeOpacity={1} onPress={() => setShowAllFaves(false)}>
+            <View style={[styles.favesPopupCard, { backgroundColor: colors.card, borderColor: colors.border }]} onStartShouldSetResponder={() => true}>
+              <View style={styles.favesPopupHeader}>
+                <Ionicons name="heart" size={13} color="#E8527A" />
+                <Text style={[styles.favesPopupTitle, { color: colors.text }]} numberOfLines={1}>
+                  {profile.username}'s Favorites
+                </Text>
+                <Text style={[styles.favesPopupCount, { color: colors.muted }]}>{favorites.length}/5</Text>
               </View>
-              <FlatList
-                data={favorites}
-                keyExtractor={(item) => item.id || item.title}
-                numColumns={3}
-                columnWrapperStyle={{ gap: 10 }}
-                contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
-                renderItem={({ item }) => (
-                  <View style={styles.allFavesCell}>
-                    <MangaCover title={item.title} searchKey={item.searchKey} lang={item.lang} color={item.color} style={styles.allFavesCover} />
-                    <Text style={[styles.allFavesTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
+              <View style={styles.favesPopupGrid}>
+                {favorites.map((item) => (
+                  <View key={item.id || item.title} style={styles.favesPopupSlot}>
+                    <MangaCover title={item.title} searchKey={item.searchKey} lang={item.lang} color={item.color} coverUrl={item.coverUrl} style={styles.favesPopupCover} />
+                    <Text style={[styles.favesPopupName, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
                   </View>
-                )}
-              />
+                ))}
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </Modal>
 
         {/* Reading Streak + Faves */}
@@ -690,8 +663,12 @@ export default function FriendProfileScreen({ route }) {
                     searchKey={favorites[0].searchKey}
                     lang={favorites[0].lang}
                     color={favorites[0].color}
+                    coverUrl={favorites[0].coverUrl}
                     style={styles.faveFeatGrad}
                   >
+                    <View style={styles.faveFeatLetterWrap} pointerEvents="none">
+                      <Text style={styles.faveFeatLetter}>{(favorites[0].title || '?').charAt(0).toUpperCase()}</Text>
+                    </View>
                     <LinearGradient
                       colors={['transparent', 'rgba(0,0,0,0.88)']}
                       style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 80, justifyContent: 'flex-end', padding: 8 }}
@@ -723,16 +700,14 @@ export default function FriendProfileScreen({ route }) {
             <View style={styles.badgeGrid}>
               {previewBadges.map((badge) => {
                 const grade = BADGE_GRADES[badge.grade] || BADGE_GRADES.grey;
-                const count = endorseCounts[badge.id] || 0;
                 return (
                   <TouchableOpacity
                     key={badge.id}
                     style={[styles.badgeCard, { borderColor: grade.border }]}
-                    onPress={() => setShowAllBadges(true)}
+                    onPress={() => setDetailBadge(badge)}
                     activeOpacity={0.8}>
                     <BadgeIcon badge={badge} size={48} />
                     <Text style={[styles.badgeName, { color: grade.color }]} numberOfLines={2}>{badge.name}</Text>
-                    {count > 0 && <Text style={styles.endorseCountMini}>♥ {count}</Text>}
                   </TouchableOpacity>
                 );
               })}
@@ -744,10 +719,11 @@ export default function FriendProfileScreen({ route }) {
         )}
 
         <View style={{ height: tabBarHeight + 16 }} />
+        </View>
       </ScrollView>
       )}
 
-      {/* All badges modal — same grouped layout as ProfileScreen + endorse + live count */}
+      {/* All badges modal — same grouped layout as ProfileScreen */}
       <Modal visible={showAllBadges && !!profile} animationType="none" transparent onRequestClose={() => setShowAllBadges(false)}>
         {showAllBadges && (
           <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowAllBadges(false)}>
@@ -794,16 +770,12 @@ export default function FriendProfileScreen({ route }) {
                       {[item.left, item.right].map((badge, idx) => {
                         if (!badge) return <View key={idx} style={styles.fullBadgeCard} />;
                         const earned = earnedIds.has(badge.id);
-                        const count  = endorseCounts[badge.id] || 0;
-                        const isMe   = myId === profile.id;
                         return (
-                          <View
+                          <TouchableOpacity
                             key={badge.id}
-                            style={[
-                              styles.fullBadgeCard,
-                              { borderColor: earned ? item.grade.border : colors.border },
-                              !earned && styles.fullBadgeCardLocked,
-                            ]}>
+                            style={[styles.fullBadgeCard, !earned && styles.fullBadgeCardLocked]}
+                            onPress={() => setDetailBadge(badge)}
+                            activeOpacity={0.7}>
                             <View style={{ marginRight: 10, marginTop: 2 }}>
                               <BadgeIcon badge={badge} size={44} locked={!earned} />
                             </View>
@@ -811,57 +783,47 @@ export default function FriendProfileScreen({ route }) {
                               <Text style={[styles.fullBadgeName, { color: earned ? item.grade.color : colors.muted }]}>
                                 {badge.name}
                               </Text>
-                              <Text style={[styles.fullBadgeDesc, { color: colors.muted }]}>{badge.desc}</Text>
-
-                              {/* Endorse button — only on earned badges, only if viewing someone else */}
-                              {earned && !isMe && (
-                                <TouchableOpacity
-                                  onPress={() => handleEndorse(badge.id)}
-                                  style={[
-                                    styles.endorseBtn,
-                                    { borderColor: colors.border },
-                                    endorsed[badge.id] && styles.endorseBtnActive,
-                                  ]}>
-                                  <Ionicons
-                                    name="thumbs-up"
-                                    size={9}
-                                    color={endorsed[badge.id] ? '#7B5CFF' : colors.muted}
-                                  />
-                                  <Text style={[
-                                    styles.endorseBtnText,
-                                    { color: colors.muted },
-                                    endorsed[badge.id] && styles.endorseBtnTextActive,
-                                  ]}>
-                                    {endorsed[badge.id] ? 'Endorsed' : 'Endorse'}
-                                  </Text>
-                                  {count > 0 && (
-                                    <Text style={[
-                                      styles.endorseCount,
-                                      { color: endorsed[badge.id] ? '#7B5CFF' : colors.muted },
-                                    ]}>
-                                      · {count}
-                                    </Text>
-                                  )}
-                                </TouchableOpacity>
-                              )}
-
-                              {/* Own profile view — just show count if any */}
-                              {earned && isMe && count > 0 && (
-                                <Text style={[styles.endorseCountOwn, { color: colors.muted }]}>
-                                  ♥ {count} endorsement{count !== 1 ? 's' : ''}
-                                </Text>
-                              )}
                             </View>
-                          </View>
+                          </TouchableOpacity>
                         );
                       })}
                     </View>
                   );
                 }}
               />
+
+              {/* Badge detail overlay — inside the sheet (stacked native modals
+                  are unreliable on iOS) */}
+              {detailBadge && (
+                <TouchableOpacity
+                  style={styles.badgeDetailOverlay}
+                  activeOpacity={1}
+                  onPress={() => setDetailBadge(null)}>
+                  <BadgeDetail
+                    badge={detailBadge}
+                    earned={earnedIds.has(detailBadge.id)}
+                    colors={colors}
+                    stats={profile ? profileToBadgeStats(profile) : {}}
+                    onClose={() => setDetailBadge(null)}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         )}
+      </Modal>
+
+      {/* Badge detail popup — description + rarity (no pin button on friends) */}
+      <Modal visible={!!detailBadge && !showAllBadges} animationType="fade" transparent onRequestClose={() => setDetailBadge(null)}>
+        <TouchableOpacity style={styles.badgeDetailOverlay} activeOpacity={1} onPress={() => setDetailBadge(null)}>
+          <BadgeDetail
+            badge={detailBadge}
+            earned={detailBadge ? earnedIds.has(detailBadge.id) : false}
+            colors={colors}
+            stats={profile ? profileToBadgeStats(profile) : {}}
+            onClose={() => setDetailBadge(null)}
+          />
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -871,6 +833,7 @@ export default function FriendProfileScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundText: { fontSize: 14, marginBottom: 12 },
@@ -902,6 +865,10 @@ const styles = StyleSheet.create({
   readingNowRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   readingNowDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginRight: 6 },
   currentlyReading: { fontSize: 10, fontStyle: 'italic', flex: 1 },
+
+  // Badge showcase (pinned shields under the name, icon-only) — mirrors ProfileScreen
+  showcaseRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  badgeDetailOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 28, zIndex: 10 },
 
   // Stats — same as ProfileScreen
   statsRow: { flexDirection: 'row', paddingHorizontal: 28, marginBottom: 22 },
@@ -949,14 +916,26 @@ const styles = StyleSheet.create({
   // Faves panel
   favesPanel: { width: 136, marginLeft: 14, borderRadius: 12, overflow: 'hidden' },
   favesTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  faveFeatCard: { marginHorizontal: 6, borderRadius: 8, overflow: 'hidden' },
-  faveFeatGrad: { height: 174 },
+  // Explicit numeric width (panel 136 − 6px margins each side): the cover's
+  // contents are all absolutely positioned, so any auto/stretch-derived width
+  // can resolve to 0 and the card renders as invisible black space
+  faveFeatCard: { width: 124, alignSelf: 'center', borderRadius: 8, overflow: 'hidden' },
+  faveFeatGrad: { width: 124, height: 174 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  faveFeatLetterWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  faveFeatLetter: { color: 'rgba(255,255,255,0.15)', fontSize: 44, fontWeight: 'bold' },
   faveMoreBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   faveMoreBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  allFavesCell: { flex: 1 / 3, alignItems: 'center' },
-  allFavesCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
-  allFavesTitle: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
+  // Favorites popup (Discord favorite-games style, read-only)
+  favesPopupOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 28 },
+  favesPopupCard: { width: '100%', maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 16 },
+  favesPopupHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
+  favesPopupTitle: { fontSize: 15, fontWeight: '700', flex: 1 },
+  favesPopupCount: { fontSize: 11, fontWeight: '600' },
+  favesPopupGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  favesPopupSlot: { width: '31%', flexGrow: 1, maxWidth: '31.5%' },
+  favesPopupCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
+  favesPopupName: { fontSize: 10, fontWeight: '600', marginTop: 5, textAlign: 'center' },
   favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center' },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
@@ -968,9 +947,8 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 14, fontWeight: '600' },
   badgeCountText: { fontSize: 10 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  badgeCard: { width: '22%', margin: '1.5%', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
+  badgeCard: { width: '22%', margin: '1.5%', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2, marginTop: 4 },
-  endorseCountMini: { color: '#7B5CFF', fontSize: 8, marginTop: 2 },
   seeAllBtn: { paddingVertical: 8, alignItems: 'center' },
   seeAllText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500' },
 
@@ -987,17 +965,10 @@ const styles = StyleSheet.create({
   badgesScrollArea: { paddingHorizontal: 20 },
   gradeGroupTitle: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
   gradeBadgeGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  fullBadgeCard: { width: '48%', margin: '1%', padding: 12, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start' },
+  fullBadgeCard: { width: '48%', margin: '1%', padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'flex-start' },
   fullBadgeCardLocked: { backgroundColor: 'rgba(255,255,255,0.02)' },
   fullBadgeInfo: { flex: 1 },
   fullBadgeName: { fontSize: 11, fontWeight: '600', lineHeight: 15 },
   fullBadgeDesc: { fontSize: 10, marginTop: 2, lineHeight: 14 },
 
-  // Endorse button + count
-  endorseBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(155,154,163,0.08)' },
-  endorseBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.2)' },
-  endorseBtnText: { fontSize: 10, fontWeight: '500', paddingRight: 2 },
-  endorseBtnTextActive: { color: '#7B5CFF' },
-  endorseCount: { fontSize: 10, fontWeight: '600' },
-  endorseCountOwn: { fontSize: 10, marginTop: 4 },
 });

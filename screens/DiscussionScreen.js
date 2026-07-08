@@ -10,6 +10,11 @@ import { useTheme } from '../utils/ThemeContext';
 import { MangaCover } from '../utils/mangaCovers';
 import { supabase } from '../supabase';
 import { insertActivity } from '../utils/activityFeed';
+import { RowSkeleton } from '../components/Skeleton';
+import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
+import { rateSeries, getSeriesRating } from '../utils/ratings';
+import { MANGA_POOL } from '../utils/mangaPool';
+import { useResponsive } from '../utils/responsive';
 
 
 const BLOCKED_DOMAINS = [
@@ -45,6 +50,7 @@ export default function DiscussionScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
   const {
     title = '',
     searchKey,
@@ -70,6 +76,8 @@ export default function DiscussionScreen() {
   const [reportItem, setReportItem] = useState(null);
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportToast, setReportToast] = useState(false);
+  const [seriesRating, setSeriesRating] = useState({ avg: 0, count: 0, yourRating: 0, loading: true });
+  const [showRateSheet, setShowRateSheet] = useState(false);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -77,6 +85,23 @@ export default function DiscussionScreen() {
   const recentChapters = [0, 1, 2]
     .map((n) => (latestChapter || 1) - n)
     .filter((n) => n > 0);
+
+  useEffect(() => {
+    if (!title) return;
+    getSeriesRating(title).then((r) => setSeriesRating({ avg: r.avg || 0, count: r.count || 0, yourRating: r.yourRating || 0, loading: false }));
+  }, [title]);
+
+  async function handleSubmitRating(stars) {
+    if (!title || !currentUserId || seriesRating.submitting) return;
+    setSeriesRating((prev) => ({ ...prev, yourRating: stars, submitting: true }));
+    try {
+      const poolEntry = MANGA_POOL.find((m) => m.title === title || m.searchKey === searchKey);
+      const result = await rateSeries(currentUserId, title, stars, poolEntry?.genres || []);
+      setSeriesRating((prev) => (result ? { ...prev, avg: result.avg, count: result.count, submitting: false } : { ...prev, submitting: false }));
+    } catch (_) {
+      setSeriesRating((prev) => ({ ...prev, submitting: false }));
+    }
+  }
 
   useEffect(() => {
     loadComments();
@@ -333,6 +358,8 @@ export default function DiscussionScreen() {
           overScrollMode="never"
           keyboardShouldPersistTaps="handled">
 
+          <View style={isTablet ? styles.tabletWrap : null}>
+
           {/* ── Manga info card ── */}
           <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <MangaCover
@@ -351,6 +378,14 @@ export default function DiscussionScreen() {
                   {(discussing || 0).toLocaleString()} discussing
                 </Text>
               </View>
+              {!seriesRating.loading && (
+                <TouchableOpacity style={styles.ratingRow} onPress={() => setShowRateSheet(true)} activeOpacity={0.7}>
+                  <StarRatingDisplay avg={seriesRating.avg} count={seriesRating.count} size={13} />
+                  <Text style={[styles.rateLink, seriesRating.yourRating && { color: '#7B5CFF' }]}>
+                    {seriesRating.yourRating ? `You rated ${seriesRating.yourRating}★` : 'Rate it'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -407,8 +442,8 @@ export default function DiscussionScreen() {
 
           {/* ── Comments ── */}
           {fetchingComments && (
-            <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#7B5CFF" />
+            <View style={{ paddingVertical: 24, marginHorizontal: -20 }}>
+              <RowSkeleton count={4} />
             </View>
           )}
           {!fetchingComments && sorted.length === 0 && (
@@ -555,9 +590,11 @@ export default function DiscussionScreen() {
           })}
 
           <View style={{ height: 80 }} />
+          </View>
         </ScrollView>
 
         {/* ── Fixed comment input ── */}
+        <View style={isTablet ? styles.tabletWrap : null}>
         {replyingTo && (
           <View style={[styles.replyingToBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
             <Ionicons name="return-down-forward-outline" size={13} color="#7B5CFF" />
@@ -603,6 +640,7 @@ export default function DiscussionScreen() {
               : <Ionicons name="send" size={16} color="#fff" />}
           </TouchableOpacity>
         </View>
+        </View>
         {/* ── Report Modal ── */}
         <Modal visible={!!reportItem} animationType="fade" transparent onRequestClose={() => setReportItem(null)}>
           <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setReportItem(null)}>
@@ -627,6 +665,23 @@ export default function DiscussionScreen() {
           </TouchableOpacity>
         </Modal>
 
+        {/* ── Rate Series Modal ── */}
+        <Modal visible={showRateSheet} animationType="fade" transparent onRequestClose={() => setShowRateSheet(false)}>
+          <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setShowRateSheet(false)}>
+            <View style={[styles.reportSheet, { backgroundColor: colors.card, alignItems: 'center' }]} onStartShouldSetResponder={() => true}>
+              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+              <Text style={[styles.reportTitle, { color: colors.text }]} numberOfLines={1}>{title}</Text>
+              <StarRatingDisplay avg={seriesRating.avg} count={seriesRating.count} size={14} />
+              <Text style={[styles.reportSub, { color: colors.muted, marginBottom: 4 }]}>
+                {seriesRating.yourRating ? 'Tap to change your rating' : 'Tap to rate'}
+              </Text>
+              <View style={{ marginTop: 8, marginBottom: 12 }}>
+                <StarRatingInput value={seriesRating.yourRating} onRate={handleSubmitRating} size={32} disabled={seriesRating.submitting} />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         {/* ── Reported toast ── */}
         {reportToast && (
           <View style={styles.toast} pointerEvents="none">
@@ -641,6 +696,7 @@ export default function DiscussionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   backBtn: { padding: 4, marginRight: 10 },
   headerCenter: { flex: 1 },
@@ -653,6 +709,8 @@ const styles = StyleSheet.create({
   infoChap: { fontSize: 12, marginBottom: 6 },
   infoStats: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   infoDiscussing: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 6 },
+  rateLink: { fontSize: 11, fontWeight: '600', color: '#8A8894' },
   controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4, gap: 8 },
   sortPill: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, overflow: 'hidden' },
   sortBtn: { paddingHorizontal: 16, paddingVertical: 8 },

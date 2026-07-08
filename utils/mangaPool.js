@@ -3,6 +3,60 @@
 // Imported by FeedScreen (feed) and ForYouScreen (Hot Right Now).
 // augmentPoolFromApi() in FeedScreen pushes live MangaDex titles here at runtime.
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ── Recently-added detection ────────────────────────────────────────────────
+// The static pool has no timestamps, so we track when each entry is first
+// seen on this device. Ids that appear after the first launch are "new" for
+// 14 days. Runtime API-augmented entries (fromApi) are excluded — their
+// presence depends on network timing, not on the pool actually growing.
+const POOL_SEEN_KEY = '@mangarecs/pool_seen_ids';
+const POOL_NEW_WINDOW = 14 * 24 * 60 * 60 * 1000; // 14 days
+
+export async function getRecentlyAddedIds() {
+  try {
+    const raw = await AsyncStorage.getItem(POOL_SEEN_KEY);
+    const seen = raw ? JSON.parse(raw) : null;
+    const now = Date.now();
+    if (!seen) {
+      // First launch: baseline every current entry as already-known so the
+      // whole pool doesn't light up NEW on a fresh install.
+      const baseline = {};
+      MANGA_POOL.forEach((m) => { if (!m.fromApi) baseline[String(m.id)] = 0; });
+      AsyncStorage.setItem(POOL_SEEN_KEY, JSON.stringify(baseline)).catch(() => {});
+      return new Set();
+    }
+    let dirty = false;
+    const fresh = new Set();
+    MANGA_POOL.forEach((m) => {
+      if (m.fromApi) return;
+      const id = String(m.id);
+      if (!(id in seen)) { seen[id] = now; dirty = true; }
+      if (seen[id] && now - seen[id] < POOL_NEW_WINDOW) fresh.add(id);
+    });
+    if (dirty) AsyncStorage.setItem(POOL_SEEN_KEY, JSON.stringify(seen)).catch(() => {});
+    return fresh;
+  } catch (_) {
+    return new Set();
+  }
+}
+
+// Pool IDs of series whose story has concluded — shared by FeedScreen (status
+// chip) and LibraryScreen (auto-move fully-read entries to Completed).
+export const COMPLETED_IDS = new Set([
+  // Japanese manga (concluded series in pool)
+  'aot','kny','fma','dn','ber','nar','drgbl','blch','mp100','pny',
+  'sev7','komi','fft','jjk','kgya','krkbs','hqq','qnts','gntm','hrmya','nisko',
+  // Korean manhwa (concluded series in pool)
+  'sl','orv','gohs','trb','chstr','itclss','hlbnd','swhm','nvlr','lvalm',
+  'klhr','scls','ovgr','yrthr','nob','rcdem','gam',
+  // Chinese manhua (concluded or novel-complete in pool)
+  'bttw','kngav','tgcf','mdzs','batf','blhvn','cold','awe','issh',
+  'lotm','slt','wdqk','blcs','grtl','ssv','pfw',
+  // English (concluded series in pool)
+  'loly','ily','orgns','alwhm','hmstk','prnce','sgac',
+]);
+
 export const MANGA_POOL = [
 
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•

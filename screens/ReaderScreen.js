@@ -1,7 +1,7 @@
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar,
   Modal, Animated, ScrollView, TextInput, Dimensions, Alert, ActivityIndicator, Image, FlatList, Platform, Share, Pressable,
-  useWindowDimensions,
+  useWindowDimensions, PanResponder,
 } from 'react-native';
 import { PinchGestureHandler, PanGestureHandler, State as GHState } from 'react-native-gesture-handler';
 import { WebView } from 'react-native-webview';
@@ -34,7 +34,6 @@ const LANDSCAPE_KEY    = '@mangarecs/allowLandscape';
 const READER_MODE_KEY  = '@mangarecs/readerMode'; // must match SettingsScreen
 const PAGE_ANIM_KEY    = '@mangarecs/pageAnim';   // must match SettingsScreen
 const CHAPTERS_DIR    = FileSystem.documentDirectory + 'chapters/';
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CHAPTER_ROW_H = 62;
 
 // ── Site list ──────────────────────────────────────────────────────────────
@@ -109,21 +108,35 @@ function AmbienceButton({ preset, active, onPress }) {
   const { isDark } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const pulse = useRef(new Animated.Value(1)).current;
+  // Border always carries the preset's color so each sound is identifiable at
+  // a glance — dimmed while idle, full-strength while playing
   const idleBg = isDark
-    ? { backgroundColor: '#0D0D0F', borderColor: '#2A2A2F' }
-    : { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.1)' };
+    ? { backgroundColor: '#0D0D0F', borderColor: `${preset.color}55` }
+    : { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: `${preset.color}66` };
 
+  // While the sound is playing the icon comes alive: it pulses, bobs and
+  // gently sways so the active preset is unmistakable at a glance
+  const bob = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (active) {
-      const loop = Animated.loop(Animated.sequence([
+      const pulseLoop = Animated.loop(Animated.sequence([
         Animated.timing(pulse, { toValue: 1.18, duration: 700, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1.0,  duration: 700, useNativeDriver: true }),
       ]));
-      loop.start();
-      return () => { loop.stop(); pulse.setValue(1); };
+      const bobLoop = Animated.loop(Animated.sequence([
+        Animated.timing(bob, { toValue: 1, duration: 850, useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: 850, useNativeDriver: true }),
+      ]));
+      pulseLoop.start();
+      bobLoop.start();
+      return () => { pulseLoop.stop(); bobLoop.stop(); pulse.setValue(1); bob.setValue(0); };
     }
     pulse.setValue(1);
+    bob.setValue(0);
   }, [active]);
+
+  const bobY  = bob.interpolate({ inputRange: [0, 1], outputRange: [1.5, -2.5] });
+  const sway  = bob.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['-9deg', '0deg', '9deg'] });
 
   function handlePress() {
     Animated.sequence([
@@ -134,26 +147,69 @@ function AmbienceButton({ preset, active, onPress }) {
   }
 
   return (
-    <Animated.View style={{ flex: 1, transform: [{ scale }] }}>
+    <Animated.View style={{ flex: 1, marginHorizontal: 4, transform: [{ scale }] }}>
       <TouchableOpacity
         style={[styles.ambienceBtn, idleBg, active && { borderColor: preset.color, backgroundColor: `${preset.color}22` }]}
         onPress={handlePress}
         activeOpacity={0.75}>
-        <Animated.View style={{ transform: [{ scale: pulse }] }}>
+        <Animated.View style={{ transform: [{ scale: pulse }, { translateY: bobY }, { rotate: sway }] }}>
           <Ionicons
             name={active ? (preset.iconActive || preset.icon) : preset.icon}
-            size={24}
+            size={20}
             color={active ? preset.color : '#9B9AA3'}
           />
         </Animated.View>
         <Text style={[styles.ambienceBtnLabel, active && { color: preset.color }]}>{preset.label}</Text>
-        <Text style={styles.ambienceBtnSub}>{active ? 'Tap to stop' : 'Tap to play'}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
 }
 
 
+
+// ── Ambience volume slider — tap anywhere or drag the thumb to scrub ────────
+// Controls the app's ambience volume (relative to the phone's media volume —
+// the hardware buttons still govern overall loudness).
+
+function AmbienceVolumeSlider({ volume, color }) {
+  const trackWRef  = useRef(0);
+  const grabXRef   = useRef(0);
+  const volRef     = useRef(volume);
+  volRef.current = volume;
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const w = trackWRef.current;
+        if (w <= 0) return;
+        grabXRef.current = e.nativeEvent.locationX;
+        ambienceSetVolume(grabXRef.current / w, false);
+      },
+      onPanResponderMove: (_, g) => {
+        const w = trackWRef.current;
+        if (w <= 0) return;
+        ambienceSetVolume((grabXRef.current + g.dx) / w, false);
+      },
+      onPanResponderRelease: () => { ambienceSetVolume(volRef.current); },
+      onPanResponderTerminate: () => { ambienceSetVolume(volRef.current); },
+    })
+  ).current;
+
+  const pct = Math.round(volume * 100);
+  return (
+    <View
+      style={styles.ambienceVolSlider}
+      onLayout={(e) => { trackWRef.current = e.nativeEvent.layout.width; }}
+      {...pan.panHandlers}>
+      <View style={styles.ambienceVolTrack}>
+        <View style={[styles.ambienceVolFill, { width: `${pct}%`, backgroundColor: color }]} />
+      </View>
+      <View style={[styles.ambienceVolThumb, { left: `${pct}%`, backgroundColor: color }]} />
+    </View>
+  );
+}
 
 // ── Ad network patterns — used in both onShouldStartLoadWithRequest and onOpenWindow ──
 const AD_NETWORK_PATTERNS = [
@@ -677,7 +733,7 @@ function searchSites(query) {
 
 // ── PageImage — auto aspect ratio via Image.getSize ───────────────────────
 
-function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
+function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, onLongPress }) {
   const { width: winW } = useWindowDimensions();
   const [height, setHeight] = useState(winW * 1.5);
   const lastTapRef = useRef(0);
@@ -715,7 +771,7 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
   }
 
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable onPress={handlePress} onLongPress={() => onLongPress?.(uri)} delayLongPress={400}>
       <Image
         source={{ uri, cache: 'force-cache' }}
         style={{ width: winW, height }}
@@ -728,7 +784,7 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
 
 // ── Zoom viewer — full-screen pinch/pan/double-tap, isolated from the list ──
 
-function ZoomViewer({ uri, onClose }) {
+function ZoomViewer({ uri, onClose, onLongPress }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const [imgH, setImgH] = useState(winH * 0.8);
   useEffect(() => {
@@ -824,7 +880,7 @@ function ZoomViewer({ uri, onClose }) {
             onGestureEvent={onPinchEvent}
             onHandlerStateChange={onPinchStateChange}>
             <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Pressable onPress={handleTap}>
+              <Pressable onPress={handleTap} onLongPress={() => onLongPress?.(uri)} delayLongPress={400}>
                 <Animated.Image
                   source={{ uri, cache: 'force-cache' }}
                   style={{
@@ -846,7 +902,7 @@ function ZoomViewer({ uri, onClose }) {
         <Ionicons name="close" size={20} color="#fff" />
       </TouchableOpacity>
       <Text style={{ position: 'absolute', bottom: 34, alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
-        Pinch to zoom · Double-tap to toggle
+        Pinch to zoom · Double-tap to toggle · Hold to save
       </Text>
     </View>
   );
@@ -898,9 +954,11 @@ const siteCardStyles = StyleSheet.create({
 export default function ReaderScreen({ route, navigation }) {
   const {
     url: paramUrl,
-    title: routeTitle = 'Reader',
-    chapters = 0,
     searchQuery,
+    // Deep links (mangarecs://series/<title>) only carry searchQuery — fall
+    // back to it so the header shows the series name instead of "Reader"
+    title: routeTitle = searchQuery || 'Reader',
+    chapters = 0,
     lang: routeLang,
     mangaId: paramMangaId,
     resumeUrl: paramResumeUrl,
@@ -909,7 +967,7 @@ export default function ReaderScreen({ route, navigation }) {
     creatorSeriesId,
   } = route.params || {};
 
-  const { profile, userId, updateProfile } = useProfile();
+  const { profile, userId, updateProfile, refreshProfile } = useProfile();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   useKeepAwake(); // screen must not sleep mid-chapter
@@ -1031,7 +1089,6 @@ export default function ReaderScreen({ route, navigation }) {
   const webviewRef        = useRef(null);
 
   const sessionStartRef   = useRef(null);
-  const hoursReadRef      = useRef(profile?.hours_read || 0);
   const bottomTimerRef    = useRef(null);
   const pendingStepsRef   = useRef(0);
   const pendingDirRef     = useRef(1);
@@ -1340,7 +1397,6 @@ export default function ReaderScreen({ route, navigation }) {
     if (bottomTimerRef.current) { clearTimeout(bottomTimerRef.current); bottomTimerRef.current = null; }
   }, [currentUrl, currentChapterIdx]);
 
-  useEffect(() => { hoursReadRef.current = profile?.hours_read || 0; }, [profile?.hours_read]);
 
   // Load reader comfort prefs; force-dark defaults to following the app theme
   useEffect(() => {
@@ -1412,8 +1468,10 @@ export default function ReaderScreen({ route, navigation }) {
       const elapsed = Date.now() - sessionStartRef.current;
       if (elapsed >= 30000) {
         const hoursElapsed = elapsed / 3600000;
-        updateProfile({ hours_read: hoursReadRef.current + hoursElapsed });
+        // updateDailyLog syncs via merge_daily_log RPC, which recomputes
+        // hours_read + streak server-side (direct column writes are revoked)
         updateDailyLog(hoursElapsed);
+        setTimeout(() => refreshProfile?.(), 1500);
       }
     };
   }, []);
@@ -1788,7 +1846,8 @@ export default function ReaderScreen({ route, navigation }) {
   }
 
   function handleNextChapter() {
-    updateProfile({ chapters_read: (profile?.chapters_read || 0) + 1 });
+    // Server-side capped increment (chapters_read is no longer client-writable)
+    supabase.rpc('increment_chapters_read').then(() => refreshProfile?.());
     if (readerMode === 'api') {
       if (currentChapterIdx < apiChapters.length - 1) loadApiChapter(currentChapterIdx + 1);
       return;
@@ -2128,6 +2187,7 @@ export default function ReaderScreen({ route, navigation }) {
                     uri={item}
                     onSingleTap={() => setShowUI((v) => !v)}
                     onDoubleTap={(u) => setZoomUri(u)}
+                    onLongPress={saveImageToGallery}
                   />
                 )}
                 onScroll={handleScrollProgress}
@@ -2342,7 +2402,7 @@ export default function ReaderScreen({ route, navigation }) {
 
       {/* ── Page zoom viewer ─────────────────────────────────────────────── */}
       <Modal visible={!!zoomUri} transparent animationType="fade" onRequestClose={() => setZoomUri(null)}>
-        {zoomUri ? <ZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} /> : null}
+        {zoomUri ? <ZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} onLongPress={saveImageToGallery} /> : null}
       </Modal>
 
       {/* ── Screen dimmer — sits over content, under the HUD ─────────────── */}
@@ -2579,37 +2639,31 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
 
             <View style={styles.ambienceOptions}>
-              {AMBIENCE_PRESETS.map((p) => {
-                const active = ambienceState.presetId === p.id;
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[styles.ambienceBtn, active && styles.ambienceBtnActive]}
-                    onPress={() => active ? ambienceStop() : ambiencePlay(p.id)}
-                    activeOpacity={0.75}>
-                    <Ionicons name={p.icon} size={24} color={active ? '#7B5CFF' : '#9B9AA3'} />
-                    <Text style={[styles.ambienceBtnLabel, active && styles.ambienceBtnLabelActive]}>{p.label}</Text>
-                    <Text style={styles.ambienceBtnSub}>{active ? 'Tap to stop' : 'Tap to play'}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {AMBIENCE_PRESETS.map((p) => (
+                <AmbienceButton
+                  key={p.id}
+                  preset={p}
+                  active={ambienceState.presetId === p.id}
+                  onPress={() => ambienceState.presetId === p.id ? ambienceStop() : ambiencePlay(p.id)}
+                />
+              ))}
             </View>
 
-            {ambienceState.presetId && (
-              <View style={styles.ambienceVolRow}>
-                <Ionicons name="volume-low-outline" size={14} color="#9B9AA3" />
-                <TouchableOpacity style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume - 0.1)}>
-                  <Ionicons name="remove" size={16} color="#9B9AA3" />
-                </TouchableOpacity>
-                <View style={styles.ambienceVolTrack}>
-                  <View style={[styles.ambienceVolFill, { width: `${Math.round(ambienceState.volume * 100)}%` }]} />
+            {ambienceState.presetId && (() => {
+              const activeColor = AMBIENCE_PRESETS.find((p) => p.id === ambienceState.presetId)?.color || '#7B5CFF';
+              return (
+                <View style={styles.ambienceVolRow}>
+                  <TouchableOpacity style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume - 0.1)}>
+                    <Ionicons name="volume-low-outline" size={16} color="#9B9AA3" />
+                  </TouchableOpacity>
+                  <AmbienceVolumeSlider volume={ambienceState.volume} color={activeColor} />
+                  <TouchableOpacity style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume + 0.1)}>
+                    <Ionicons name="volume-high-outline" size={16} color="#9B9AA3" />
+                  </TouchableOpacity>
+                  <Text style={[styles.ambienceVolPct, { color: activeColor }]}>{Math.round(ambienceState.volume * 100)}%</Text>
                 </View>
-                <TouchableOpacity style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume + 0.1)}>
-                  <Ionicons name="add" size={16} color="#9B9AA3" />
-                </TouchableOpacity>
-                <Ionicons name="volume-high-outline" size={14} color="#9B9AA3" />
-              </View>
-            )}
+              );
+            })()}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2761,7 +2815,7 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
             <View style={styles.shareButtonsRow}>
               <TouchableOpacity style={styles.copyLinkBtn} onPress={() => {
-                const msg = `I'm reading "${displayTitle}" on MangaRecs!`;
+                const msg = `I'm reading "${displayTitle}" on MangaRecs!\nmangarecs://series/${encodeURIComponent(displayTitle)}`;
                 Share.share({ message: msg, title: displayTitle })
                   .then((result) => {
                     if (result.action === Share.sharedAction) {
@@ -2775,7 +2829,7 @@ export default function ReaderScreen({ route, navigation }) {
                 <Text style={styles.copyLinkText}>Copy Link</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.shareStoryBtn} onPress={() => {
-                const msg = `Check out "${displayTitle}" on MangaRecs — the best manga reader app!`;
+                const msg = `Check out "${displayTitle}" on MangaRecs — the best manga reader app!\nmangarecs://series/${encodeURIComponent(displayTitle)}`;
                 Share.share({ message: msg, title: displayTitle })
                   .then((result) => {
                     if (result.action === Share.sharedAction) {
@@ -2897,16 +2951,19 @@ const styles = StyleSheet.create({
   playingBadge:           { backgroundColor: '#1D9E75', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, marginRight: 12 },
   playingText:            { color: '#fff', fontSize: 12, fontWeight: '600' },
   ambienceOptions:        { flexDirection: 'row', justifyContent: 'space-between' },
-  ambienceBtn:            { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: '#0D0D0F', marginHorizontal: 4, borderWidth: 1, borderColor: '#2A2A2F' },
-  ambienceBtnActive:      { borderColor: '#7B5CFF', backgroundColor: '#1A1633' },
-  ambienceBtnLabel:       { color: '#9B9AA3', fontSize: 13, fontWeight: '600', marginTop: 8 },
-  ambienceBtnLabelActive: { color: '#7B5CFF' },
-  ambienceBtnSub:         { color: '#9B9AA3', fontSize: 10, marginTop: 4 },
+  // width (not flex) — the button sits inside an auto-height animated wrapper,
+  // where flex:1 collapses the content to zero height (invisible icon/label)
+  ambienceBtn:            { width: '100%', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 4, borderRadius: 11, backgroundColor: '#0D0D0F', borderWidth: 1.5, borderColor: '#2A2A2F' },
+  ambienceBtnLabel:       { color: '#9B9AA3', fontSize: 11, fontWeight: '600', marginTop: 5 },
 
-  ambienceVolRow:         { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  ambienceVolRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
   ambienceVolBtn:         { padding: 6 },
-  ambienceVolTrack:       { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden' },
+  // Slider: generous touch height with the thin track centered inside it
+  ambienceVolSlider:      { flex: 1, height: 28, justifyContent: 'center' },
+  ambienceVolTrack:       { height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden' },
   ambienceVolFill:        { height: 4, backgroundColor: '#7B5CFF', borderRadius: 2 },
+  ambienceVolThumb:       { position: 'absolute', width: 14, height: 14, borderRadius: 7, marginLeft: -7, top: 7, backgroundColor: '#7B5CFF', elevation: 2 },
+  ambienceVolPct:         { fontSize: 11, fontWeight: '700', minWidth: 34, textAlign: 'right' },
   modeSectionLabel:       { color: '#9B9AA3', fontSize: 11, fontWeight: '600', marginBottom: 10 },
   readerRow:              { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   readerBtn:              { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, borderColor: '#2A2A2F' },

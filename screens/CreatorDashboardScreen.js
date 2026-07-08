@@ -12,6 +12,7 @@ import { supabase } from '../supabase';
 import MobileHeader from '../components/MobileHeader';
 import PickerSheet from '../components/PickerSheet';
 import { GENRE_PICKER_OPTIONS as GENRES } from '../utils/genres';
+import { useResponsive } from '../utils/responsive';
 
 const STAT_META = [
   { icon: 'book',   label: 'Series Published', color: '#7B5CFF', key: 'count' },
@@ -53,6 +54,7 @@ function MiniBarChart({ data, labels }) {
 export default function CreatorDashboardScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const { isTablet } = useResponsive();
 
   // Series upload state
   const [showUpload, setShowUpload]       = useState(false);
@@ -300,6 +302,7 @@ export default function CreatorDashboardScreen() {
       />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
+        <View style={isTablet ? styles.tabletWrap : null}>
 
         {/* Stats */}
         <View style={styles.statsRow}>
@@ -430,6 +433,7 @@ export default function CreatorDashboardScreen() {
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </TouchableOpacity>
+        </View>
         </View>
       </ScrollView>
 
@@ -617,6 +621,7 @@ export default function CreatorDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
 
   proBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.15)', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   proBadgeText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600', marginLeft: 4, paddingRight: 2 },

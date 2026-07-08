@@ -41,13 +41,8 @@ export function syncReadOpen(userId, title) {
       data: { series_title: title },
     }).then(() => {});
 
-    // Update manga_count: count distinct series titles ever read (include current)
-    supabase.from('reading_progress').select('series_title').eq('user_id', userId)
-      .then(({ data }) => {
-        if (!data) return;
-        const distinctCount = new Set([...data.map(r => r.series_title), title]).size;
-        supabase.from('profiles').update({ manga_count: distinctCount }).eq('id', userId).then(() => {});
-      });
+    // manga_count is recomputed server-side from reading_progress rows
+    supabase.rpc('recompute_manga_count').then(() => {});
 
     // Increment night_reads if reading between midnight and 4 AM
     const hour = new Date().getHours();
@@ -167,13 +162,12 @@ export async function updateDailyLog(hoursElapsed) {
     const log = raw ? JSON.parse(raw) : {};
     log[key] = (log[key] || 0) + hoursElapsed;
     await AsyncStorage.setItem(DAILY_LOG_KEY, JSON.stringify(log));
-    // Sync to Supabase immediately so friends see accurate streak data
+    // Sync via merge_daily_log RPC — the server clamps per-day hours, merges
+    // multi-device logs, and recomputes hours_read + streak_count itself.
+    // (Direct writes to those columns are revoked; see migration section 36.)
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
-      supabase.from('profiles')
-        .update({ daily_log: log, streak_count: calculateStreak(log) })
-        .eq('id', session.user.id)
-        .then(() => {});
+      supabase.rpc('merge_daily_log', { p_log: log }).then(() => {});
     }
   } catch (_) {}
 }

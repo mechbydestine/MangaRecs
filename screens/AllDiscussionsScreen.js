@@ -9,6 +9,8 @@ import { useTheme } from '../utils/ThemeContext';
 import { supabase } from '../supabase';
 import { MangaCover } from '../utils/mangaCovers';
 import { MANGA_POOL } from '../utils/mangaPool';
+import { RowSkeleton } from '../components/Skeleton';
+import { useResponsive } from '../utils/responsive';
 
 const MAX_TRENDING = 10;
 
@@ -16,6 +18,7 @@ export default function AllDiscussionsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
 
   const [userId, setUserId] = useState(null);
   const [trending, setTrending] = useState([]);
@@ -164,8 +167,11 @@ export default function AllDiscussionsScreen() {
       )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
+        <View style={isTablet ? styles.tabletWrap : null}>
         {loading && !showingSearch ? (
-          <ActivityIndicator size="small" color="#7B5CFF" style={{ marginTop: 40 }} />
+          <View style={{ marginTop: 16, marginHorizontal: -20 }}>
+            <RowSkeleton count={6} />
+          </View>
         ) : list.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Ionicons name={showingSearch ? 'search-outline' : 'chatbubbles-outline'} size={32} color={colors.muted} />
@@ -208,6 +214,7 @@ export default function AllDiscussionsScreen() {
             </TouchableOpacity>
           ))
         )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -215,6 +222,7 @@ export default function AllDiscussionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerTitle: { fontSize: 16, fontWeight: '700' },

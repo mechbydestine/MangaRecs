@@ -94,12 +94,14 @@ export async function stop() {
   _notify();
 }
 
-export async function setVolume(v) {
+// persist=false lets a drag gesture update the live volume every frame
+// without hammering AsyncStorage — the release calls it once with persist=true
+export async function setVolume(v, persist = true) {
   _volume = Math.max(0.05, Math.min(1, v));
   if (_player) {
     try { _player.volume = _volume; } catch (e) { console.warn('[ambience] setVolume failed', e); }
   }
-  await _persist();
+  if (persist) await _persist();
   _notify();
 }
 
