@@ -120,7 +120,7 @@ export default function DiscussionScreen() {
     // don't just vanish from the thread.
     let query = supabase
       .from('comments')
-      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username)')
+      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username, display_name)')
       .eq('series_title', title)
       .is('parent_id', null);
     query = selectedChapter === latestChapter
@@ -140,7 +140,7 @@ export default function DiscussionScreen() {
     if (data.length > 0) {
       const { data: replies } = await supabase
         .from('comments')
-        .select('id, user_id, text, likes, spoiler, created_at, parent_id, author:user_id(username)')
+        .select('id, user_id, text, likes, spoiler, created_at, parent_id, author:user_id(username, display_name)')
         .in('parent_id', data.map((c) => c.id))
         .order('created_at', { ascending: true });
       if (replies) replyRows = replies;
@@ -165,7 +165,7 @@ export default function DiscussionScreen() {
     const replyMap = {};
     replyRows.forEach((r) => {
       if (!replyMap[r.parent_id]) replyMap[r.parent_id] = [];
-      const rName = r.author?.username || 'Reader';
+      const rName = r.author?.display_name || r.author?.username || 'Reader';
       replyMap[r.parent_id].push({
         id: r.id,
         userId: r.user_id,
@@ -180,7 +180,7 @@ export default function DiscussionScreen() {
 
     setFetchingComments(false);
     setComments(data.map((row) => {
-      const name = row.author?.username || 'Reader';
+      const name = row.author?.display_name || row.author?.username || 'Reader';
       return {
         id: row.id,
         userId: row.user_id,

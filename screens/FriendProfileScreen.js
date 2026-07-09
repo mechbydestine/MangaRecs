@@ -174,12 +174,12 @@ export default function FriendProfileScreen({ route }) {
         setBlockBusy(false);
         if (error) { showAppToast("Couldn't unblock — try again"); return; }
         setIBlocked(false);
-        showAppToast(`Unblocked ${profile?.username || 'user'}`, 'success');
+        showAppToast(`Unblocked ${displayName || 'user'}`, 'success');
       });
       return;
     }
     Alert.alert(
-      `Block ${profile?.username || 'this user'}?`,
+      `Block ${displayName || 'this user'}?`,
       "They won't be able to message you, and you won't see their comments. This also removes them as a friend.",
       [
         { text: 'Cancel', style: 'cancel' },
@@ -192,7 +192,7 @@ export default function FriendProfileScreen({ route }) {
               setBlockBusy(false);
               if (error) { showAppToast("Couldn't block — try again"); return; }
               setIBlocked(true);
-              showAppToast(`Blocked ${profile?.username || 'user'}`, 'success');
+              showAppToast(`Blocked ${displayName || 'user'}`, 'success');
             });
           },
         },
@@ -249,13 +249,14 @@ export default function FriendProfileScreen({ route }) {
   // ── Friends / Followers of this profile ──────────────────────────────────
 
   function toPerson(p) {
-    return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
+    const name = p.display_name || p.username || '?';
+    return { id: p.id, name, avatar: name.slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
   }
 
   async function loadFollowers() {
     const { data } = await supabase
       .from('followers')
-      .select('follower:follower_id(id, username, avatar_url, online)')
+      .select('follower:follower_id(id, username, display_name, avatar_url, online)')
       .eq('followed_id', id)
       .order('created_at', { ascending: false });
     setFollowersList((data || []).map(r => r.follower).filter(Boolean).map(toPerson));
@@ -264,7 +265,7 @@ export default function FriendProfileScreen({ route }) {
   async function loadFollowing() {
     const { data } = await supabase
       .from('followers')
-      .select('followed:followed_id(id, username, avatar_url, online)')
+      .select('followed:followed_id(id, username, display_name, avatar_url, online)')
       .eq('follower_id', id)
       .order('created_at', { ascending: false });
     setFollowingList((data || []).map(r => r.followed).filter(Boolean).map(toPerson));
@@ -282,7 +283,7 @@ export default function FriendProfileScreen({ route }) {
         if (ids.length === 0) { setFriendsList([]); return; }
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url, online')
+          .select('id, username, display_name, avatar_url, online')
           .in('id', ids);
         setFriendsList((profiles || []).map(toPerson));
       });
@@ -360,7 +361,8 @@ export default function FriendProfileScreen({ route }) {
   // ── Derived display values ──────────────────────────────────────────────
 
   const theme          = profile ? (PROFILE_THEMES.find((t) => t.id === profile.color) || PROFILE_THEMES[0]) : PROFILE_THEMES[0];
-  const avatarInitial  = profile ? (profile.username || '?').charAt(0).toUpperCase() : '?';
+  const displayName    = profile?.display_name || profile?.username;
+  const avatarInitial  = profile ? (displayName || '?').charAt(0).toUpperCase() : '?';
   // Normalize: older accounts stored favorites in looser shapes (even bare
   // title strings) — coerce everything to { title, searchKey, ... } objects
   const rawFavorites   = (profile && Array.isArray(profile.favorites) ? profile.favorites : [])
@@ -489,7 +491,7 @@ export default function FriendProfileScreen({ route }) {
                 )}
               </LinearGradient>
               <View style={styles.nameBioBlock}>
-                <Text style={[styles.username, { color: colors.text }]}>{profile.username}</Text>
+                <Text style={[styles.username, { color: colors.text }]}>{profile.display_name || profile.username}</Text>
               </View>
             </View>
             <Text style={[styles.handle, { color: colors.muted }]}>
@@ -542,7 +544,7 @@ export default function FriendProfileScreen({ route }) {
                   <TouchableOpacity
                     onPress={() => navigation.navigate('DM', {
                       friendId: profile.id,
-                      friendName: profile.username,
+                      friendName: displayName,
                       friendColor: profile.color,
                       friendAvatarUrl: profile.avatar_url || null,
                     })}
@@ -604,7 +606,7 @@ export default function FriendProfileScreen({ route }) {
               <View style={styles.favesPopupHeader}>
                 <Ionicons name="heart" size={13} color="#E8527A" />
                 <Text style={[styles.favesPopupTitle, { color: colors.text }]} numberOfLines={1}>
-                  {profile.username}'s Favorites
+                  {displayName}'s Favorites
                 </Text>
                 <Text style={[styles.favesPopupCount, { color: colors.muted }]}>{favorites.length}/5</Text>
               </View>

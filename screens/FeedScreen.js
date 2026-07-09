@@ -644,12 +644,12 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
       setRepliesLoading(true);
       const { data } = await supabase
         .from('comments')
-        .select('id, text, created_at, author:user_id(username)')
+        .select('id, text, created_at, author:user_id(username, display_name)')
         .eq('parent_id', item.id)
         .order('created_at', { ascending: true });
       if (data) {
         setReplies(data.map((r) => {
-          const name = r.author?.username || 'Reader';
+          const name = r.author?.display_name || r.author?.username || 'Reader';
           const diffMs = Date.now() - new Date(r.created_at).getTime();
           const m = Math.floor(diffMs / 60000);
           const h = Math.floor(m / 60);
@@ -796,8 +796,8 @@ export default function FeedScreen() {
     if (!session?.user?.id) return;
     const uid = session.user.id;
     setCurrentUserId(uid);
-    supabase.from('profiles').select('username').eq('id', uid).maybeSingle().then(({ data }) => {
-      if (data?.username) setCurrentUsername(data.username);
+    supabase.from('profiles').select('username, display_name').eq('id', uid).maybeSingle().then(({ data }) => {
+      if (data?.username) setCurrentUsername(data.display_name || data.username);
     });
   }
 
@@ -1141,9 +1141,9 @@ export default function FeedScreen() {
     }
     if (rows?.length > 0) {
       const friendIds = rows.map((f) => f.requester_id === currentUserId ? f.addressee_id : f.requester_id);
-      const { data: profiles } = await supabase.from('profiles').select('id, username, color, avatar_url').in('id', friendIds);
+      const { data: profiles } = await supabase.from('profiles').select('id, username, display_name, color, avatar_url').in('id', friendIds);
       if (profiles) {
-        setSendFriends(profiles.map((p) => ({ id: p.id, name: p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url })));
+        setSendFriends(profiles.map((p) => ({ id: p.id, name: p.display_name || p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url })));
       }
     }
   }
@@ -1226,8 +1226,8 @@ export default function FeedScreen() {
     setCommentSpoiler(false);
     if (currentUserId) {
       await supabase.from('comments').insert({ user_id: currentUserId, series_title: activeItem.title, text, spoiler: isSpoiler });
-      supabase.from('profiles').select('username').eq('id', currentUserId).maybeSingle().then(({ data }) => {
-        sendCommentPush(activeItem.title, data?.username || 'Someone');
+      supabase.from('profiles').select('username, display_name').eq('id', currentUserId).maybeSingle().then(({ data }) => {
+        sendCommentPush(activeItem.title, data?.display_name || data?.username || 'Someone');
       });
     }
   }
@@ -1246,7 +1246,7 @@ export default function FeedScreen() {
 
     const { data, error } = await supabase
       .from('comments')
-      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username)')
+      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username, display_name)')
       .eq('series_title', item.title)
       .is('parent_id', null)
       .order('created_at', { ascending: false })
@@ -1278,7 +1278,7 @@ export default function FeedScreen() {
       const h = Math.floor(m / 60);
       const d = Math.floor(h / 24);
       const time = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : m > 0 ? `${m}m ago` : 'Just now';
-      const name = row.author?.username || 'Reader';
+      const name = row.author?.display_name || row.author?.username || 'Reader';
       return { id: row.id, user: name, avatar: name.charAt(0).toUpperCase(), time, text: row.text, likes: row.likes || 0, liked: likedSet.has(row.id), spoiler: row.spoiler || false, replyCount: replyCountMap[row.id] || 0 };
     });
     setComments((prev) => ({ ...prev, [item.id]: mapped }));

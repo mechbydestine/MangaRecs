@@ -3,9 +3,9 @@
     "name": "MangaRecs",
     "slug": "inklore",
     "scheme": "mangarecs",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -36,7 +36,8 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.mangarecs.app",
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -68,6 +69,9 @@
         "projectId": "d8e9e8d4-41cd-4b74-86c5-ffee8087dcf0"
       }
     },
-    "owner": "kazymodo"
+    "owner": "kazymodo",
+    "updates": {
+      "url": "https://u.expo.dev/d8e9e8d4-41cd-4b74-86c5-ffee8087dcf0"
+    }
   }
 }

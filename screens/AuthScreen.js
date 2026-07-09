@@ -9,12 +9,13 @@ import { signInWithGoogle } from '../utils/googleAuth';
 import { useKeyboardPadding } from '../utils/keyboard';
 import StarLogo from '../components/StarLogo';
 
-function IconField({ icon, secure, rightSlot, ...props }) {
+function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
   const [hidden, setHidden] = useState(true);
   return (
     <View style={styles.fieldWrap}>
       <Ionicons name={icon} size={16} color="#9B9AA3" style={styles.fieldIcon} />
       <TextInput
+        ref={inputRef}
         style={styles.input}
         placeholderTextColor="#9B9AA3"
         autoCapitalize="none"
@@ -89,6 +90,7 @@ export default function AuthScreen() {
   const [mode, setMode] = useState('login');
 
   const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -103,6 +105,23 @@ export default function AuthScreen() {
 
   const keyboardPadding = useKeyboardPadding();
   const usernameStatus = useUsernameAvailability(mode === 'register' ? username : '');
+  const usernameInputRef = useRef(null);
+
+  // Stripping invalid characters can produce a filtered value equal to the
+  // previous state (e.g. typing a space after "john" filters back to
+  // "john"), which means React never re-renders the TextInput — on Android
+  // the rejected characters stay stuck on screen even though state never
+  // included them. Force the native view back in sync when that happens.
+  function handleUsernameChange(raw) {
+    const filtered = raw.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    setUsername(filtered);
+    if (filtered !== raw) {
+      usernameInputRef.current?.setNativeProps({
+        text: filtered,
+        selection: { start: filtered.length, end: filtered.length },
+      });
+    }
+  }
 
   function switchMode(next) {
     setMode(next);
@@ -125,7 +144,18 @@ export default function AuthScreen() {
   async function handleLogin() {
     setLoading(true);
     setError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const identifier = loginId.trim();
+    let loginEmail = identifier;
+    if (!identifier.includes('@')) {
+      const { data: resolvedEmail, error: lookupError } = await supabase.rpc('email_for_login', { identifier });
+      if (lookupError || !resolvedEmail) {
+        setError('Invalid login credentials');
+        setLoading(false);
+        return;
+      }
+      loginEmail = resolvedEmail;
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     if (error) setError(error.message);
     setLoading(false);
   }
@@ -159,6 +189,7 @@ export default function AuthScreen() {
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         username,
+        display_name: username,
         streak_count: 0,
         chapters_read: 0,
         hours_read: 0,
@@ -248,11 +279,11 @@ export default function AuthScreen() {
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
               <IconField
-                icon="mail-outline"
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                icon="person-outline"
+                placeholder="Username or email"
+                value={loginId}
+                onChangeText={setLoginId}
+                autoCorrect={false}
               />
               <IconField
                 icon="lock-closed-outline"
@@ -290,10 +321,11 @@ export default function AuthScreen() {
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
               <IconField
+                inputRef={usernameInputRef}
                 icon="person-outline"
                 placeholder="Username (letters & numbers only)"
                 value={username}
-                onChangeText={(t) => setUsername(t.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())}
+                onChangeText={handleUsernameChange}
                 maxLength={24}
                 autoCorrect={false}
                 rightSlot={<UsernameStatusIcon status={usernameStatus} />}

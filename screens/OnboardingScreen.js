@@ -16,34 +16,31 @@ import { useResponsive } from '../utils/responsive';
 
 const ACCENT = '#1D9E75';
 
+const DISCOVER_CARDS = [
+  { title: 'Solo Leveling', searchKey: 'Solo Leveling', lang: 'ko', genre: 'Action', color: '#0D1B2A', rating: '4.9' },
+  { title: "Frieren: Beyond Journey's End", searchKey: 'Sousou no Frieren', lang: 'ja', genre: 'Fantasy', color: '#0D2230', rating: '4.9' },
+  { title: 'Sakamoto Days', searchKey: 'Sakamoto Days', lang: 'ja', genre: 'Action', color: '#2D1A0A', rating: '4.8' },
+  { title: 'Dungeon Meshi', searchKey: 'Dungeon Meshi', lang: 'ja', genre: 'Fantasy', color: '#0D1A0D', rating: '4.8' },
+  { title: "Omniscient Reader's Viewpoint", lang: 'ko', genre: 'Thriller', color: '#1A0A0A', rating: '4.9' },
+];
+
+const DISCOVER_CHIPS = [
+  { icon: 'sparkles', label: 'AI Picks' },
+  { icon: 'trending-up', label: 'Trending' },
+  { icon: 'star', label: 'By Mood' },
+];
+
 const ACTIVITY = [
   { user: 'AkiraFan99', avatar: 'A', action: 'started', title: 'Solo Leveling', time: '2m ago' },
   { user: 'LunaReads', avatar: 'L', action: 'reached Chapter 124 of', title: 'Frieren: Beyond Journey\'s End', time: '5m ago' },
   { user: 'MangaQueen', avatar: 'M', action: 'recommends', title: 'Jujutsu Kaisen', time: '12m ago' },
-  { user: 'NeonReader', avatar: 'N', action: 'just finished', title: 'Chainsaw Man', time: '18m ago' },
-];
-
-const REC_CARDS = [
-  { title: 'Sakamoto Days', searchKey: 'Sakamoto Days', lang: 'ja', genre: 'Action', match: '98%', color: '#2D1A0A' },
-  { title: 'Dungeon Meshi', searchKey: 'Dungeon Meshi', lang: 'ja', genre: 'Fantasy', match: '95%', color: '#0D1A0D' },
-  { title: "Omniscient Reader's Viewpoint", lang: 'ko', genre: 'Thriller', match: '91%', color: '#0D1A0D' },
-];
-
-const HIGHLIGHTS = [
-  { icon: 'sparkles', label: 'Smart Recommendations' },
-  { icon: 'book-outline', label: 'Personalized Feed' },
-  { icon: 'trending-up', label: 'Trending Stories' },
-  { icon: 'star', label: 'Mood-Based Discovery' },
 ];
 
 const FEATURES = [
-  { icon: 'book-outline', label: 'Continue Reading' },
-  { icon: 'trending-up', label: 'Reading Statistics' },
-  { icon: 'flame', label: 'Reading Streaks' },
-  { icon: 'download-outline', label: 'Offline Downloads' },
-  { icon: 'notifications-outline', label: 'Chapter Notifications' },
-  { icon: 'desktop-outline', label: 'Cross-Device Sync' },
-  { icon: 'musical-notes-outline', label: 'Audio Ambience While Reading' },
+  { icon: 'flame', label: 'Streaks' },
+  { icon: 'download-outline', label: 'Offline reading' },
+  { icon: 'notifications-outline', label: 'New chapter alerts' },
+  { icon: 'desktop-outline', label: 'Synced everywhere' },
 ];
 
 
@@ -186,45 +183,50 @@ function SignUpGate({ onDone }) {
   );
 }
 
-function Screen1() {
+function ScreenDiscover() {
   return (
-    <View style={styles.screenPad}>
-      <Text style={styles.headline}>Read. Discover.{'\n'}Connect.</Text>
-      <Text style={styles.highlightText}>
-        Find your next obsession among manga, manhwa, and webcomics tailored to your taste.
-      </Text>
-      <Text style={styles.sub}>Join a community of readers discovering incredible stories every day.</Text>
+    <View style={styles.screenPadBleed}>
+      <View style={styles.screenPad}>
+        <Text style={styles.headline}>Your next{'\n'}obsession is here</Text>
+        <Text style={styles.sub}>AI-tuned picks from manga, manhwa & webcomics — swipe to peek.</Text>
+      </View>
 
-      <View style={styles.miniCardRow}>
-        {[
-          { title: 'Solo Leveling', searchKey: 'Solo Leveling', lang: 'ko', genre: 'Action', color: '#0D1B2A', rating: '4.9' },
-          { title: "Frieren: Beyond Journey's End", searchKey: 'Sousou no Frieren', lang: 'ja', genre: 'Fantasy', color: '#0D2230', rating: '4.9' },
-          { title: 'Sweet Home', lang: 'ko', genre: 'Horror', color: '#1A0A0A', rating: '4.8' },
-        ].map((c) => (
-          <MangaCover key={c.title} title={c.title} searchKey={c.searchKey} lang={c.lang} color={c.color} style={styles.miniCard}>
-            <View style={styles.miniCardOverlay}>
-              <Text style={styles.miniCardGenre}>{c.genre}</Text>
-              <Text style={styles.miniCardTitle}>{c.title}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.discoverScroll}>
+        {DISCOVER_CARDS.map((card) => (
+          <MangaCover key={card.title} title={card.title} searchKey={card.searchKey} lang={card.lang} color={card.color} style={styles.discoverCard}>
+            <View style={styles.discoverCardOverlay}>
+              <Text style={styles.discoverCardGenre}>{card.genre}</Text>
+              <Text style={styles.discoverCardTitle} numberOfLines={2}>{card.title}</Text>
               <View style={styles.miniCardMeta}>
-                <Ionicons name="star" size={9} color="#FFD700" />
-                <Text style={styles.miniCardRating}>{c.rating}</Text>
+                <Ionicons name="star" size={10} color="#FFD700" />
+                <Text style={styles.miniCardRating}>{card.rating}</Text>
               </View>
             </View>
           </MangaCover>
         ))}
+      </ScrollView>
+
+      <View style={styles.screenPad}>
+        <View style={styles.chipRow}>
+          {DISCOVER_CHIPS.map((c) => (
+            <View key={c.label} style={styles.chip}>
+              <Ionicons name={c.icon} size={13} color="#7B5CFF" />
+              <Text style={styles.chipLabel}>{c.label}</Text>
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
 }
 
-function Screen2() {
+function ScreenConnect() {
   return (
     <View style={styles.screenPad}>
-      <Text style={styles.headline}>See What Your{'\n'}Friends Are Reading</Text>
-      <Text style={styles.highlightText}>Follow friends, share recommendations, and discover stories through your community.</Text>
-      <Text style={styles.sub}>Stay connected to what friends are reading in real time.</Text>
+      <Text style={styles.headline}>Read together,{'\n'}not alone</Text>
+      <Text style={styles.sub}>Follow friends and never lose your place.</Text>
 
-      <View style={{ marginTop: 8 }}>
+      <View style={{ marginTop: 18 }}>
         {ACTIVITY.map((item) => (
           <View key={item.user} style={styles.activityRow}>
             <View style={styles.activityAvatar}>
@@ -241,62 +243,14 @@ function Screen2() {
           </View>
         ))}
       </View>
-    </View>
-  );
-}
-
-function Screen3() {
-  return (
-    <View style={styles.screenPad}>
-      <Text style={styles.headline}>Your Reading{'\n'}Universe</Text>
-      <Text style={styles.highlightText}>AI-powered recommendations built around your unique reading habits.</Text>
-      <Text style={styles.sub}>Discover stories based on your interests, history, favorite genres, and trends.</Text>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16, marginBottom: 16 }}>
-        {REC_CARDS.map((card) => (
-          <MangaCover key={card.title} title={card.title} searchKey={card.searchKey} lang={card.lang} color={card.color} style={styles.recCard}>
-            <View style={styles.recCardOverlay}>
-              <Text style={styles.recCardGenre}>{card.genre}</Text>
-              <Text style={styles.recCardTitle}>{card.title}</Text>
-              <View style={styles.recCardMatch}>
-                <Text style={styles.recCardMatchText}>{card.match} match</Text>
-              </View>
-            </View>
-          </MangaCover>
-        ))}
-      </ScrollView>
 
       <View style={styles.highlightGrid}>
-        {HIGHLIGHTS.map((h) => (
-          <View key={h.label} style={styles.highlightCard}>
-            <View style={styles.highlightIconWrap}>
-              <Ionicons name={h.icon} size={14} color="#7B5CFF" />
-            </View>
-            <Text style={styles.highlightLabel}>{h.label}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function Screen4() {
-  return (
-    <View style={styles.screenPad}>
-      <Text style={styles.headline}>Never Lose{'\n'}Your Place</Text>
-      <Text style={styles.highlightText}>Everything stays synced so you can pick up exactly where you left off.</Text>
-      <Text style={styles.sub}>Track your journey, build streaks, and enjoy your library anywhere.</Text>
-
-      <View style={{ marginTop: 8 }}>
         {FEATURES.map((f) => (
-          <View key={f.label} style={styles.featureRow}>
-            <View style={styles.featureIconWrap}>
+          <View key={f.label} style={styles.highlightCard}>
+            <View style={styles.highlightIconWrap}>
               <Ionicons name={f.icon} size={14} color="#7B5CFF" />
             </View>
-            <Text style={styles.featureLabel}>{f.label}</Text>
-            <View style={styles.featureCheck}>
-              <Ionicons name="checkmark" size={10} color={ACCENT} />
-            </View>
+            <Text style={styles.highlightLabel}>{f.label}</Text>
           </View>
         ))}
       </View>
@@ -421,7 +375,7 @@ function Screen6({ username, onChange, status }) {
       {status === 'available' && <Text style={styles.usernamePreview}>@{username} is available — looks great!</Text>}
       {status === 'taken' && <Text style={[styles.usernamePreview, { color: '#FF453A' }]}>@{username} is already taken — try another.</Text>}
       {status === 'invalid' && <Text style={[styles.usernamePreview, { color: '#9B9AA3' }]}>Usernames need at least 3 characters.</Text>}
-      <Text style={styles.sub}>You can always change this later in your profile settings.</Text>
+      <Text style={styles.sub}>This is permanent and can't be changed later — choose carefully. Already have one? Leave this blank.</Text>
     </View>
   );
 }
@@ -435,19 +389,19 @@ export default function OnboardingScreen({ onComplete }) {
   const [finishing, setFinishing] = useState(false);
 
   const keyboardPadding = useKeyboardPadding();
-  const usernameStatus = useUsernameAvailability(step === 6 ? username : '');
+  const usernameStatus = useUsernameAvailability(step === 4 ? username : '');
   const { isTablet } = useResponsive();
 
-  const totalSteps = 7;
+  const totalSteps = 5;
 
   function toggleGenre(g) {
     setGenres((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : prev.length < 3 ? [...prev, g] : prev));
   }
 
   function canProceed() {
-    if (step === 4) return genres.length === 3;
-    if (step === 6) {
-      if (username.trim().length === 0) return true; // empty = skip
+    if (step === 2) return genres.length === 3;
+    if (step === 4) {
+      if (username.trim().length === 0) return true; // empty = skip (already has a handle)
       return username.trim().length >= 2 && usernameStatus !== 'taken' && usernameStatus !== 'checking';
     }
     return true;
@@ -470,8 +424,10 @@ export default function OnboardingScreen({ onComplete }) {
       await AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(initialWeights));
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
+        if (username.trim()) {
+          await supabase.rpc('claim_username', { new_username: username.trim() });
+        }
         const updates = {};
-        if (username.trim()) updates.username = username.trim();
         if (genres.length > 0) updates.favorite_genre = genres[0];
         if (Object.keys(initialWeights).length > 0) updates.genre_weights = initialWeights;
         if (vibe) updates.reading_vibe = vibe;
@@ -492,14 +448,13 @@ export default function OnboardingScreen({ onComplete }) {
   }
 
   function handleNext() {
-    if (step < 6) setStep((s) => s + 1);
+    if (step < 4) setStep((s) => s + 1);
     else finishOnboarding();
   }
 
   function ctaLabel() {
     if (finishing) return null;
-    if (step === 3) return 'Almost Done';
-    if (step === 6) return 'Start Reading';
+    if (step === 4) return 'Start Reading';
     return 'Continue';
   }
 
@@ -530,7 +485,7 @@ export default function OnboardingScreen({ onComplete }) {
           <StarLogo size={22} />
           <Text style={styles.logo}>MangaRecs</Text>
         </View>
-        {step < 5 && (
+        {step < 3 && (
           <TouchableOpacity onPress={handleSkipAll}>
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
@@ -556,13 +511,11 @@ export default function OnboardingScreen({ onComplete }) {
         contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
         keyboardShouldPersistTaps="handled">
         <View style={isTablet ? styles.tabletWrap : null}>
-          {step === 0 && <Screen1 />}
-          {step === 1 && <Screen2 />}
-          {step === 2 && <Screen3 />}
-          {step === 3 && <Screen4 />}
-          {step === 4 && <Screen5 selected={genres} onToggle={toggleGenre} />}
-          {step === 5 && <ScreenTaste vibe={vibe} onVibe={setVibe} frequency={frequency} onFrequency={setFrequency} />}
-          {step === 6 && <Screen6 username={username} onChange={setUsername} status={usernameStatus} />}
+          {step === 0 && <ScreenDiscover />}
+          {step === 1 && <ScreenConnect />}
+          {step === 2 && <Screen5 selected={genres} onToggle={toggleGenre} />}
+          {step === 3 && <ScreenTaste vibe={vibe} onVibe={setVibe} frequency={frequency} onFrequency={setFrequency} />}
+          {step === 4 && <Screen6 username={username} onChange={setUsername} status={usernameStatus} />}
         </View>
       </ScrollView>
 
@@ -608,7 +561,7 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#9B9AA3' },
   dotActive: { width: 24, backgroundColor: '#7B5CFF' },
   screenPad: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
-  headline: { color: '#fff', fontSize: 26, fontWeight: 'bold', marginBottom: 8, lineHeight: 32 },
+  headline: { color: '#fff', fontSize: 32, fontWeight: '800', marginBottom: 8, lineHeight: 37, letterSpacing: -0.3 },
   highlightText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
   sub: { color: '#9B9AA3', fontSize: 12, lineHeight: 18, marginBottom: 4 },
   bottomBar: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
@@ -660,13 +613,24 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingVertical: 14, color: '#fff', fontSize: 14 },
   errorText: { color: '#FF3B30', fontSize: 12, marginBottom: 12 },
 
-  miniCardRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
-  miniCard: { width: '31%', height: 140, borderRadius: 16 },
-  miniCardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8, paddingTop: 16, backgroundColor: 'rgba(0,0,0,0.62)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
-  miniCardGenre: { color: 'rgba(255,255,255,0.6)', fontSize: 9 },
-  miniCardTitle: { color: '#fff', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
-  miniCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 },
-  miniCardRating: { color: 'rgba(255,255,255,0.7)', fontSize: 9 },
+  screenPadBleed: { paddingTop: 16, paddingBottom: 24 },
+  discoverScroll: { paddingLeft: 24, paddingRight: 14, paddingVertical: 16, gap: 12 },
+  discoverCard: {
+    width: 152, height: 214, borderRadius: 20, marginRight: 12,
+    borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)',
+  },
+  discoverCardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, paddingTop: 24, backgroundColor: 'rgba(0,0,0,0.68)', borderBottomLeftRadius: 19, borderBottomRightRadius: 19 },
+  discoverCardGenre: { color: 'rgba(255,255,255,0.6)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  discoverCardTitle: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginTop: 3, lineHeight: 17 },
+  miniCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 3 },
+  miniCardRating: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
+  chipRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20,
+    backgroundColor: 'rgba(123,92,255,0.12)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)',
+  },
+  chipLabel: { color: '#fff', fontSize: 11, fontWeight: '600' },
 
   activityRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -684,16 +648,6 @@ const styles = StyleSheet.create({
   activityTitle: { color: '#7B5CFF', fontWeight: '600' },
   activityTime: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
 
-  recCard: {
-    width: 110, height: 144, borderRadius: 16,
-    borderWidth: 1, borderColor: '#2A2A2F', marginRight: 10,
-  },
-  recCardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10, paddingTop: 18, backgroundColor: 'rgba(0,0,0,0.62)', borderBottomLeftRadius: 15, borderBottomRightRadius: 15 },
-  recCardGenre: { color: 'rgba(255,255,255,0.5)', fontSize: 9 },
-  recCardTitle: { color: '#fff', fontSize: 11, fontWeight: 'bold', marginTop: 2 },
-  recCardMatch: { backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start', marginTop: 4 },
-  recCardMatchText: { color: ACCENT, fontSize: 9, fontWeight: 'bold', paddingRight: 2 },
-
   highlightGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
   highlightCard: {
     width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -702,15 +656,6 @@ const styles = StyleSheet.create({
   },
   highlightIconWrap: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.15)' },
   highlightLabel: { color: '#fff', fontSize: 11, fontWeight: '500', flex: 1 },
-
-  featureRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 12, backgroundColor: '#1A1A1F', borderWidth: 1, borderColor: '#2A2A2F',
-    borderRadius: 12, marginBottom: 8,
-  },
-  featureIconWrap: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  featureLabel: { color: '#fff', fontSize: 13, fontWeight: '500', flex: 1 },
-  featureCheck: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(29,158,117,0.2)', alignItems: 'center', justifyContent: 'center' },
 
   genreGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 16, gap: 10 },
   genreBtn: {
