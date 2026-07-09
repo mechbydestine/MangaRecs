@@ -1344,3 +1344,154 @@ BEGIN
   RETURN jsonb_build_object('avg', COALESCE(v_avg, 0), 'count', COALESCE(v_count, 0), 'yourRating', v_mine);
 END; $$;
 GRANT EXECUTE ON FUNCTION get_series_rating(TEXT) TO authenticated, anon;
+
+-- ── 40. Discord-style identity: editable display_name + immutable username ──
+-- Two names per user from here on:
+--   display_name — editable anytime in Settings, free-form (capitals, spaces
+--                   allowed), shown as the primary name everywhere.
+--   username     — set once at signup, lowercase letters/numbers only, the
+--                   permanent unique @handle used for lookups/login/mentions.
+-- Until now `username` served both roles with NO database-level uniqueness
+-- (only a client-side "is it taken" check before signup) and Settings could
+-- overwrite it with literally any string, zero validation. This section adds
+-- display_name, backfills it from the existing username, normalizes any
+-- non-conforming usernames that slipped through Settings, resolves any
+-- resulting collisions without deleting anyone's account, then locks the
+-- handle down with a real format check + unique index.
+
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
+UPDATE profiles SET display_name = username WHERE display_name IS NULL AND username IS NOT NULL;
+
+-- Normalize any usernames saved through Settings before format validation existed.
+UPDATE profiles
+SET username = lower(regexp_replace(username, '[^a-zA-Z0-9]', '', 'g'))
+WHERE username IS NOT NULL AND username !~ '^[a-z0-9]+$';
+
+-- Resolve collisions created by normalization (or pre-existing) by suffixing
+-- later signups — never deletes a row, unlike the older one-time cleanup in
+-- section 16, because this now runs against real accounts, not orphans.
+WITH ranked AS (
+  SELECT id, row_number() OVER (PARTITION BY lower(username) ORDER BY created_at) AS rn
+  FROM profiles WHERE username IS NOT NULL AND username != ''
+)
+UPDATE profiles p
+SET username = p.username || (ranked.rn - 1)
+FROM ranked
+WHERE p.id = ranked.id AND ranked.rn > 1;
+
+-- Anything left too short/empty after normalization can't satisfy the format
+-- check below; fall back to a generated handle so the migration never fails
+-- on dirty data.
+UPDATE profiles
+SET username = 'user' || substr(id::text, 1, 8)
+WHERE username IS NULL OR length(username) < 3;
+
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_username_format;
+ALTER TABLE profiles ADD CONSTRAINT profiles_username_format
+  CHECK (username ~ '^[a-z0-9]{3,24}$');
+
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_lower_unique ON profiles (lower(username));
+
+-- username moves out of the client-editable set (immutable post-signup,
+-- server-enforced — not just hidden from the Settings UI); display_name
+-- moves in. Also fixes a pre-existing bug: reading_vibe/reading_frequency
+-- (written by OnboardingScreen's finishOnboarding) were never added to this
+-- list back in section 36f — turns out those columns were never added to
+-- the live table at all (the ADD COLUMN for them earlier in this file was
+-- apparently never actually run), so finishOnboarding's write has been
+-- silently failing outright, swallowed by its own try/catch.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS reading_vibe       TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS reading_frequency  TEXT;
+REVOKE UPDATE ON profiles FROM anon, authenticated;
+GRANT UPDATE (
+  display_name, bio, color, avatar_url, banner_url, favorites, showcase_badges,
+  genre_weights, genres_count, favorite_genre, reading_vibe, reading_frequency,
+  currently_reading, current_chapter, online, is_busy, show_activity, last_active_at,
+  push_token, accepted_guidelines, guidelines_accepted_at,
+  mal_username, anilist_username, notification_prefs, default_site
+) ON profiles TO authenticated;
+
+-- One-time claim: lets a user (typically a Google sign-in, who never passed
+-- through AuthScreen's registration form) set their permanent handle exactly
+-- once. Rejects if they already have one — enforced atomically in the UPDATE
+-- WHERE clause, not just by the client only calling this when username is
+-- null, so it's race-safe and can't be replayed to rename later.
+CREATE OR REPLACE FUNCTION public.claim_username(new_username TEXT)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid UUID := auth.uid();
+  normalized TEXT;
+  updated INT;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
+  normalized := lower(regexp_replace(new_username, '[^a-zA-Z0-9]', '', 'g'));
+  IF length(normalized) < 3 OR length(normalized) > 24 THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'invalid');
+  END IF;
+
+  BEGIN
+    UPDATE profiles
+    SET username = normalized, display_name = COALESCE(display_name, normalized)
+    WHERE id = uid AND username IS NULL;
+    GET DIAGNOSTICS updated = ROW_COUNT;
+  EXCEPTION WHEN unique_violation THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'taken');
+  END;
+
+  IF updated = 0 THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'already_set');
+  END IF;
+
+  RETURN jsonb_build_object('ok', true, 'username', normalized);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.claim_username(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.claim_username(TEXT) TO authenticated;
+
+-- ── 41. Username-or-email login ───────────────────────────────────────────────
+-- supabase-js signInWithPassword only accepts an email. This resolves a
+-- typed username to its account email first. Returns NULL (not an error) on
+-- no match so the client shows the same generic "invalid credentials"
+-- message either way — can't be used to enumerate which usernames exist.
+CREATE OR REPLACE FUNCTION public.email_for_login(identifier TEXT)
+RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  found_email TEXT;
+BEGIN
+  SELECT au.email INTO found_email
+  FROM public.profiles p
+  JOIN auth.users au ON au.id = p.id
+  WHERE lower(p.username) = lower(identifier)
+  LIMIT 1;
+  RETURN found_email;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.email_for_login(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.email_for_login(TEXT) TO anon, authenticated;
+
+-- ── 42. get_suggested_friends: return display_name alongside the handle ──────
+-- Return type is changing (extra column), so the old signature has to be
+-- dropped before recreating — CREATE OR REPLACE can't change RETURNS TABLE.
+DROP FUNCTION IF EXISTS get_suggested_friends(UUID, INT);
+CREATE FUNCTION get_suggested_friends(p_user_id UUID, p_limit INT DEFAULT 5)
+RETURNS TABLE(id UUID, username TEXT, display_name TEXT, color TEXT, avatar_url TEXT, chapters_read INT, favorite_genre TEXT)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+  SELECT p.id, p.username, p.display_name, p.color, p.avatar_url, p.chapters_read, p.favorite_genre
+  FROM profiles p
+  WHERE p.id != p_user_id
+    AND p.username IS NOT NULL
+    AND p.username != ''
+    AND p.id NOT IN (
+      SELECT CASE WHEN f.requester_id = p_user_id THEN f.addressee_id ELSE f.requester_id END
+      FROM friendships f
+      WHERE f.requester_id = p_user_id OR f.addressee_id = p_user_id
+    )
+  ORDER BY p.chapters_read DESC NULLS LAST
+  LIMIT p_limit;
+END;
+$$;
+REVOKE ALL ON FUNCTION get_suggested_friends(UUID, INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_suggested_friends(UUID, INT) TO authenticated;

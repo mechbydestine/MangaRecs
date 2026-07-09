@@ -2,6 +2,18 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.1.0',
+    date: 'July 2026',
+    highlights: [
+      'The app now updates itself — no more reinstalling APKs for most changes',
+      'Sign in with your username or email, password underneath',
+      'Editable display name, separate from your permanent @handle',
+      'Fixed Google sign-in',
+      'Redesigned, shorter onboarding',
+      'Fixed a crash when swiping recommendation cards, and a username field typing bug',
+    ],
+  },
+  {
     version: '1.0.0',
     date: 'July 2026',
     highlights: [

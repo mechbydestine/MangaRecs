@@ -288,7 +288,8 @@ export default function ProfileScreen() {
   useScrollToTop(scrollRef);
 
   const { profile, userId, uploadAvatar, updateProfile, refreshProfile } = useProfile();
-  const username = profile?.username || 'InkReader';
+  const username = profile?.display_name || profile?.username || 'InkReader';
+  const handle = profile?.username || 'inkreader';
 
   const [themeId, setThemeId]             = useState('default');
   const [avatarUri, setAvatarUri]         = useState(null);
@@ -573,7 +574,7 @@ export default function ProfileScreen() {
         );
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url, online')
+          .select('id, username, display_name, avatar_url, online')
           .in('id', friendIds);
         if (!profiles) return;
         const byId = Object.fromEntries(profiles.map(p => [p.id, p]));
@@ -581,7 +582,8 @@ export default function ProfileScreen() {
           friendIds.map(id => {
             const p = byId[id];
             if (!p) return null;
-            return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: p.online || false };
+            const name = p.display_name || p.username || '?';
+            return { id: p.id, name, avatar: name.slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: p.online || false };
           }).filter(Boolean)
         );
       });
@@ -590,14 +592,15 @@ export default function ProfileScreen() {
   // ── Load followers / following ───────────────────────────────────────────
 
   function toPerson(p) {
-    return { id: p.id, name: p.username || '?', avatar: (p.username || '?').slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
+    const name = p.display_name || p.username || '?';
+    return { id: p.id, name, avatar: name.slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
   }
 
   useEffect(() => {
     if (!userId) return;
     supabase
       .from('followers')
-      .select('follower:follower_id(id, username, avatar_url, online)')
+      .select('follower:follower_id(id, username, display_name, avatar_url, online)')
       .eq('followed_id', userId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -605,7 +608,7 @@ export default function ProfileScreen() {
       });
     supabase
       .from('followers')
-      .select('followed:followed_id(id, username, avatar_url, online)')
+      .select('followed:followed_id(id, username, display_name, avatar_url, online)')
       .eq('follower_id', userId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -836,7 +839,7 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            <Text style={[styles.handle, { color: colors.muted }]}>@{username.toLowerCase()} · Joined {joinDate || 'Dec 2024'}</Text>
+            <Text style={[styles.handle, { color: colors.muted }]}>@{handle} · Joined {joinDate || 'Dec 2024'}</Text>
 
             {/* Badge showcase — 3 slots under the name, icon-only. Pinned badges
                 open their details; empty slots are + buttons into the badge sheet */}

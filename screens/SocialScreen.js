@@ -675,7 +675,7 @@ export default function SocialScreen() {
 
     const { data: profiles, error: pErr } = await supabase
       .from('profiles')
-      .select('id, username, color, avatar_url, online, currently_reading, current_chapter, is_busy, last_active_at, show_activity')
+      .select('id, username, display_name, color, avatar_url, online, currently_reading, current_chapter, is_busy, last_active_at, show_activity')
       .in('id', friendIds);
 
     if (pErr) { setFriendsError(true); setFriends([]); return; }
@@ -688,7 +688,7 @@ export default function SocialScreen() {
           if (!p) return null;
           return {
             id: p.id,
-            name: p.username || 'Unknown',
+            name: p.display_name || p.username || 'Unknown',
             avatarUrl: p.avatar_url || null,
             color: p.color || 'default',
             online: p.online || false,
@@ -733,7 +733,7 @@ export default function SocialScreen() {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username, color, avatar_url')
+      .select('id, username, display_name, color, avatar_url')
       .in('id', partnerIds);
 
     if (!profiles) return;
@@ -759,7 +759,7 @@ export default function SocialScreen() {
         }
         return {
           friendId: partnerId,
-          friend: { name: p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url },
+          friend: { name: p.display_name || p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url },
           preview,
           lastTime: timeAgo(lastMsg.created_at),
           unread,
@@ -785,7 +785,7 @@ export default function SocialScreen() {
     const orderCol = LB_METRIC_COL[metric] || 'hours_read';
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, color, chapters_read, hours_read, streak_count, avatar_url, friends_count, comments_count, likes_given, series_count, completed_count, showcase_badges')
+      .select('id, username, display_name, color, chapters_read, hours_read, streak_count, avatar_url, friends_count, comments_count, likes_given, series_count, completed_count, showcase_badges')
       .not('username', 'is', null)
       .neq('username', '')
       .or('hours_read.gt.0,chapters_read.gt.0')
@@ -801,8 +801,8 @@ export default function SocialScreen() {
           .slice(0, 3);
         return {
           id: p.id,
-          name: p.username || 'Reader',
-          avatar: (p.username || '?').charAt(0).toUpperCase(),
+          name: p.display_name || p.username || 'Reader',
+          avatar: (p.display_name || p.username || '?').charAt(0).toUpperCase(),
           avatarUrl: p.avatar_url || null,
           color: p.color,
           hours: p.hours_read || 0,
@@ -830,7 +830,7 @@ export default function SocialScreen() {
     const requesterIds = rows.map(r => r.requester_id);
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username, color, avatar_url, chapters_read, favorite_genre')
+      .select('id, username, display_name, color, avatar_url, chapters_read, favorite_genre')
       .in('id', requesterIds);
 
     if (!profiles) return;
@@ -880,7 +880,7 @@ export default function SocialScreen() {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, bio, chapters_read, favorite_genre, color, avatar_url, banner_url')
+      .select('id, username, display_name, bio, chapters_read, favorite_genre, color, avatar_url, banner_url')
       .ilike('username', q)
       .not('username', 'is', null)
       .neq('username', '')
@@ -927,8 +927,8 @@ export default function SocialScreen() {
         type: 'friend_request',
         data: { friendship_id: newFriendship.id },
       }).then(() => {});
-      supabase.from('profiles').select('username').eq('id', currentUserId).maybeSingle().then(({ data }) => {
-        sendFriendRequestPush(userId, data?.username || 'Someone');
+      supabase.from('profiles').select('username, display_name').eq('id', currentUserId).maybeSingle().then(({ data }) => {
+        sendFriendRequestPush(userId, data?.display_name || data?.username || 'Someone');
       });
     }
   }
@@ -1063,9 +1063,9 @@ export default function SocialScreen() {
             </View>
             {pendingRequests.map((req) => (
               <View key={req.friendshipId} style={[styles.requestRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <AvatarCircle username={req.username} avatarUrl={req.avatar_url} color={req.color} size={36} style={{ marginRight: 10 }} />
+                <AvatarCircle username={req.display_name || req.username} avatarUrl={req.avatar_url} color={req.color} size={36} style={{ marginRight: 10 }} />
                 <View style={styles.requestInfo}>
-                  <Text style={[styles.requestName, { color: colors.text }]}>{req.username}</Text>
+                  <Text style={[styles.requestName, { color: colors.text }]}>{req.display_name || req.username}</Text>
                   <Text style={[styles.requestSub, { color: colors.muted }]}>
                     {req.chapters_read || 0} chapters · {req.favorite_genre || 'Reader'}
                   </Text>
@@ -1238,9 +1238,9 @@ export default function SocialScreen() {
                   </Text>
                   {pendingRequests.map((req) => (
                     <View key={req.friendshipId} style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                      <AvatarCircle username={req.username} avatarUrl={req.avatar_url} color={req.color} size={40} />
+                      <AvatarCircle username={req.display_name || req.username} avatarUrl={req.avatar_url} color={req.color} size={40} />
                       <View style={styles.dmConvoContent}>
-                        <Text style={[styles.dmConvoName, { color: colors.text }]} numberOfLines={1}>{req.username}</Text>
+                        <Text style={[styles.dmConvoName, { color: colors.text }]} numberOfLines={1}>{req.display_name || req.username}</Text>
                         <Text style={[styles.dmConvoPreview, { color: colors.muted }]} numberOfLines={1}>wants to be friends</Text>
                       </View>
                       <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptRequest(req.friendshipId)}>
@@ -1370,11 +1370,11 @@ export default function SocialScreen() {
 
             {searchResult && (
               <View style={[styles.resultCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <AvatarCircle username={searchResult.username} avatarUrl={searchResult.avatar_url} color={searchResult.color} size={38} style={{ marginRight: 10 }} />
+                <AvatarCircle username={searchResult.display_name || searchResult.username} avatarUrl={searchResult.avatar_url} color={searchResult.color} size={38} style={{ marginRight: 10 }} />
                 <View style={styles.resultInfo}>
-                  <Text style={[styles.resultName, { color: colors.text }]}>{searchResult.username}</Text>
+                  <Text style={[styles.resultName, { color: colors.text }]}>{searchResult.display_name || searchResult.username}</Text>
                   <Text style={[styles.resultSub, { color: colors.muted }]} numberOfLines={1}>
-                    {searchResult.chapters_read || 0} chapters · {searchResult.favorite_genre || 'Reader'}
+                    @{searchResult.username} · {searchResult.chapters_read || 0} chapters · {searchResult.favorite_genre || 'Reader'}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -1402,8 +1402,8 @@ export default function SocialScreen() {
             <Text style={[styles.suggestedTitle, { color: colors.muted }]}>Suggested</Text>
             {suggestedFriends.map((f) => (
               <View key={f.id} style={styles.suggestedRow}>
-                <AvatarCircle username={f.username} avatarUrl={f.avatar_url} color={f.color} size={40} />
-                <Text style={[styles.suggestedName, { color: colors.text }]}>{f.username}</Text>
+                <AvatarCircle username={f.display_name || f.username} avatarUrl={f.avatar_url} color={f.color} size={40} />
+                <Text style={[styles.suggestedName, { color: colors.text }]}>{f.display_name || f.username}</Text>
                 <TouchableOpacity
                   style={[styles.suggestedProfileBtn, { borderColor: colors.border }]}
                   onPress={() => { closeAddFriend(); navigation.navigate('FriendProfile', { id: f.id }); }}>

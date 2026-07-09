@@ -14,6 +14,7 @@ import { clearBadgeCache } from '../utils/badgeEngine';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { CHANGELOG } from '../utils/changelog';
 import { useResponsive } from '../utils/responsive';
 
@@ -177,21 +178,24 @@ export default function SettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
 
-  const [username, setUsername] = useState('');
-  const [usernameDraft, setUsernameDraft] = useState('');
-  const [usernameError, setUsernameError] = useState('');
-  const [usernameSaved, setUsernameSaved] = useState(false);
-  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [displayNameDraft, setDisplayNameDraft] = useState('');
+  const [displayNameError, setDisplayNameError] = useState('');
+  const [displayNameSaved, setDisplayNameSaved] = useState(false);
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
 
-  // Sync username and tracker usernames from Supabase profile
+  // Sync display name and tracker usernames from Supabase profile. The
+  // @handle (profile.username) is permanent and set at signup — it's shown
+  // read-only below, never edited here.
   useEffect(() => {
-    if (profile?.username) {
-      setUsername(profile.username);
-      setUsernameDraft(profile.username);
+    const name = profile?.display_name || profile?.username;
+    if (name) {
+      setDisplayName(name);
+      setDisplayNameDraft(name);
     }
     if (profile?.mal_username) setMalUsername(profile.mal_username);
     if (profile?.anilist_username) setAnilistUsername(profile.anilist_username);
-  }, [profile?.username, profile?.mal_username, profile?.anilist_username]);
+  }, [profile?.display_name, profile?.username, profile?.mal_username, profile?.anilist_username]);
 
 
   const [readerMode, setReaderMode] = useState('webtoon');
@@ -270,30 +274,57 @@ export default function SettingsScreen({ navigation }) {
     await updateProfile({ is_busy: value });
   }
 
-  async function handleSaveUsername() {
-    const trimmed = usernameDraft.trim();
+  async function handleSaveDisplayName() {
+    const trimmed = displayNameDraft.trim();
     if (!trimmed || trimmed.length < 3) {
-      setUsernameError('Username must be at least 3 characters.');
+      setDisplayNameError('Display name must be at least 3 characters.');
       return;
     }
-    if (trimmed === username) {
-      setUsernameError("That's already your username.");
+    if (trimmed === displayName) {
+      setDisplayNameError("That's already your display name.");
       return;
     }
-    setUsernameSaving(true);
-    setUsernameError('');
+    setDisplayNameSaving(true);
+    setDisplayNameError('');
 
-    const { error } = await updateProfile({ username: trimmed });
-    setUsernameSaving(false);
+    const { error } = await updateProfile({ display_name: trimmed });
+    setDisplayNameSaving(false);
 
     if (error) {
-      setUsernameError('Failed to save. Please try again.');
+      setDisplayNameError('Failed to save. Please try again.');
       return;
     }
 
-    setUsername(trimmed);
-    setUsernameSaved(true);
-    setTimeout(() => setUsernameSaved(false), 2000);
+    setDisplayName(trimmed);
+    setDisplayNameSaved(true);
+    setTimeout(() => setDisplayNameSaved(false), 2000);
+  }
+
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('');
+
+  async function handleCheckForUpdate() {
+    if (!Updates.isEnabled) {
+      setUpdateStatus('Updates disabled in this build (Expo Go / dev client)');
+      return;
+    }
+    setUpdateChecking(true);
+    setUpdateStatus('');
+    try {
+      const result = await Updates.checkForUpdateAsync();
+      if (!result.isAvailable) {
+        setUpdateStatus("You're on the latest version");
+        setUpdateChecking(false);
+        return;
+      }
+      setUpdateStatus('Update found — downloading…');
+      await Updates.fetchUpdateAsync();
+      setUpdateStatus('Downloaded — restarting…');
+      await Updates.reloadAsync();
+    } catch (e) {
+      setUpdateStatus(`Check failed: ${e.message || 'unknown error'}`);
+      setUpdateChecking(false);
+    }
   }
 
   async function handleClearCache() {
@@ -342,24 +373,24 @@ export default function SettingsScreen({ navigation }) {
       <ScrollView showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
         <View style={isTablet ? styles.tabletWrap : null}>
 
-        <SectionCard title="Username" icon="person-outline">
-          <Text style={[styles.cardSub, { color: colors.muted }]}>Display name shown across MangaRecs</Text>
+        <SectionCard title="Display name" icon="person-outline">
+          <Text style={[styles.cardSub, { color: colors.muted }]}>Shown across MangaRecs — change this anytime</Text>
           <View style={styles.urlRow}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
-              value={usernameDraft}
-              onChangeText={(t) => { setUsernameDraft(t); setUsernameError(''); }}
+              value={displayNameDraft}
+              onChangeText={(t) => { setDisplayNameDraft(t); setDisplayNameError(''); }}
               maxLength={24}
-              placeholder="Enter username"
+              placeholder="Enter display name"
               placeholderTextColor={colors.muted}
             />
             <TouchableOpacity
-              style={[styles.smallCta, (usernameDraft.trim() === username || usernameSaving) && { opacity: 0.4 }]}
-              onPress={handleSaveUsername}
-              disabled={usernameDraft.trim() === username || usernameSaving}>
-              {usernameSaving ? (
+              style={[styles.smallCta, (displayNameDraft.trim() === displayName || displayNameSaving) && { opacity: 0.4 }]}
+              onPress={handleSaveDisplayName}
+              disabled={displayNameDraft.trim() === displayName || displayNameSaving}>
+              {displayNameSaving ? (
                 <ActivityIndicator size="small" color="#fff" />
-              ) : usernameSaved ? (
+              ) : displayNameSaved ? (
                 <>
                   <Ionicons name="checkmark" size={13} color="#fff" />
                   <Text style={styles.smallCtaText}>Saved</Text>
@@ -369,12 +400,18 @@ export default function SettingsScreen({ navigation }) {
               )}
             </TouchableOpacity>
           </View>
-          {!!usernameError && (
+          {!!displayNameError && (
             <View style={styles.warningRow}>
               <Ionicons name="alert-circle-outline" size={12} color="#E24B4A" />
-              <Text style={styles.warningTextDanger}>{usernameError}</Text>
+              <Text style={styles.warningTextDanger}>{displayNameError}</Text>
             </View>
           )}
+          <View style={[styles.warningRow, { marginTop: displayNameError ? 6 : 10 }]}>
+            <Ionicons name="at-outline" size={12} color={colors.muted} />
+            <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 0 }]}>
+              @{profile?.username} — your permanent handle, set at signup and used to identify you. Can't be changed.
+            </Text>
+          </View>
         </SectionCard>
 
         <SectionCard title="Appearance" icon="color-palette-outline">
@@ -672,6 +709,23 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.versionText, { color: colors.muted }]}>v{APP_VERSION}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 6 }} />
           </TouchableOpacity>
+          <View style={[styles.settingsRow, { borderTopWidth: 1, borderTopColor: colors.border, flexWrap: 'wrap' }]}>
+            <Ionicons name="cloud-download-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Live Update</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
+                {Updates.isEmbeddedLaunch ? 'Running built-in code' : `Running update ${(Updates.updateId || '').slice(0, 8)}`}
+                {Updates.channel ? ` · ${Updates.channel}` : ''}
+              </Text>
+              {!!updateStatus && <Text style={[styles.settingsRowDesc, { color: colors.muted, marginTop: 2 }]}>{updateStatus}</Text>}
+            </View>
+            <TouchableOpacity
+              style={[styles.smallCta, updateChecking && { opacity: 0.6 }]}
+              onPress={handleCheckForUpdate}
+              disabled={updateChecking}>
+              {updateChecking ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.smallCtaText}>Check Now</Text>}
+            </TouchableOpacity>
+          </View>
         </SectionCard>
 
         <SectionCard title="Account" icon="person-circle-outline">

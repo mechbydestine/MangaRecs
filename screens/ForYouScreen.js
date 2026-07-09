@@ -241,6 +241,7 @@ function MoodButton({ mood, active, onPress }) {
 // remove ("not interested"). Tap still opens the reader.
 function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey }) {
   const { colors } = useTheme();
+  const { width: screenW } = useResponsive();
   const anim  = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -267,10 +268,10 @@ function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey })
         Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 1.6,
       onPanResponderMove: (_, g) => translateX.setValue(g.dx),
       onPanResponderRelease: (_, g) => {
-        const threshold = SCREEN_W * 0.28;
+        const threshold = screenW * 0.28;
         if (g.dx < -threshold && onDismissRef.current) {
           // Swipe left — slide the row out, then remove it
-          Animated.timing(translateX, { toValue: -SCREEN_W, duration: 180, useNativeDriver: true }).start(() => {
+          Animated.timing(translateX, { toValue: -screenW, duration: 180, useNativeDriver: true }).start(() => {
             onDismissRef.current?.();
           });
         } else if (g.dx > threshold && onSaveRef.current) {

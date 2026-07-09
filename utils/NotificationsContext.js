@@ -14,7 +14,7 @@ function relTime(iso) {
 
 function buildNotification(row) {
   const isMangaRec = row.type === 'badge' || (row.type === 'direct_message' && row.data?.message_type === 'recommendation');
-  const name = isMangaRec ? 'MangaRecs' : (row.actor?.username || 'Someone');
+  const name = isMangaRec ? 'MangaRecs' : (row.actor?.display_name || row.actor?.username || 'Someone');
   const d = row.data || {};
   let text = '';
   if (row.type === 'friend_request')       text = 'sent you a friend request';
@@ -64,7 +64,7 @@ export function NotificationsProvider({ children }) {
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('id, type, actor_id, data, read, created_at, actor:actor_id(username, color, avatar_url)')
+      .select('id, type, actor_id, data, read, created_at, actor:actor_id(username, display_name, color, avatar_url)')
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
       .limit(40);
