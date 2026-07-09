@@ -8,7 +8,7 @@
 
 A social manga & manhwa reader — track your library, get AI-powered recommendations, and talk about what you're reading with friends.
 
-[![Download APK](https://img.shields.io/badge/Download-APK-7B5CFF?style=for-the-badge&logo=android&logoColor=white)](https://expo.dev/accounts/kazymodo/projects/inklore/builds)
+[![Download APK](https://img.shields.io/badge/Download-APK-7B5CFF?style=for-the-badge&logo=android&logoColor=white)](https://expo.dev/artifacts/eas/7Nmg2BnIFZoqjYUhAWEU3RS1W_WiFCaPn0_OzygqK-I.apk)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20iPadOS-444?style=for-the-badge)]()
 
 </div>
@@ -17,9 +17,9 @@ A social manga & manhwa reader — track your library, get AI-powered recommenda
 
 ## Download
 
-Grab the latest Android build from the **[EAS builds page](https://expo.dev/accounts/kazymodo/projects/inklore/builds)** — open the most recent successful `preview` build and tap **Download**, then install the `.apk` directly on your phone or tablet (you'll need to allow installs from unknown sources the first time).
+**[Download the APK](https://expo.dev/artifacts/eas/7Nmg2BnIFZoqjYUhAWEU3RS1W_WiFCaPn0_OzygqK-I.apk)** — direct link, no Expo account or login needed. Install the `.apk` directly on your phone or tablet (you'll need to allow installs from unknown sources the first time).
 
-> Build artifacts expire after about 30 days on this plan. If the latest one is gone, run `npx eas-cli build --platform android --profile preview` to cut a fresh one (see below).
+> This build artifact expires **2026-07-22**. If the link is dead, cut a fresh one with `npx eas-cli build --platform android --profile preview` (see below) and update this link.
 
 iOS builds aren't sideloadable the same way; if you want on-device iOS access, ask the owner for a TestFlight invite.
 
