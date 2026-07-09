@@ -8,7 +8,7 @@
 
 A social manga & manhwa reader — track your library, get AI-powered recommendations, and talk about what you're reading with friends.
 
-[![Download APK](https://img.shields.io/badge/Download-APK-7B5CFF?style=for-the-badge&logo=android&logoColor=white)](https://expo.dev/artifacts/eas/7Nmg2BnIFZoqjYUhAWEU3RS1W_WiFCaPn0_OzygqK-I.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK-7B5CFF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/mechbydestine/MangaRecs/releases/download/v1.0.0-preview1/MangaRecs.apk)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20iPadOS-444?style=for-the-badge)]()
 
 </div>
@@ -17,9 +17,9 @@ A social manga & manhwa reader — track your library, get AI-powered recommenda
 
 ## Download
 
-**[Download the APK](https://expo.dev/artifacts/eas/7Nmg2BnIFZoqjYUhAWEU3RS1W_WiFCaPn0_OzygqK-I.apk)** — direct link, no Expo account or login needed. Install the `.apk` directly on your phone or tablet (you'll need to allow installs from unknown sources the first time).
+**[Download the APK](https://github.com/mechbydestine/MangaRecs/releases/download/v1.0.0-preview1/MangaRecs.apk)** — hosted directly on this repo's [Releases](https://github.com/mechbydestine/MangaRecs/releases) page, no Expo account or login needed. Install the `.apk` directly on your phone or tablet (you'll need to allow installs from unknown sources the first time).
 
-> This build artifact expires **2026-07-22**. If the link is dead, cut a fresh one with `npx eas-cli build --platform android --profile preview` (see below) and update this link.
+> To cut a new release after a future build: `npx eas-cli build --platform android --profile preview`, then `gh release create <tag> <path-to-apk>#MangaRecs.apk` and update this link.
 
 iOS builds aren't sideloadable the same way; if you want on-device iOS access, ask the owner for a TestFlight invite.
 
