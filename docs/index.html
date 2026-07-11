@@ -313,7 +313,7 @@
 
   @media (max-width: 860px) {
     .hero { grid-template-columns: 1fr; }
-    .demo { order: -1; height: 300px; }
+    .demo { height: 300px; margin-top: 32px; }
     .chapter, .chapter.flip { grid-template-columns: 1fr; }
     .chapter.flip .chapter-copy, .chapter.flip .chapter-visual { order: initial; }
   }
@@ -720,10 +720,10 @@
 
   // Swipe-card demo — mirrors the Feed's swipe-to-save / swipe-to-dismiss gesture
   var CARDS = [
-    { genre: 'Action', sub: 'Sakamoto Days · 98% match', c1: '#3a2a6b', c2: '#1c1330' },
-    { genre: 'Fantasy', sub: 'Dungeon Meshi · 95% match', c1: '#2a4a4a', c2: '#132424' },
-    { genre: 'Thriller', sub: "Omniscient Reader's · 91% match", c1: '#4a2a2a', c2: '#241313' },
-    { genre: 'Isekai', sub: 'Solo Leveling · 97% match', c1: '#2a3a5a', c2: '#131c2f' },
+    { genre: 'Action', sub: 'Sakamoto Days · 98% match', c1: '#3a2a6b', c2: '#1c1330', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg' },
+    { genre: 'Fantasy', sub: 'Dungeon Meshi · 95% match', c1: '#2a4a4a', c2: '#132424', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86082-MXizJxzbijdd.jpg' },
+    { genre: 'Thriller', sub: "Omniscient Reader's · 91% match", c1: '#4a2a2a', c2: '#241313', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119257-Pi21aq3ey9GG.jpg' },
+    { genre: 'Isekai', sub: 'Solo Leveling · 97% match', c1: '#2a3a5a', c2: '#131c2f', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx105398-b673Vt5ZSuz3.jpg' },
   ];
   var stack = document.getElementById('demoStack');
   var order = CARDS.slice();
@@ -743,7 +743,10 @@
         '<div class="genre">' + card.genre + '</div>' +
         '<div class="sub">' + card.sub.split(' · ')[0] + '</div>';
       el.style.setProperty('--sw1', card.c1);
-      el.style.background = 'linear-gradient(160deg, ' + card.c1 + ', ' + card.c2 + ')';
+      el.style.background =
+        'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.05) 32%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0.88) 100%), ' +
+        'url(' + card.cover + ') center/cover no-repeat, ' +
+        'linear-gradient(160deg, ' + card.c1 + ', ' + card.c2 + ')';
       el.querySelector('.genre').style.color = '#fff';
       el.querySelector('.sub').style.color = 'rgba(255,255,255,0.72)';
       el.querySelector('.match').style.background = 'rgba(255,255,255,0.2)';
