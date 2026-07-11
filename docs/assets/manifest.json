@@ -2,7 +2,7 @@
   "name": "MangaRecs",
   "short_name": "MangaRecs",
   "description": "A social manga & manhwa reader that updates itself, remembers your taste, and reads with you.",
-  "start_url": "/index.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0D0C11",
