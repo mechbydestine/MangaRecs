@@ -563,41 +563,11 @@ export default function LibraryScreen() {
       };
     });
 
-  const existingTitles = new Set([
-    ...baseReadingSeries.map((s) => s.title),
-    ...progressReading.map((s) => s.title),
-    ...(liveReading ? [liveReading.title] : []),
-  ]);
-
-  const historyReading = historyItems
-    .filter((h) => !deletedIds.has(h.searchKey) && !completedIds.has(h.searchKey))
-    .filter((h) => !existingTitles.has(h.title))
-    .filter((h) => !progressRows.some((r) => r.series_title === h.title && r.status === 'completed'))
-    .filter((h) => {
-      if (!h.title) return false;
-      if (INVALID_HIST_TITLE.test(h.title.trim())) return false;
-      if (h.title.startsWith('http')) return false;
-      if (/\.(com|to|net|io|org|me|pro|xyz|app|moe|gg)\b/.test(h.title.toLowerCase())) return false;
-      return true;
-    })
-    .map((h) => {
-      const pool = findPoolEntry(h.title, h.searchKey);
-      const total = (h.chapters && h.chapters < 999) ? h.chapters : (pool?.chapters || 0);
-      return {
-        id: `hist-${h.searchKey}`,
-        title: h.title,
-        searchKey: h.searchKey || h.title,
-        lang: h.lang || 'ja',
-        color: h.color || '#1A1A2E',
-        currentChapter: h.chapter || 1,
-        chapterLabel: h.chapterLabel || `Chapter ${h.chapter || 1}`,
-        chapters: total || 999,
-        progress: total ? Math.min((h.chapter || 1) / total, 0.99) : 0,
-        rating: h.rating || pool?.rating || null,
-        url: h.url || null,
-        site: h.site || null,
-      };
-    });
+  // Note: raw reading history (historyItems, from getReadingHistory) is deliberately
+  // NOT surfaced in the Reading tab grid — it's scraped webview page titles and often
+  // picks up junk (cookie banners, site taglines) that INVALID_HIST_TITLE can't fully
+  // filter. It only feeds checkUpdatesInBackground; "Continue Reading" is the sole
+  // place recent history is shown, sourced from the single most-recent lastReadEntry.
 
   const liveReadingValid = liveReading
     && !deletedIds.has('live')
@@ -609,7 +579,6 @@ export default function LibraryScreen() {
   const readingSeries = [
     ...(liveReadingValid && !baseReadingSeries.some((s) => s.title === liveReading.title) && !progressReading.some((s) => s.title === liveReading.title) ? [liveReading] : []),
     ...progressReading,
-    ...historyReading,
     ...baseReadingSeries,
   ];
 
@@ -1165,7 +1134,7 @@ export default function LibraryScreen() {
                 </View>
               </MangaCover>
               <View style={styles.continueInfo}>
-                <Text style={styles.continueLabel}>Continue Reading</Text>
+                <Text style={styles.continueLabel}>Continue</Text>
                 <Text style={[styles.continueTitle, { color: colors.text }]} numberOfLines={1}>
                   {continueReading.title}
                 </Text>
