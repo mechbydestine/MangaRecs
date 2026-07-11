@@ -87,17 +87,50 @@ function statusLabel(s) {
 }
 
 // ── Poster card ───────────────────────────────────────────────────────
+// Depends on isSavedLocally (assets/auth.js) — auth.js must load first.
 function posterCard(m) {
   var score = m.averageScore ? (m.averageScore / 10).toFixed(1) : null;
-  return '<a class="poster" href="#/title/' + m.id + '" onclick="navigate(\'/title/' + m.id + '\');return false;">' +
+  var saved = isSavedLocally(m.id);
+  return '<a class="poster" data-title="' + esc(titleOf(m)) + '" href="#/title/' + m.id + '" onclick="navigate(\'/title/' + m.id + '\');return false;">' +
     '<div class="poster-img-wrap">' +
       '<img src="' + m.coverImage.large + '" alt="" loading="lazy" />' +
       '<span class="poster-badge">' + formatLabel(m) + '</span>' +
       (score ? '<span class="poster-score"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + score + '</span>' : '') +
+      '<button class="poster-save' + (saved ? ' active' : '') + '" type="button" aria-label="' + (saved ? 'Remove from Library' : 'Save to Library') + '" data-id="' + m.id + '">' +
+        '<svg viewBox="0 0 24 24" fill="' + (saved ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
+      '</button>' +
     '</div>' +
     '<div class="poster-title">' + esc(titleOf(m)) + '</div>' +
     '<div class="poster-meta">' + (m.startDate.year || '') + (m.chapters ? ' · ' + m.chapters + ' ch' : '') + '</div>' +
   '</a>';
+}
+
+// Event-delegated so it keeps working across re-renders; call once per page.
+function wirePosterSaveButtons() {
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.poster-save');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var card = btn.closest('.poster');
+    var id = btn.getAttribute('data-id');
+    var title = card ? card.getAttribute('data-title') : '';
+    var img = card ? card.querySelector('img') : null;
+    btn.disabled = true;
+    toggleSave(id, title, img ? img.src : '').then(function (res) {
+      btn.disabled = false;
+      btn.classList.toggle('active', res.saved);
+      btn.setAttribute('aria-label', res.saved ? 'Remove from Library' : 'Save to Library');
+      btn.querySelector('svg').setAttribute('fill', res.saved ? 'currentColor' : 'none');
+      if (!res.synced) {
+        btn.classList.add('sync-error');
+        btn.setAttribute('title', "Saved locally, but couldn't sync to your account.");
+        setTimeout(function () { btn.classList.remove('sync-error'); }, 2600);
+      } else {
+        btn.removeAttribute('title');
+      }
+    });
+  });
 }
 
 function skeletonGrid(n) {
