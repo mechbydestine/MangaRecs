@@ -20,7 +20,11 @@ function _mrNotifyAuth(user) {
   _mrAuthListeners.forEach(function (cb) { cb(user); });
 }
 
-sb.auth.onAuthStateChange(function (_event, session) {
+var _mrRecoveryListeners = [];
+function onPasswordRecovery(cb) { _mrRecoveryListeners.push(cb); }
+
+sb.auth.onAuthStateChange(function (event, session) {
+  if (event === 'PASSWORD_RECOVERY') _mrRecoveryListeners.forEach(function (cb) { cb(); });
   _mrNotifyAuth(session ? session.user : null);
 });
 sb.auth.getSession().then(function (res) {
@@ -29,17 +33,28 @@ sb.auth.getSession().then(function (res) {
 
 function getCurrentUser() { return _mrAuthUser; }
 
+function siteReturnUrl() { return location.origin + location.pathname; }
+
 function signUpWithPassword(email, password, username) {
-  return sb.auth.signUp({ email: email, password: password, options: { data: { username: username } } });
+  return sb.auth.signUp({
+    email: email, password: password,
+    options: { data: { username: username }, emailRedirectTo: siteReturnUrl() },
+  });
 }
 function signInWithPassword(email, password) {
   return sb.auth.signInWithPassword({ email: email, password: password });
 }
 function signInWithGoogle() {
-  return sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
+  return sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: siteReturnUrl() } });
 }
 function signOut() {
   return sb.auth.signOut();
+}
+function requestPasswordReset(email) {
+  return sb.auth.resetPasswordForEmail(email, { redirectTo: siteReturnUrl() });
+}
+function updatePassword(newPassword) {
+  return sb.auth.updateUser({ password: newPassword });
 }
 
 // ── Bookmark sync — mirrors screens/LibraryScreen.js's handleAddToBookmarked
@@ -70,4 +85,25 @@ function isTitleInAccountLibrary(seriesTitle) {
   return sb.from('reading_progress').select('series_title', { count: 'exact', head: true })
     .eq('user_id', _mrAuthUser.id).eq('series_title', seriesTitle)
     .then(function (res) { return !res.error && res.count > 0; });
+}
+
+// ── Local + remote save state, shared by every "Save" button on the site ──
+var LIB_KEY = 'mangarecs_web_library';
+function getLibrary() { try { return JSON.parse(localStorage.getItem(LIB_KEY) || '{}'); } catch (e) { return {}; } }
+function isSavedLocally(id) { return !!getLibrary()[id]; }
+function toggleSavedLocally(id, title, cover) {
+  var lib = getLibrary();
+  if (lib[id]) delete lib[id]; else lib[id] = { id: id, title: title, cover: cover };
+  localStorage.setItem(LIB_KEY, JSON.stringify(lib));
+  return !!lib[id];
+}
+// Always toggles local state (instant, works logged-out); if signed in, also
+// syncs to the real account. Resolves { saved, synced } — synced is false
+// when a signed-in user's remote write failed, so the caller can flag it
+// instead of silently claiming "Saved" when only the local copy landed.
+function toggleSave(id, title, cover) {
+  var next = toggleSavedLocally(id, title, cover);
+  if (!getCurrentUser()) return Promise.resolve({ saved: next, synced: true });
+  var remote = next ? bookmarkTitle(title) : unbookmarkTitle(title);
+  return remote.then(function (ok) { return { saved: next, synced: ok }; });
 }

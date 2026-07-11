@@ -38,38 +38,56 @@ function initAccountPanel(btnId, panelId) {
   if (!btn || !panel) return;
   var mode = 'signin';
 
-  function signedOutHtml() {
+  function credentialsHtml() {
     return '' +
       '<div class="account-tabtitle" id="accTitle">Sign in</div>' +
       '<input type="email" id="accEmail" placeholder="Email" autocomplete="email" />' +
       '<input type="password" id="accPassword" placeholder="Password" autocomplete="current-password" />' +
       '<div class="account-error" id="accError"></div>' +
       '<div class="btn-row"><button class="btn-primary-sm" id="accSubmit" type="button">Sign in</button></div>' +
+      '<button class="account-switch" id="accForgot" type="button">Forgot password?</button>' +
       '<button class="account-switch" id="accSwitch" type="button">Need an account? Sign up</button>' +
       '<div class="account-divider">or</div>' +
       '<button class="btn-ghost-sm" id="accGoogle" type="button">Continue with Google</button>';
   }
+  function forgotHtml() {
+    return '' +
+      '<div class="account-tabtitle">Reset password</div>' +
+      '<p class="account-hint">We\'ll email you a link to set a new password.</p>' +
+      '<input type="email" id="accEmail" placeholder="Email" autocomplete="email" />' +
+      '<div class="account-error" id="accError"></div>' +
+      '<div class="btn-row"><button class="btn-primary-sm" id="accSubmit" type="button">Send reset link</button></div>' +
+      '<button class="account-switch" id="accSwitch" type="button">Back to sign in</button>';
+  }
+  function recoveryHtml() {
+    return '' +
+      '<div class="account-tabtitle">Set a new password</div>' +
+      '<input type="password" id="accNewPassword" placeholder="New password" autocomplete="new-password" />' +
+      '<div class="account-error" id="accError"></div>' +
+      '<div class="btn-row"><button class="btn-primary-sm" id="accSubmit" type="button">Save password</button></div>';
+  }
   function signedInHtml(user) {
     return '' +
       '<div class="account-email">' + (user.email || 'Signed in') + '</div>' +
+      '<a class="btn-ghost-sm" href="catalog.html#/library" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">My Library</a>' +
       '<button class="btn-ghost-sm" id="accSignOut" type="button">Sign out</button>';
   }
 
-  function wireSignedOut() {
+  function wireCredentials() {
     var title = document.getElementById('accTitle');
     var submit = document.getElementById('accSubmit');
     var switchBtn = document.getElementById('accSwitch');
+    var forgotBtn = document.getElementById('accForgot');
     var googleBtn = document.getElementById('accGoogle');
     var errEl = document.getElementById('accError');
 
-    function setMode(m) {
-      mode = m;
-      title.textContent = m === 'signin' ? 'Sign in' : 'Create account';
-      submit.textContent = m === 'signin' ? 'Sign in' : 'Sign up';
-      switchBtn.textContent = m === 'signin' ? 'Need an account? Sign up' : 'Have an account? Sign in';
-      errEl.textContent = '';
+    function relabel() {
+      title.textContent = mode === 'signin' ? 'Sign in' : 'Create account';
+      submit.textContent = mode === 'signin' ? 'Sign in' : 'Sign up';
+      switchBtn.textContent = mode === 'signin' ? 'Need an account? Sign up' : 'Have an account? Sign in';
     }
-    switchBtn.addEventListener('click', function () { setMode(mode === 'signin' ? 'signup' : 'signin'); });
+    switchBtn.addEventListener('click', function () { mode = mode === 'signin' ? 'signup' : 'signin'; relabel(); errEl.textContent = ''; });
+    forgotBtn.addEventListener('click', function () { setMode('forgot'); });
 
     submit.addEventListener('click', function () {
       var email = document.getElementById('accEmail').value.trim();
@@ -91,21 +109,72 @@ function initAccountPanel(btnId, panelId) {
     googleBtn.addEventListener('click', function () { signInWithGoogle(); });
   }
 
+  function wireForgot() {
+    var submit = document.getElementById('accSubmit');
+    var switchBtn = document.getElementById('accSwitch');
+    var errEl = document.getElementById('accError');
+    switchBtn.addEventListener('click', function () { setMode('signin'); });
+    submit.addEventListener('click', function () {
+      var email = document.getElementById('accEmail').value.trim();
+      errEl.textContent = '';
+      if (!email) { errEl.textContent = 'Enter your email.'; return; }
+      submit.disabled = true;
+      requestPasswordReset(email).then(function (res) {
+        submit.disabled = false;
+        errEl.textContent = res.error ? res.error.message : '';
+        if (!res.error) { errEl.style.color = 'var(--accent)'; errEl.textContent = 'Check your email for a reset link.'; }
+      });
+    });
+  }
+
+  function wireRecovery() {
+    var submit = document.getElementById('accSubmit');
+    var errEl = document.getElementById('accError');
+    submit.addEventListener('click', function () {
+      var pw = document.getElementById('accNewPassword').value;
+      errEl.textContent = '';
+      if (!pw || pw.length < 6) { errEl.textContent = 'Use at least 6 characters.'; return; }
+      submit.disabled = true;
+      updatePassword(pw).then(function (res) {
+        submit.disabled = false;
+        if (res.error) { errEl.textContent = res.error.message; return; }
+        panel.classList.remove('open');
+        setMode('signin');
+      });
+    });
+  }
+
+  function setMode(m) {
+    mode = m;
+    if (getCurrentUser() && m !== 'recovery') { render(getCurrentUser()); return; }
+    if (m === 'forgot') { panel.innerHTML = forgotHtml(); wireForgot(); return; }
+    if (m === 'recovery') { panel.innerHTML = recoveryHtml(); wireRecovery(); return; }
+    panel.innerHTML = credentialsHtml();
+    wireCredentials();
+    document.getElementById('accTitle').textContent = m === 'signin' ? 'Sign in' : 'Create account';
+    document.getElementById('accSubmit').textContent = m === 'signin' ? 'Sign in' : 'Sign up';
+    document.getElementById('accSwitch').textContent = m === 'signin' ? 'Need an account? Sign up' : 'Have an account? Sign in';
+  }
+
   function render(user) {
+    if (mode === 'recovery') { panel.innerHTML = recoveryHtml(); wireRecovery(); return; }
     if (user) {
       panel.innerHTML = signedInHtml(user);
       document.getElementById('accSignOut').addEventListener('click', function () {
-        signOut().then(function () { panel.classList.remove('open'); });
+        signOut().then(function () { mode = 'signin'; panel.classList.remove('open'); });
       });
     } else {
-      panel.innerHTML = signedOutHtml();
-      wireSignedOut();
+      setMode('signin');
     }
   }
 
   onAuthChange(function (user) {
     render(user);
     btn.classList.toggle('signed-in', !!user);
+  });
+  onPasswordRecovery(function () {
+    setMode('recovery');
+    panel.classList.add('open');
   });
 
   btn.addEventListener('click', function (e) {

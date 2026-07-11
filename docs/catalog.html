@@ -5,6 +5,11 @@
 <meta property="og:url" content="https://mangarecs.net/catalog.html" />
 <meta property="og:title" content="MangaRecs Catalog" />
 <meta property="og:description" content="Browse manga, manhwa, manhua, and webcomics — synopsis, genres, characters, and where to read. Save to your MangaRecs library." />
+<meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
 <meta name="theme-color" content="#6B46F0" />
 <style>
   @font-face {
@@ -109,6 +114,7 @@
   }
   .navtab.active { background: var(--accent-wash); color: var(--accent); border-color: var(--line); }
   @media (max-width: 760px) { .navtabs { display: none; } }
+  @media (max-width: 480px) { .topbar-inner { gap: 10px; } }
 
   main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; min-height: 70vh; }
 
@@ -144,6 +150,15 @@
     background: rgba(0,0,0,0.6); color: #FFD34D;
   }
   .poster-score svg { width: 10px; height: 10px; }
+  .poster-save {
+    position: absolute; top: 7px; right: 7px; width: 26px; height: 26px; padding: 0;
+    display: flex; align-items: center; justify-content: center; border-radius: 999px;
+    background: rgba(0,0,0,0.55); border: none; color: #fff; cursor: pointer; backdrop-filter: blur(4px);
+  }
+  .poster-save svg { width: 13px; height: 13px; }
+  .poster-save.active { background: var(--accent); }
+  .poster-save.sync-error { background: #E0554F; }
+  .poster-save:disabled { opacity: 0.6; cursor: default; }
   .poster-title { font-size: 0.82rem; font-weight: 700; line-height: 1.25; color: var(--ink); }
   .poster-meta { font-size: 0.72rem; color: var(--ink-faint); }
   .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent); }
@@ -261,6 +276,26 @@
   }
   .account-panel input:focus { outline: none; border-color: var(--accent); }
   .account-error { color: #E0554F; font-size: 0.78rem; min-height: 1em; margin-bottom: 4px; }
+  .account-hint { font-size: 0.78rem; color: var(--ink-muted); margin: -4px 0 10px; line-height: 1.4; }
+  .sync-warning {
+    margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 0.8rem;
+    background: rgba(224,85,79,0.12); color: #E0554F; border: 1px solid rgba(224,85,79,0.3);
+  }
+
+  /* ── My Library ────────────────────────────────────────────────────── */
+  .lib-signedout { text-align: center; padding: 60px 20px; }
+  .lib-signedout p { color: var(--ink-muted); margin: 10px 0 20px; }
+  .lib-list { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+  .lib-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; border-radius: 12px; background: var(--bg-panel); border: 1px solid var(--line);
+  }
+  .lib-row-title { font-size: 0.92rem; font-weight: 700; }
+  .lib-row-sub { font-size: 0.78rem; color: var(--ink-faint); margin-top: 2px; }
+  .lib-pill { flex: none; font-size: 0.72rem; font-weight: 800; padding: 5px 11px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .lib-reading { background: var(--accent-wash); color: var(--accent); }
+  .lib-completed { background: rgba(90,200,140,0.15); color: #3FAE73; }
+  .lib-bookmarked { background: rgba(255,190,80,0.15); color: #D69A2D; }
   .btn-row { margin-top: 2px; }
   .btn-primary-sm, .btn-ghost-sm {
     width: 100%; text-align: center; font-size: 0.86rem; font-weight: 700;
@@ -330,7 +365,7 @@
   </div>
   <div class="footer-bottom">
     <span>© 2026 MangaRecs. Built solo.</span>
-    <a href="index.html">Home</a>
+    <span><a href="index.html">Home</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
   </div>
 </footer>
 
@@ -344,6 +379,7 @@
 
   initThemeToggle('themeToggle');
   initAccountPanel('accountBtn', 'accountPanel');
+  wirePosterSaveButtons();
 
   var SORT_OPTIONS = [
     { id: 'TRENDING_DESC', label: 'Trending' },
@@ -361,17 +397,6 @@
   function debounce(fn, ms) {
     var t;
     return function () { var a = arguments; clearTimeout(t); t = setTimeout(function () { fn.apply(null, a); }, ms); };
-  }
-
-  // ── Library (localStorage placeholder — no account system on the site yet) ──
-  var LIB_KEY = 'mangarecs_web_library';
-  function getLibrary() { try { return JSON.parse(localStorage.getItem(LIB_KEY) || '{}'); } catch (e) { return {}; } }
-  function isSaved(id) { return !!getLibrary()[id]; }
-  function toggleSaved(m) {
-    var lib = getLibrary();
-    if (lib[m.id]) delete lib[m.id]; else lib[m.id] = { id: m.id, title: titleOf(m), cover: m.coverImage.large };
-    localStorage.setItem(LIB_KEY, JSON.stringify(lib));
-    return !!lib[m.id];
   }
 
   function sortSelectHtml() {
@@ -427,7 +452,7 @@
     mediaById(Number(id)).then(function (m) {
       if (!m) { app.innerHTML = '<p class="statemsg">Title not found.</p>'; return; }
       window.scrollTo(0, 0);
-      var saved = isSaved(m.id);
+      var saved = isSavedLocally(m.id);
       var authors = m.staff.edges.filter(function (e) { return /Story|Art|Creator/i.test(e.role); }).map(function (e) { return e.node.name.full; });
       var genresHtml = m.genres.map(function (g) { return '<span class="genrechip">' + esc(g) + '</span>'; }).join('');
       var spoilerTags = m.tags.filter(function (t) { return t.rank >= 60 && !t.isMediaSpoiler; }).slice(0, 8);
@@ -489,12 +514,21 @@
         '</div>';
 
       document.getElementById('saveBtn').addEventListener('click', function () {
-        var next = toggleSaved(m);
-        this.classList.toggle('active', next);
-        this.innerHTML = '<svg viewBox="0 0 24 24" fill="' + (next ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' + (next ? 'Saved' : 'Save to Library');
-        if (getCurrentUser()) {
-          (next ? bookmarkTitle(titleOf(m)) : unbookmarkTitle(titleOf(m))).catch(function () {});
-        }
+        var btn = this;
+        btn.disabled = true;
+        toggleSave(m.id, titleOf(m), m.coverImage.large).then(function (res) {
+          btn.disabled = false;
+          btn.classList.toggle('active', res.saved);
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="' + (res.saved ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
+            (res.saved ? 'Saved' : 'Save to Library');
+          if (!res.synced) {
+            var warn = document.createElement('div');
+            warn.className = 'sync-warning';
+            warn.textContent = "Saved locally, but couldn't sync to your account. Check your connection and try again.";
+            btn.insertAdjacentElement('afterend', warn);
+            setTimeout(function () { warn.remove(); }, 4000);
+          }
+        });
       });
       if (getCurrentUser() && !saved) {
         isTitleInAccountLibrary(titleOf(m)).then(function (inLibrary) {
@@ -513,6 +547,46 @@
     }).catch(function () { app.innerHTML = '<p class="statemsg">Couldn\'t load this title. Try again in a moment.</p>'; });
   }
 
+  // ── My Library (real account data, not the localStorage fallback) ──────
+  function skeletonList(n) {
+    var out = '';
+    for (var i = 0; i < n; i++) out += '<div class="lib-row"><div style="height:14px;width:60%;border-radius:4px;" class="skeleton"></div></div>';
+    return out;
+  }
+  function libStatusLabel(s) { return { reading: 'Reading', completed: 'Completed', bookmarked: 'Bookmarked' }[s] || s; }
+
+  function renderLibrary() {
+    setActiveTab(null);
+    if (!getCurrentUser()) {
+      app.innerHTML =
+        '<div class="lib-signedout">' +
+          '<h1 class="section-title">My Library</h1>' +
+          '<p>Sign in to see the titles you\'ve saved, synced with the app.</p>' +
+          '<button class="btn-primary-sm" id="libSignInBtn" type="button" style="width:auto;padding:10px 20px;">Sign in</button>' +
+        '</div>';
+      document.getElementById('libSignInBtn').addEventListener('click', function () { document.getElementById('accountBtn').click(); });
+      return;
+    }
+    app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1><div class="lib-list" id="libList">' + skeletonList(6) + '</div>';
+    sb.from('reading_progress').select('series_title,status,current_chapter,total_chapters,updated_at')
+      .eq('user_id', getCurrentUser().id).order('updated_at', { ascending: false })
+      .then(function (res) {
+        var listEl = document.getElementById('libList');
+        if (res.error) { listEl.innerHTML = '<p class="statemsg">Couldn\'t load your library. Try again in a moment.</p>'; return; }
+        var rows = res.data || [];
+        if (!rows.length) { listEl.innerHTML = '<p class="statemsg">Nothing saved yet — browse the catalog and hit save on a title.</p>'; return; }
+        listEl.innerHTML = rows.map(function (r) {
+          return '<div class="lib-row">' +
+            '<div class="lib-row-main">' +
+              '<div class="lib-row-title">' + esc(r.series_title) + '</div>' +
+              (r.status === 'reading' && r.current_chapter ? '<div class="lib-row-sub">Chapter ' + r.current_chapter + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</div>' : '') +
+            '</div>' +
+            '<span class="lib-pill lib-' + r.status + '">' + libStatusLabel(r.status) + '</span>' +
+          '</div>';
+        }).join('');
+      }).catch(function () { document.getElementById('libList').innerHTML = '<p class="statemsg">Couldn\'t load your library. Try again in a moment.</p>'; });
+  }
+
   function setActiveTab(id) {
     Array.prototype.forEach.call(navTabsEl.children, function (el) {
       el.classList.toggle('active', el.getAttribute('data-cat') === id);
@@ -526,6 +600,7 @@
     if (parts[0] === 'title' && parts[1]) return renderDetail(parts[1]);
     if (parts[0] === 'browse' && parts[1]) return renderBrowse(parts[1]);
     if (parts[0] === 'search' && parts[1]) return renderSearch(decodeURIComponent(parts[1]));
+    if (parts[0] === 'library') return renderLibrary();
     return renderHome();
   }
   window.navigate = function (path) { location.hash = path; };
