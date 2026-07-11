@@ -385,6 +385,19 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   const cardAuthor    = isDark ? 'rgba(255,255,255,0.4)'   : 'rgba(13,13,15,0.38)';
   const cardBgOpacity = isDark ? 0.22 : 0.38;
 
+  function openDetail() {
+    if (item.creatorSeriesId) return;
+    const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
+    navigation.navigate('MangaDetail', {
+      title: item.title,
+      searchKey: item.searchKey || item.title,
+      lang: item.lang || 'ja',
+      color: item.color,
+      mangaId: item.mangaId || (isMangaDexUuid ? item.id : undefined),
+      chapters: item.chapters,
+    });
+  }
+
   // Per-card interaction state — lives here, never in the parent feed array
   const [liked,      setLiked]      = useState(item.liked      ?? false);
   const [bookmarked, setBookmarked] = useState(item.bookmarked ?? false);
@@ -557,7 +570,9 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
             ))}
           </View>
           <Text style={[styles.title, { color: cardText }]} numberOfLines={2}>{item.title}</Text>
-          <Text style={[styles.description, { color: cardDesc }]} numberOfLines={2}>{item.description}</Text>
+          <TouchableOpacity onPress={openDetail} activeOpacity={0.7} hitSlop={{ top: 4, bottom: 4 }}>
+            <Text style={[styles.description, { color: cardDesc }]} numberOfLines={2}>{item.description}</Text>
+          </TouchableOpacity>
           <View style={styles.meta}>
             <Ionicons name="star" size={13} color="#FFD700" />
             <Text style={[styles.metaText, { color: cardMuted }]}>{item.rating}</Text>

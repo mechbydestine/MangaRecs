@@ -747,6 +747,19 @@ export default function ProfileScreen() {
     updateProfile({ favorites: next });
   }
 
+  function openFaveDetail(fave) {
+    setShowAllFaves(false);
+    const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fave.id || '');
+    navigation.navigate('MangaDetail', {
+      title: fave.title,
+      searchKey: fave.searchKey || fave.title,
+      lang: fave.lang || 'ja',
+      color: fave.color,
+      mangaId: fave.mangaId || (isMangaDexUuid ? fave.id : undefined),
+      chapters: fave.chapters,
+    });
+  }
+
   async function removeFave(titleOrId) {
     const next = favorites.filter((f) => f.id !== titleOrId && f.title !== titleOrId);
     setFavorites(next);
@@ -1098,7 +1111,9 @@ export default function ProfileScreen() {
                   }
                   return (
                     <View key={fave.id || fave.title} style={styles.favesPopupSlot}>
-                      <MangaCover title={fave.title} searchKey={fave.searchKey} lang={fave.lang} color={fave.color} coverUrl={fave.coverUrl} style={styles.favesPopupCover} />
+                      <TouchableOpacity onPress={() => openFaveDetail(fave)} activeOpacity={0.85}>
+                        <MangaCover title={fave.title} searchKey={fave.searchKey} lang={fave.lang} color={fave.color} coverUrl={fave.coverUrl} style={styles.favesPopupCover} />
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.favesPopupRemove}
                         onPress={() => removeFave(fave.id || fave.title)}

@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
@@ -14,9 +14,9 @@ function InfoRow({ icon, label, value, colors }) {
   if (!value) return null;
   return (
     <View style={styles.infoRow}>
-      <Ionicons name={icon} size={14} color={colors.muted} />
+      <Ionicons name={icon} size={14} color={colors.muted} style={styles.infoIcon} />
       <Text style={[styles.infoLabel, { color: colors.muted }]}>{label}</Text>
-      <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={2}>{value}</Text>
     </View>
   );
 }
@@ -34,6 +34,17 @@ export default function MangaDetailScreen() {
   const [expanded, setExpanded] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
 
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const synopsisAnim = useRef(new Animated.Value(0)).current;
+  const detailsAnim = useRef(new Animated.Value(0)).current;
+  const genresAnim = useRef(new Animated.Value(0)).current;
+  const warningsAnim = useRef(new Animated.Value(0)).current;
+  const bookmarkPop = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(heroAnim, { toValue: 1, duration: 260, useNativeDriver: true }).start();
+  }, []);
+
   const loadDetails = useCallback(async () => {
     setLoading(true);
     let id = routeMangaId;
@@ -46,6 +57,14 @@ export default function MangaDetailScreen() {
       setDetails(full);
     }
     setLoading(false);
+    const stagger = (a, delay, duration = 260) => Animated.timing(a, { toValue: 1, duration, delay, useNativeDriver: true });
+    [synopsisAnim, detailsAnim, genresAnim, warningsAnim].forEach((a) => a.setValue(0));
+    Animated.parallel([
+      stagger(synopsisAnim, 0),
+      stagger(detailsAnim, 70),
+      stagger(genresAnim, 130),
+      stagger(warningsAnim, 190),
+    ]).start();
   }, [routeMangaId, searchKey, title, lang]);
 
   useEffect(() => { loadDetails(); }, [loadDetails]);
@@ -78,6 +97,8 @@ export default function MangaDetailScreen() {
     if (!userId) return;
     const next = !bookmarked;
     setBookmarked(next);
+    bookmarkPop.setValue(0.7);
+    Animated.spring(bookmarkPop, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true }).start();
     if (next) {
       syncLibraryWrite(() => supabase.from('reading_progress').upsert({
         user_id: userId, series_title: title, status: 'bookmarked', updated_at: new Date().toISOString(),
@@ -92,10 +113,21 @@ export default function MangaDetailScreen() {
   const showToggle = synopsis.length > 260;
   const displaySynopsis = expanded || !showToggle ? synopsis : synopsis.slice(0, 260).trim() + '…';
 
+  const heroStyle = {
+    opacity: heroAnim,
+    transform: [{ translateY: heroAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+  };
+  function cardStyle(anim) {
+    return {
+      opacity: anim,
+      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+    };
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-        <View style={styles.hero}>
+        <Animated.View style={[styles.hero, heroStyle]}>
           <View style={[styles.coverWrap, { paddingTop: insets.top + 14 }]}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -125,17 +157,21 @@ export default function MangaDetailScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-                onPress={toggleBookmark}>
-                <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color={bookmarked ? '#7B5CFF' : colors.muted} />
+                onPress={toggleBookmark}
+                activeOpacity={0.7}>
+                <Animated.View style={{ transform: [{ scale: bookmarkPop }] }}>
+                  <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color={bookmarked ? '#7B5CFF' : colors.muted} />
+                </Animated.View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-                onPress={() => Share.share({ message: `Check out ${title} on MangaRecs — mangarecs://series/${encodeURIComponent(searchKey || title)}` })}>
+                onPress={() => Share.share({ message: `Check out ${title} on MangaRecs — mangarecs://series/${encodeURIComponent(searchKey || title)}` })}
+                activeOpacity={0.7}>
                 <Ionicons name="share-outline" size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
@@ -143,7 +179,7 @@ export default function MangaDetailScreen() {
           </View>
         ) : (
           <View style={styles.body}>
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(synopsisAnim)]}>
               <Text style={[styles.cardTitle, { color: colors.text }]}>Synopsis</Text>
               <Text style={[styles.synopsis, { color: colors.muted }]}>
                 {displaySynopsis || 'No synopsis available for this series yet.'}
@@ -153,10 +189,10 @@ export default function MangaDetailScreen() {
                   <Text style={styles.showMore}>{expanded ? 'Show less' : 'Show more'}</Text>
                 </TouchableOpacity>
               )}
-            </View>
+            </Animated.View>
 
             {details && (
-              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Details</Text>
                 <InfoRow icon="bookmark-outline" label="Status" value={details.status} colors={colors} />
                 <InfoRow icon="people-outline" label="Demographic" value={details.demographic} colors={colors} />
@@ -165,11 +201,11 @@ export default function MangaDetailScreen() {
                 <InfoRow icon="albums-outline" label="Volumes" value={details.lastVolume} colors={colors} />
                 <InfoRow icon="create-outline" label="Author" value={details.authors?.join(', ')} colors={colors} />
                 <InfoRow icon="brush-outline" label="Artist" value={details.artists?.join(', ')} colors={colors} />
-              </View>
+              </Animated.View>
             )}
 
             {details?.genres?.length > 0 && (
-              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(genresAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Genres</Text>
                 <View style={styles.chipRow}>
                   {details.genres.map((g) => (
@@ -178,11 +214,11 @@ export default function MangaDetailScreen() {
                     </View>
                   ))}
                 </View>
-              </View>
+              </Animated.View>
             )}
 
             {details?.contentWarnings?.length > 0 && (
-              <View style={[styles.card, styles.warningCard]}>
+              <Animated.View style={[styles.card, styles.warningCard, cardStyle(warningsAnim)]}>
                 <View style={styles.warningHeader}>
                   <Ionicons name="alert-circle" size={16} color="#E24B4A" />
                   <Text style={styles.warningTitle}>Content Warnings</Text>
@@ -190,7 +226,7 @@ export default function MangaDetailScreen() {
                 {details.contentWarnings.map((w) => (
                   <Text key={w} style={styles.warningItem}>• {w}</Text>
                 ))}
-              </View>
+              </Animated.View>
             )}
           </View>
         )}
@@ -226,11 +262,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   synopsis: { fontSize: 14, lineHeight: 21 },
   showMore: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', marginTop: 8 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
-  infoLabel: { fontSize: 13, flex: 1 },
-  infoValue: { fontSize: 13, fontWeight: '600', maxWidth: '55%' },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 7 },
+  infoIcon: { marginTop: 2 },
+  infoLabel: { fontSize: 13, paddingTop: 1 },
+  infoValue: { fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, flexShrink: 0 },
   chipText: { fontSize: 12, fontWeight: '600' },
   warningCard: { backgroundColor: 'rgba(226,75,74,0.08)', borderWidth: 1, borderColor: 'rgba(226,75,74,0.25)' },
   warningHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
