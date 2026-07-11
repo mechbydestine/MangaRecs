@@ -1,0 +1,24 @@
+# Normalize all text files to LF in the repository, regardless of the
+# checkout platform's line-ending preference. Without this, files committed
+# from Windows (CRLF) vs checked out on EAS's Linux build workers (LF) hash
+# differently — which broke `runtimeVersion`'s "fingerprint" policy: the
+# local machine and the remote build computed different fingerprints for
+# byte-identical source, and the build hard-failed on the mismatch.
+* text=auto eol=lf
+
+# Binary assets must never be touched by line-ending conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp3 binary
+*.mp4 binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.apk binary
+*.keystore binary
+*.jks binary
