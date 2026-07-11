@@ -35,11 +35,12 @@ async function getAllowNsfw() {
 }
 export function invalidateNsfwCache() { _nsfwCache = null; }
 
-// MangaDex contentRating values that must stay blurred until the Adult
-// Content toggle is on — "safe" is the only rating that's always shown clear.
-const GATED_RATINGS = new Set(['suggestive', 'erotica', 'pornographic']);
-export function isRatingGated(contentRating) {
-  return GATED_RATINGS.has(contentRating);
+// Covers are never blurred based on MangaDex's contentRating anymore — only
+// the dedicated Adult mood section (ForYouScreen) gates content, via the
+// `nsfw` flag below, not this. Kept as a no-op function since some callers
+// still pass contentRating through; it no longer causes blurring anywhere.
+export function isRatingGated() {
+  return false;
 }
 
 // Concurrency limiter: at most 20 cover fetches in flight simultaneously

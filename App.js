@@ -29,6 +29,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ReaderScreen from './screens/ReaderScreen';
+import MangaDetailScreen from './screens/MangaDetailScreen';
 import FriendProfileScreen from './screens/FriendProfileScreen';
 import DiscussionScreen from './screens/DiscussionScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -333,6 +334,14 @@ function AppNavigator() {
         component={ReaderScreen}
         options={{
           animation: 'slide_from_bottom',
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="MangaDetail"
+        component={MangaDetailScreen}
+        options={{
+          animation: 'slide_from_right',
           contentStyle: { backgroundColor: colors.background },
         }}
       />

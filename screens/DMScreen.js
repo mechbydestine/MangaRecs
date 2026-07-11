@@ -17,6 +17,8 @@ import { MANGA_POOL } from '../utils/mangaPool';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Bone } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
+import { useProfile } from '../utils/ProfileContext';
+import { sendDMPush } from '../utils/pushNotifications';
 
 // Same key SocialScreen reads — records when this thread was last viewed so
 // its unread badge stays cleared even across app restarts
@@ -187,6 +189,8 @@ export default function DMScreen() {
   const { isTablet } = useResponsive();
   const tabBarHeight = useBottomTabBarHeight();
   const { markDmNotifsRead } = useNotifications();
+  const { profile } = useProfile();
+  const myDisplayName = profile?.display_name || profile?.username || 'Someone';
 
   const [myId, setMyId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -321,6 +325,7 @@ export default function DMScreen() {
         type: 'direct_message',
         data: { message_type: 'text' },
       }).then(() => {});
+      sendDMPush(friendId, myDisplayName, content).catch(() => {});
     } else {
       if (error) console.warn('[DM send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
@@ -377,6 +382,7 @@ export default function DMScreen() {
         type: 'direct_message',
         data: { message_type: 'recommendation', manga_title: manga.title },
       }).then(() => {});
+      sendDMPush(friendId, myDisplayName, `📚 ${manga.title}`).catch(() => {});
     } else {
       if (error) console.warn('[DM rec send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));

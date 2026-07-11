@@ -386,6 +386,98 @@ export async function getLatestChapter(mangaId) {
   }
 }
 
+const CONTENT_TAG_NAMES = {
+  'Gore': 'Graphic Violence', 'Sexual Violence': 'Sexual Violence',
+  'Psychological': 'Psychological Trauma', 'Violence': 'Violence',
+};
+const STATUS_LABELS = { ongoing: 'Ongoing', completed: 'Completed', hiatus: 'Hiatus', cancelled: 'Cancelled' };
+const DEMOGRAPHIC_LABELS = { shounen: 'Shōnen', shoujo: 'Shōjo', seinen: 'Seinen', josei: 'Josei' };
+
+// Full detail fetch for the Manga Detail screen — everything normalizeManga
+// truncates or skips: untruncated synopsis, author vs artist (MangaDex keeps
+// these as separate relationship types), all genre tags (not just 3),
+// content-warning tags, status, demographic, alt titles, publication year.
+// Detail-cache is separate from the card-list cache (different shape, longer TTL —
+// this data changes rarely once a series exists).
+const DETAIL_CACHE_PFX = '@mangarecs/mdex_detail/';
+const DETAIL_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+export async function getMangaFullDetails(mangaId) {
+  if (!mangaId) return null;
+  const cacheKey = DETAIL_CACHE_PFX + mangaId;
+  try {
+    const raw = await AsyncStorage.getItem(cacheKey);
+    if (raw) {
+      const { ts, data } = JSON.parse(raw);
+      if (Date.now() - ts < DETAIL_CACHE_TTL) return data;
+    }
+  } catch (_) {}
+
+  try {
+    const resp = await withTimeout(
+      fetch(`${BASE}/manga/${mangaId}?includes[]=author&includes[]=artist&includes[]=cover_art`, {
+        headers: { Accept: 'application/json' },
+      }),
+      TIMEOUT
+    );
+    if (!resp?.ok) return null;
+    const json = await resp.json();
+    const manga = json?.data;
+    if (!manga) return null;
+    const attrs = manga.attributes || {};
+
+    const titleObj = attrs.title || {};
+    const title = titleObj.en || Object.values(titleObj)[0] || '';
+    const altTitles = (attrs.altTitles || []).flatMap((o) => Object.values(o)).filter((t) => t && t !== title);
+
+    const descObj = attrs.description || {};
+    const rawDesc = descObj.en || Object.values(descObj)[0] || '';
+    const description = rawDesc.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
+
+    const authors = manga.relationships?.filter((r) => r.type === 'author').map((r) => r.attributes?.name).filter(Boolean) || [];
+    const artists = manga.relationships?.filter((r) => r.type === 'artist').map((r) => r.attributes?.name).filter(Boolean) || [];
+
+    const coverRel = manga.relationships?.find((r) => r.type === 'cover_art');
+    const coverUrl = coverRel?.attributes?.fileName
+      ? `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.512.jpg`
+      : null;
+
+    const genres = (attrs.tags || [])
+      .filter((t) => t.attributes?.group === 'genre' || t.attributes?.group === 'theme')
+      .map((t) => t.attributes?.name?.en)
+      .filter(Boolean);
+
+    const contentWarnings = (attrs.tags || [])
+      .filter((t) => t.attributes?.group === 'content')
+      .map((t) => CONTENT_TAG_NAMES[t.attributes?.name?.en] || t.attributes?.name?.en)
+      .filter(Boolean);
+
+    const result = {
+      id: manga.id,
+      title,
+      altTitles: altTitles.slice(0, 4),
+      description,
+      coverUrl,
+      authors,
+      artists,
+      genres,
+      contentWarnings,
+      status: STATUS_LABELS[attrs.status] || attrs.status || null,
+      demographic: DEMOGRAPHIC_LABELS[attrs.publicationDemographic] || null,
+      year: attrs.year || null,
+      lang: attrs.originalLanguage || 'ja',
+      contentRating: attrs.contentRating || 'safe',
+      lastChapter: attrs.lastChapter ? parseFloat(attrs.lastChapter) : null,
+      lastVolume: attrs.lastVolume || null,
+    };
+
+    AsyncStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })).catch(() => {});
+    return result;
+  } catch (_) {
+    return null;
+  }
+}
+
 // Returns array of page image URLs for a chapter
 export async function getChapterPages(chapterId) {
   try {

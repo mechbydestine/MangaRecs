@@ -20,6 +20,28 @@ function todayKey() {
 }
 
 /**
+ * Wraps a reading_progress write (upsert/update/delete) with one retry —
+ * every call site for this table previously fired-and-forgot with no error
+ * handling at all, so a transient network blip silently dropped the write
+ * and the item just never showed up in the account. Retries once after a
+ * beat, and only gives up silently-to-the-user (still logs in dev) after
+ * both attempts fail — that's a real outage, not something a toast helps.
+ */
+export async function syncLibraryWrite(buildQuery, label) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { error } = await buildQuery();
+      if (!error) return true;
+      if (attempt === 1 && __DEV__) console.warn(`[library sync] ${label} failed:`, error.message);
+    } catch (e) {
+      if (attempt === 1 && __DEV__) console.warn(`[library sync] ${label} threw:`, e.message);
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 1200));
+  }
+  return false;
+}
+
+/**
  * Call whenever a user opens a manga in the Reader.
  * Updates profiles.currently_reading and atomically increments chapters_read
  * (once per title per session).

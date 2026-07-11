@@ -14,7 +14,7 @@ import { useTheme } from '../utils/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
-import { syncReadOpen, updateGenreWeights, setLastRead } from '../utils/readerUtils';
+import { syncReadOpen, updateGenreWeights, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { showAppToast } from '../utils/appToast';
 import { MANGA_POOL } from '../utils/mangaPool';
 import { GENRES } from '../utils/genres';
@@ -242,6 +242,18 @@ function MoodButton({ mood, active, onPress }) {
 function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey }) {
   const { colors } = useTheme();
   const { width: screenW } = useResponsive();
+  const navigation = useNavigation();
+
+  function openDetail() {
+    navigation.navigate('MangaDetail', {
+      title: series.title,
+      searchKey: series.searchKey,
+      lang: series.lang,
+      color: series.color,
+      mangaId: series.fromApi ? series.id : undefined,
+      chapters: series.chapters,
+    });
+  }
   const anim  = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -332,7 +344,9 @@ function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey })
           <View style={styles.recInfo}>
             {reason && <Text style={styles.recReason}>{reason}</Text>}
             <Text style={[styles.recTitle, { color: colors.text }]} numberOfLines={1}>{series.title}</Text>
-            <Text style={[styles.recDesc, { color: colors.muted }]} numberOfLines={1}>{series.description}</Text>
+            <TouchableOpacity onPress={openDetail} hitSlop={{ top: 4, bottom: 4 }}>
+              <Text style={[styles.recDesc, { color: colors.muted }]} numberOfLines={1}>{series.description}</Text>
+            </TouchableOpacity>
             <View style={styles.recMeta}>
               <Ionicons name="star" size={10} color="#FFD700" />
               <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.rating}</Text>
@@ -473,12 +487,12 @@ export default function ForYouScreen() {
     } catch (_) {}
     supabase.rpc('increment_manga_bookmarks', { p_manga_id: series.id, p_delta: 1 }).then(() => {});
     if (userId) {
-      supabase.from('reading_progress').upsert({
+      syncLibraryWrite(() => supabase.from('reading_progress').upsert({
         user_id: userId,
         series_title: series.title,
         status: 'bookmarked',
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }).then(() => {});
+      }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }), 'add bookmark');
       if (series.genres?.length) {
         series.genres.forEach((genre) => {
           supabase.rpc('upsert_genre_weight', { p_user_id: userId, p_genre: genre, p_delta: 2 }).then(() => {});

@@ -202,7 +202,7 @@ export default function SettingsScreen({ navigation }) {
   const [pageAnim, setPageAnim] = useState('slide');
 
   const [aiRec, setAiRecState] = useState(true);
-  const [notifs, setNotifs] = useState({ newChapter: true, friendActivity: true, recommendations: false });
+  const [notifs, setNotifs] = useState({ newChapter: true, friendActivity: true, recommendations: false, comments: true, directMessages: true });
   const [malUsername, setMalUsername] = useState('');
   const [anilistUsername, setAnilistUsername] = useState('');
   const [trackerSaved, setTrackerSaved] = useState(false);
@@ -222,7 +222,10 @@ export default function SettingsScreen({ navigation }) {
     AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@mangarecs/mal_username', '@mangarecs/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
       if (aiRecRaw !== null) setAiRecState(aiRecRaw === 'true');
       if (notifsRaw) {
-        try { setNotifs(JSON.parse(notifsRaw)); } catch (_) {}
+        // Merge onto current defaults, not replace — otherwise a prefs blob
+        // saved before "comments"/"directMessages" existed would make those
+        // keys undefined (renders as off) instead of defaulting to on.
+        try { setNotifs((prev) => ({ ...prev, ...JSON.parse(notifsRaw) })); } catch (_) {}
       }
       if (savedMode) setReaderMode(savedMode);
       if (savedAnim) setPageAnim(savedAnim);
@@ -503,6 +506,8 @@ export default function SettingsScreen({ navigation }) {
           {[
             { key: 'newChapter', label: 'New chapter alerts', desc: 'Get notified when your series update' },
             { key: 'friendActivity', label: 'Friend activity', desc: 'See what your friends are reading' },
+            { key: 'comments', label: 'Comments', desc: 'Get notified when someone comments on your series' },
+            { key: 'directMessages', label: 'Direct messages', desc: 'Get notified when a friend sends you a message' },
           ].map((item, i) => (
             <View key={item.key} style={[styles.toggleRow, i > 0 && [styles.borderTop, { borderTopColor: colors.border }]]}>
               <View style={{ flex: 1, marginRight: 12 }}>
