@@ -69,7 +69,7 @@ function initAccountPanel(btnId, panelId) {
   function signedInHtml(user) {
     return '' +
       '<div class="account-email">' + (user.email || 'Signed in') + '</div>' +
-      '<a class="btn-ghost-sm" href="catalog.html#/library" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">My Library</a>' +
+      '<a class="btn-ghost-sm" href="/catalog/#/library" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">My Library</a>' +
       '<button class="btn-ghost-sm" id="accSignOut" type="button">Sign out</button>';
   }
 
