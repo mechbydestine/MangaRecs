@@ -82,12 +82,29 @@ export async function sendCommentPush(seriesTitle, commenterUsername) {
     .maybeSingle();
   const token = prof?.push_token;
   if (!token) return;
-  if (prof?.notification_prefs?.newChapter === false) return;
+  if (prof?.notification_prefs?.comments === false) return;
 
   await sendPush(token, {
     title: 'New comment on your series',
     body: `${commenterUsername} commented on ${seriesTitle}`,
     data: { type: 'comment', series_title: seriesTitle },
+  });
+}
+
+export async function sendDMPush(toUserId, fromUsername, preview) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('push_token, notification_prefs')
+    .eq('id', toUserId)
+    .maybeSingle();
+  const token = data?.push_token;
+  if (!token) return;
+  if (data?.notification_prefs?.directMessages === false) return;
+
+  await sendPush(token, {
+    title: fromUsername,
+    body: preview || 'Sent you a message',
+    data: { type: 'direct_message' },
   });
 }
 

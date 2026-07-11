@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
-import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead } from '../utils/readerUtils';
+import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds } from '../utils/mangaPool';
@@ -787,14 +787,14 @@ export default function LibraryScreen() {
       const uid = session.user.id;
       updateProfile({ currently_reading: series.title });
       syncReadOpen(uid, series.title);
-      supabase.from('reading_progress').upsert({
+      syncLibraryWrite(() => supabase.from('reading_progress').upsert({
         user_id: uid,
         series_title: series.title,
         current_chapter: series.currentChapter || 1,
         total_chapters: series.chapters || null,
         status: 'reading',
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,series_title' }).then(() => {});
+      }, { onConflict: 'user_id,series_title' }), 'start reading');
     }
   }
 
@@ -924,8 +924,8 @@ export default function LibraryScreen() {
       await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(updated.filter((s) => !s.id?.startsWith?.('sb-')))).catch(() => {});
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
-        supabase.from('reading_progress').delete()
-          .eq('user_id', session.user.id).eq('series_title', series.title).eq('status', 'bookmarked').then(() => {});
+        syncLibraryWrite(() => supabase.from('reading_progress').delete()
+          .eq('user_id', session.user.id).eq('series_title', series.title).eq('status', 'bookmarked'), 'remove bookmark');
       }
     } else if (series?.id) {
       const keys = new Set([series.id]);
@@ -938,8 +938,8 @@ export default function LibraryScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id && series.title) {
         // Remove from Supabase so it doesn't reappear after reload
-        supabase.from('reading_progress').delete()
-          .eq('user_id', session.user.id).eq('series_title', series.title).then(() => {});
+        syncLibraryWrite(() => supabase.from('reading_progress').delete()
+          .eq('user_id', session.user.id).eq('series_title', series.title), 'remove from library');
       }
       // Remove from local reading history so hist-* items don't come back on focus
       if (series.id.startsWith('hist-')) {
@@ -974,12 +974,12 @@ export default function LibraryScreen() {
     // Persist bookmark to Supabase (won't overwrite existing reading/completed progress)
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
-      supabase.from('reading_progress').upsert({
+      syncLibraryWrite(() => supabase.from('reading_progress').upsert({
         user_id: session.user.id,
         series_title: series.title,
         status: 'bookmarked',
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }).then(() => {});
+      }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }), 'add bookmark');
     }
   }
 
@@ -1016,14 +1016,14 @@ export default function LibraryScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
       const uid = session.user.id;
-      supabase.from('reading_progress').upsert({
+      syncLibraryWrite(() => supabase.from('reading_progress').upsert({
         user_id: uid,
         series_title: series.title,
         current_chapter: series.chapters || series.currentChapter || 1,
         total_chapters: series.chapters || null,
         status: 'completed',
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,series_title' }).then(() => {});
+      }, { onConflict: 'user_id,series_title' }), 'mark completed');
 
       supabase.from('activity_feed').insert({
         user_id: uid,

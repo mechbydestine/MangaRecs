@@ -15,7 +15,7 @@ import { useTheme } from '../utils/ThemeContext';
 import StarLogo from '../components/StarLogo';
 import ShareToInstagram from '../components/ShareToInstagram';
 import { supabase } from '../supabase';
-import { syncReadOpen, setLastRead } from '../utils/readerUtils';
+import { syncReadOpen, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
 import { useNotifications } from '../utils/NotificationsContext';
 
@@ -1098,16 +1098,16 @@ export default function FeedScreen() {
       showSaveToast();
       trackGenreInteraction(item.genres);
       if (currentUserId) {
-        supabase.from('reading_progress').upsert({
+        syncLibraryWrite(() => supabase.from('reading_progress').upsert({
           user_id: currentUserId,
           series_title: item.title,
           status: 'bookmarked',
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }).then(() => {});
+        }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }), 'add bookmark');
       }
     } else if (currentUserId) {
-      supabase.from('reading_progress').delete()
-        .eq('user_id', currentUserId).eq('series_title', item.title).eq('status', 'bookmarked').then(() => {});
+      syncLibraryWrite(() => supabase.from('reading_progress').delete()
+        .eq('user_id', currentUserId).eq('series_title', item.title).eq('status', 'bookmarked'), 'remove bookmark');
     }
   }
 

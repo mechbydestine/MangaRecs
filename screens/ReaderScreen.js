@@ -17,7 +17,7 @@ import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_
 import { searchMangaDex, getMangaChaptersCached, getChapterPages } from '../utils/mangaDexApi';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
-import { updateDailyLog, setLastRead, incrementSharesCount, localDateKey } from '../utils/readerUtils';
+import { updateDailyLog, setLastRead, incrementSharesCount, localDateKey, syncLibraryWrite } from '../utils/readerUtils';
 import { PRESETS as AMBIENCE_PRESETS, play as ambiencePlay, stop as ambienceStop, setVolume as ambienceSetVolume, subscribe as ambienceSubscribe, getState as ambienceGetState } from '../utils/ambiencePlayer';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -1010,6 +1010,15 @@ export default function ReaderScreen({ route, navigation }) {
   const flatListRef    = useRef(null);
   const chapterListRef = useRef(null);
 
+  // ── WebView "Reader Mode" — extracts the page's images (same pipeline that
+  // already powers offline downloads) and shows them through the app's own
+  // clean PageImage/FlatList UI, laid over the still-live WebView, instead of
+  // the site's own ad-cleaned-but-still-foreign layout. Falls back silently
+  // to the raw WebView if extraction comes up short (site not supported).
+  const [webReaderPages, setWebReaderPages] = useState([]);
+  const imagePurposeRef = useRef(null); // 'read' | 'download' | null — which request an inbound imageList message belongs to
+  const webReaderListRef = useRef(null);
+
   // dynamic header
   const [mangaTitle,         setMangaTitle]         = useState('');
   const [chapterLabel,       setChapterLabel]       = useState('');
@@ -1483,10 +1492,10 @@ export default function ReaderScreen({ route, navigation }) {
 
   useEffect(() => {
     if (!mangaTitle || !userId) return;
-    supabase.from('reading_progress').upsert(
+    syncLibraryWrite(() => supabase.from('reading_progress').upsert(
       { user_id: userId, series_title: mangaTitle, current_chapter: currentChapter, status: 'reading', updated_at: new Date().toISOString() },
       { onConflict: 'user_id,series_title' }
-    );
+    ), 'update chapter progress');
   }, [currentChapter, mangaTitle, userId]);
 
   useEffect(() => {
@@ -1761,12 +1770,12 @@ export default function ReaderScreen({ route, navigation }) {
         await AsyncStorage.setItem(LIBRARY_KEY, JSON.stringify(updated));
       } catch (_) {}
       if (userId) {
-        supabase.from('reading_progress').upsert({
+        syncLibraryWrite(() => supabase.from('reading_progress').upsert({
           user_id: userId,
           series_title: seriesTitle,
           status: 'bookmarked',
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }).then(() => {});
+        }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }), 'add bookmark');
       }
     } else {
       showToast('Removed from Library');
@@ -1780,8 +1789,8 @@ export default function ReaderScreen({ route, navigation }) {
         }
       } catch (_) {}
       if (userId) {
-        supabase.from('reading_progress').delete()
-          .eq('user_id', userId).eq('series_title', seriesTitle).eq('status', 'bookmarked').then(() => {});
+        syncLibraryWrite(() => supabase.from('reading_progress').delete()
+          .eq('user_id', userId).eq('series_title', seriesTitle).eq('status', 'bookmarked'), 'remove bookmark');
       }
     }
   }
@@ -1888,6 +1897,16 @@ export default function ReaderScreen({ route, navigation }) {
       return;
     }
     pendingImagesRef.current = null;
+    imagePurposeRef.current = 'download';
+    webviewRef.current?.injectJavaScript(COLLECT_IMAGES_JS);
+  }
+
+  // Requests a clean extracted view of the current WebView page for reading
+  // (not downloading). Silently no-ops into "stay on raw WebView" if the
+  // site doesn't yield enough images — never shows an error for this path.
+  function requestWebReaderExtract() {
+    if (readerMode !== 'webview') return;
+    imagePurposeRef.current = 'read';
     webviewRef.current?.injectJavaScript(COLLECT_IMAGES_JS);
   }
 
@@ -2250,6 +2269,7 @@ export default function ReaderScreen({ route, navigation }) {
               }
               if (navState.url !== currentUrl) {
                 setCurrentUrl(navState.url);
+                setWebReaderPages([]); // new page — stale extracted images would show the wrong chapter
                 // Keep chapter counter in sync when the user follows in-page links
                 const detectedCh = extractChapterFromUrl(navState.url);
                 if (detectedCh !== null) setCurrentChapter(detectedCh);
@@ -2280,6 +2300,12 @@ export default function ReaderScreen({ route, navigation }) {
               if (pendingImagesRef.current === 'requested') {
                 pendingImagesRef.current = 'collecting';
                 webviewRef.current?.injectJavaScript(COLLECT_IMAGES_JS);
+              }
+              // Auto-attempt the clean Reader Mode view once the page has
+              // settled (not mid-search/auto-nav) — small delay lets
+              // lazy-load attributes populate before extraction runs.
+              if (!searchQuery) {
+                setTimeout(() => requestWebReaderExtract(), 900);
               }
               if (useSequentialRef.current) {
                 useSequentialRef.current = false;
@@ -2333,7 +2359,15 @@ export default function ReaderScreen({ route, navigation }) {
                     if (msg.count > 0) setWebChapterCount((prev) => Math.max(prev, msg.count));
                   } else if (msg.type === 'imageList') {
                     pendingImagesRef.current = null;
-                    executeChapterDownload(msg.images);
+                    const purpose = imagePurposeRef.current;
+                    imagePurposeRef.current = null;
+                    if (purpose === 'read') {
+                      // Fewer than 3 images usually means extraction caught nav
+                      // icons/ads rather than real pages — stay on raw WebView.
+                      setWebReaderPages(msg.images && msg.images.length >= 3 ? msg.images : []);
+                    } else {
+                      executeChapterDownload(msg.images);
+                    }
                   } else if (msg.type === 'saveImage') {
                     saveImageToGallery(msg.src);
                   } else if (msg.type === 'openWindow') {
@@ -2396,6 +2430,33 @@ export default function ReaderScreen({ route, navigation }) {
                 <Text style={styles.mangaHintText}>← Tap left · Center to hide UI · Tap right →</Text>
               </View>
             </TouchableOpacity>
+          )}
+
+          {/* Clean extracted Reader Mode — overlays the still-live WebView
+              (which keeps driving navigation/detection underneath) with the
+              same native PageImage/FlatList UI the MangaDex path uses. */}
+          {webReaderPages.length > 0 && (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0D0D0F' }]}>
+              <FlatList
+                ref={webReaderListRef}
+                data={webReaderPages}
+                keyExtractor={(uri) => uri}
+                renderItem={({ item }) => (
+                  <PageImage
+                    uri={item}
+                    onSingleTap={() => setShowUI((v) => !v)}
+                    onDoubleTap={(u) => setZoomUri(u)}
+                    onLongPress={saveImageToGallery}
+                  />
+                )}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews={false}
+                initialNumToRender={4}
+                maxToRenderPerBatch={5}
+                windowSize={8}
+                updateCellsBatchingPeriod={50}
+              />
+            </View>
           )}
         </View>
       )}
