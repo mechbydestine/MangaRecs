@@ -2,6 +2,8 @@
 <title>MangaRecs — Your next story, recommended.</title>
 <meta name="description" content="A social manga & manhwa reader that updates itself, remembers your taste, and reads with you. Coming soon to the App Store and Google Play." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="assets/icon-180.png" />
+<link rel="manifest" href="assets/manifest.json" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://mangarecs.net/" />
 <meta property="og:title" content="MangaRecs — Your next story, recommended." />
@@ -470,6 +472,33 @@
     font-size: 0.76rem; color: var(--ink-faint);
   }
   @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
+
+  /* ── FAQ ───────────────────────────────────────────────────────────── */
+  .faq { padding: clamp(40px, 7vw, 64px) 0 clamp(56px, 9vw, 88px); border-top: 1px solid var(--line); }
+  .faq h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: 20px; }
+  .faq-item { border-bottom: 1px solid var(--line); padding: 18px 0; }
+  .faq-item summary {
+    cursor: pointer; font-weight: 700; font-size: 1rem; list-style: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after {
+    content: '+'; font-size: 1.3rem; color: var(--accent); flex: none; line-height: 1;
+    transition: transform 0.2s ease;
+  }
+  .faq-item[open] summary::after { transform: rotate(45deg); }
+  .faq-item p { margin-top: 12px; color: var(--ink-muted); font-size: 0.92rem; max-width: 64ch; }
+
+  /* ── Launch notify ─────────────────────────────────────────────────── */
+  .notify-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
+  .notify-form input {
+    flex: 1; min-width: 220px; max-width: 320px; background: var(--bg-sunken); border: 1px solid var(--line);
+    border-radius: 999px; padding: 13px 20px; color: var(--ink); font-size: 0.92rem; font-family: inherit;
+  }
+  .notify-form input:focus { outline: none; border-color: var(--accent); }
+  .notify-msg { margin-top: 12px; font-size: 0.82rem; color: var(--ink-muted); min-height: 1.2em; }
+  .notify-msg.error { color: #E0554F; }
+  .notify-msg.ok { color: var(--accent-soft); }
 </style>
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
@@ -671,6 +700,40 @@
     <h2>Coming to the App Store and Google Play</h2>
     <p>MangaRecs is in final testing before submission. Check back here for the store links the moment it's live.</p>
     <p class="platform-note">iOS and Android, at launch.</p>
+    <form class="notify-form" id="notifyForm">
+      <input type="email" id="notifyEmail" placeholder="you@email.com" autocomplete="email" required />
+      <button class="btn-primary" type="submit">Notify me at launch</button>
+    </form>
+    <p class="notify-msg" id="notifyMsg"></p>
+  </section>
+
+  <section class="faq" id="faq">
+    <p class="eyebrow">FAQ</p>
+    <h2 class="display">Questions, Answered</h2>
+    <details class="faq-item" open>
+      <summary>Is MangaRecs an app or a website?</summary>
+      <p>MangaRecs is a mobile app for iOS and Android. This website is its companion — browse the catalog, and once you sign in here, your library stays in sync with the app.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Is it free?</summary>
+      <p>Yes. Browsing the catalog here never requires a login, and the app is free to use.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Does MangaRecs host the actual chapters?</summary>
+      <p>No. MangaRecs helps you discover titles and keep track of what you're reading — it doesn't host or distribute manga, manhwa, manhua, or webcomic content itself.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What formats does it support?</summary>
+      <p>Manga, manhwa, manhua, webcomics, and novels — five formats, all in one catalog and one library.</p>
+    </details>
+    <details class="faq-item">
+      <summary>When does it launch, and where?</summary>
+      <p>MangaRecs is in final testing now, heading to the App Store and Google Play. No sideloaded APK — it'll be a normal store install on both platforms.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Do I need an account?</summary>
+      <p>Not to browse. Sign in only when you want your saved titles and reading progress to sync between this site and the app.</p>
+    </details>
   </section>
 
 </main>
@@ -699,7 +762,7 @@
   </div>
   <div class="footer-bottom">
     <span>© 2026 MangaRecs. Built solo.</span>
-    <span><a href="catalog.html">Catalog</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
+    <span><a href="catalog.html">Catalog</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
   </div>
 </footer>
 
@@ -805,6 +868,29 @@
   initThemeToggle('themeToggle');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
+
+  var notifyForm = document.getElementById('notifyForm');
+  var notifyMsg = document.getElementById('notifyMsg');
+  notifyForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = document.getElementById('notifyEmail').value.trim();
+    if (!email) return;
+    var btn = notifyForm.querySelector('button');
+    btn.disabled = true;
+    notifyMsg.className = 'notify-msg';
+    notifyMsg.textContent = '';
+    notifyLaunch(email).then(function (res) {
+      btn.disabled = false;
+      if (res.ok) {
+        notifyMsg.className = 'notify-msg ok';
+        notifyMsg.textContent = res.already ? "You're already on the list." : "You're on the list — we'll email you at launch.";
+        notifyForm.reset();
+      } else {
+        notifyMsg.className = 'notify-msg error';
+        notifyMsg.textContent = 'Something went wrong — try again in a moment.';
+      }
+    });
+  });
 
   var pillsEl = document.getElementById('formatPills');
   var gridEl = document.getElementById('trendingGrid');

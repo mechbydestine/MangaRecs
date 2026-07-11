@@ -107,3 +107,14 @@ function toggleSave(id, title, cover) {
   var remote = next ? bookmarkTitle(title) : unbookmarkTitle(title);
   return remote.then(function (ok) { return { saved: next, synced: ok }; });
 }
+
+// ── Launch notify list — insert-only public table (see repo root for the
+// migration SQL); RLS allows anon insert but not select, so signups can't
+// read each other's emails back. 23505 = unique_violation (already signed up).
+function notifyLaunch(email) {
+  return sb.from('launch_notify').insert({ email: email }).then(function (res) {
+    if (!res.error) return { ok: true, already: false };
+    if (res.error.code === '23505') return { ok: true, already: true };
+    return { ok: false };
+  });
+}
