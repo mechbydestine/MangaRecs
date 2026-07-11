@@ -29,7 +29,7 @@ const COMMENTS_H = Math.round(height * 0.88);
 // screen width — on a tablet the card background still fills edge-to-edge
 // but the cover art and text stay phone-proportioned instead of ballooning.
 const CARD_CONTENT_W = Math.min(width, 480);
-const COVER_W    = Math.round(CARD_CONTENT_W * 0.58);
+const COVER_W    = Math.round(CARD_CONTENT_W * 0.66);
 const COVER_H    = Math.round(COVER_W * 1.44);
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
