@@ -352,6 +352,7 @@ export default function LibraryScreen() {
                 const localTitles = new Set(localItems.map((s) => s.title));
                 const serverBookmarks = data
                   .filter((r) => r.status === 'bookmarked' && !localTitles.has(r.series_title))
+                  .filter((r) => r.series_title && !INVALID_HIST_TITLE.test(r.series_title.trim()) && !r.series_title.startsWith('http'))
                   .map((r) => {
                     const pool = findPoolEntry(r.series_title);
                     return {
@@ -526,7 +527,7 @@ export default function LibraryScreen() {
     };
   })();
 
-  const INVALID_HIST_TITLE = /^(reader|browser|mangarecs|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak)$/i;
+  const INVALID_HIST_TITLE = /^(reader|browser|mangarecs|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak|search results?|results?|search|home|untitled|loading\.*|new tab|google search|just a moment\.*|404.*|error.*|not found|access denied|blocked|please wait\.*|redirecting\.*|sign in|log in|login)$/i;
 
   const baseReadingSeries = staticPool
     .filter((s) => s.progress < 1 && !deletedIds.has(s.id) && !completedIds.has(s.id))
@@ -585,6 +586,7 @@ export default function LibraryScreen() {
   const completedSeries = [
     ...progressRows
       .filter((r) => (r.status === 'completed' || completedIds.has(r.series_title)) && !deletedIds.has(r.series_title))
+      .filter((r) => r.series_title && !INVALID_HIST_TITLE.test(r.series_title.trim()) && !r.series_title.startsWith('http'))
       .map((r) => {
         const pool = findPoolEntry(r.series_title);
         return {
