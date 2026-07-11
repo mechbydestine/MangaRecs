@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
 import { MangaCover } from '../utils/mangaCovers';
+import { findPoolEntry } from '../utils/mangaPool';
 import { searchMangaDex, getMangaFullDetails } from '../utils/mangaDexApi';
 import { syncReadOpen, updateGenreWeights, syncLibraryWrite } from '../utils/readerUtils';
 import { supabase } from '../supabase';
@@ -33,6 +34,12 @@ export default function MangaDetailScreen() {
   const [details, setDetails] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+
+  // Pool data resolves synchronously (no fetch) so synopsis/genres/rating can
+  // render on first paint instead of waiting on the live MangaDex lookup —
+  // MangaDex data still layers in afterward for fields the pool doesn't track
+  // (content warnings, demographic, precise volume counts, alt titles).
+  const poolEntry = findPoolEntry(title, searchKey);
 
   const heroAnim = useRef(new Animated.Value(0)).current;
   const synopsisAnim = useRef(new Animated.Value(0)).current;
@@ -109,9 +116,12 @@ export default function MangaDetailScreen() {
     }
   }
 
-  const synopsis = details?.description || '';
+  const synopsis = details?.description || poolEntry?.description || '';
   const showToggle = synopsis.length > 260;
   const displaySynopsis = expanded || !showToggle ? synopsis : synopsis.slice(0, 260).trim() + '…';
+  const genres = (details?.genres?.length ? details.genres : poolEntry?.genres) || [];
+  const rating = poolEntry?.rating || null;
+  const readers = poolEntry?.readers || null;
 
   const heroStyle = {
     opacity: heroAnim,
@@ -150,6 +160,17 @@ export default function MangaDetailScreen() {
             {details?.altTitles?.length > 0 && (
               <Text style={[styles.altTitles, { color: colors.muted }]} numberOfLines={2}>{details.altTitles.join(' · ')}</Text>
             )}
+            {(rating || readers) && (
+              <View style={styles.ratingRow}>
+                {rating ? (
+                  <View style={styles.ratingPill}>
+                    <Ionicons name="star" size={12} color="#FFD700" />
+                    <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+                  </View>
+                ) : null}
+                {readers ? <Text style={[styles.readersText, { color: colors.muted }]}>{readers} readers</Text> : null}
+              </View>
+            )}
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.readBtn} onPress={openReader} activeOpacity={0.85}>
                 <Ionicons name="book" size={16} color="#fff" />
@@ -173,7 +194,7 @@ export default function MangaDetailScreen() {
           </View>
         </Animated.View>
 
-        {loading ? (
+        {(!poolEntry && loading) ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator color="#7B5CFF" />
           </View>
@@ -182,7 +203,7 @@ export default function MangaDetailScreen() {
             <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(synopsisAnim)]}>
               <Text style={[styles.cardTitle, { color: colors.text }]}>Synopsis</Text>
               <Text style={[styles.synopsis, { color: colors.muted }]}>
-                {displaySynopsis || 'No synopsis available for this series yet.'}
+                {displaySynopsis || (loading ? 'Loading synopsis…' : 'No synopsis available for this series yet.')}
               </Text>
               {showToggle && (
                 <TouchableOpacity onPress={() => setExpanded((v) => !v)}>
@@ -191,24 +212,24 @@ export default function MangaDetailScreen() {
               )}
             </Animated.View>
 
-            {details && (
+            {(details || poolEntry) && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Details</Text>
-                <InfoRow icon="bookmark-outline" label="Status" value={details.status} colors={colors} />
-                <InfoRow icon="people-outline" label="Demographic" value={details.demographic} colors={colors} />
-                <InfoRow icon="calendar-outline" label="Year" value={details.year} colors={colors} />
-                <InfoRow icon="layers-outline" label="Chapters" value={details.lastChapter ? String(Math.round(details.lastChapter)) : null} colors={colors} />
-                <InfoRow icon="albums-outline" label="Volumes" value={details.lastVolume} colors={colors} />
-                <InfoRow icon="create-outline" label="Author" value={details.authors?.join(', ')} colors={colors} />
-                <InfoRow icon="brush-outline" label="Artist" value={details.artists?.join(', ')} colors={colors} />
+                <InfoRow icon="bookmark-outline" label="Status" value={details?.status || (poolEntry?.status === 'ongoing' ? 'Ongoing' : poolEntry?.status === 'completed' ? 'Completed' : null)} colors={colors} />
+                <InfoRow icon="people-outline" label="Demographic" value={details?.demographic} colors={colors} />
+                <InfoRow icon="calendar-outline" label="Year" value={details?.year} colors={colors} />
+                <InfoRow icon="layers-outline" label="Chapters" value={details?.lastChapter ? String(Math.round(details.lastChapter)) : (poolEntry?.chapters ? String(poolEntry.chapters) : null)} colors={colors} />
+                <InfoRow icon="albums-outline" label="Volumes" value={details?.lastVolume} colors={colors} />
+                <InfoRow icon="create-outline" label="Author" value={details?.authors?.join(', ') || poolEntry?.author} colors={colors} />
+                <InfoRow icon="brush-outline" label="Artist" value={details?.artists?.join(', ')} colors={colors} />
               </Animated.View>
             )}
 
-            {details?.genres?.length > 0 && (
+            {genres.length > 0 && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(genresAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Genres</Text>
                 <View style={styles.chipRow}>
-                  {details.genres.map((g) => (
+                  {genres.map((g) => (
                     <View key={g} style={[styles.chip, { backgroundColor: colors.background, borderColor: colors.border }]}>
                       <Text style={[styles.chipText, { color: colors.text }]}>{g}</Text>
                     </View>
@@ -249,6 +270,10 @@ const styles = StyleSheet.create({
   heroInfo: { flex: 1, justifyContent: 'flex-end', paddingBottom: 4 },
   title: { fontSize: 22, fontWeight: '800', lineHeight: 27 },
   altTitles: { fontSize: 12, marginTop: 6, lineHeight: 16 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,215,0,0.14)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  ratingText: { fontSize: 12, fontWeight: '800', color: '#FFD700' },
+  readersText: { fontSize: 12, fontWeight: '600' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   readBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
