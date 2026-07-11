@@ -1495,3 +1495,19 @@ END;
 $$;
 REVOKE ALL ON FUNCTION get_suggested_friends(UUID, INT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION get_suggested_friends(UUID, INT) TO authenticated;
+
+-- ── Launch notify list (mangarecs.net "Notify me at launch" signup form) ─────
+-- Public insert-only: anyone can add their email, nobody (not even other
+-- signups) can read the list back over the anon/authenticated API — only via
+-- the Supabase dashboard or service_role. UNIQUE(email) lets the site show
+-- "you're already on the list" via the 23505 error instead of a duplicate row.
+CREATE TABLE IF NOT EXISTS launch_notify (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE launch_notify ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can sign up for launch notify" ON launch_notify;
+CREATE POLICY "Anyone can sign up for launch notify"
+  ON launch_notify FOR INSERT
+  WITH CHECK (true);
