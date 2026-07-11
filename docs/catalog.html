@@ -287,17 +287,10 @@
   /* ── My Library ────────────────────────────────────────────────────── */
   .lib-signedout { text-align: center; padding: 60px 20px; }
   .lib-signedout p { color: var(--ink-muted); margin: 10px 0 20px; }
-  .lib-list { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
-  .lib-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 14px 16px; border-radius: 12px; background: var(--bg-panel); border: 1px solid var(--line);
-  }
-  .lib-row-title { font-size: 0.92rem; font-weight: 700; }
-  .lib-row-sub { font-size: 0.78rem; color: var(--ink-faint); margin-top: 2px; }
-  .lib-pill { flex: none; font-size: 0.72rem; font-weight: 800; padding: 5px 11px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.02em; }
-  .lib-reading { background: var(--accent-wash); color: var(--accent); }
-  .lib-completed { background: rgba(90,200,140,0.15); color: #3FAE73; }
-  .lib-bookmarked { background: rgba(255,190,80,0.15); color: #D69A2D; }
+  .lib-card { cursor: default; }
+  .lib-pill.lib-reading { background: var(--accent); color: #fff; }
+  .lib-pill.lib-completed { background: #3FAE73; color: #fff; }
+  .lib-pill.lib-bookmarked { background: #D69A2D; color: #fff; }
   .btn-row { margin-top: 2px; }
   .btn-primary-sm, .btn-ghost-sm {
     width: 100%; text-align: center; font-size: 0.86rem; font-weight: 700;
@@ -550,12 +543,19 @@
   }
 
   // ── My Library (real account data, not the localStorage fallback) ──────
-  function skeletonList(n) {
-    var out = '';
-    for (var i = 0; i < n; i++) out += '<div class="lib-row"><div style="height:14px;width:60%;border-radius:4px;" class="skeleton"></div></div>';
-    return out;
-  }
   function libStatusLabel(s) { return { reading: 'Reading', completed: 'Completed', bookmarked: 'Bookmarked' }[s] || s; }
+
+  function libCard(r, idx) {
+    return '<div class="poster lib-card" data-lib-idx="' + idx + '">' +
+      '<div class="poster-img-wrap">' +
+        '<div class="skeleton lib-card-ph" style="position:absolute;inset:0;"></div>' +
+        '<img alt="" loading="lazy" style="opacity:0;transition:opacity .3s;" />' +
+        '<span class="poster-badge lib-pill lib-' + r.status + '">' + libStatusLabel(r.status) + '</span>' +
+      '</div>' +
+      '<div class="poster-title">' + esc(r.series_title) + '</div>' +
+      (r.status === 'reading' && r.current_chapter ? '<div class="poster-meta">Chapter ' + r.current_chapter + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</div>' : '') +
+    '</div>';
+  }
 
   function renderLibrary() {
     setActiveTab(null);
@@ -569,7 +569,7 @@
       document.getElementById('libSignInBtn').addEventListener('click', function () { document.getElementById('accountBtn').click(); });
       return;
     }
-    app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1><div class="lib-list" id="libList">' + skeletonList(6) + '</div>';
+    app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1><div class="grid" id="libList">' + skeletonGrid(6) + '</div>';
     sb.from('reading_progress').select('series_title,status,current_chapter,total_chapters,updated_at')
       .eq('user_id', getCurrentUser().id).order('updated_at', { ascending: false })
       .then(function (res) {
@@ -577,15 +577,24 @@
         if (res.error) { listEl.innerHTML = '<p class="statemsg">Couldn\'t load your library. Try again in a moment.</p>'; return; }
         var rows = res.data || [];
         if (!rows.length) { listEl.innerHTML = '<p class="statemsg">Nothing saved yet — browse the catalog and hit save on a title.</p>'; return; }
-        listEl.innerHTML = rows.map(function (r) {
-          return '<div class="lib-row">' +
-            '<div class="lib-row-main">' +
-              '<div class="lib-row-title">' + esc(r.series_title) + '</div>' +
-              (r.status === 'reading' && r.current_chapter ? '<div class="lib-row-sub">Chapter ' + r.current_chapter + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</div>' : '') +
-            '</div>' +
-            '<span class="lib-pill lib-' + r.status + '">' + libStatusLabel(r.status) + '</span>' +
-          '</div>';
-        }).join('');
+        listEl.innerHTML = rows.map(libCard).join('');
+        rows.forEach(function (r, i) {
+          searchMedia(r.series_title, null, 1).then(function (d) {
+            var m = d.Page.media && d.Page.media[0];
+            var card = listEl.querySelector('[data-lib-idx="' + i + '"]');
+            if (!card) return;
+            var img = card.querySelector('img');
+            var ph = card.querySelector('.lib-card-ph');
+            if (m && m.coverImage && m.coverImage.large) {
+              img.src = m.coverImage.large;
+              img.addEventListener('load', function () { img.style.opacity = '1'; if (ph) ph.remove(); });
+            } else if (ph) {
+              ph.style.animation = 'none';
+              ph.textContent = esc(r.series_title).charAt(0);
+              ph.style.cssText += 'display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:var(--ink-faint);';
+            }
+          }).catch(function () {});
+        });
       }).catch(function () { document.getElementById('libList').innerHTML = '<p class="statemsg">Couldn\'t load your library. Try again in a moment.</p>'; });
   }
 
