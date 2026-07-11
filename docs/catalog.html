@@ -116,7 +116,6 @@
   .navtab.active { background: var(--accent-wash); color: var(--accent); border-color: var(--line); }
   @media (max-width: 760px) { .navtabs { display: none; } }
   @media (max-width: 480px) { .topbar-inner { gap: 10px; } }
-  @media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
 
   main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; min-height: 70vh; }
 
@@ -126,8 +125,11 @@
   .catchip {
     flex: none; padding: 9px 16px; border-radius: 999px; font-size: 0.84rem; font-weight: 700;
     background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted);
+    text-decoration: none; white-space: nowrap;
   }
   .catchip.active { background: var(--accent); color: #fff; border-color: transparent; }
+  #catRailMobile { display: none; }
+  @media (max-width: 760px) { #catRailMobile { display: flex; } }
 
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
   .section-title { font-size: 1.3rem; font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.005em; }
@@ -135,6 +137,8 @@
 
   /* ── Poster grid ───────────────────────────────────────────────────── */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
+  @media (max-width: 340px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
   .poster { display: flex; flex-direction: column; gap: 8px; }
   .poster-img-wrap {
     position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden;
@@ -332,7 +336,7 @@
       <div class="account-panel" id="accountPanel"></div>
     </div>
   </div>
-  <div class="catrail" id="catRailMobile" style="max-width:1180px;margin:0 auto;padding:0 20px 12px;display:none;"></div>
+  <div class="catrail" id="catRailMobile" style="max-width:1180px;margin:0 auto;padding:0 20px 12px;"></div>
 </nav>
 
 <main id="app"></main>
@@ -388,6 +392,9 @@
   var catRailMobile = document.getElementById('catRailMobile');
   navTabsEl.innerHTML = CATEGORIES.map(function (c) {
     return '<a class="navtab" data-cat="' + c.id + '" href="#/browse/' + c.id + '" onclick="navigate(\'/browse/' + c.id + '\');return false;">' + c.label + '</a>';
+  }).join('');
+  catRailMobile.innerHTML = CATEGORIES.map(function (c) {
+    return '<a class="catchip" data-cat="' + c.id + '" href="#/browse/' + c.id + '" onclick="navigate(\'/browse/' + c.id + '\');return false;">' + c.label + '</a>';
   }).join('');
 
   function debounce(fn, ms) {
@@ -625,8 +632,10 @@
   }
 
   function setActiveTab(id) {
-    Array.prototype.forEach.call(navTabsEl.children, function (el) {
-      el.classList.toggle('active', el.getAttribute('data-cat') === id);
+    [navTabsEl, catRailMobile].forEach(function (rail) {
+      Array.prototype.forEach.call(rail.children, function (el) {
+        el.classList.toggle('active', el.getAttribute('data-cat') === id);
+      });
     });
   }
 
