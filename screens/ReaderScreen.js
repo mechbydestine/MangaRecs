@@ -1665,13 +1665,24 @@ export default function ReaderScreen({ route, navigation }) {
     AsyncStorage.setItem(SAVED_SITES_KEY, JSON.stringify([])).catch(() => {});
   }
 
-  function openSite(site) {
+  // keepTitle: true when the user is picking a manga *source* (site-picker cards,
+  // or typing a known manga site's name) — carries the current manga over as a
+  // search instead of dumping them on the bare homepage. Must be false for anything
+  // the user typed literally (a URL, or a plain-word query going to Google) so it
+  // navigates exactly where they asked instead of being hijacked into a manga search.
+  function openSite(site, { keepTitle = true } = {}) {
     setShowSitePicker(false);
     setSiteSearch('');
     setReaderMode('webview');
     setActiveSite(site);
-    animateTitle('', '');
-    setCurrentUrl(site.url);
+    const knownTitle = keepTitle && (mangaTitle || (routeTitle !== 'Reader' ? routeTitle : ''));
+    if (knownTitle) {
+      animateTitle(knownTitle, '');
+      setCurrentUrl(buildSearchUrl(site.url, knownTitle));
+    } else {
+      animateTitle('', '');
+      setCurrentUrl(site.url);
+    }
     setFallbackChain([]);
     AsyncStorage.setItem(LAST_SITE_KEY, JSON.stringify(site)).catch(() => {});
     addSavedSite(site);
@@ -1680,15 +1691,28 @@ export default function ReaderScreen({ route, navigation }) {
   function submitSiteInput() {
     const q = siteSearch.trim();
     if (!q) return;
-    const isUrl = q.startsWith('http') || q.includes('.');
+    // Only treat it as a URL when it actually looks like a domain (no spaces, ends
+    // in a TLD-shaped suffix before any path) — a plain query with a stray period
+    // ("Vol. 3", "Mrs. Smith") should never get misrouted into a broken navigation.
+    const isUrl = /^https?:\/\//i.test(q) || (!/\s/.test(q) && /\.[a-z]{2,}$/i.test(q.split('/')[0]));
     if (isUrl) {
       const siteUrl = q.startsWith('http') ? q : `https://${q}`;
       const matched = detectSiteFromUrl(siteUrl);
       const site = matched || { name: q, url: siteUrl, emoji: '🌐' };
-      openSite(site);
+      openSite(site, { keepTitle: false });
+      return;
+    }
+    // Plain words — first check if it names one of our known manga sites
+    // ("mangadex", "asura"), otherwise fall back to an actual Google search so
+    // this doubles as a real search bar instead of silently doing nothing.
+    const results = searchSites(q);
+    if (results.length > 0) {
+      openSite(results[0]);
     } else {
-      const results = searchSites(q);
-      if (results.length > 0) openSite(results[0]);
+      openSite(
+        { name: q, url: `https://www.google.com/search?q=${encodeURIComponent(q)}`, emoji: '🔎' },
+        { keepTitle: false }
+      );
     }
   }
 
