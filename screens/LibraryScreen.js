@@ -15,7 +15,7 @@ import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
-import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds } from '../utils/mangaPool';
+import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
 import { CoverGridSkeleton } from '../components/Skeleton';
 import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
 import { rateSeries, getSeriesRating } from '../utils/ratings';
@@ -37,15 +37,6 @@ const SORT_MODES = [
 
 // Stable identity for a library item across tabs and sessions
 const keyOf = (s) => s.searchKey || s.title;
-
-// Find the pool entry for a library item by title or searchKey (either side)
-function findPoolEntry(title, searchKey) {
-  return MANGA_POOL.find((m) =>
-    m.title === title || m.searchKey === title ||
-    (searchKey && (m.title === searchKey || m.searchKey === searchKey))
-  );
-}
-
 
 // ── GridItem with entrance animation ──────────────────────────────────────
 

@@ -663,3 +663,12 @@ export const MANGA_POOL = [
   { id: 'wbma', title: 'World\'s Best Martial Artist', lang: 'zh', searchKey: 'Quanqiu Gao Wu', description: 'Reincarnation is only the starting point — the real climb toward the peak of martial arts begins from the bottom of a forgotten crypt.', genres: ['Action', 'Fantasy'], rating: 8.6, chapters: null, readers: '1.2M', author: 'Laoying Chi Xiaoji', updated: '2w ago', color: '#252324', likeCount: 26087, commentCount: 2050, status: 'ongoing' },
   { id: 'ao', title: 'Apocalypse Online', lang: 'zh', searchKey: 'Zhu Jie Mo Ri Zai Xian', description: 'Given a chance to travel back before the apocalypse he barely survived, a man uses knowledge from a future no one else remembers to change what\'s coming.', genres: ['Action', 'Adventure'], rating: 8.6, chapters: 265, readers: '1.2M', author: 'Xiaoshuai Wang', updated: '3y ago', color: '#150E0D', likeCount: 25746, commentCount: 2023, status: 'completed' },
 ];
+
+// Shared lookup so every screen resolves the same pool entry for a given
+// title/searchKey instead of each maintaining its own copy of this logic.
+export function findPoolEntry(title, searchKey) {
+  return MANGA_POOL.find((m) =>
+    m.title === title || m.searchKey === title ||
+    (searchKey && (m.title === searchKey || m.searchKey === searchKey))
+  );
+}
