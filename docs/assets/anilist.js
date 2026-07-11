@@ -56,7 +56,7 @@ function searchMedia(query, category, page) {
   var filters = 'search: $search, type: MANGA, sort: SEARCH_MATCH';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
   if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
-  var gql = 'query($search: String, $page: Int) { Page(page: $page, perPage: 24) { pageInfo { hasNextPage } media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
+  var gql = 'query($search: String, $page: Int) { Page(page: $page, perPage: 50) { pageInfo { hasNextPage } media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
   return alFetch(gql, { search: query || undefined, page: page || 1 });
 }
 
@@ -64,7 +64,7 @@ function trendingMedia(category, page, sort) {
   var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
   if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
-  var gql = 'query($page: Int) { Page(page: $page, perPage: 24) { media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
+  var gql = 'query($page: Int) { Page(page: $page, perPage: 50) { pageInfo { hasNextPage } media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
   return alFetch(gql, { page: page || 1 });
 }
 

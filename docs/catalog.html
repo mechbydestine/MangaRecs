@@ -133,7 +133,7 @@
   .section-sub { font-size: 0.82rem; color: var(--ink-faint); }
 
   /* ── Poster grid ───────────────────────────────────────────────────── */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
   .poster { display: flex; flex-direction: column; gap: 8px; }
   .poster-img-wrap {
     position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden;
@@ -407,14 +407,37 @@
   // ── Views ─────────────────────────────────────────────────────────────
   var app = document.getElementById('app');
 
+  // Shared "Load more" pager — appends the next page's cards into gridEl
+  // instead of replacing it, so browsing isn't hard-capped at one page.
+  function wireLoadMore(gridEl, fetchPage, page, hasNext) {
+    var old = document.getElementById('loadMoreWrap');
+    if (old) old.remove();
+    if (!hasNext) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'loadMoreWrap';
+    wrap.style.cssText = 'text-align:center;margin-top:4px;';
+    wrap.innerHTML = '<button class="btn-ghost" id="loadMoreBtn" type="button" style="cursor:pointer;">Load more</button>';
+    gridEl.insertAdjacentElement('afterend', wrap);
+    document.getElementById('loadMoreBtn').addEventListener('click', function () {
+      var btn = this;
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+      fetchPage(page + 1).then(function (d) {
+        gridEl.insertAdjacentHTML('beforeend', d.Page.media.map(posterCard).join(''));
+        wireLoadMore(gridEl, fetchPage, page + 1, d.Page.pageInfo && d.Page.pageInfo.hasNextPage);
+      }).catch(function () { btn.textContent = 'Load more'; btn.disabled = false; });
+    });
+  }
+
   function renderHome() {
     setActiveTab('all');
     app.innerHTML = skeletonGrid(12);
     trendingMedia(null, 1, currentSort).then(function (d) {
       app.innerHTML =
         '<div class="section-head"><div style="display:flex;align-items:baseline;gap:10px;"><h1 class="section-title">Trending Now</h1><span class="section-sub">' + d.Page.media.length + ' titles</span></div>' + sortSelectHtml() + '</div>' +
-        '<div class="grid">' + d.Page.media.map(posterCard).join('') + '</div>';
+        '<div class="grid" id="mainGrid">' + d.Page.media.map(posterCard).join('') + '</div>';
       wireSortSelect();
+      wireLoadMore(document.getElementById('mainGrid'), function (p) { return trendingMedia(null, p, currentSort); }, 1, d.Page.pageInfo && d.Page.pageInfo.hasNextPage);
     }).catch(function () { app.innerHTML = '<p class="statemsg">Couldn\'t load titles right now. Try again in a moment.</p>'; });
   }
 
@@ -425,8 +448,9 @@
     trendingMedia(cat.id === 'all' ? null : cat, 1, currentSort).then(function (d) {
       app.innerHTML =
         '<div class="section-head"><div style="display:flex;align-items:baseline;gap:10px;"><h1 class="section-title">' + esc(cat.label) + '</h1><span class="section-sub">' + d.Page.media.length + ' titles</span></div>' + sortSelectHtml() + '</div>' +
-        '<div class="grid">' + d.Page.media.map(posterCard).join('') + '</div>';
+        '<div class="grid" id="mainGrid">' + d.Page.media.map(posterCard).join('') + '</div>';
       wireSortSelect();
+      wireLoadMore(document.getElementById('mainGrid'), function (p) { return trendingMedia(cat.id === 'all' ? null : cat, p, currentSort); }, 1, d.Page.pageInfo && d.Page.pageInfo.hasNextPage);
     }).catch(function () { app.innerHTML = '<p class="statemsg">Couldn\'t load titles right now. Try again in a moment.</p>'; });
   }
 
@@ -437,7 +461,8 @@
       if (!d.Page.media.length) { app.innerHTML = '<p class="statemsg">No results for "' + esc(q) + '"</p>'; return; }
       app.innerHTML =
         '<div class="section-head"><h1 class="section-title">"' + esc(q) + '"</h1><span class="section-sub">' + d.Page.media.length + ' results</span></div>' +
-        '<div class="grid">' + d.Page.media.map(posterCard).join('') + '</div>';
+        '<div class="grid" id="mainGrid">' + d.Page.media.map(posterCard).join('') + '</div>';
+      wireLoadMore(document.getElementById('mainGrid'), function (p) { return searchMedia(q, null, p); }, 1, d.Page.pageInfo && d.Page.pageInfo.hasNextPage);
     }).catch(function () { app.innerHTML = '<p class="statemsg">Search failed. Try again in a moment.</p>'; });
   }
 
