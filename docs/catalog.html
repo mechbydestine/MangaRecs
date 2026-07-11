@@ -209,9 +209,73 @@
   .backlink:hover { color: var(--accent); }
   .backlink svg { width: 15px; height: 15px; }
 
-  footer { border-top: 1px solid var(--line); padding: 26px 20px 40px; text-align: center; font-size: 0.8rem; color: var(--ink-faint); }
+  footer { font-size: 0.8rem; color: var(--ink-faint); }
   footer a { color: var(--ink-muted); font-weight: 600; }
   footer a:hover { color: var(--accent); }
+
+  /* ── Footer (matches index.html) ──────────────────────────────────── */
+  .footer-main { border-top: 1px solid var(--line); padding: clamp(36px, 6vw, 56px) clamp(20px, 5vw, 56px) 28px; text-align: left; }
+  .footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
+  .footer-brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; }
+  .footer-brand-word b { color: var(--accent); }
+  .footer-tagline { font-size: 0.84rem; color: var(--ink-muted); margin-top: 8px; max-width: 320px; line-height: 1.5; }
+  .footer-col-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
+  .footer-col a { display: block; font-size: 0.86rem; color: var(--ink-muted); text-decoration: none; padding: 5px 0; font-weight: 600; }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-social { display: flex; gap: 10px; margin-top: 4px; }
+  .footer-social a {
+    display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+    border-radius: 999px; background: var(--bg-sunken); border: 1px solid var(--line); color: var(--ink-muted);
+  }
+  .footer-social a:hover { color: var(--accent); border-color: var(--accent); }
+  .footer-social svg { width: 15px; height: 15px; }
+  .footer-bottom {
+    max-width: 1180px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    font-size: 0.76rem; color: var(--ink-faint);
+  }
+  @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
+
+  /* ── Nav icon buttons + account panel ─────────────────────────────── */
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 999px; flex: none;
+    background: var(--bg-panel); border: 1px solid var(--line);
+    color: var(--ink-muted); cursor: pointer; padding: 0;
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  .account-wrap { position: relative; flex: none; }
+  .account-panel {
+    position: absolute; top: calc(100% + 10px); right: 0; width: 260px;
+    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 16px; display: none; z-index: 60;
+  }
+  .account-panel.open { display: block; }
+  .account-tabtitle { font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
+  .account-panel input {
+    width: 100%; background: var(--bg-sunken); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 12px; color: var(--ink); font-size: 0.86rem;
+    font-family: inherit; margin-bottom: 8px; box-sizing: border-box;
+  }
+  .account-panel input:focus { outline: none; border-color: var(--accent); }
+  .account-error { color: #E0554F; font-size: 0.78rem; min-height: 1em; margin-bottom: 4px; }
+  .btn-row { margin-top: 2px; }
+  .btn-primary-sm, .btn-ghost-sm {
+    width: 100%; text-align: center; font-size: 0.86rem; font-weight: 700;
+    padding: 9px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+  }
+  .btn-primary-sm { background: var(--accent); color: #fff; border: none; }
+  .btn-primary-sm:disabled { opacity: 0.6; }
+  .btn-ghost-sm { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .account-switch {
+    display: block; width: 100%; background: none; border: none; color: var(--ink-muted);
+    font-size: 0.78rem; text-align: center; padding: 10px 0 2px; cursor: pointer; font-family: inherit;
+  }
+  .account-switch:hover { color: var(--accent); }
+  .account-divider { text-align: center; font-size: 0.72rem; color: var(--ink-faint); margin: 8px 0; }
+  .account-email { font-size: 0.86rem; font-weight: 600; margin-bottom: 12px; word-break: break-all; }
 </style>
 
 <nav class="topbar">
@@ -229,30 +293,57 @@
       <input id="searchInput" type="text" placeholder="Search manga, manhwa, manhua, webcomics…" autocomplete="off" />
     </div>
     <div class="navtabs" id="navTabs"></div>
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+    <div class="account-wrap">
+      <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <div class="account-panel" id="accountPanel"></div>
+    </div>
   </div>
   <div class="catrail" id="catRailMobile" style="max-width:1180px;margin:0 auto;padding:0 20px 12px;display:none;"></div>
 </nav>
 
 <main id="app"></main>
 
-<footer>
-  Save titles here and they'll show up in your MangaRecs app library.
-  <div style="margin-top:10px;">
+<footer class="footer-main">
+  <div class="footer-grid">
+    <div>
+      <span class="footer-brand-word">Manga<b>Recs</b></span>
+      <p class="footer-tagline">Save titles here and, once you're signed in, they'll show up in your MangaRecs app library too.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Browse</div>
+      <a href="#/browse/manga" onclick="navigate('/browse/manga');return false;">Manga</a>
+      <a href="#/browse/manhwa" onclick="navigate('/browse/manhwa');return false;">Manhwa</a>
+      <a href="#/browse/manhua" onclick="navigate('/browse/manhua');return false;">Manhua</a>
+      <a href="#/browse/webcomic" onclick="navigate('/browse/webcomic');return false;">Webcomics</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Connect</div>
+      <div class="footer-social">
+        <a href="#" aria-label="Discord" title="Coming after launch"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.073.073 0 0 1 .078.01c.12.099.246.197.373.291a.077.077 0 0 1-.006.128c-.598.35-1.22.645-1.873.892a.076.076 0 0 0-.04.106c.36.699.772 1.364 1.225 1.994a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.057c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.028z"/></svg></a>
+        <a href="#" aria-label="Instagram" title="Coming after launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
+        <a href="#" aria-label="Email" title="Coming after launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 MangaRecs. Built solo.</span>
     <a href="index.html">Home</a>
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/nav-widgets.js"></script>
+<script src="assets/anilist.js"></script>
 <script>
 (function () {
   'use strict';
 
-  var CATEGORIES = [
-    { id: 'all', label: 'All' },
-    { id: 'manga', label: 'Manga', country: 'JP' },
-    { id: 'manhwa', label: 'Manhwa', country: 'KR' },
-    { id: 'manhua', label: 'Manhua', country: 'CN' },
-    { id: 'webcomic', label: 'Webcomics', formats: ['NOVEL'] },
-  ];
+  initThemeToggle('themeToggle');
+  initAccountPanel('accountBtn', 'accountPanel');
 
   var SORT_OPTIONS = [
     { id: 'TRENDING_DESC', label: 'Trending' },
@@ -267,85 +358,6 @@
     return '<a class="navtab" data-cat="' + c.id + '" href="#/browse/' + c.id + '" onclick="navigate(\'/browse/' + c.id + '\');return false;">' + c.label + '</a>';
   }).join('');
 
-  // ── Catalog data source ──────────────────────────────────────────────
-  var AL = 'https://graphql.anilist.co';
-  var CACHE_TTL = 10 * 60 * 1000;
-  function cacheKey(query, variables) { return 'mrcache:' + query + ':' + JSON.stringify(variables || {}); }
-  function readCache(key) {
-    try {
-      var entry = JSON.parse(sessionStorage.getItem(key) || 'null');
-      if (!entry || Date.now() - entry.t > CACHE_TTL) return null;
-      return entry.d;
-    } catch (e) { return null; }
-  }
-  function writeCache(key, data) {
-    try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
-  }
-  function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
-  function alRequest(query, variables) {
-    return fetch(AL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ query: query, variables: variables }),
-    }).then(function (r) {
-      if (!r.ok) throw new Error('http ' + r.status);
-      return r.json();
-    }).then(function (j) {
-      if (!j || !j.data) throw new Error('empty response');
-      return j.data;
-    });
-  }
-  function alFetch(query, variables) {
-    var key = cacheKey(query, variables);
-    var cached = readCache(key);
-    if (cached) return Promise.resolve(cached);
-    return alRequest(query, variables)
-      .catch(function () { return wait(1200).then(function () { return alRequest(query, variables); }); })
-      .catch(function () { return wait(2500).then(function () { return alRequest(query, variables); }); })
-      .then(function (data) { writeCache(key, data); return data; });
-  }
-
-  var MEDIA_FIELDS = 'id title { romaji english native } description(asHtml: false) genres format status ' +
-    'countryOfOrigin chapters volumes averageScore startDate { year } endDate { year } ' +
-    'coverImage { extraLarge large color } bannerImage isAdult ' +
-    'staff(perPage: 6) { edges { role node { name { full } } } } ' +
-    'characters(perPage: 8, sort: ROLE) { edges { role node { id name { full } image { medium } } } } ' +
-    'tags { name isMediaSpoiler rank } ' +
-    'externalLinks { url site }';
-
-  function searchMedia(query, category, page) {
-    var filters = 'search: $search, type: MANGA, sort: SEARCH_MATCH';
-    if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
-    if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
-    var gql = 'query($search: String, $page: Int) { Page(page: $page, perPage: 24) { pageInfo { hasNextPage } media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
-    return alFetch(gql, { search: query || undefined, page: page || 1 });
-  }
-
-  function trendingMedia(category, page) {
-    var filters = 'sort: ' + currentSort + ', type: MANGA';
-    if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
-    if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
-    var gql = 'query($page: Int) { Page(page: $page, perPage: 24) { media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
-    return alFetch(gql, { page: page || 1 });
-  }
-
-  function mediaById(id) {
-    var gql = 'query($id: Int) { Media(id: $id, type: MANGA) { ' + MEDIA_FIELDS + ' } }';
-    return alFetch(gql, { id: id }).then(function (d) { return d.Media; });
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────
-  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-  function titleOf(m) { return (m.title.english || m.title.romaji || m.title.native || 'Untitled'); }
-  function formatLabel(m) {
-    if (m.countryOfOrigin === 'KR') return 'Manhwa';
-    if (m.countryOfOrigin === 'CN' || m.countryOfOrigin === 'TW') return 'Manhua';
-    if (m.format === 'NOVEL') return 'Novel';
-    return 'Manga';
-  }
-  function statusLabel(s) {
-    return { RELEASING: 'Ongoing', FINISHED: 'Completed', NOT_YET_RELEASED: 'Upcoming', CANCELLED: 'Cancelled', HIATUS: 'Hiatus' }[s] || s;
-  }
   function debounce(fn, ms) {
     var t;
     return function () { var a = arguments; clearTimeout(t); t = setTimeout(function () { fn.apply(null, a); }, ms); };
@@ -360,26 +372,6 @@
     if (lib[m.id]) delete lib[m.id]; else lib[m.id] = { id: m.id, title: titleOf(m), cover: m.coverImage.large };
     localStorage.setItem(LIB_KEY, JSON.stringify(lib));
     return !!lib[m.id];
-  }
-
-  // ── Poster card ───────────────────────────────────────────────────────
-  function posterCard(m) {
-    var score = m.averageScore ? (m.averageScore / 10).toFixed(1) : null;
-    return '<a class="poster" href="#/title/' + m.id + '" onclick="navigate(\'/title/' + m.id + '\');return false;">' +
-      '<div class="poster-img-wrap">' +
-        '<img src="' + m.coverImage.large + '" alt="" loading="lazy" />' +
-        '<span class="poster-badge">' + formatLabel(m) + '</span>' +
-        (score ? '<span class="poster-score"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + score + '</span>' : '') +
-      '</div>' +
-      '<div class="poster-title">' + esc(titleOf(m)) + '</div>' +
-      '<div class="poster-meta">' + (m.startDate.year || '') + (m.chapters ? ' · ' + m.chapters + ' ch' : '') + '</div>' +
-    '</a>';
-  }
-
-  function skeletonGrid(n) {
-    var out = '<div class="grid">';
-    for (var i = 0; i < n; i++) out += '<div class="poster"><div class="poster-img-wrap skeleton"></div><div style="height:12px;width:80%;border-radius:4px;" class="skeleton"></div></div>';
-    return out + '</div>';
   }
 
   function sortSelectHtml() {
@@ -398,7 +390,7 @@
   function renderHome() {
     setActiveTab('all');
     app.innerHTML = skeletonGrid(12);
-    trendingMedia(null, 1).then(function (d) {
+    trendingMedia(null, 1, currentSort).then(function (d) {
       app.innerHTML =
         '<div class="section-head"><div style="display:flex;align-items:baseline;gap:10px;"><h1 class="section-title">Trending Now</h1><span class="section-sub">' + d.Page.media.length + ' titles</span></div>' + sortSelectHtml() + '</div>' +
         '<div class="grid">' + d.Page.media.map(posterCard).join('') + '</div>';
@@ -410,7 +402,7 @@
     var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0] || CATEGORIES[0];
     setActiveTab(cat.id);
     app.innerHTML = skeletonGrid(18);
-    trendingMedia(cat.id === 'all' ? null : cat, 1).then(function (d) {
+    trendingMedia(cat.id === 'all' ? null : cat, 1, currentSort).then(function (d) {
       app.innerHTML =
         '<div class="section-head"><div style="display:flex;align-items:baseline;gap:10px;"><h1 class="section-title">' + esc(cat.label) + '</h1><span class="section-sub">' + d.Page.media.length + ' titles</span></div>' + sortSelectHtml() + '</div>' +
         '<div class="grid">' + d.Page.media.map(posterCard).join('') + '</div>';
@@ -500,7 +492,19 @@
         var next = toggleSaved(m);
         this.classList.toggle('active', next);
         this.innerHTML = '<svg viewBox="0 0 24 24" fill="' + (next ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' + (next ? 'Saved' : 'Save to Library');
+        if (getCurrentUser()) {
+          (next ? bookmarkTitle(titleOf(m)) : unbookmarkTitle(titleOf(m))).catch(function () {});
+        }
       });
+      if (getCurrentUser() && !saved) {
+        isTitleInAccountLibrary(titleOf(m)).then(function (inLibrary) {
+          if (!inLibrary) return;
+          var btn = document.getElementById('saveBtn');
+          if (!btn || btn.classList.contains('active')) return;
+          btn.classList.add('active');
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Saved';
+        });
+      }
       var moreBtn = document.getElementById('showMoreBtn');
       if (moreBtn) moreBtn.addEventListener('click', function () {
         document.getElementById('synopsisEl').innerHTML = descHtml;

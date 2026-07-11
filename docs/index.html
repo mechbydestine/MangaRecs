@@ -297,14 +297,7 @@
   .download .hero-actions { justify-content: center; margin-top: 30px; }
   .platform-note { margin-top: 18px; font-size: 0.82rem; color: var(--ink-faint); }
 
-  footer {
-    border-top: 1px solid var(--line);
-    padding: 32px clamp(20px, 5vw, 56px) 44px;
-    display: flex; flex-wrap: wrap; gap: 18px;
-    align-items: center; justify-content: space-between;
-    font-size: 0.84rem; color: var(--ink-faint);
-  }
-  footer .links { display: flex; gap: 20px; }
+  footer { font-size: 0.84rem; color: var(--ink-faint); }
   footer a { text-decoration: none; color: var(--ink-muted); }
   footer a:hover { color: var(--accent); }
 
@@ -318,6 +311,121 @@
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
+
+  /* ── Nav icon buttons + account panel (shared pattern with catalog.html) ── */
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 999px; flex: none;
+    background: var(--bg-panel); border: 1px solid var(--line-strong);
+    color: var(--ink-muted); cursor: pointer; padding: 0;
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  .account-wrap { position: relative; flex: none; }
+  .account-panel {
+    position: absolute; top: calc(100% + 10px); right: 0; width: 260px;
+    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 16px; display: none; z-index: 60; text-align: left;
+  }
+  .account-panel.open { display: block; }
+  .account-tabtitle { font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
+  .account-panel input {
+    width: 100%; background: var(--bg-sunken); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 12px; color: var(--ink); font-size: 0.86rem;
+    font-family: inherit; margin-bottom: 8px; box-sizing: border-box;
+  }
+  .account-panel input:focus { outline: none; border-color: var(--accent); }
+  .account-error { color: #E0554F; font-size: 0.78rem; min-height: 1em; margin-bottom: 4px; }
+  .btn-primary-sm, .btn-ghost-sm {
+    width: 100%; text-align: center; font-size: 0.86rem; font-weight: 700;
+    padding: 9px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+  }
+  .btn-primary-sm { background: var(--accent); color: #fff; border: none; }
+  .btn-primary-sm:disabled { opacity: 0.6; }
+  .btn-ghost-sm { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .account-switch {
+    display: block; width: 100%; background: none; border: none; color: var(--ink-muted);
+    font-size: 0.78rem; text-align: center; padding: 10px 0 2px; cursor: pointer; font-family: inherit;
+  }
+  .account-switch:hover { color: var(--accent); }
+  .account-divider { text-align: center; font-size: 0.72rem; color: var(--ink-faint); margin: 8px 0; }
+  .account-email { font-size: 0.86rem; font-weight: 600; margin-bottom: 12px; word-break: break-all; }
+
+  /* ── At-a-glance: quick nav + static stats ────────────────────────── */
+  .glance { padding: 0 0 clamp(40px, 7vw, 64px); }
+  .quicknav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+  .qn-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px 8px; border-radius: 14px; background: var(--bg-panel);
+    border: 1px solid var(--line); text-decoration: none; color: var(--ink);
+    font-size: 0.78rem; font-weight: 700; text-align: center;
+  }
+  .qn-tile:hover { border-color: var(--accent); color: var(--accent); }
+  .qn-tile svg { width: 20px; height: 20px; color: var(--accent); }
+  .stat-band { display: flex; flex-wrap: wrap; gap: 12px; }
+  .stat-pill {
+    flex: 1; min-width: 160px; padding: 14px 18px; border-radius: 14px;
+    background: var(--accent-wash); border: 1px solid var(--line); text-align: center;
+  }
+  .stat-pill b { display: block; font-family: 'Panel Display', sans-serif; font-size: 1.15rem; color: var(--accent); }
+  .stat-pill span { font-size: 0.74rem; color: var(--ink-muted); font-weight: 600; }
+  @media (max-width: 700px) { .quicknav { grid-template-columns: repeat(3, 1fr); } .qn-tile:nth-child(n+4) { display: none; } }
+
+  /* ── Trending strip (real AniList covers) ─────────────────────────── */
+  .trending-home { padding: 0 0 clamp(48px, 8vw, 80px); }
+  .format-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
+  .format-pill {
+    padding: 8px 15px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
+    color: var(--ink-muted); border: 1px solid var(--line); background: var(--bg-panel); cursor: pointer;
+  }
+  .format-pill.active { background: var(--accent-wash); color: var(--accent); border-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px; }
+  .poster { display: flex; flex-direction: column; gap: 8px; }
+  .poster-img-wrap {
+    position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden;
+    background: var(--bg-sunken); border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .poster-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .poster-badge {
+    position: absolute; top: 7px; left: 7px; font-size: 0.62rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 7px; border-radius: 999px;
+    background: rgba(0,0,0,0.55); color: #fff; backdrop-filter: blur(4px);
+  }
+  .poster-score {
+    position: absolute; bottom: 7px; right: 7px; display: flex; align-items: center; gap: 3px;
+    font-size: 0.68rem; font-weight: 800; padding: 3px 7px; border-radius: 999px;
+    background: rgba(0,0,0,0.6); color: #FFD34D;
+  }
+  .poster-score svg { width: 10px; height: 10px; }
+  .poster-title { font-size: 0.82rem; font-weight: 700; line-height: 1.25; color: var(--ink); }
+  .poster-meta { font-size: 0.72rem; color: var(--ink-faint); }
+  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent); }
+  .skeleton { background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* ── Footer ────────────────────────────────────────────────────────── */
+  .footer-main { border-top: 1px solid var(--line); padding: clamp(36px, 6vw, 56px) clamp(20px, 5vw, 56px) 28px; }
+  .footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
+  .footer-brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; }
+  .footer-brand-word b { color: var(--accent); }
+  .footer-tagline { font-size: 0.84rem; color: var(--ink-muted); margin-top: 8px; max-width: 320px; line-height: 1.5; }
+  .footer-col-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
+  .footer-col a { display: block; font-size: 0.86rem; color: var(--ink-muted); text-decoration: none; padding: 5px 0; }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-social { display: flex; gap: 10px; margin-top: 4px; }
+  .footer-social a {
+    display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+    border-radius: 999px; background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted);
+  }
+  .footer-social a:hover { color: var(--accent); border-color: var(--accent); }
+  .footer-social svg { width: 15px; height: 15px; }
+  .footer-bottom {
+    max-width: 1180px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    font-size: 0.76rem; color: var(--ink-faint);
+  }
+  @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
 </style>
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
@@ -336,8 +444,15 @@
     </svg>
     <span class="brand-word">Manga<b>Recs</b></span>
   </a>
-  <div style="display:flex;align-items:center;gap:20px;">
+  <div style="display:flex;align-items:center;gap:14px;">
     <a class="nav-link" href="catalog.html">Browse Catalog</a>
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+    <div class="account-wrap">
+      <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <div class="account-panel" id="accountPanel"></div>
+    </div>
     <a class="nav-cta" href="#download">Coming Soon</a>
   </div>
 </nav>
@@ -381,7 +496,30 @@
     </div>
   </section>
 
-  <section class="chapter">
+  <section class="glance">
+    <div class="quicknav">
+      <a class="qn-tile" href="#discover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></a>
+      <a class="qn-tile" href="#collect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span>Collect</span></a>
+      <a class="qn-tile" href="#connect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Connect</span></a>
+      <a class="qn-tile" href="#progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg><span>Progress</span></a>
+      <a class="qn-tile" href="#read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Read</span></a>
+    </div>
+    <div class="stat-band">
+      <div class="stat-pill"><b>250</b><span>Badges to earn</span></div>
+      <div class="stat-pill"><b>Bronze → Mythic</b><span>7 Medal Tiers</span></div>
+      <div class="stat-pill"><b>5</b><span>Formats Tracked</span></div>
+    </div>
+  </section>
+
+  <section class="trending-home">
+    <p class="eyebrow" style="margin:0;">Live from the catalog</p>
+    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Trending Right Now</h2>
+    <div class="format-pills" id="formatPills"></div>
+    <div class="grid" id="trendingGrid"></div>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="catalog.html">See the full catalog</a></div>
+  </section>
+
+  <section class="chapter" id="discover">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 1</p>
       <h2 class="chapter-title display">Discover</h2>
@@ -403,7 +541,7 @@
     </div>
   </section>
 
-  <section class="chapter flip">
+  <section class="chapter flip" id="collect">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 2</p>
       <h2 class="chapter-title display">Collect</h2>
@@ -421,7 +559,7 @@
     </div>
   </section>
 
-  <section class="chapter">
+  <section class="chapter" id="connect">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 3</p>
       <h2 class="chapter-title display">Connect</h2>
@@ -439,7 +577,7 @@
     </div>
   </section>
 
-  <section class="chapter flip">
+  <section class="chapter flip" id="progress">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 4</p>
       <h2 class="chapter-title display">Progress</h2>
@@ -464,7 +602,7 @@
     </div>
   </section>
 
-  <section class="chapter">
+  <section class="chapter" id="read">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 5</p>
       <h2 class="chapter-title display">Read</h2>
@@ -493,13 +631,38 @@
 
 </main>
 
-<footer>
-  <span>MangaRecs — built solo, updated constantly.</span>
-  <div class="links">
+<footer class="footer-main">
+  <div class="footer-grid">
+    <div>
+      <span class="footer-brand-word">Manga<b>Recs</b></span>
+      <p class="footer-tagline">A social manga & manhwa reader that updates itself, remembers your taste, and reads with you. Built solo, updated constantly.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Browse</div>
+      <a href="catalog.html#/browse/manga">Manga</a>
+      <a href="catalog.html#/browse/manhwa">Manhwa</a>
+      <a href="catalog.html#/browse/manhua">Manhua</a>
+      <a href="catalog.html#/browse/webcomic">Webcomics</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Connect</div>
+      <div class="footer-social">
+        <a href="#" aria-label="Discord" title="Coming after launch"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.073.073 0 0 1 .078.01c.12.099.246.197.373.291a.077.077 0 0 1-.006.128c-.598.35-1.22.645-1.873.892a.076.076 0 0 0-.04.106c.36.699.772 1.364 1.225 1.994a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.057c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.028z"/></svg></a>
+        <a href="#" aria-label="Instagram" title="Coming after launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
+        <a href="#" aria-label="Email" title="Coming after launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 MangaRecs. Built solo.</span>
     <a href="catalog.html">Catalog</a>
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/nav-widgets.js"></script>
+<script src="assets/anilist.js"></script>
 <script>
 (function () {
   var railFill = document.getElementById('railFill');
@@ -582,6 +745,42 @@
   if (!reduced) {
     setInterval(function () { cycle('left'); }, 3200);
   }
+})();
+</script>
+
+<script>
+(function () {
+  window.navigate = function (path) { location.href = 'catalog.html#' + path; };
+
+  initThemeToggle('themeToggle');
+  initAccountPanel('accountBtn', 'accountPanel');
+
+  var pillsEl = document.getElementById('formatPills');
+  var gridEl = document.getElementById('trendingGrid');
+
+  pillsEl.innerHTML = CATEGORIES.map(function (c) {
+    return '<button class="format-pill' + (c.id === 'all' ? ' active' : '') + '" data-cat="' + c.id + '" type="button">' + c.label + '</button>';
+  }).join('');
+
+  function loadTrending(catId) {
+    Array.prototype.forEach.call(pillsEl.children, function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-cat') === catId);
+    });
+    gridEl.innerHTML = skeletonGrid(10);
+    var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0];
+    trendingMedia(catId === 'all' ? null : cat, 1).then(function (d) {
+      gridEl.innerHTML = d.Page.media.slice(0, 10).map(posterCard).join('');
+    }).catch(function () {
+      gridEl.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">Couldn\'t load trending titles right now.</p>';
+    });
+  }
+
+  pillsEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.format-pill');
+    if (btn) loadTrending(btn.getAttribute('data-cat'));
+  });
+
+  loadTrending('all');
 })();
 </script>
 
