@@ -161,7 +161,8 @@
   .poster-save:disabled { opacity: 0.6; cursor: default; }
   .poster-title { font-size: 0.82rem; font-weight: 700; line-height: 1.25; color: var(--ink); }
   .poster-meta { font-size: 0.72rem; color: var(--ink-faint); }
-  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent); }
+  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -10px var(--accent); transform: translateY(-2px); }
+  .poster-img-wrap { transition: box-shadow 0.2s ease, transform 0.2s ease; }
 
   .skeleton { background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
   @keyframes shimmer { to { background-position: -200% 0; } }

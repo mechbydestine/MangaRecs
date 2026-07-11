@@ -173,7 +173,11 @@
   }
   .hero-mark { width: 64px; height: 64px; margin-bottom: 22px; filter: drop-shadow(0 0 22px var(--accent-wash)); }
   .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); }
-  .hero h1 .accent { color: var(--accent-soft); text-shadow: 0 0 34px var(--accent-wash); }
+  .hero h1 .accent {
+    background: linear-gradient(120deg, var(--accent-soft), #FF7ED4 60%, var(--accent-soft));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 28px var(--accent-wash));
+  }
   .hero-tag {
     margin-top: 18px;
     font-size: clamp(1.02rem, 1.6vw, 1.2rem);
@@ -211,9 +215,9 @@
   .demo-card {
     position: absolute; inset: 0;
     border-radius: 14px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(255,255,255,0.14);
     background: var(--bg-panel);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow), 0 0 50px -14px var(--sw1, var(--accent));
     padding: 18px;
     display: flex; flex-direction: column; justify-content: flex-end;
     touch-action: pan-y;
@@ -364,27 +368,43 @@
   .account-email { font-size: 0.86rem; font-weight: 600; margin-bottom: 12px; word-break: break-all; }
 
   /* ── At-a-glance: quick nav + static stats ────────────────────────── */
-  .glance { padding: 0 0 clamp(40px, 7vw, 64px); }
+  .glance { position: relative; padding: 0 0 clamp(40px, 7vw, 64px); }
+  .glance::before, .trending-home::before {
+    content: ''; position: absolute; top: -60px; left: 50%; width: 640px; height: 320px;
+    transform: translateX(-50%); pointer-events: none; z-index: -1;
+    background: radial-gradient(ellipse at center, var(--accent-wash) 0%, transparent 70%);
+    filter: blur(10px);
+  }
   .quicknav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
   .qn-tile {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    padding: 16px 8px; border-radius: 14px; background: var(--bg-panel);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 18px 8px; border-radius: 14px; background: var(--bg-panel);
     border: 1px solid var(--line); text-decoration: none; color: var(--ink);
     font-size: 0.78rem; font-weight: 700; text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
-  .qn-tile:hover { border-color: var(--accent); color: var(--accent); }
-  .qn-tile svg { width: 20px; height: 20px; color: var(--accent); }
+  .qn-tile:hover {
+    border-color: var(--tile-c, var(--accent));
+    box-shadow: 0 10px 30px -12px var(--tile-c, var(--accent));
+    transform: translateY(-3px);
+  }
+  .qn-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 12px;
+    background: color-mix(in srgb, var(--tile-c, var(--accent)) 18%, transparent);
+  }
+  .qn-tile svg { width: 19px; height: 19px; color: var(--tile-c, var(--accent)); }
   .stat-band { display: flex; flex-wrap: wrap; gap: 12px; }
   .stat-pill {
     flex: 1; min-width: 160px; padding: 14px 18px; border-radius: 14px;
     background: var(--accent-wash); border: 1px solid var(--line); text-align: center;
   }
-  .stat-pill b { display: block; font-family: 'Panel Display', sans-serif; font-size: 1.15rem; color: var(--accent); }
+  .stat-pill b { display: block; font-family: 'Panel Display', sans-serif; font-size: 1.15rem; color: var(--accent-soft); text-shadow: 0 0 24px var(--accent-wash); }
   .stat-pill span { font-size: 0.74rem; color: var(--ink-muted); font-weight: 600; }
   @media (max-width: 700px) { .quicknav { grid-template-columns: repeat(3, 1fr); } .qn-tile:nth-child(n+4) { display: none; } }
 
   /* ── Trending strip (real AniList covers) ─────────────────────────── */
-  .trending-home { padding: 0 0 clamp(48px, 8vw, 80px); }
+  .trending-home { position: relative; padding: 0 0 clamp(48px, 8vw, 80px); }
   .format-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
   .format-pill {
     padding: 8px 15px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
@@ -420,7 +440,8 @@
   .poster-save:disabled { opacity: 0.6; cursor: default; }
   .poster-title { font-size: 0.82rem; font-weight: 700; line-height: 1.25; color: var(--ink); }
   .poster-meta { font-size: 0.72rem; color: var(--ink-faint); }
-  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent); }
+  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -10px var(--accent); transform: translateY(-2px); }
+  .poster-img-wrap { transition: box-shadow 0.2s ease, transform 0.2s ease; }
   .skeleton { background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
   @keyframes shimmer { to { background-position: -200% 0; } }
 
@@ -518,11 +539,11 @@
 
   <section class="glance">
     <div class="quicknav">
-      <a class="qn-tile" href="#discover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg><span>Discover</span></a>
-      <a class="qn-tile" href="#collect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span>Collect</span></a>
-      <a class="qn-tile" href="#connect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Connect</span></a>
-      <a class="qn-tile" href="#progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg><span>Progress</span></a>
-      <a class="qn-tile" href="#read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Read</span></a>
+      <a class="qn-tile" href="#discover" style="--tile-c:#9B70FF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span><span>Discover</span></a>
+      <a class="qn-tile" href="#collect" style="--tile-c:#5B8DEF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>Collect</span></a>
+      <a class="qn-tile" href="#connect" style="--tile-c:#E85FA8;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Connect</span></a>
+      <a class="qn-tile" href="#progress" style="--tile-c:#E8A83C;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></span><span>Progress</span></a>
+      <a class="qn-tile" href="#read" style="--tile-c:#3FC9C0;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span>Read</span></a>
     </div>
     <div class="stat-band">
       <div class="stat-pill"><b>250</b><span>Badges to earn</span></div>
@@ -716,13 +737,16 @@
       el.style.transform = 'translateY(' + (i * 10) + 'px) scale(' + (1 - i * 0.045) + ')';
       el.style.opacity = String(1 - i * 0.18);
       el.innerHTML =
-        '<div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="' + (i === 0 ? '#B18CFF' : '#8A84A0') + '" stroke-width="2"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></div>' +
+        '<div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></div>' +
         '<div class="match">' + card.sub.split(' · ')[1] + '</div>' +
         '<div class="genre">' + card.genre + '</div>' +
         '<div class="sub">' + card.sub.split(' · ')[0] + '</div>';
       el.style.setProperty('--sw1', card.c1);
-      el.style.background = i === 0 ? 'var(--bg-panel)' : 'linear-gradient(160deg, ' + card.c1 + ', ' + card.c2 + ')';
-      if (i !== 0) { el.querySelector('.genre').style.color = '#fff'; el.querySelector('.sub').style.color = 'rgba(255,255,255,0.72)'; el.querySelector('.match').style.background = 'rgba(255,255,255,0.16)'; el.querySelector('.match').style.color = '#fff'; }
+      el.style.background = 'linear-gradient(160deg, ' + card.c1 + ', ' + card.c2 + ')';
+      el.querySelector('.genre').style.color = '#fff';
+      el.querySelector('.sub').style.color = 'rgba(255,255,255,0.72)';
+      el.querySelector('.match').style.background = 'rgba(255,255,255,0.2)';
+      el.querySelector('.match').style.color = '#fff';
       if (i === 0) attachDrag(el);
       stack.appendChild(el);
     });
