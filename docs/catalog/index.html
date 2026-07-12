@@ -295,6 +295,14 @@
   .lib-signedout { text-align: center; padding: 60px 20px; }
   .lib-signedout p { color: var(--ink-muted); margin: 10px 0 20px; }
   .lib-card { cursor: default; }
+  .lib-remove {
+    position: absolute; top: 7px; right: 7px; width: 26px; height: 26px; padding: 0;
+    display: flex; align-items: center; justify-content: center; border-radius: 999px;
+    background: rgba(0,0,0,0.55); border: none; color: #fff; cursor: pointer; backdrop-filter: blur(4px);
+  }
+  .lib-remove:hover { background: #E0554F; }
+  .lib-remove svg { width: 13px; height: 13px; }
+  .lib-remove:disabled { opacity: 0.5; cursor: default; }
   .lib-pill.lib-reading { background: var(--accent); color: #fff; }
   .lib-pill.lib-completed { background: #3FAE73; color: #fff; }
   .lib-pill.lib-bookmarked { background: #D69A2D; color: #fff; }
@@ -586,6 +594,9 @@
         '<div class="skeleton lib-card-ph" style="position:absolute;inset:0;"></div>' +
         '<img alt="" loading="lazy" style="opacity:0;transition:opacity .3s;" />' +
         '<span class="poster-badge lib-pill lib-' + r.status + '">' + libStatusLabel(r.status) + '</span>' +
+        '<button class="lib-remove" data-lib-idx="' + idx + '" type="button" aria-label="Remove from library" title="Remove from library">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
       '</div>' +
       '<div class="poster-title">' + esc(r.series_title) + '</div>' +
       (r.status === 'reading' && r.current_chapter ? '<div class="poster-meta">Chapter ' + r.current_chapter + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</div>' : '') +
@@ -613,6 +624,26 @@
         var rows = res.data || [];
         if (!rows.length) { listEl.innerHTML = '<p class="statemsg">Nothing saved yet — browse the catalog and hit save on a title.</p>'; return; }
         listEl.innerHTML = rows.map(libCard).join('');
+        Array.prototype.forEach.call(listEl.querySelectorAll('.lib-remove'), function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var card = btn.closest('.lib-card');
+            var idx = Number(btn.getAttribute('data-lib-idx'));
+            var row = rows[idx];
+            if (!row) return;
+            if (!confirm('Remove "' + row.series_title + '" from your library?')) return;
+            btn.disabled = true;
+            sb.from('reading_progress').delete()
+              .eq('user_id', getCurrentUser().id).eq('series_title', row.series_title)
+              .then(function (res) {
+                if (res.error) { btn.disabled = false; alert('Could not remove — try again.'); return; }
+                if (card) card.remove();
+                if (!listEl.querySelector('.lib-card')) {
+                  listEl.innerHTML = '<p class="statemsg">Nothing saved yet — browse the catalog and hit save on a title.</p>';
+                }
+              }).catch(function () { btn.disabled = false; alert('Could not remove — try again.'); });
+          });
+        });
         rows.forEach(function (r, i) {
           searchMedia(r.series_title, null, 1).then(function (d) {
             var m = d.Page.media && d.Page.media[0];
