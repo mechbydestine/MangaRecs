@@ -95,9 +95,10 @@
     border-bottom: 1px solid var(--line);
   }
   .topbar-inner {
-    max-width: 1180px; margin: 0 auto; padding: 14px 20px;
+    max-width: 1320px; margin: 0 auto; padding: 14px 20px;
     display: flex; align-items: center; gap: 20px;
   }
+  @media (min-width: 1440px) { .topbar-inner { max-width: 1480px; } }
   .brand { display: flex; align-items: center; gap: 9px; flex: none; }
   .brand svg { width: 24px; height: 24px; }
   .brand span { font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; }
@@ -131,10 +132,11 @@
     color: var(--ink-muted); border: 1px solid transparent;
   }
   .navtab.active { background: var(--accent-wash); color: var(--accent); border-color: var(--line); }
-  @media (max-width: 760px) { .navtabs { display: none; } }
+  @media (max-width: 900px) { .navtabs { display: none; } }
   @media (max-width: 480px) { .topbar-inner { gap: 10px; } }
 
-  main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; min-height: 70vh; }
+  main { max-width: 1320px; margin: 0 auto; padding: 24px 20px 64px; min-height: 70vh; }
+  @media (min-width: 1440px) { main { max-width: 1480px; } }
 
   /* ── Category rail (mobile-visible tabs + home sections) ─────────────── */
   .catrail { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 26px; }
@@ -146,7 +148,7 @@
   }
   .catchip.active { background: var(--accent); color: #fff; border-color: transparent; }
   #catRailMobile { display: none; }
-  @media (max-width: 760px) { #catRailMobile { display: flex; } }
+  @media (max-width: 900px) { #catRailMobile { display: flex; } }
 
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
   .section-title { font-size: 1.3rem; font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.005em; }
@@ -159,7 +161,13 @@
   }
   .genre-chip.active { background: var(--accent); color: #fff; border-color: transparent; }
 
-  /* ── My Library: status tabs + progress stepper ──────────────────────── */
+  /* ── My Library: stats, status tabs, progress stepper ────────────────── */
+  .lib-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+  .lib-stat-pill {
+    display: flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 12px;
+    background: var(--bg-panel); border: 1px solid var(--line); font-size: 0.84rem; font-weight: 700; color: var(--ink);
+  }
+  .lib-stat-pill svg { width: 15px; height: 15px; color: var(--accent); flex: none; }
   .lib-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
   .lib-tab {
     padding: 9px 16px; border-radius: 999px; font-size: 0.84rem; font-weight: 700;
@@ -180,6 +188,7 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
   @media (max-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
   @media (max-width: 340px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+  @media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 22px; } }
   .poster { display: flex; flex-direction: column; gap: 8px; }
   .poster-img-wrap {
     position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden;
@@ -220,6 +229,7 @@
   /* ── Detail page ───────────────────────────────────────────────────── */
   .detail-hero { display: grid; grid-template-columns: 220px 1fr; gap: 28px; margin-bottom: 30px; }
   @media (max-width: 640px) { .detail-hero { grid-template-columns: 130px 1fr; gap: 18px; } }
+  @media (min-width: 1440px) { .detail-hero { grid-template-columns: 280px 1fr; gap: 36px; } }
   .detail-cover { border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); aspect-ratio: 2/3; background: var(--bg-sunken); }
   .detail-cover img { width: 100%; height: 100%; object-fit: cover; }
   .detail-titlewrap { display: flex; flex-direction: column; justify-content: flex-end; }
@@ -278,7 +288,7 @@
 
   /* ── Footer (matches index.html) ──────────────────────────────────── */
   .footer-main { border-top: 1px solid var(--line); padding: clamp(36px, 6vw, 56px) clamp(20px, 5vw, 56px) 28px; text-align: left; }
-  .footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
+  .footer-grid { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
   .footer-brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; }
   .footer-brand-word b { color: var(--accent); }
   .footer-tagline { font-size: 0.84rem; color: var(--ink-muted); margin-top: 8px; max-width: 320px; line-height: 1.5; }
@@ -293,11 +303,12 @@
   .footer-social a:hover { color: var(--accent); border-color: var(--accent); }
   .footer-social svg { width: 15px; height: 15px; }
   .footer-bottom {
-    max-width: 1180px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
+    max-width: 1320px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
     font-size: 0.76rem; color: var(--ink-faint);
   }
   @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
+  @media (min-width: 1440px) { .footer-grid, .footer-bottom { max-width: 1480px; } }
 
   /* ── Nav icon buttons + account panel ─────────────────────────────── */
   .icon-btn {
@@ -580,6 +591,10 @@
                 '<svg viewBox="0 0 24 24" fill="' + (saved ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
                 (saved ? 'Saved' : 'Save to Library') +
               '</button>' +
+              '<button class="btn-ghost" id="shareBtn" type="button">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' +
+                'Share' +
+              '</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -637,6 +652,19 @@
           }
         });
       });
+      document.getElementById('shareBtn').addEventListener('click', function () {
+        var btn = this;
+        var shareData = { title: titleOf(m), text: 'Check out ' + titleOf(m) + ' on MangaRecs', url: location.href };
+        if (navigator.share) {
+          navigator.share(shareData).catch(function () {});
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(location.href).then(function () {
+            var orig = btn.innerHTML;
+            btn.innerHTML = 'Link copied!';
+            setTimeout(function () { btn.innerHTML = orig; }, 1800);
+          });
+        }
+      });
       if (getCurrentUser() && !saved) {
         isTitleInAccountLibrary(titleOf(m)).then(function (inLibrary) {
           if (!inLibrary) return;
@@ -683,6 +711,23 @@
     '</div>';
   }
 
+  var LIB_STAT_ICONS = {
+    flame: '<path d="M12 2c1 3-2 4-2 7a4 4 0 0 0 8 0c0-1-.5-2-1-3 2 1 3 3 3 6a6 6 0 0 1-12 0c0-4 2-6 4-10z"/>',
+    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/>',
+    heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+  };
+  function libStatsHtml(profile) {
+    if (!profile) return '';
+    var items = [];
+    if (profile.streak_count) items.push({ icon: 'flame', text: profile.streak_count + '-day streak' });
+    if (profile.chapters_read) items.push({ icon: 'book', text: Number(profile.chapters_read).toLocaleString() + ' chapters read' });
+    if (profile.favorite_genre) items.push({ icon: 'heart', text: 'Favorite: ' + esc(profile.favorite_genre) });
+    if (!items.length) return '';
+    return '<div class="lib-stats">' + items.map(function (it) {
+      return '<div class="lib-stat-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + LIB_STAT_ICONS[it.icon] + '</svg>' + esc(it.text) + '</div>';
+    }).join('') + '</div>';
+  }
+
   function renderLibrary() {
     setActiveTab(null);
     if (!getCurrentUser()) {
@@ -696,19 +741,24 @@
       return;
     }
     app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1><div class="grid" id="libList">' + skeletonGrid(6) + '</div>';
-    sb.from('reading_progress').select('series_title,status,current_chapter,total_chapters,updated_at')
-      .eq('user_id', getCurrentUser().id).order('updated_at', { ascending: false })
-      .then(function (res) {
+    Promise.all([
+      sb.from('reading_progress').select('series_title,status,current_chapter,total_chapters,updated_at')
+        .eq('user_id', getCurrentUser().id).order('updated_at', { ascending: false }),
+      sb.from('profiles').select('streak_count,chapters_read,favorite_genre').eq('id', getCurrentUser().id).maybeSingle(),
+    ])
+      .then(function (results) {
+        var res = results[0];
+        var statsHtml = libStatsHtml(results[1] && results[1].data);
         if (res.error) { document.getElementById('libList').innerHTML = '<p class="statemsg">Couldn\'t load your library. Try again in a moment.</p>'; return; }
         var allRows = (res.data || []).filter(function (r) { return LIB_TABS.some(function (t) { return t.id === r.status; }); });
         if (!allRows.length) {
-          app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1><p class="statemsg">Nothing saved yet — browse the catalog and hit save on a title.</p>';
+          app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1>' + statsHtml + '<p class="statemsg">Nothing saved yet — browse the catalog and hit save on a title.</p>';
           return;
         }
         var libTab = 'reading';
         var libSort = 'updated';
 
-        app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1>' +
+        app.innerHTML = '<h1 class="section-title" style="margin-bottom:16px;">My Library</h1>' + statsHtml +
           '<div class="section-head"><div class="lib-tabs" id="libTabs"></div>' +
           '<select id="libSortSelect" aria-label="Sort by" style="background:var(--bg-panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--ink);font-size:0.82rem;font-weight:600;font-family:inherit;">' +
             '<option value="updated">Recently updated</option><option value="alpha">A–Z</option>' +

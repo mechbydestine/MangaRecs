@@ -139,15 +139,20 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px clamp(20px, 5vw, 56px);
     background: color-mix(in srgb, var(--bg) 82%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
   }
+  .topnav-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px clamp(20px, 5vw, 56px);
+  }
+  @media (min-width: 1440px) { .topnav-inner { max-width: 1480px; } }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
   .brand svg { width: 26px; height: 26px; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
@@ -164,7 +169,8 @@
   .nav-link { color: var(--ink-muted); text-decoration: none; font-weight: 700; font-size: 0.86rem; }
   .nav-link:hover { color: var(--accent); }
 
-  main { max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+  main { max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+  @media (min-width: 1440px) { main { max-width: 1480px; } }
 
   /* ── Hero ───────────────────────────────────────────────────────────── */
   .hero {
@@ -373,7 +379,7 @@
   /* ── At-a-glance: quick nav + static stats ────────────────────────── */
   .glance { position: relative; padding: 0 0 clamp(40px, 7vw, 64px); }
   .glance::before, .trending-home::before {
-    content: ''; position: absolute; top: -60px; left: 50%; width: 640px; height: 320px;
+    content: ''; position: absolute; top: -60px; left: 50%; width: min(900px, 70vw); height: 320px;
     transform: translateX(-50%); pointer-events: none; z-index: -1;
     background: radial-gradient(ellipse at center, var(--accent-wash) 0%, transparent 70%);
     filter: blur(10px);
@@ -417,6 +423,7 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
   @media (max-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
   @media (max-width: 340px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+  @media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 22px; } }
   .poster { display: flex; flex-direction: column; gap: 8px; }
   .poster-img-wrap {
     position: relative; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden;
@@ -452,7 +459,7 @@
 
   /* ── Footer ────────────────────────────────────────────────────────── */
   .footer-main { border-top: 1px solid var(--line); padding: clamp(36px, 6vw, 56px) clamp(20px, 5vw, 56px) 28px; }
-  .footer-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
+  .footer-grid { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
   .footer-brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; }
   .footer-brand-word b { color: var(--accent); }
   .footer-tagline { font-size: 0.84rem; color: var(--ink-muted); margin-top: 8px; max-width: 320px; line-height: 1.5; }
@@ -467,11 +474,12 @@
   .footer-social a:hover { color: var(--accent); border-color: var(--accent); }
   .footer-social svg { width: 15px; height: 15px; }
   .footer-bottom {
-    max-width: 1180px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
+    max-width: 1320px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
     display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
     font-size: 0.76rem; color: var(--ink-faint);
   }
   @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
+  @media (min-width: 1440px) { .footer-grid, .footer-bottom { max-width: 1480px; } }
 
   /* ── FAQ ───────────────────────────────────────────────────────────── */
   .faq { padding: clamp(40px, 7vw, 64px) 0 clamp(56px, 9vw, 88px); border-top: 1px solid var(--line); }
@@ -504,29 +512,31 @@
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
 
 <nav class="topnav">
-  <a class="brand" href="#top">
-    <svg viewBox="0 0 1024 1024" aria-hidden="true">
-      <defs>
-        <radialGradient id="navStar" cx="50%" cy="32%" r="62%">
-          <stop offset="0%" stop-color="#FFFFFF" /><stop offset="38%" stop-color="#EDE5FF" />
-          <stop offset="78%" stop-color="#C4A8FF" /><stop offset="100%" stop-color="#9B70FF" />
-        </radialGradient>
-      </defs>
-      <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="url(#navStar)" />
-      <circle cx="512" cy="512" r="46" fill="#0E0820" /><circle cx="512" cy="512" r="46" fill="none" stroke="#5B2FD6" stroke-width="2.5" opacity="0.6" />
-    </svg>
-    <span class="brand-word">Manga<b>Recs</b></span>
-  </a>
-  <div class="nav-actions">
-    <a class="nav-link" href="/catalog/">Browse Catalog</a>
-    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
-    <div class="account-wrap">
-      <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </button>
-      <div class="account-panel" id="accountPanel"></div>
+  <div class="topnav-inner">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true">
+        <defs>
+          <radialGradient id="navStar" cx="50%" cy="32%" r="62%">
+            <stop offset="0%" stop-color="#FFFFFF" /><stop offset="38%" stop-color="#EDE5FF" />
+            <stop offset="78%" stop-color="#C4A8FF" /><stop offset="100%" stop-color="#9B70FF" />
+          </radialGradient>
+        </defs>
+        <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="url(#navStar)" />
+        <circle cx="512" cy="512" r="46" fill="#0E0820" /><circle cx="512" cy="512" r="46" fill="none" stroke="#5B2FD6" stroke-width="2.5" opacity="0.6" />
+      </svg>
+      <span class="brand-word">Manga<b>Recs</b></span>
+    </a>
+    <div class="nav-actions">
+      <a class="nav-link" href="/catalog/">Browse Catalog</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+      <div class="account-wrap">
+        <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <div class="account-panel" id="accountPanel"></div>
+      </div>
+      <a class="nav-cta" href="#download">Coming Soon</a>
     </div>
-    <a class="nav-cta" href="#download">Coming Soon</a>
   </div>
 </nav>
 
