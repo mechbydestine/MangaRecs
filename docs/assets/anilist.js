@@ -60,16 +60,22 @@ function searchMedia(query, category, page) {
   return alFetch(gql, { search: query || undefined, page: page || 1 });
 }
 
-function trendingMedia(category, page, sort) {
+function trendingMedia(category, page, sort, genre) {
   var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
   if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
+  if (genre) filters += ', genre_in: ["' + genre + '"]';
   var gql = 'query($page: Int) { Page(page: $page, perPage: 50) { pageInfo { hasNextPage } media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
   return alFetch(gql, { page: page || 1 });
 }
 
+var GENRES = ['Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Slice of Life', 'Sports', 'Supernatural', 'Thriller', 'Psychological'];
+
+var RECOMMENDATION_FIELDS = 'id type title { romaji english native } coverImage { large } format countryOfOrigin averageScore startDate { year } chapters';
 function mediaById(id) {
-  var gql = 'query($id: Int) { Media(id: $id, type: MANGA) { ' + MEDIA_FIELDS + ' } }';
+  var gql = 'query($id: Int) { Media(id: $id, type: MANGA) { ' + MEDIA_FIELDS +
+    ' recommendations(perPage: 8, sort: RATING_DESC) { nodes { mediaRecommendation { ' + RECOMMENDATION_FIELDS + ' } } }' +
+    ' } }';
   return alFetch(gql, { id: id }).then(function (d) { return d.Media; });
 }
 
