@@ -1,0 +1,7 @@
+name = "mangarecs-share-preview"
+main = "share-preview-worker.js"
+compatibility_date = "2024-09-23"
+
+routes = [
+  { pattern = "mangarecs.net/catalog/title/*", zone_name = "mangarecs.net" }
+]

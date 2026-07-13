@@ -646,11 +646,13 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       document.getElementById('shareBtn').addEventListener('click', function () {
         var btn = this;
-        var shareData = { title: titleOf(m), text: 'Check out ' + titleOf(m) + ' on MangaRecs', url: location.href };
+        var slug = titleOf(m).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        var shareUrl = 'https://mangarecs.net/catalog/title/' + m.id + (slug ? '/' + slug : '') + '/';
+        var shareData = { title: titleOf(m), text: 'Check out ' + titleOf(m) + ' on MangaRecs', url: shareUrl };
         if (navigator.share) {
           navigator.share(shareData).catch(function () {});
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(location.href).then(function () {
+          navigator.clipboard.writeText(shareUrl).then(function () {
             var orig = btn.innerHTML;
             btn.innerHTML = 'Link copied!';
             setTimeout(function () { btn.innerHTML = orig; }, 1800);
@@ -926,6 +928,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   window.addEventListener('hashchange', closeSearchDropdown);
 
+  if (window.__SHARE_ID__) {
+    history.replaceState(null, '', '/catalog/#/title/' + window.__SHARE_ID__);
+  }
   router();
 });
 </script>
