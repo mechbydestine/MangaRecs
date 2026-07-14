@@ -156,7 +156,7 @@ export default function MangaDetailScreen() {
             />
           </View>
           <View style={styles.heroInfo}>
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">{title}</Text>
             {details?.altTitles?.length > 0 && (
               <Text style={[styles.altTitles, { color: colors.muted }]} numberOfLines={2}>{details.altTitles.join(' · ')}</Text>
             )}
@@ -174,7 +174,7 @@ export default function MangaDetailScreen() {
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.readBtn} onPress={openReader} activeOpacity={0.85}>
                 <Ionicons name="book" size={16} color="#fff" />
-                <Text style={styles.readBtnText}>Start Reading</Text>
+                <Text style={styles.readBtnText}>Read</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
@@ -291,9 +291,13 @@ const styles = StyleSheet.create({
   infoIcon: { marginTop: 2 },
   infoLabel: { fontSize: 13, paddingTop: 1 },
   infoValue: { fontSize: 13, fontWeight: '600', flex: 1, textAlign: 'right' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, flexShrink: 0 },
-  chipText: { fontSize: 12, fontWeight: '600' },
+  // No `gap` here on purpose — RN's flexWrap can miscalculate the wrap point when
+  // `gap` is combined with content-hugging (auto-width) children, letting an item
+  // that doesn't actually fit stay in the row and get compressed/clipped instead of
+  // wrapping. Plain margins on each chip sidestep that entirely.
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, flexShrink: 0, overflow: 'visible', marginRight: 8, marginBottom: 8 },
+  chipText: { fontSize: 12, fontWeight: '600', includeFontPadding: false, flexShrink: 0 },
   warningCard: { backgroundColor: 'rgba(226,75,74,0.08)', borderWidth: 1, borderColor: 'rgba(226,75,74,0.25)' },
   warningHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
   warningTitle: { fontSize: 14, fontWeight: '700', color: '#E24B4A' },

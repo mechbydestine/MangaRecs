@@ -2,12 +2,14 @@
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, Image, Animated, Platform, AppState, StyleSheet } from 'react-native';
+import { Animated, Platform, AppState, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
@@ -36,12 +38,25 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import GuidelinesScreen from './screens/GuidelinesScreen';
 import IntroScreen from './screens/IntroScreen';
 import CreatorDashboardScreen from './screens/CreatorDashboardScreen';
+import ModerationScreen from './screens/ModerationScreen';
+import FeatureTutorialScreen from './screens/FeatureTutorialScreen';
 import DMScreen from './screens/DMScreen';
 import LegalScreen from './screens/LegalScreen';
 import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
 import BadgeCeremony from './components/BadgeCeremony';
+
+// Keeps the native splash screen (app.json's expo-splash-screen plugin config)
+// on screen until App's own async init (session, onboarding, guidelines) is
+// done, instead of letting it auto-hide the instant JS starts — without this,
+// the native splash disappeared immediately and a hand-rolled loading screen
+// (different bg color/asset) flashed in behind it for that gap.
+// Wrapped in try/catch (not just .catch on the promise) because this module
+// is native — OTA-delivered JS can reach devices still running an older
+// binary built before expo-splash-screen was linked, where calling straight
+// into the missing native module would throw synchronously and crash launch.
+try { SplashScreen.preventAutoHideAsync().catch(() => {}); } catch (_) {}
 
 const navigationRef = createNavigationContainerRef();
 
@@ -67,6 +82,11 @@ const linking = {
 
 const CURRENT_APP_VERSION = Constants.expoConfig?.version || '1.0.0';
 const LAST_SEEN_VERSION_KEY = '@mangarecs/last_seen_version';
+// Tracks the OTA update the intro has already played for — separate from
+// LAST_SEEN_VERSION_KEY, which only bumps on a native release. Most updates
+// ship as OTA between native versions, so this is what actually catches "an
+// update just landed" and re-triggers the intro for it.
+const LAST_SEEN_UPDATE_KEY = '@mangarecs/last_seen_update_id';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
 let Notifications = null;
@@ -239,6 +259,16 @@ function ProfileStack() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
+      <Stack.Screen
+        name="Moderation"
+        component={ModerationScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          animationDuration: 280,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
     </Stack.Navigator>
     </ErrorBoundary>
   );
@@ -380,6 +410,10 @@ function AppNavigator() {
 
 function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGuidelines, onGuidelinesComplete }) {
   const { colors, isDark } = useTheme();
+  // Only ever true for a user finishing onboarding THIS session — existing
+  // users who onboarded before this feature shipped never pass through here,
+  // since needsOnboarding is already false for them on load.
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const baseTheme = isDark ? DarkTheme : DefaultTheme;
   const navTheme = {
@@ -396,11 +430,15 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   };
 
   if (needsOnboarding) {
-    return <OnboardingScreen onComplete={onOnboardingComplete} />;
+    return <OnboardingScreen onComplete={() => { setShowTutorial(true); onOnboardingComplete(); }} />;
   }
 
   if (session && needsGuidelines) {
     return <GuidelinesScreen onComplete={onGuidelinesComplete} />;
+  }
+
+  if (showTutorial) {
+    return <FeatureTutorialScreen onComplete={() => setShowTutorial(false)} />;
   }
 
   return (
@@ -426,15 +464,21 @@ export default function App() {
 
     const init = async () => {
       try {
-        const [sessionResult, onboardingDone, guidelinesLocal, lastSeenVersion] = await Promise.all([
+        const [sessionResult, onboardingDone, guidelinesLocal, lastSeenVersion, lastSeenUpdateId] = await Promise.all([
           supabase.auth.getSession(),
           AsyncStorage.getItem('onboarding_complete'),
           AsyncStorage.getItem('@mangarecs/guidelines_accepted'),
           AsyncStorage.getItem(LAST_SEEN_VERSION_KEY),
+          AsyncStorage.getItem(LAST_SEEN_UPDATE_KEY),
           hydrateCoverCache(),
         ]);
-        // Show the intro once per app version (first launch + after updates)
-        setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION);
+        // Show the intro once per app version, and again whenever a new OTA
+        // update took effect since we last showed it — Updates.updateId is
+        // null on the embedded/dev bundle, so that case never counts as "new"
+        // (the intro would otherwise replay on every single dev/Expo Go launch).
+        const currentUpdateId = Updates.updateId || null;
+        const isNewUpdate = !!currentUpdateId && currentUpdateId !== lastSeenUpdateId;
+        setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION || isNewUpdate);
         const s = sessionResult?.data?.session ?? null;
         setSession(s);
         setNeedsOnboarding(onboardingDone !== 'true');
@@ -450,6 +494,7 @@ export default function App() {
         }
       } catch (_) {}
       setLoading(false);
+      try { SplashScreen.hideAsync().catch(() => {}); } catch (_) {}
     };
     init();
 
@@ -481,21 +526,52 @@ export default function App() {
         startPresenceHeartbeat(_presenceUserId);
       }
     });
+
+    // AFK/background auto-update: while the app is backgrounded (not actively
+    // in use), silently check for and download a new OTA update; apply it the
+    // next time the user returns, so most updates are already there without
+    // anyone having to tap "Check Now" in Settings (that manual button stays
+    // for forcing it immediately instead of waiting for a background window).
+    let updateReadyToApply = false;
+    async function checkAndFetchUpdateInBackground() {
+      if (!Updates.isEnabled) return;
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (result.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          updateReadyToApply = true;
+        }
+      } catch (_) {}
+    }
+
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (!_presenceUserId) {
         supabase.auth.getSession().then(({ data: { session } }) => { _presenceUserId = session?.user?.id ?? null; });
       }
+      const isActive = nextState === 'active';
       if (_presenceUserId) {
-        const isActive = nextState === 'active';
         supabase.from('profiles').update({ online: isActive }).eq('id', _presenceUserId).then(() => {});
-        if (isActive) {
+      }
+      if (isActive) {
+        if (_presenceUserId) {
           markTouch();
           startPresenceHeartbeat(_presenceUserId);
           // Check for new chapters when the app comes back to foreground (fire-and-forget)
           checkForNewChapters(_presenceUserId);
-        } else {
-          stopPresenceHeartbeat();
         }
+        // A background fetch already finished while the user was away — apply
+        // it now. App.js's own updateId-vs-LAST_SEEN_UPDATE_KEY check picks
+        // this up on the reload and plays the intro to signal what changed.
+        if (updateReadyToApply) {
+          updateReadyToApply = false;
+          Updates.reloadAsync().catch(() => {});
+        }
+      } else {
+        if (_presenceUserId) stopPresenceHeartbeat();
+        // Gone to background/inactive — this is the "AFK" window: check for
+        // and download an update silently so it's ready the moment they're
+        // back, instead of only ever updating when someone opens Settings.
+        checkAndFetchUpdateInBackground();
       }
     });
 
@@ -538,17 +614,12 @@ export default function App() {
     };
   }, []);
 
+  // The native splash screen (see SplashScreen.preventAutoHideAsync above)
+  // stays on screen for this entire window, so nothing needs to render here —
+  // rendering a hand-rolled stand-in on top of it was the source of the
+  // splash "flash" (different bg color/asset popping in over the real one).
   if (loading || showIntro === null) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120, marginBottom: 18 }} resizeMode="contain" />
-        <View style={{ flexDirection: 'row' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 }}>Manga</Text>
-          <Text style={{ color: '#B18CFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
-        </View>
-        <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
-      </View>
-    );
+    return null;
   }
 
   if (showIntro && !introDone) {
@@ -556,6 +627,7 @@ export default function App() {
       <IntroScreen
         onComplete={() => {
           AsyncStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION).catch(() => {});
+          if (Updates.updateId) AsyncStorage.setItem(LAST_SEEN_UPDATE_KEY, Updates.updateId).catch(() => {});
           setIntroDone(true);
         }}
       />

@@ -13,7 +13,7 @@ import { useTheme } from '../utils/ThemeContext';
 import { supabase } from '../supabase';
 import MobileHeader from '../components/MobileHeader';
 import { MangaCover } from '../utils/mangaCovers';
-import { MANGA_POOL } from '../utils/mangaPool';
+import { findPoolEntry } from '../utils/mangaPool';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Bone } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
@@ -216,7 +216,7 @@ export default function DMScreen() {
           .then(({ data }) => {
             if (!data || data.length === 0) return;
             const personalized = data
-              .map(r => MANGA_POOL.find(m => m.title === r.series_title) || { title: r.series_title, lang: 'ja', genres: [], color: '#1A1A2E' })
+              .map(r => findPoolEntry(r.series_title) || { title: r.series_title, lang: 'ja', genres: [], color: '#1A1A2E' })
               .filter(Boolean);
             if (personalized.length > 0) setPickerItems(personalized);
           });
@@ -542,8 +542,8 @@ const styles = StyleSheet.create({
   recCover: { width: '100%', height: '100%', borderRadius: 8 },
   recInfo: { flex: 1, justifyContent: 'space-between' },
   recTitle: { fontSize: 13, fontWeight: '700', lineHeight: 17, marginBottom: 4 },
-  recGenres: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 4 },
-  recGenreTag: { backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  recGenres: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
+  recGenreTag: { backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginRight: 4, marginBottom: 4 },
   recGenreText: { color: '#A09CE0', fontSize: 10, fontWeight: '600' },
   recMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   recMetaText: { fontSize: 11, marginLeft: 3 },

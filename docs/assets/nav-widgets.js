@@ -69,7 +69,6 @@ function initAccountPanel(btnId, panelId) {
   function signedInHtml(user) {
     return '' +
       '<div class="account-email">' + (user.email || 'Signed in') + '</div>' +
-      '<a class="btn-ghost-sm" href="/catalog/#/library" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">My Library</a>' +
       '<button class="btn-ghost-sm" id="accSignOut" type="button">Sign out</button>';
   }
 
@@ -171,6 +170,8 @@ function initAccountPanel(btnId, panelId) {
   onAuthChange(function (user) {
     render(user);
     btn.classList.toggle('signed-in', !!user);
+    var libLink = document.getElementById('libraryNavLink');
+    if (libLink) libLink.style.display = user ? '' : 'none';
   });
   onPasswordRecovery(function () {
     setMode('recovery');
