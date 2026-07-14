@@ -53,7 +53,7 @@ var MEDIA_FIELDS = 'id title { romaji english native } description(asHtml: false
   'externalLinks { url site type isDisabled }';
 
 function searchMedia(query, category, page) {
-  var filters = 'search: $search, type: MANGA, sort: SEARCH_MATCH';
+  var filters = 'search: $search, type: MANGA, sort: SEARCH_MATCH, isAdult: false';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
   if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
   var gql = 'query($search: String, $page: Int) { Page(page: $page, perPage: 50) { pageInfo { hasNextPage } media(' + filters + ') { ' + MEDIA_FIELDS + ' } } }';
@@ -61,7 +61,7 @@ function searchMedia(query, category, page) {
 }
 
 function trendingMedia(category, page, sort, genre) {
-  var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA';
+  var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA, isAdult: false';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
   if (category && category.formats) filters += ', format_in: [' + category.formats.join(',') + ']';
   if (genre) filters += ', genre_in: ["' + genre + '"]';
@@ -71,7 +71,7 @@ function trendingMedia(category, page, sort, genre) {
 
 var GENRES = ['Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Slice of Life', 'Sports', 'Supernatural', 'Thriller', 'Psychological'];
 
-var RECOMMENDATION_FIELDS = 'id type title { romaji english native } coverImage { large } format countryOfOrigin averageScore startDate { year } chapters';
+var RECOMMENDATION_FIELDS = 'id type title { romaji english native } coverImage { large } format countryOfOrigin averageScore startDate { year } chapters isAdult';
 function mediaById(id) {
   var gql = 'query($id: Int) { Media(id: $id, type: MANGA) { ' + MEDIA_FIELDS +
     ' recommendations(perPage: 8, sort: RATING_DESC) { nodes { mediaRecommendation { ' + RECOMMENDATION_FIELDS + ' } } }' +

@@ -417,7 +417,7 @@
   </div>
   <div class="footer-bottom">
     <span>© 2026 MangaRecs. Built solo. Catalog data via <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.</span>
-    <span><a href="/">Home</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
+    <span><a href="/">Home</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
   </div>
 </footer>
 
@@ -555,6 +555,18 @@ document.addEventListener('DOMContentLoaded', function () {
     app.innerHTML = '<div class="skeleton" style="height:320px;border-radius:16px;"></div>';
     mediaById(Number(id)).then(function (m) {
       if (!m) { app.innerHTML = '<p class="statemsg">Title not found.</p>'; return; }
+      if (m.isAdult && sessionStorage.getItem('mr_adult_ok') !== '1') {
+        app.innerHTML = '<div class="card" style="max-width:480px;margin:60px auto;text-align:center;">' +
+          '<div class="card-title">Adult Content</div>' +
+          '<p style="color:var(--ink-muted);font-size:0.92rem;">This title is tagged as adult content by AniList. Confirm you\'re 18 or older to view its details.</p>' +
+          '<button class="btn-ghost" id="adultOkBtn" type="button" style="margin-top:8px;">I\'m 18 or older — continue</button>' +
+        '</div>';
+        document.getElementById('adultOkBtn').addEventListener('click', function () {
+          sessionStorage.setItem('mr_adult_ok', '1');
+          renderDetail(id);
+        });
+        return;
+      }
       window.scrollTo(0, 0);
       var saved = isSavedLocally(m.id);
       var authors = m.staff.edges.filter(function (e) { return /Story|Art|Creator/i.test(e.role); }).map(function (e) { return e.node.name.full; });
@@ -566,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var descShort = descHtml.length > 420 ? descHtml.slice(0, 420) + '…' : descHtml;
       var recs = ((m.recommendations && m.recommendations.nodes) || [])
         .map(function (n) { return n.mediaRecommendation; })
-        .filter(function (r) { return r && r.type === 'MANGA'; })
+        .filter(function (r) { return r && r.type === 'MANGA' && !r.isAdult; })
         .slice(0, 8);
 
       app.innerHTML =
