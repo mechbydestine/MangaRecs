@@ -172,12 +172,6 @@
   .lib-progress {
     display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 0.72rem; color: var(--ink-faint);
   }
-  .lib-step {
-    width: 18px; height: 18px; border-radius: 5px; padding: 0; display: flex; align-items: center; justify-content: center;
-    background: var(--bg-sunken); border: 1px solid var(--line); color: var(--ink-muted); cursor: pointer; font-size: 0.8rem; line-height: 1;
-  }
-  .lib-step:hover { border-color: var(--accent); color: var(--accent); }
-  .lib-step:disabled { opacity: 0.4; cursor: default; }
 
   /* ── Poster grid ───────────────────────────────────────────────────── */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
@@ -716,9 +710,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="poster-title">' + esc(r.series_title) + '</div>' +
       (r.status === 'reading' ?
         '<div class="lib-progress">' +
-          '<button class="lib-step" type="button" data-dir="-1"' + ((r.current_chapter || 1) <= 1 ? ' disabled' : '') + '>−</button>' +
           '<span class="lib-progress-text">Ch. ' + (r.current_chapter || 1) + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</span>' +
-          '<button class="lib-step" type="button" data-dir="1"' + (r.total_chapters && (r.current_chapter || 1) >= r.total_chapters ? ' disabled' : '') + '>+</button>' +
         '</div>' : '') +
     '</div>';
   }
@@ -815,32 +807,6 @@ document.addEventListener('DOMContentLoaded', function () {
                   paintGrid();
                 }).catch(function () { removeBtn.disabled = false; alert('Could not remove — try again.'); });
             });
-
-            if (row.status === 'reading') {
-              var minusBtn = card.querySelector('.lib-step[data-dir="-1"]');
-              var plusBtn = card.querySelector('.lib-step[data-dir="1"]');
-              [minusBtn, plusBtn].forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                  var dir = Number(btn.getAttribute('data-dir'));
-                  var next = Math.max(1, (row.current_chapter || 1) + dir);
-                  if (row.total_chapters) next = Math.min(next, row.total_chapters);
-                  if (next === (row.current_chapter || 1)) return;
-                  minusBtn.disabled = true; plusBtn.disabled = true;
-                  sb.from('reading_progress').update({ current_chapter: next, updated_at: new Date().toISOString() })
-                    .eq('user_id', getCurrentUser().id).eq('series_title', row.series_title)
-                    .then(function (res) {
-                      if (res.error) { alert('Could not update — try again.'); }
-                      else {
-                        row.current_chapter = next;
-                        var textEl = card.querySelector('.lib-progress-text');
-                        if (textEl) textEl.textContent = 'Ch. ' + next + (row.total_chapters ? ' of ' + row.total_chapters : '');
-                      }
-                      minusBtn.disabled = next <= 1;
-                      plusBtn.disabled = !!(row.total_chapters && next >= row.total_chapters);
-                    }).catch(function () { alert('Could not update — try again.'); minusBtn.disabled = false; plusBtn.disabled = false; });
-                });
-              });
-            }
 
             searchMedia(row.series_title, null, 1).then(function (d) {
               var m = d.Page.media && d.Page.media[0];
