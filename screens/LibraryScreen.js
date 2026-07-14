@@ -504,6 +504,24 @@ export default function LibraryScreen() {
     });
   }, [progressRows, userId]);
 
+  // completedIds only ever grows (see handleMarkAsCompleted below) — it never
+  // un-marks a title on its own. If a series is later reopened (status flips
+  // back to 'reading', e.g. a reread), the stale flag stuck it in BOTH the
+  // Reading tab (real status) and the Completed tab (leftover flag) at once,
+  // so deleting the Reading-tab card also wiped the Completed one — they're
+  // the same title, filtered by the same deletedIds/title match. Reconcile
+  // completedIds against the authoritative status every time rows are (re)loaded.
+  useEffect(() => {
+    const stillReading = new Set(progressRows.filter((r) => r.status === 'reading').map((r) => r.series_title));
+    if (stillReading.size === 0) return;
+    setCompletedIds((prev) => {
+      if (![...stillReading].some((t) => prev.has(t))) return prev;
+      const next = new Set(prev);
+      stillReading.forEach((t) => next.delete(t));
+      return next;
+    });
+  }, [progressRows]);
+
   const liveReading = (() => {
     if (!profile?.currently_reading) return null;
     const prog = progressRows.find((r) => r.series_title === profile.currently_reading);
