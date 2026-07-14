@@ -2,13 +2,12 @@
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Animated, Platform, AppState, StyleSheet } from 'react-native';
+import { View, Text, Image, Animated, Platform, AppState, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
@@ -46,17 +45,6 @@ import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
 import BadgeCeremony from './components/BadgeCeremony';
-
-// Keeps the native splash screen (app.json's expo-splash-screen plugin config)
-// on screen until App's own async init (session, onboarding, guidelines) is
-// done, instead of letting it auto-hide the instant JS starts — without this,
-// the native splash disappeared immediately and a hand-rolled loading screen
-// (different bg color/asset) flashed in behind it for that gap.
-// Wrapped in try/catch (not just .catch on the promise) because this module
-// is native — OTA-delivered JS can reach devices still running an older
-// binary built before expo-splash-screen was linked, where calling straight
-// into the missing native module would throw synchronously and crash launch.
-try { SplashScreen.preventAutoHideAsync().catch(() => {}); } catch (_) {}
 
 const navigationRef = createNavigationContainerRef();
 
@@ -494,7 +482,6 @@ export default function App() {
         }
       } catch (_) {}
       setLoading(false);
-      try { SplashScreen.hideAsync().catch(() => {}); } catch (_) {}
     };
     init();
 
@@ -614,12 +601,17 @@ export default function App() {
     };
   }, []);
 
-  // The native splash screen (see SplashScreen.preventAutoHideAsync above)
-  // stays on screen for this entire window, so nothing needs to render here —
-  // rendering a hand-rolled stand-in on top of it was the source of the
-  // splash "flash" (different bg color/asset popping in over the real one).
   if (loading || showIntro === null) {
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120, marginBottom: 18 }} resizeMode="contain" />
+        <View style={{ flexDirection: 'row' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 }}>Manga</Text>
+          <Text style={{ color: '#B18CFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
+        </View>
+        <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
+      </View>
+    );
   }
 
   if (showIntro && !introDone) {
