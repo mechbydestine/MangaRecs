@@ -292,6 +292,29 @@
   .rail-visual .fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, var(--accent-soft), var(--accent)); }
   .rail-visual .dim { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.35)); }
 
+  /* ── Screenshots ────────────────────────────────────────────────────── */
+  .showcase { padding: clamp(48px, 8vw, 80px) 0; border-top: 1px solid var(--line); }
+  .showcase-head { text-align: center; margin-bottom: clamp(24px, 4vw, 36px); }
+  .showcase-head h2 { font-family: 'Panel Display', sans-serif; font-weight: 900; font-size: clamp(1.7rem, 3vw, 2.3rem); text-transform: uppercase; }
+  .showcase-head p { color: var(--ink-muted); margin-top: 8px; }
+  .showcase-strip {
+    display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x proximity;
+    padding: 6px 4px 18px; margin: 0 -4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .showcase-strip::-webkit-scrollbar { height: 8px; }
+  .showcase-strip::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
+  .shot {
+    flex: none; scroll-snap-align: start;
+    width: clamp(150px, 22vw, 210px);
+  }
+  .shot-frame {
+    border-radius: 20px; border: 1px solid var(--line); background: var(--bg-panel);
+    box-shadow: var(--shadow); overflow: hidden; aspect-ratio: 9/19.5;
+  }
+  .shot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot-label { text-align: center; margin-top: 10px; font-size: 0.84rem; font-weight: 600; color: var(--ink-muted); }
+
   /* ── Download ───────────────────────────────────────────────────────── */
   .download {
     margin: clamp(56px, 9vw, 96px) 0;
@@ -688,6 +711,40 @@
         <div class="fill" style="height:58%"></div>
       </div>
       <div class="stat-row"><span>Ch. 94 of 112</span><span>58%</span></div>
+    </div>
+  </section>
+
+  <section class="showcase" id="screenshots">
+    <div class="showcase-head">
+      <p class="eyebrow">See it in action</p>
+      <h2>Straight From the App</h2>
+      <p>No mockups — this is what's actually on your phone.</p>
+    </div>
+    <div class="showcase-strip">
+      <div class="shot">
+        <div class="shot-frame"><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <p class="shot-label">Home</p>
+      </div>
+      <div class="shot">
+        <div class="shot-frame"><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <p class="shot-label">Library</p>
+      </div>
+      <div class="shot">
+        <div class="shot-frame"><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <p class="shot-label">For You</p>
+      </div>
+      <div class="shot">
+        <div class="shot-frame"><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <p class="shot-label">Community</p>
+      </div>
+      <div class="shot">
+        <div class="shot-frame"><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <p class="shot-label">Profile</p>
+      </div>
+      <div class="shot">
+        <div class="shot-frame"><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <p class="shot-label">Discussions</p>
+      </div>
     </div>
   </section>
 
