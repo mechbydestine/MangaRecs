@@ -694,10 +694,13 @@ document.addEventListener('DOMContentLoaded', function () {
             (readLinks.length ? '<div class="card"><div class="card-title">Read Available</div>' +
               '<p style="font-size:0.78rem;color:var(--ink-faint);margin:-4px 0 12px;">External, official sources — not hosted or affiliated with MangaRecs.</p>' +
               readLinks.map(function (l) {
-                var origin = null;
-                try { origin = new URL(l.url).origin; } catch (e) {}
-                var globeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="readlink-fallback"' + (origin ? ' style="display:none;"' : '') + '><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>';
-                var iconHtml = (origin ? '<img src="' + origin + '/favicon.ico" alt="" class="readlink-icon" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';" />' : '') + globeSvg;
+                var hostname = null;
+                try { hostname = new URL(l.url).hostname; } catch (e) {}
+                var globeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="readlink-fallback"' + (hostname ? ' style="display:none;"' : '') + '><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>';
+                // Google's favicon service resolves each site's actual declared
+                // icon (apple-touch-icon / manifest icon / etc.), not a blind
+                // guess at /favicon.ico — much closer to each site's real logo mark.
+                var iconHtml = (hostname ? '<img src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(hostname) + '&sz=64" alt="" class="readlink-icon" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';" />' : '') + globeSvg;
                 return '<a class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:flex-start;" href="' + l.url + '" target="_blank" rel="noopener">' + iconHtml + esc(l.site) + '</a>';
               }).join('') +
               '</div>' : '') +
