@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
     left: 0,
   },
   titleRow: { flexDirection: 'row', marginTop: 22 },
-  titleWhite: { color: '#FFFFFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 },
+  titleWhite: { fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#FFFFFF', fontSize: 30, letterSpacing: 0.5 },
   titlePurple: {
-    color: '#B18CFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5,
+    fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#B18CFF', fontSize: 30, letterSpacing: 0.5,
     textShadowColor: '#9B6BFF', textShadowRadius: 16, textShadowOffset: { width: 0, height: 0 },
   },
   slogan: { color: '#9C99B8', fontSize: 14, marginTop: 12, letterSpacing: 0.3 },
