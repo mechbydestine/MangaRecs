@@ -364,18 +364,26 @@ export function getCachedCoverUrl(title, lang) {
 
 export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', coverUrl: knownCoverUrl, contentRating, nsfw, style, children }) {
   const lookupTitle = searchKey || title;
-  // A known URL (e.g. stored on a favorite when it was added) wins — no title
-  // search needed, so the cover shows instantly and can't miss. Falls back to
-  // the search pipeline if the known URL ever fails to load.
+  // A pool title's baked cover is manually-verified and always wins, even over
+  // a `coverUrl` passed in from a save flow (favorite/history/progress) — those
+  // get whatever source resolved at save time (MangaDex vs AniList vs Comick
+  // often use different print covers for the same series), so trusting them
+  // over the pool meant the same series could show two different covers
+  // depending on which screen rendered its card.
+  const bakedUrl = _poolCoverByTitle[(lookupTitle || '').toLowerCase().trim()] || _poolCoverByTitle[(title || '').toLowerCase().trim()];
+  const effectiveKnownUrl = bakedUrl || knownCoverUrl;
+  // A known URL (baked pool cover, or one stored on a favorite when it was
+  // added) wins — no title search needed, so the cover shows instantly and
+  // can't miss. Falls back to the search pipeline if it ever fails to load.
   const [knownFailed, setKnownFailed] = useState(false);
-  const useKnown = !!knownCoverUrl && !knownFailed;
-  const [coverUrl, setCoverUrl] = useState(() => knownCoverUrl || getCachedCoverUrl(lookupTitle, lang));
+  const useKnown = !!effectiveKnownUrl && !knownFailed;
+  const [coverUrl, setCoverUrl] = useState(() => effectiveKnownUrl || getCachedCoverUrl(lookupTitle, lang));
   const [allowNsfw, setAllowNsfwState] = useState(_nsfwCache === true);
   useEffect(() => { getAllowNsfw().then(setAllowNsfwState); }, []);
   const gated = (isRatingGated(contentRating) || nsfw === true) && !allowNsfw;
 
   useEffect(() => {
-    if (useKnown) { setCoverUrl(knownCoverUrl); return; }
+    if (useKnown) { setCoverUrl(effectiveKnownUrl); return; }
     let cancelled = false;
     let timer = null;
     let attempt = 0;
@@ -394,7 +402,7 @@ export function MangaCover({ title, searchKey, lang, color = '#1A1A1F', coverUrl
     }
     load();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
-  }, [title, searchKey, lang, useKnown, knownCoverUrl]);
+  }, [title, searchKey, lang, useKnown, effectiveKnownUrl]);
 
   function onError() {
     if (useKnown) {

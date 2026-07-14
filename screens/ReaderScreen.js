@@ -10,7 +10,6 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library';
 import { TOP_SITES, buildSearchUrl, getDefaultSite, getReadingSiteForLang } from '../utils/mangaSearch';
 import { getFaviconUrl } from '../utils/mangaCovers';
 import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_JS, HOMEPAGE_DETECT_JS, SEARCH_WATCHDOG_JS, MANGADEX_CHAPTER_NAV_JS } from '../utils/siteResolver';
@@ -335,10 +334,35 @@ const AD_BLOCK_JS = `
         // Never touch app reader navigation / progress / chapter UI
         var isUI = /chapter|reader|page.?nav|topbar|toolbar|progress|controls|prev|next|volume/.test(cls);
         if (isUI) return;
-        // Full-screen dimmer / backdrop / interstitial (covers >55% of viewport)
-        if (h > vh * 0.55 && w > vw * 0.55) { rm(el); return; }
+        // Never touch the site's own header/nav — real headers use these tags/roles,
+        // ad banners never do. Without this, a sticky top nav (menu, logo, search,
+        // sign-in) matches the same fixed+short+wide shape as an ad strip below.
+        var tag = el.tagName;
+        var role = (el.getAttribute && el.getAttribute('role')) || '';
+        if (tag === 'HEADER' || tag === 'NAV' || role === 'banner' || role === 'navigation') return;
+        // Full-screen dimmer / backdrop / interstitial (covers >55% of viewport).
+        // A real chapter-list / settings drawer built as a full-screen fixed panel
+        // matches this same shape, so spare anything with enough interactive
+        // content to be real UI rather than a single ad creative.
+        if (h > vh * 0.55 && w > vw * 0.55) {
+          var interactiveFull = el.querySelectorAll('a,button,input,select').length;
+          if (interactiveFull >= 4) return;
+          rm(el);
+          return;
+        }
         // Sticky banner strip (height < 140px, wide enough to be a banner)
-        if (h > 0 && h < 140 && w > vw * 0.25) { rm(el); return; }
+        if (h > 0 && h < 140 && w > vw * 0.25) {
+          // Real nav bars pack several links/buttons (menu, search, settings, sign-in);
+          // ad banner strips are almost always a single creative with none of that,
+          // so require it to be docked to the top or bottom edge and look like
+          // navigation before sparing it.
+          var rect = el.getBoundingClientRect();
+          var interactive = el.querySelectorAll('a,button').length;
+          var docked = rect.top <= 2 || rect.bottom >= vh - 2;
+          if (docked && interactive >= 2) return;
+          rm(el);
+          return;
+        }
       });
     } catch(_) {}
   }
@@ -416,31 +440,18 @@ const AD_BLOCK_JS = `
 
 const TAP_TOGGLE_JS = `
 (function() {
-  var sx=0,sy=0,moved=false,lpTimer=null,lpImg=null;
+  var sx=0,sy=0,moved=false;
   document.addEventListener('touchstart',function(e){
     if(!e.touches||!e.touches[0])return;
     sx=e.touches[0].clientX; sy=e.touches[0].clientY; moved=false;
-    var t=e.target;
-    var img=t.tagName==='IMG'?t:(t.closest?t.closest('img'):null);
-    if(img&&img.src&&img.src.startsWith('http')){
-      lpImg=img;
-      lpTimer=setTimeout(function(){
-        if(!moved&&window.ReactNativeWebView){
-          window.ReactNativeWebView.postMessage(JSON.stringify({type:'saveImage',src:lpImg.src}));
-        }
-        lpTimer=null;
-      },600);
-    }
   },{passive:true});
   document.addEventListener('touchmove',function(e){
     if(!e.touches||!e.touches[0])return;
     if(Math.abs(e.touches[0].clientX-sx)>8||Math.abs(e.touches[0].clientY-sy)>8){
       moved=true;
-      if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}
     }
   },{passive:true});
   document.addEventListener('touchend',function(e){
-    if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}
     if(moved)return;
     var t=e.target;
     if(t.closest&&t.closest('a,button,input,textarea,select,[role="button"]'))return;
@@ -565,14 +576,42 @@ const EXTRACT_CHAPTER_COUNT_JS = `
     'li.chapter',
   ];
 
+  // Pulls the real chapter number + link out of each matched list item so the
+  // in-app picker can show the site's actual chapters (including decimals,
+  // one-shots and gaps) instead of a guessed 1..N sequence.
+  function numFromText(t) {
+    t = (t || '').trim();
+    var m = t.match(/(?:chapter|chap|ch\.?|episode|ep\.?)\s*#?\s*(\d+(?:\.\d+)?)/i);
+    if (m) return parseFloat(m[1]);
+    m = t.match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : null;
+  }
+  function itemsFrom(els) {
+    var items = [], seen = {};
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var a = el.tagName === 'A' ? el : el.querySelector('a[href]');
+      var href = a ? a.href : null;
+      if (!href) continue;
+      var text = (a.textContent || el.textContent || '').trim().replace(/\s+/g, ' ');
+      var num = numFromText(text);
+      if (num === null || seen[num] !== undefined) continue;
+      seen[num] = true;
+      items.push({ num: num, href: href, label: text.slice(0, 60) });
+    }
+    return items;
+  }
+
   function tryCount() {
-    var max = 0;
+    var max = 0, maxEls = null;
     for (var i = 0; i < SELS.length; i++) {
       var els = document.querySelectorAll(SELS[i]);
-      if (els.length > max) max = els.length;
+      if (els.length > max) { max = els.length; maxEls = els; }
     }
     if (max >= 1 && window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'chapterCount', count: max }));
+      var items = maxEls ? itemsFrom(maxEls) : [];
+      items.sort(function(a, b) { return a.num - b.num; });
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'chapterCount', count: max, items: items }));
       return true;
     }
     return false;
@@ -733,7 +772,7 @@ function searchSites(query) {
 
 // ── PageImage — auto aspect ratio via Image.getSize ───────────────────────
 
-function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, onLongPress }) {
+function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
   const { width: winW } = useWindowDimensions();
   const [height, setHeight] = useState(winW * 1.5);
   const lastTapRef = useRef(0);
@@ -771,7 +810,7 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, onLongPress }) {
   }
 
   return (
-    <Pressable onPress={handlePress} onLongPress={() => onLongPress?.(uri)} delayLongPress={400}>
+    <Pressable onPress={handlePress}>
       <Image
         source={{ uri, cache: 'force-cache' }}
         style={{ width: winW, height }}
@@ -784,7 +823,7 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, onLongPress }) {
 
 // ── Zoom viewer — full-screen pinch/pan/double-tap, isolated from the list ──
 
-function ZoomViewer({ uri, onClose, onLongPress }) {
+function ZoomViewer({ uri, onClose }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const [imgH, setImgH] = useState(winH * 0.8);
   useEffect(() => {
@@ -880,7 +919,7 @@ function ZoomViewer({ uri, onClose, onLongPress }) {
             onGestureEvent={onPinchEvent}
             onHandlerStateChange={onPinchStateChange}>
             <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Pressable onPress={handleTap} onLongPress={() => onLongPress?.(uri)} delayLongPress={400}>
+              <Pressable onPress={handleTap}>
                 <Animated.Image
                   source={{ uri, cache: 'force-cache' }}
                   style={{
@@ -902,7 +941,7 @@ function ZoomViewer({ uri, onClose, onLongPress }) {
         <Ionicons name="close" size={20} color="#fff" />
       </TouchableOpacity>
       <Text style={{ position: 'absolute', bottom: 34, alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
-        Pinch to zoom · Double-tap to toggle · Hold to save
+        Pinch to zoom · Double-tap to toggle
       </Text>
     </View>
   );
@@ -1062,6 +1101,10 @@ export default function ReaderScreen({ route, navigation }) {
 
   // dynamically detected chapter count from the manga's detail page (WebView mode)
   const [webChapterCount,    setWebChapterCount]    = useState(0);
+  // real per-chapter {num,href,label} scraped from that same detail page —
+  // lets the picker show the site's actual chapter list instead of a guessed
+  // 1..N sequence, which breaks on decimal/special/gapped chapter numbering
+  const [webChapterList,     setWebChapterList]     = useState([]);
 
   // webview browser history nav
   const [webCanGoBack,       setWebCanGoBack]       = useState(false);
@@ -1492,11 +1535,20 @@ export default function ReaderScreen({ route, navigation }) {
 
   useEffect(() => {
     if (!mangaTitle || !userId) return;
+    // Best real total we currently know — never send an unknown/lower value
+    // over an already-good one, since this write only carries the columns
+    // it includes (omitted keys leave the existing DB value untouched).
+    const knownTotal = readerMode === 'api'
+      ? (apiChapters.length || null)
+      : (webChapterCount || (chapters < 999 ? chapters : null));
     syncLibraryWrite(() => supabase.from('reading_progress').upsert(
-      { user_id: userId, series_title: mangaTitle, current_chapter: currentChapter, status: 'reading', updated_at: new Date().toISOString() },
+      {
+        user_id: userId, series_title: mangaTitle, current_chapter: currentChapter, status: 'reading', updated_at: new Date().toISOString(),
+        ...(knownTotal ? { total_chapters: knownTotal } : {}),
+      },
       { onConflict: 'user_id,series_title' }
     ), 'update chapter progress');
-  }, [currentChapter, mangaTitle, userId]);
+  }, [currentChapter, mangaTitle, userId, readerMode, apiChapters.length, webChapterCount, chapters]);
 
   useEffect(() => {
     (async () => {
@@ -1584,8 +1636,12 @@ export default function ReaderScreen({ route, navigation }) {
       lang: 'ja',
       site: activeSite,
       url: currentUrl,
+      // Real detected total when known, else fall back to whatever the calling
+      // screen passed in — omitting this entirely defaulted every webview-mode
+      // read to the "999 unknown" sentinel and the Library badge never recovered
+      chapters: webChapterCount || (chapters < 999 ? chapters : undefined),
     });
-  }, [currentUrl, currentChapter, readerMode]);
+  }, [currentUrl, currentChapter, readerMode, webChapterCount]);
 
   // ── Scroll progress (shared by FlatList and WebView) ─────────────────────
 
@@ -1845,6 +1901,18 @@ export default function ReaderScreen({ route, navigation }) {
     webviewRef.current?.injectJavaScript(buildChapterDirectJs(targetChapter));
   }
 
+  // Navigates straight to a chapter's real, scraped URL — used instead of
+  // goChapterDirect's URL-pattern guessing whenever the picker has a genuine
+  // href for the target chapter (see webChapterList), which is far more
+  // reliable across sites with decimal/special/non-sequential numbering.
+  function goToChapterHref(href, targetChapter) {
+    useSequentialRef.current = false;
+    pendingTargetRef.current = targetChapter;
+    pendingStepsRef.current  = 0;
+    setCurrentChapter(targetChapter);
+    webviewRef.current?.injectJavaScript(`window.location.href=${JSON.stringify(href)};true;`);
+  }
+
   function goChapterSteps(steps, direction, targetChapter) {
     if (steps <= 0) { setCurrentChapter(targetChapter); return; }
     pendingStepsRef.current  = steps;
@@ -1894,22 +1962,6 @@ export default function ReaderScreen({ route, navigation }) {
       return;
     }
     webviewRef.current?.reload();
-  }
-
-  // ── Save single panel to device gallery ──────────────────────────────────
-
-  async function saveImageToGallery(imgUrl) {
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Permission needed', 'Gallery permission is required to save images.'); return; }
-      const filename = `panel_${Date.now()}.jpg`;
-      const localUri = FileSystem.cacheDirectory + filename;
-      await FileSystem.downloadAsync(imgUrl, localUri);
-      await MediaLibrary.saveToLibraryAsync(localUri);
-      showToast('Panel saved to gallery');
-    } catch (_) {
-      Alert.alert('Error', 'Could not save the panel. The image may be protected.');
-    }
   }
 
   // ── Download chapter pages ────────────────────────────────────────────────
@@ -2116,10 +2168,23 @@ export default function ReaderScreen({ route, navigation }) {
         };
       });
     }
-    // In WebView mode use the best known chapter count:
-    // 1. Detected dynamically from the page (webChapterCount) — most accurate
-    // 2. Passed explicitly from the calling screen (chapters) if it's a real value (< 999)
-    // 3. Fallback: only show chapters up to currentChapter + 20 to avoid a misleading 999-item list
+    // In WebView mode use the best known chapter source:
+    // 1. Real chapters scraped off the page (webChapterList) — actual numbers/links,
+    //    handles decimals, specials and gaps instead of assuming a 1..N sequence
+    // 2. Detected count only (webChapterCount) — accurate total, guessed numbering
+    // 3. Passed explicitly from the calling screen (chapters) if it's a real value (< 999)
+    // 4. Fallback: only show chapters up to currentChapter + 20 to avoid a misleading 999-item list
+    if (webChapterList.length > 0) {
+      return [...webChapterList].reverse().map((ch) => ({
+        shortLabel: `Ch. ${ch.num}`,
+        title: ch.label && ch.label !== `Ch. ${ch.num}` && ch.label !== `Chapter ${ch.num}` ? ch.label : null,
+        num: ch.num,
+        href: ch.href,
+        idx: -1,
+        active: ch.num === currentChapter,
+        isRead: ch.num < currentChapter,
+      }));
+    }
     const knownTotal = chapters < 999 ? chapters : 0;
     const total = Math.max(webChapterCount || knownTotal || currentChapter, currentChapter);
     const cap   = (webChapterCount === 0 && chapters >= 999) ? Math.max(currentChapter + 20, total) : total;
@@ -2127,7 +2192,7 @@ export default function ReaderScreen({ route, navigation }) {
       const num = cap - i;
       return { shortLabel: `Ch. ${num}`, title: null, num, idx: -1, active: num === currentChapter, isRead: num < currentChapter };
     });
-  }, [readerMode, apiChapters, currentChapterIdx, currentChapter, chapters, webChapterCount]);
+  }, [readerMode, apiChapters, currentChapterIdx, currentChapter, chapters, webChapterCount, webChapterList]);
 
   const chapterListActiveIdx = useMemo(
     () => Math.max(chapterListForPicker.findIndex((c) => c.active), 0),
@@ -2230,7 +2295,6 @@ export default function ReaderScreen({ route, navigation }) {
                     uri={item}
                     onSingleTap={() => setShowUI((v) => !v)}
                     onDoubleTap={(u) => setZoomUri(u)}
-                    onLongPress={saveImageToGallery}
                   />
                 )}
                 onScroll={handleScrollProgress}
@@ -2319,8 +2383,12 @@ export default function ReaderScreen({ route, navigation }) {
                 webviewRef.current?.injectJavaScript(MANGADEX_CHAPTER_NAV_JS);
                 webviewRef.current?.injectJavaScript(HOMEPAGE_DETECT_JS);
                 webviewRef.current?.injectJavaScript(SEARCH_WATCHDOG_JS);
-                webviewRef.current?.injectJavaScript(EXTRACT_CHAPTER_COUNT_JS);
               }
+              // Runs on every page load, not just the initial search — resumed/direct
+              // opens skip the search flow entirely and otherwise never got a real
+              // chapter count. The script's own guards (window.__inkloreChCounted,
+              // reader/search URL checks) keep it a no-op on irrelevant pages.
+              webviewRef.current?.injectJavaScript(EXTRACT_CHAPTER_COUNT_JS);
               if (pendingImagesRef.current === 'requested') {
                 pendingImagesRef.current = 'collecting';
                 webviewRef.current?.injectJavaScript(COLLECT_IMAGES_JS);
@@ -2380,7 +2448,12 @@ export default function ReaderScreen({ route, navigation }) {
                       });
                     }
                   } else if (msg.type === 'chapterCount') {
-                    if (msg.count > 0) setWebChapterCount((prev) => Math.max(prev, msg.count));
+                    if (msg.count > 0) {
+                      setWebChapterCount((prev) => Math.max(prev, msg.count));
+                      if (msg.items?.length) {
+                        setWebChapterList((prev) => (msg.items.length >= prev.length ? msg.items : prev));
+                      }
+                    }
                   } else if (msg.type === 'imageList') {
                     pendingImagesRef.current = null;
                     const purpose = imagePurposeRef.current;
@@ -2392,8 +2465,6 @@ export default function ReaderScreen({ route, navigation }) {
                     } else {
                       executeChapterDownload(msg.images);
                     }
-                  } else if (msg.type === 'saveImage') {
-                    saveImageToGallery(msg.src);
                   } else if (msg.type === 'openWindow') {
                     // window.open() called in-page — follow only same-site /
                     // known-site targets; off-site opens are popunder ads
@@ -2470,7 +2541,6 @@ export default function ReaderScreen({ route, navigation }) {
                     uri={item}
                     onSingleTap={() => setShowUI((v) => !v)}
                     onDoubleTap={(u) => setZoomUri(u)}
-                    onLongPress={saveImageToGallery}
                   />
                 )}
                 showsVerticalScrollIndicator={false}
@@ -2487,7 +2557,7 @@ export default function ReaderScreen({ route, navigation }) {
 
       {/* ── Page zoom viewer ─────────────────────────────────────────────── */}
       <Modal visible={!!zoomUri} transparent animationType="fade" onRequestClose={() => setZoomUri(null)}>
-        {zoomUri ? <ZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} onLongPress={saveImageToGallery} /> : null}
+        {zoomUri ? <ZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} /> : null}
       </Modal>
 
       {/* ── Screen dimmer — sits over content, under the HUD ─────────────── */}
@@ -2597,6 +2667,7 @@ export default function ReaderScreen({ route, navigation }) {
                   setShowChapterSelect(false);
                   if (item.active) return;
                   if (readerMode === 'api') loadApiChapter(item.idx);
+                  else if (item.href) goToChapterHref(item.href, item.num);
                   else goChapterDirect(item.num);
                 }}>
                 <View style={styles.chapterListDotWrap}>

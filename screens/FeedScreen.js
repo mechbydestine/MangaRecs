@@ -1,7 +1,7 @@
 ﻿import {
   View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity,
   Modal, TextInput, RefreshControl, KeyboardAvoidingView,
-  Platform, Animated, Image, ActivityIndicator, ScrollView,
+  Platform, Animated, Image, ActivityIndicator, ScrollView, Share,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useTheme } from '../utils/ThemeContext';
 import StarLogo from '../components/StarLogo';
-import ShareToInstagram from '../components/ShareToInstagram';
+import ShareCard from '../components/ShareCard';
 import { supabase } from '../supabase';
 import { syncReadOpen, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
@@ -174,7 +174,11 @@ async function refillQueue() {
       const mapped = data.map((m) => ({
         ...m,
         genres:        Array.isArray(m.genres) ? m.genres : [],
-        likeCount:     m.like_count   || 0,
+        // increment_manga_likes (and every realtime update) writes to the
+        // `likes` column — `like_count` is a legacy duplicate nothing keeps
+        // current, so reading it here made the initial like count on a card
+        // go stale/stuck at whatever it last was instead of the real total.
+        likeCount:     m.likes ?? m.like_count ?? 0,
         commentCount:  m.comment_count || 0,
         bookmarkCount: m.bookmark_count || 0,
         shareCount:    m.share_count   || 0,
@@ -789,7 +793,7 @@ export default function FeedScreen() {
   const [searchOpen, setSearchOpen]   = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
-  const [instagramOpen, setInstagramOpen]   = useState(false);
+  const [cardShareOpen, setCardShareOpen]   = useState(false);
   const [shareProgress, setShareProgress]   = useState(0);
   const [shareChapter, setShareChapter]     = useState(1);
   const [sendFriends, setSendFriends]       = useState([]);
@@ -1161,6 +1165,19 @@ export default function FeedScreen() {
         setSendFriends(profiles.map((p) => ({ id: p.id, name: p.display_name || p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url })));
       }
     }
+  }
+
+  // Opens the real OS share sheet — the same grid of installed-app icons
+  // TikTok/Instagram themselves hand off to for anything beyond their own
+  // in-app "send to a friend" row, which is what this list already covers.
+  async function handleNativeShare() {
+    if (!activeItem) return;
+    setShareSheetOpen(false);
+    try {
+      await Share.share({
+        message: `Check out ${activeItem.title} on MangaRecs! 📚\nhttps://mangarecs.app/series/${activeItem.id || 'discover'}`,
+      });
+    } catch (_) {}
   }
 
   async function handleSendRecommendation(friend) {
@@ -1586,17 +1603,29 @@ export default function FeedScreen() {
               <Text style={[feedSendStyles.mangaName, { color: colors.muted }]}>{activeItem.title}</Text>
             ) : null}
 
-            {/* Instagram share row */}
-            <TouchableOpacity
-              style={[feedShareStyles.instagramRow, { backgroundColor: colors.inputBg }]}
-              onPress={() => { setShareSheetOpen(false); setInstagramOpen(true); }}
-              activeOpacity={0.75}>
-              <View style={feedShareStyles.instagramIcon}>
-                <Ionicons name="logo-instagram" size={18} color="#fff" />
-              </View>
-              <Text style={[feedShareStyles.instagramLabel, { color: colors.text }]}>Share to Instagram</Text>
-              <Ionicons name="chevron-forward" size={15} color={colors.muted} />
-            </TouchableOpacity>
+            {/* External share options — mirrors how TikTok/Instagram split their own
+                share sheet: a couple of quick, purpose-built actions up top, then a
+                hand-off to the real OS share sheet (every installed app, as icons) */}
+            <View style={feedShareStyles.quickRow}>
+              <TouchableOpacity
+                style={[feedShareStyles.quickBtn, { backgroundColor: colors.inputBg }]}
+                onPress={() => { setShareSheetOpen(false); setCardShareOpen(true); }}
+                activeOpacity={0.75}>
+                <View style={[feedShareStyles.quickIcon, { backgroundColor: '#7B5CFF' }]}>
+                  <Ionicons name="albums-outline" size={18} color="#fff" />
+                </View>
+                <Text style={[feedShareStyles.quickLabel, { color: colors.text }]}>Share as Card</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[feedShareStyles.quickBtn, { backgroundColor: colors.inputBg }]}
+                onPress={handleNativeShare}
+                activeOpacity={0.75}>
+                <View style={[feedShareStyles.quickIcon, { backgroundColor: '#3A3A42' }]}>
+                  <Ionicons name="ellipsis-horizontal" size={18} color="#fff" />
+                </View>
+                <Text style={[feedShareStyles.quickLabel, { color: colors.text }]}>More</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={[feedShareStyles.divider, { backgroundColor: colors.border }]} />
             <Text style={[feedShareStyles.sectionTitle, { color: colors.muted }]}>Send to a Friend</Text>
@@ -1643,10 +1672,10 @@ export default function FeedScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Instagram share sub-modal */}
-      <ShareToInstagram
-        open={instagramOpen}
-        onClose={() => setInstagramOpen(false)}
+      {/* Share-as-card sub-modal */}
+      <ShareCard
+        open={cardShareOpen}
+        onClose={() => setCardShareOpen(false)}
         series={activeItem}
         chapter={shareChapter}
         progress={shareProgress}
@@ -1965,9 +1994,10 @@ const styles = StyleSheet.create({
 
 const feedShareStyles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 10, maxHeight: '72%' },
-  instagramRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 4, padding: 14, borderRadius: 14 },
-  instagramIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#C13584', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  instagramLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  quickRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 4 },
+  quickBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 14 },
+  quickIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  quickLabel: { fontSize: 12, fontWeight: '600' },
   divider: { height: 1, marginHorizontal: 20, marginVertical: 16 },
   sectionTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: 20, marginBottom: 4 },
 });

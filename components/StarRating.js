@@ -4,37 +4,47 @@ import * as Haptics from 'expo-haptics';
 
 const GOLD = '#FFD700';
 
-// Interactive 1-5 star row. Tap a star to rate; `value` is the user's own
-// rating (0 = unrated). Renders solid/outline stars only — no half stars,
-// since a tap always resolves to a whole number.
+// Interactive 10-point rating rendered as 5 stars (2 points per star, half-star
+// granularity). `value` is the user's own rating on a 1-10 scale (0 = unrated).
+// Tapping the left half of a star registers the odd (half-star) point, the
+// right half registers the even (full-star) point.
 export function StarRatingInput({ value = 0, onRate, size = 20, color = GOLD, disabled = false }) {
   return (
     <View style={styles.row}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <TouchableOpacity
-          key={n}
-          disabled={disabled}
-          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-          onPress={() => {
-            if (disabled) return;
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            onRate?.(n);
-          }}>
-          <Ionicons
-            name={n <= value ? 'star' : 'star-outline'}
-            size={size}
-            color={n <= value ? color : '#8A8894'}
-            style={{ marginRight: 2 }}
-          />
-        </TouchableOpacity>
-      ))}
+      {[1, 2, 3, 4, 5].map((n) => {
+        const filled = value >= n * 2;
+        const half = !filled && value >= n * 2 - 1;
+        return (
+          <TouchableOpacity
+            key={n}
+            disabled={disabled}
+            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            onPress={(e) => {
+              if (disabled) return;
+              const x = Math.max(0, Math.min(size, e.nativeEvent.locationX));
+              const points = x < size / 2 ? n * 2 - 1 : n * 2;
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              onRate?.(points);
+            }}>
+            <Ionicons
+              name={filled ? 'star' : half ? 'star-half' : 'star-outline'}
+              size={size}
+              color={filled || half ? color : '#8A8894'}
+              style={{ marginRight: 2 }}
+            />
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
 
-// Read-only average display — supports half stars, optional rating count.
+// Read-only average display. `avg` is on the same 1-10 point scale as the
+// input above; rendered as 5 (half-)stars, labeled as "x.x/10" so the shown
+// number always matches what rating the user actually submitted.
 export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD, mutedColor = '#8A8894', showCount = true }) {
-  const rounded = Math.round(avg * 2) / 2;
+  const starsEquiv = avg / 2;
+  const rounded = Math.round(starsEquiv * 2) / 2;
   const stars = [1, 2, 3, 4, 5].map((n) => {
     if (rounded >= n) return 'star';
     if (rounded >= n - 0.5) return 'star-half';
@@ -47,7 +57,7 @@ export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD,
       ))}
       {showCount && (
         <Text style={[styles.countText, { color: mutedColor, fontSize: size * 0.75 }]}>
-          {count > 0 ? ` ${avg.toFixed(1)} (${count})` : ' Not rated'}
+          {count > 0 ? ` ${avg.toFixed(1)}/10 (${count})` : ' Not rated'}
         </Text>
       )}
     </View>

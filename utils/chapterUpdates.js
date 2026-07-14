@@ -34,20 +34,25 @@ export async function checkForNewChapters(userId) {
   // Mark check time immediately to prevent parallel runs
   await AsyncStorage.setItem(CHECK_TS_KEY, String(Date.now())).catch(() => {});
 
-  // Get top N recently-read series and their current chapter from Supabase
+  // Get recently-touched series from both statuses — bookmarked series have
+  // no reading progress, so they're fetched separately to keep actively-read
+  // titles (which update far more often) from crowding them out of the cap.
   let seriesList = [];
   try {
-    const { data } = await supabase
-      .from('reading_progress')
-      .select('series_title, current_chapter')
-      .eq('user_id', userId)
-      .eq('status', 'reading')
-      .order('updated_at', { ascending: false })
-      .limit(MAX_SERIES);
-    seriesList = (data || []).map((r) => ({
-      title: r.series_title,
-      knownChapter: r.current_chapter || 0,
-    }));
+    const [{ data: readingData }, { data: bookmarkedData }] = await Promise.all([
+      supabase.from('reading_progress')
+        .select('series_title, current_chapter')
+        .eq('user_id', userId).eq('status', 'reading')
+        .order('updated_at', { ascending: false }).limit(MAX_SERIES),
+      supabase.from('reading_progress')
+        .select('series_title, current_chapter')
+        .eq('user_id', userId).eq('status', 'bookmarked')
+        .order('updated_at', { ascending: false }).limit(MAX_SERIES),
+    ]);
+    seriesList = [
+      ...(readingData || []).map((r) => ({ title: r.series_title, status: 'reading', knownChapter: r.current_chapter || 0 })),
+      ...(bookmarkedData || []).map((r) => ({ title: r.series_title, status: 'bookmarked', knownChapter: r.current_chapter || 0 })),
+    ];
   } catch (_) { return; }
 
   if (!seriesList.length) return;
@@ -62,7 +67,7 @@ export async function checkForNewChapters(userId) {
   const updatedMap = { ...notifiedMap };
   let anyNew = false;
 
-  for (const { title, knownChapter } of seriesList) {
+  for (const { title, status, knownChapter } of seriesList) {
     try {
       const result = await searchMangaDex(title);
       if (!result?.id) continue;
@@ -70,7 +75,15 @@ export async function checkForNewChapters(userId) {
       const latest = await getLatestChapter(result.id);
       if (!latest) continue;
 
-      const lastNotified = notifiedMap[title] ?? knownChapter;
+      const hasBaseline = Object.prototype.hasOwnProperty.call(notifiedMap, title);
+      // Bookmarked series have no "read up to" point, so the first check just
+      // establishes the current latest chapter as the baseline instead of
+      // firing a notification for every chapter that already existed before
+      // the series was bookmarked.
+      const lastNotified = hasBaseline
+        ? notifiedMap[title]
+        : (status === 'bookmarked' ? latest : knownChapter);
+
       if (latest > lastNotified) {
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -85,11 +98,13 @@ export async function checkForNewChapters(userId) {
         anyNew = true;
         // Brief pause between API calls to respect MangaDex rate limits
         await new Promise((r) => setTimeout(r, 600));
+      } else if (!hasBaseline) {
+        updatedMap[title] = lastNotified;
       }
     } catch (_) {}
   }
 
-  if (anyNew) {
+  if (anyNew || Object.keys(updatedMap).length !== Object.keys(notifiedMap).length) {
     await AsyncStorage.setItem(NOTIFIED_KEY, JSON.stringify(updatedMap)).catch(() => {});
   }
 }

@@ -13,7 +13,7 @@ import { insertActivity } from '../utils/activityFeed';
 import { RowSkeleton } from '../components/Skeleton';
 import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
 import { rateSeries, getSeriesRating } from '../utils/ratings';
-import { MANGA_POOL } from '../utils/mangaPool';
+import { findPoolEntry } from '../utils/mangaPool';
 import { useResponsive } from '../utils/responsive';
 
 
@@ -95,7 +95,7 @@ export default function DiscussionScreen() {
     if (!title || !currentUserId || seriesRating.submitting) return;
     setSeriesRating((prev) => ({ ...prev, yourRating: stars, submitting: true }));
     try {
-      const poolEntry = MANGA_POOL.find((m) => m.title === title || m.searchKey === searchKey);
+      const poolEntry = findPoolEntry(title, searchKey);
       const result = await rateSeries(currentUserId, title, stars, poolEntry?.genres || []);
       setSeriesRating((prev) => (result ? { ...prev, avg: result.avg, count: result.count, submitting: false } : { ...prev, submitting: false }));
     } catch (_) {
@@ -316,6 +316,8 @@ export default function DiscussionScreen() {
       await supabase.from('reports').insert({
         reporter_id: user?.id || currentUserId,
         content_id: String(reportItem.id),
+        content_type: 'discussion_comment',
+        content_snapshot: (reportItem.text || '').slice(0, 500),
         reason,
         created_at: new Date().toISOString(),
       });
@@ -382,7 +384,7 @@ export default function DiscussionScreen() {
                 <TouchableOpacity style={styles.ratingRow} onPress={() => setShowRateSheet(true)} activeOpacity={0.7}>
                   <StarRatingDisplay avg={seriesRating.avg} count={seriesRating.count} size={13} />
                   <Text style={[styles.rateLink, seriesRating.yourRating && { color: '#7B5CFF' }]}>
-                    {seriesRating.yourRating ? `You rated ${seriesRating.yourRating}★` : 'Rate it'}
+                    {seriesRating.yourRating ? `You rated ${seriesRating.yourRating}/10` : 'Rate it'}
                   </Text>
                 </TouchableOpacity>
               )}

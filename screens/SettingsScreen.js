@@ -1,4 +1,4 @@
-﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, Alert, ActivityIndicator, Image, Linking, Share } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, Alert, ActivityIndicator, Linking, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,8 +7,7 @@ import { supabase } from '../supabase';
 import { useProfile } from '../utils/ProfileContext';
 import { useTheme } from '../utils/ThemeContext';
 import MobileHeader from '../components/MobileHeader';
-import { ALL_SUPPORTED_SITES } from '../utils/mangaSearch';
-import { getFaviconUrl, AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsfwCache } from '../utils/mangaCovers';
+import { AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsfwCache } from '../utils/mangaCovers';
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
 import { clearBadgeCache } from '../utils/badgeEngine';
 import * as Haptics from 'expo-haptics';
@@ -17,11 +16,17 @@ import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { CHANGELOG } from '../utils/changelog';
 import { useResponsive } from '../utils/responsive';
+import { fetchAnilistMangaList } from '../utils/anilist';
 
 const NOTIFS_KEY      = '@mangarecs/notifPrefs';
 const READER_MODE_KEY = '@mangarecs/readerMode';
 const PAGE_ANIM_KEY   = '@mangarecs/pageAnim';
 const APP_VERSION     = Constants.expoConfig?.version || '1.0.0';
+// "What's New" only ever shows the notes for the version currently running —
+// falls back to the newest entry if the two ever drift out of sync.
+const currentChangelog = CHANGELOG.find((e) => e.version === APP_VERSION) || CHANGELOG[0];
+// Single-admin app — same id report-alert (Supabase edge function) hardcodes.
+const ADMIN_USER_ID   = '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0';
 
 function WebtoonIcon({ active }) {
   const arrowY = useRef(new Animated.Value(0)).current;
@@ -128,6 +133,38 @@ function NoneIcon({ active }) {
 }
 
 
+// Plan icon with a soft pulsing color halo behind it — gold for Pro, the app's
+// own dungeon-purple for Free — so the two tiers read as distinct "auras"
+// rather than a flat icon swap.
+function PlanGlowIcon({ icon, color }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  return (
+    <View style={iconStyles.planIconWrap}>
+      <Animated.View
+        style={[
+          iconStyles.planIconGlow,
+          {
+            backgroundColor: color,
+            opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.36] }),
+            transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.15] }) }],
+          },
+        ]}
+      />
+      <Ionicons name={icon} size={20} color={color} />
+    </View>
+  );
+}
+
 const THEMES = [
   { id: 'light', label: 'Light', icon: 'sunny' },
   { id: 'dark', label: 'Dark', icon: 'moon' },
@@ -174,7 +211,7 @@ function SettingsRow({ icon, label, desc, onPress }) {
 
 export default function SettingsScreen({ navigation }) {
   const { theme, setTheme, colors } = useTheme();
-  const { profile, updateProfile } = useProfile();
+  const { userId, profile, updateProfile } = useProfile();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
 
@@ -206,6 +243,10 @@ export default function SettingsScreen({ navigation }) {
   const [malUsername, setMalUsername] = useState('');
   const [anilistUsername, setAnilistUsername] = useState('');
   const [trackerSaved, setTrackerSaved] = useState(false);
+  const [anilistSync, setAnilistSync] = useState({ loading: false, error: false, data: null });
+  const [showTasteModal, setShowTasteModal] = useState(false);
+  const [genrePrefs, setGenrePrefs] = useState([]);
+  const [genrePrefsLoading, setGenrePrefsLoading] = useState(false);
   const [allowNsfw, setAllowNsfwState] = useState(false);
   const [ageVerified, setAgeVerified] = useState(false);
   const [showAgeGate, setShowAgeGate] = useState(false);
@@ -216,7 +257,7 @@ export default function SettingsScreen({ navigation }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('free');
-  const [maxBilling, setMaxBilling] = useState('monthly');
+  const [proBilling, setProBilling] = useState('monthly');
 
   useEffect(() => {
     AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@mangarecs/mal_username', '@mangarecs/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
@@ -230,11 +271,44 @@ export default function SettingsScreen({ navigation }) {
       if (savedMode) setReaderMode(savedMode);
       if (savedAnim) setPageAnim(savedAnim);
       if (malRaw) setMalUsername(malRaw);
-      if (anilistRaw) setAnilistUsername(anilistRaw);
+      if (anilistRaw) {
+        setAnilistUsername(anilistRaw);
+        syncAnilist(anilistRaw);
+      }
       setAgeVerified(ageRaw === 'true');
       if (nsfwRaw !== null) setAllowNsfwState(nsfwRaw === 'true');
     });
   }, []);
+
+  async function loadGenrePrefs() {
+    if (!userId) return;
+    setGenrePrefsLoading(true);
+    const { data } = await supabase
+      .from('user_genre_preferences')
+      .select('genre, weight')
+      .eq('user_id', userId)
+      .order('weight', { ascending: false });
+    setGenrePrefs(data || []);
+    setGenrePrefsLoading(false);
+  }
+
+  async function adjustGenreWeight(genre, delta) {
+    if (!userId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setGenrePrefs((prev) => {
+      const next = prev.map((g) => (g.genre === genre ? { ...g, weight: Math.max(0, g.weight + delta) } : g));
+      return next.sort((a, b) => b.weight - a.weight);
+    });
+    await supabase.rpc('upsert_genre_weight', { p_user_id: userId, p_genre: genre, p_delta: delta });
+  }
+
+  async function syncAnilist(username) {
+    const name = (username || '').trim();
+    if (!name) { setAnilistSync({ loading: false, error: false, data: null }); return; }
+    setAnilistSync({ loading: true, error: false, data: null });
+    const data = await fetchAnilistMangaList(name);
+    setAnilistSync({ loading: false, error: !data, data });
+  }
 
   async function toggleAiRec(value) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -330,13 +404,40 @@ export default function SettingsScreen({ navigation }) {
     }
   }
 
-  async function handleClearCache() {
+  function handleClearCache() {
+    Alert.alert(
+      'Clear cache?',
+      'This frees up cached cover images and deletes any chapters you downloaded for offline reading. Your library, ratings, and reading progress are not affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: performClearCache },
+      ]
+    );
+  }
+
+  async function performClearCache() {
     clearAllCoversCache();
     try {
       const cacheDir = FileSystem.cacheDirectory;
       if (cacheDir) {
         const items = await FileSystem.readDirectoryAsync(cacheDir).catch(() => []);
         await Promise.all(items.map((name) => FileSystem.deleteAsync(cacheDir + name, { idempotent: true }).catch(() => {})));
+      }
+    } catch (_) {}
+    try {
+      // Downloaded chapters live under documentDirectory, not cacheDirectory, so
+      // the block above never reached them even though this button promises to
+      // free "images & chapters". Wipe the folder and drop the now-dangling
+      // "downloaded" entries from the saved library list so Library doesn't
+      // keep showing offline chapters that no longer exist on disk.
+      await FileSystem.deleteAsync(FileSystem.documentDirectory + 'chapters/', { idempotent: true }).catch(() => {});
+      const savedRaw = await AsyncStorage.getItem('@mangarecs_saved');
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        const kept = saved.filter((s) => !s.downloaded);
+        if (kept.length !== saved.length) {
+          await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(kept));
+        }
       }
     } catch (_) {}
     setCacheCleared(true);
@@ -434,21 +535,6 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
-        <SectionCard title="Reading Sources" icon="globe-outline">
-          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 12 }]}>
-            MangaRecs automatically picks the best site based on content type — no setup needed.
-          </Text>
-          {ALL_SUPPORTED_SITES.map((site) => (
-            <View key={site.url} style={[styles.sourceSiteRow, { borderColor: colors.border }]}>
-              <Image source={{ uri: getFaviconUrl(site.url) }} style={styles.topSiteFavicon} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={[styles.sourceSiteName, { color: colors.text }]}>{site.emoji} {site.name}</Text>
-                <Text style={[styles.sourceSiteDesc, { color: colors.muted }]}>{site.desc}</Text>
-              </View>
-            </View>
-          ))}
-        </SectionCard>
-
         <SectionCard title="Content" icon="shield-outline">
           <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
@@ -462,6 +548,16 @@ export default function SettingsScreen({ navigation }) {
               thumbColor="#fff"
             />
           </View>
+          <TouchableOpacity
+            style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}
+            onPress={() => { setShowTasteModal(true); loadGenrePrefs(); }}
+            activeOpacity={0.7}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Tune My Taste</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>See and adjust the genre weights behind your Recs feed.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </TouchableOpacity>
           <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -594,6 +690,41 @@ export default function SettingsScreen({ navigation }) {
               <Text style={styles.smallCtaText}>Open</Text>
             </TouchableOpacity>
           </View>
+          {anilistSync.loading && (
+            <View style={styles.anilistSyncRow}>
+              <ActivityIndicator size="small" color="#7B5CFF" />
+              <Text style={[styles.anilistSyncText, { color: colors.muted }]}>Syncing AniList list…</Text>
+            </View>
+          )}
+          {!anilistSync.loading && anilistSync.error && (
+            <Text style={[styles.anilistSyncText, { color: '#E24B4A', marginTop: 8 }]}>
+              Couldn't find that AniList username, or their list is private.
+            </Text>
+          )}
+          {!anilistSync.loading && anilistSync.data && (
+            <View style={[styles.anilistCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <Text style={[styles.anilistCardTitle, { color: colors.text }]}>
+                {anilistSync.data.total} series on AniList
+              </Text>
+              <View style={styles.anilistCountsRow}>
+                {anilistSync.data.counts.map((c) => (
+                  <View key={c.status} style={[styles.anilistCountChip, { borderColor: colors.border }]}>
+                    <Text style={[styles.anilistCountText, { color: colors.text }]}>{c.count} {c.label}</Text>
+                  </View>
+                ))}
+              </View>
+              {anilistSync.data.current.length > 0 && (
+                <>
+                  <Text style={[styles.anilistCardSub, { color: colors.muted }]}>Currently reading</Text>
+                  {anilistSync.data.current.map((e) => (
+                    <Text key={e.title} style={[styles.anilistEntryText, { color: colors.text }]} numberOfLines={1}>
+                      {e.title} <Text style={{ color: colors.muted }}>· ch. {e.progress}</Text>
+                    </Text>
+                  ))}
+                </>
+              )}
+            </View>
+          )}
           {(malUsername.trim() || anilistUsername.trim()) ? (
             <TouchableOpacity
               style={[styles.smallCta, { marginTop: 12, alignSelf: 'flex-end' }]}
@@ -607,6 +738,7 @@ export default function SettingsScreen({ navigation }) {
                 updateProfile({ mal_username: mal || null, anilist_username: anilist || null });
                 setTrackerSaved(true);
                 setTimeout(() => setTrackerSaved(false), 1500);
+                syncAnilist(anilist);
               }}>
               {trackerSaved ? (
                 <><Ionicons name="checkmark" size={13} color="#fff" /><Text style={styles.smallCtaText}>Saved</Text></>
@@ -675,10 +807,10 @@ export default function SettingsScreen({ navigation }) {
 
         <TouchableOpacity style={styles.upgradeCard} onPress={() => setShowPlans(true)} activeOpacity={0.85}>
           <View style={styles.upgradeLeft}>
-            <Ionicons name="diamond" size={20} color="#7B5CFF" />
+            <Ionicons name="star" size={20} color="#FFD700" />
             <View style={{ marginLeft: 12 }}>
               <Text style={[styles.upgradeTitle, { color: colors.text }]}>Upgrade Plan</Text>
-              <Text style={[styles.upgradeSub, { color: colors.muted }]}>Free · Pro · MAX — see what's included</Text>
+              <Text style={[styles.upgradeSub, { color: colors.muted }]}>Free · Pro — see what's included</Text>
             </View>
           </View>
           <Ionicons name="open-outline" size={18} color={colors.muted} />
@@ -732,6 +864,16 @@ export default function SettingsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </SectionCard>
+
+        {userId === ADMIN_USER_ID && (
+          <SectionCard title="Admin" icon="hammer-outline">
+            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Moderation')} activeOpacity={0.7}>
+              <Ionicons name="flag-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
+              <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>Moderation Queue</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+            </TouchableOpacity>
+          </SectionCard>
+        )}
 
         <SectionCard title="Account" icon="person-circle-outline">
           <View style={styles.cacheRow}>
@@ -802,38 +944,37 @@ export default function SettingsScreen({ navigation }) {
 
             <View style={styles.plansRow}>
               {[
-                { id: 'free', icon: 'flash-outline', label: 'Free', price: '$0' },
-                { id: 'pro', icon: 'diamond-outline', label: 'Pro', price: '$3.99/mo' },
-                { id: 'max', icon: 'sparkles', label: 'MAX', price: maxBilling === 'monthly' ? '$9.99/mo' : '$60/yr', best: true },
+                { id: 'free', icon: 'flash-outline', label: 'Free', glow: '#7B5CFF', price: '$0' },
+                { id: 'pro', icon: 'star', label: 'Pro', glow: '#FFD700', price: proBilling === 'monthly' ? '$4.99/mo' : '$29.99/yr' },
               ].map((plan) => (
                 <TouchableOpacity
                   key={plan.id}
-                  style={[styles.planCard, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedPlan === plan.id && styles.planCardActive, plan.best && styles.planCardBest]}
+                  style={[styles.planCard, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedPlan === plan.id && { borderColor: plan.glow, backgroundColor: `${plan.glow}14` }]}
                   onPress={() => setSelectedPlan(plan.id)}>
-                  {plan.best && (
+                  {plan.id === 'pro' && (
                     <View style={styles.bestBadge}>
-                      <Text style={styles.bestBadgeText}>BEST VALUE</Text>
+                      <Text style={styles.bestBadgeText}>UNLOCK MORE</Text>
                     </View>
                   )}
-                  <Ionicons name={plan.icon} size={20} color={selectedPlan === plan.id ? '#7B5CFF' : plan.best ? '#FFD700' : colors.muted} />
-                  <Text style={[styles.planLabel, { color: colors.muted }, plan.best && styles.planLabelBest]}>{plan.label}</Text>
-                  <Text style={[styles.planPrice, { color: colors.text }, selectedPlan === plan.id && styles.planPriceActive]}>{plan.price}</Text>
+                  <PlanGlowIcon icon={plan.icon} color={plan.glow} />
+                  <Text style={[styles.planLabel, { color: colors.muted }, selectedPlan === plan.id && { color: plan.glow }]}>{plan.label}</Text>
+                  <Text style={[styles.planPrice, { color: colors.text }, selectedPlan === plan.id && { color: plan.glow }]}>{plan.price}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {selectedPlan === 'max' && (
+            {selectedPlan === 'pro' && (
               <View style={styles.billingRow}>
                 <TouchableOpacity
-                  style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, maxBilling === 'monthly' && styles.billingBtnActive]}
-                  onPress={() => setMaxBilling('monthly')}>
-                  <Text style={[styles.billingBtnText, { color: colors.muted }, maxBilling === 'monthly' && styles.billingBtnTextActive]}>$9.99/Mo</Text>
+                  style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, proBilling === 'monthly' && styles.billingBtnActive]}
+                  onPress={() => setProBilling('monthly')}>
+                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'monthly' && styles.billingBtnTextActive]}>$4.99/Mo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, maxBilling === 'yearly' && styles.billingBtnActive]}
-                  onPress={() => setMaxBilling('yearly')}>
+                  style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, proBilling === 'yearly' && styles.billingBtnActive]}
+                  onPress={() => setProBilling('yearly')}>
                   <View style={styles.saveBadge}><Text style={styles.saveBadgeText}>50% OFF</Text></View>
-                  <Text style={[styles.billingBtnText, { color: colors.muted }, maxBilling === 'yearly' && styles.billingBtnTextActive]}>$60/Yr</Text>
+                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'yearly' && styles.billingBtnTextActive]}>$29.99/Yr</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -856,24 +997,13 @@ export default function SettingsScreen({ navigation }) {
             {selectedPlan === 'pro' && [
               'Everything in Free',
               'No ads',
+              'Unlimited chapter downloads, offline',
               'Custom Audio Ambience uploads',
-              'Early chapter release reminders',
-              'Chapter countdown timers',
-              'Priority support',
-            ].map((f) => (
-              <View key={f} style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color="#7B5CFF" />
-                <Text style={[styles.featureText, { color: colors.text }]}>{f}</Text>
-              </View>
-            ))}
-            {selectedPlan === 'max' && [
-              'Everything in Pro',
-              'Unlimited chapter downloads',
-              'Exclusive MAX badge & profile flair',
+              'Early chapter release reminders & countdown timers',
+              'Exclusive Pro badge & profile flair',
               'Beta features & early access',
               'Creator insights & analytics',
-              'Offline reading mode',
-              'MAX-only community channels',
+              'Priority support',
             ].map((f) => (
               <View key={f} style={styles.featureRow}>
                 <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
@@ -882,20 +1012,67 @@ export default function SettingsScreen({ navigation }) {
             ))}
 
             <TouchableOpacity
-              style={[styles.ctaBtn, selectedPlan === 'max' && styles.ctaBtnMax]}
+              style={[styles.ctaBtn, selectedPlan === 'pro' && styles.ctaBtnPro]}
               onPress={() => {
                 if (selectedPlan !== 'free') {
-                  Alert.alert('Coming Soon', 'Paid plans will be available in the next update. Stay tuned!');
+                  Alert.alert('Coming Soon', 'Paid plans will be available after launch. Stay tuned!');
                 }
               }}>
-              <Text style={styles.ctaBtnText}>
+              <Text style={[styles.ctaBtnText, selectedPlan === 'pro' && styles.ctaBtnTextPro]}>
                 {selectedPlan === 'free' ? "You're on the Free plan" :
-                 selectedPlan === 'pro' ? 'Start Free Trial' :
-                 `Get MAX — ${maxBilling === 'yearly' ? '$60/yr (Save $60)' : '$9.99/mo'}`}
+                 `Start Free Trial — ${proBilling === 'yearly' ? '$29.99/yr' : '$4.99/mo'}`}
               </Text>
             </TouchableOpacity>
             {selectedPlan !== 'free' && (
               <Text style={[styles.cancelText, { color: colors.muted }]}>Cancel anytime · No commitment</Text>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showTasteModal} animationType="slide" transparent onRequestClose={() => setShowTasteModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Tune My Taste</Text>
+                <Text style={[styles.modalSub, { color: colors.muted }]}>
+                  These weights come from series you've rated, liked, and swiped on — higher weight means Recs shows you more of that genre. Nudge any genre up or down.
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowTasteModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            {genrePrefsLoading ? (
+              <ActivityIndicator color="#7B5CFF" style={{ marginVertical: 24 }} />
+            ) : genrePrefs.length === 0 ? (
+              <Text style={[styles.modalSub, { color: colors.muted, marginTop: 12 }]}>
+                No taste data yet — rate, like, or swipe on a few series to build your profile.
+              </Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                {genrePrefs.map((g) => (
+                  <View key={g.genre} style={[styles.tasteRow, { borderColor: colors.border }]}>
+                    <Text style={[styles.tasteGenre, { color: colors.text }]} numberOfLines={1}>{g.genre}</Text>
+                    <View style={styles.tasteControls}>
+                      <TouchableOpacity
+                        style={[styles.tasteStepBtn, { borderColor: colors.border }]}
+                        onPress={() => adjustGenreWeight(g.genre, -1)}
+                        disabled={g.weight <= 0}>
+                        <Ionicons name="remove" size={16} color={g.weight <= 0 ? colors.border : colors.text} />
+                      </TouchableOpacity>
+                      <Text style={[styles.tasteWeight, { color: colors.text }]}>{g.weight}</Text>
+                      <TouchableOpacity
+                        style={[styles.tasteStepBtn, { borderColor: colors.border }]}
+                        onPress={() => adjustGenreWeight(g.genre, 1)}>
+                        <Ionicons name="add" size={16} color={colors.text} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
             )}
           </View>
         </View>
@@ -906,28 +1083,23 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>What's New</Text>
-                <Text style={[styles.modalSub, { color: colors.muted }]}>Updates & bug fixes</Text>
+              <View style={styles.changelogTitleRow}>
+                <Text style={[styles.changelogModalTitle, { color: colors.text }]}>What's New</Text>
+                <View style={styles.changelogVersionPill}>
+                  <Text style={styles.changelogVersionPillText}>v{currentChangelog.version}</Text>
+                </View>
               </View>
-              <TouchableOpacity onPress={() => setShowChangelog(false)}>
-                <Ionicons name="close" size={22} color={colors.muted} />
+              <TouchableOpacity onPress={() => setShowChangelog(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
+            <Text style={[styles.changelogDate, { color: colors.muted, marginTop: -12, marginBottom: 14 }]}>{currentChangelog.date}</Text>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
-              {CHANGELOG.map((entry, i) => (
-                <View key={entry.version} style={[styles.changelogEntry, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
-                  <View style={styles.changelogEntryHeader}>
-                    <Text style={[styles.changelogVersion, { color: colors.text }]}>v{entry.version}</Text>
-                    <Text style={[styles.changelogDate, { color: colors.muted }]}>{entry.date}</Text>
-                  </View>
-                  {entry.highlights.map((h, hi) => (
-                    <View key={hi} style={[styles.featureRow, { alignItems: 'flex-start' }]}>
-                      <Ionicons name="checkmark-circle" size={16} color="#7B5CFF" style={{ marginTop: 2 }} />
-                      <Text style={[styles.featureText, { color: colors.text, flex: 1, flexShrink: 1 }]}>{h}</Text>
-                    </View>
-                  ))}
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
+              {currentChangelog.highlights.map((h, hi) => (
+                <View key={hi} style={styles.changelogRow}>
+                  <Ionicons name="checkmark-circle" size={13} color="#7B5CFF" style={{ marginTop: 1.5 }} />
+                  <Text style={[styles.changelogText, { color: colors.text }]}>{h}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -946,6 +1118,8 @@ const iconStyles = StyleSheet.create({
   triangleRight: { width: 0, height: 0, borderTopWidth: 4, borderBottomWidth: 4, borderLeftWidth: 5, borderTopColor: 'transparent', borderBottomColor: 'transparent', marginLeft: 2 },
   animPreviewBox: { width: 32, height: 24, borderRadius: 6, borderWidth: 1 },
   animPreviewInner: { width: '100%', height: '100%', borderRadius: 6, borderWidth: 1 },
+  planIconWrap: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  planIconGlow: { position: 'absolute', width: 32, height: 32, borderRadius: 16 },
 });
 
 const styles = StyleSheet.create({
@@ -961,12 +1135,22 @@ const styles = StyleSheet.create({
   input: { flex: 1, borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 13, marginRight: 8 },
   smallCta: { backgroundColor: '#7B5CFF', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   smallCtaText: { color: '#fff', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  anilistSyncRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 },
+  anilistSyncText: { fontSize: 12 },
+  anilistCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 10 },
+  anilistCardTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  anilistCountsRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  anilistCountChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginRight: 6, marginBottom: 6 },
+  anilistCountText: { fontSize: 11, fontWeight: '600' },
+  anilistCardSub: { fontSize: 11, fontWeight: '600', marginTop: 6, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  anilistEntryText: { fontSize: 12, marginBottom: 3 },
+  tasteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, paddingVertical: 12 },
+  tasteGenre: { fontSize: 14, fontWeight: '600', flex: 1, marginRight: 12 },
+  tasteControls: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tasteStepBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  tasteWeight: { fontSize: 14, fontWeight: '700', minWidth: 20, textAlign: 'center' },
   warningRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   warningTextDanger: { color: '#E24B4A', fontSize: 11, marginLeft: 5 },
-  topSiteFavicon: { width: 16, height: 16, borderRadius: 3, backgroundColor: '#2A2A2F' },
-  sourceSiteRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8 },
-  sourceSiteName: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
-  sourceSiteDesc: { fontSize: 11 },
   themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   themeBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
   themeBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
@@ -1018,15 +1202,11 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: 'bold' },
   modalSub: { fontSize: 13, marginTop: 4 },
   plansRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  planCard: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 12, marginHorizontal: 4, borderWidth: 1, position: 'relative' },
-  planCardActive: { borderColor: '#7B5CFF', backgroundColor: '#1A1633' },
-  planCardBest: { borderColor: '#FFD700' },
+  planCard: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, marginHorizontal: 4, borderWidth: 1, position: 'relative' },
   bestBadge: { position: 'absolute', top: -10, backgroundColor: '#FFD700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   bestBadgeText: { color: '#000', fontSize: 8, fontWeight: 'bold', paddingRight: 2 },
-  planLabel: { fontSize: 12, marginTop: 6 },
-  planLabelBest: { color: '#FFD700' },
+  planLabel: { fontSize: 12, marginTop: 6, fontWeight: '600' },
   planPrice: { fontSize: 13, fontWeight: 'bold', marginTop: 4 },
-  planPriceActive: { color: '#7B5CFF' },
   billingRow: { flexDirection: 'row', marginBottom: 16 },
   billingBtn: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, marginHorizontal: 4, borderWidth: 1, flexDirection: 'row', justifyContent: 'center' },
   billingBtnActive: { borderColor: '#7B5CFF', backgroundColor: '#1A1633' },
@@ -1037,12 +1217,16 @@ const styles = StyleSheet.create({
   whatsIncluded: { fontSize: 11, fontWeight: '600', letterSpacing: 1, marginBottom: 12, marginTop: 4 },
   featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   featureText: { fontSize: 14, marginLeft: 10 },
-  changelogEntry: { paddingTop: 12, paddingBottom: 4 },
-  changelogEntryHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 },
-  changelogVersion: { fontSize: 16, fontWeight: '700' },
-  changelogDate: { fontSize: 12 },
+  changelogTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  changelogModalTitle: { fontSize: 18, fontWeight: 'bold' },
+  changelogVersionPill: { backgroundColor: 'rgba(123,92,255,0.14)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  changelogVersionPillText: { color: '#7B5CFF', fontSize: 11, fontWeight: '700' },
+  changelogDate: { fontSize: 11 },
+  changelogRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 9 },
+  changelogText: { fontSize: 12.5, lineHeight: 17.5, flex: 1, flexShrink: 1 },
   ctaBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
-  ctaBtnMax: { backgroundColor: '#FFD700' },
+  ctaBtnPro: { backgroundColor: '#FFD700' },
   ctaBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  ctaBtnTextPro: { color: '#1A1400' },
   cancelText: { fontSize: 12, textAlign: 'center', marginTop: 10 },
 });

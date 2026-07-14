@@ -669,9 +669,21 @@ export const MANGA_POOL = [
 
 // Shared lookup so every screen resolves the same pool entry for a given
 // title/searchKey instead of each maintaining its own copy of this logic.
+// Case/whitespace-insensitive — a strict `===` match silently missed titles
+// saved with slightly different casing or spacing (different save flows each
+// captured the title their own way), which meant the SAME pool series would
+// sometimes resolve to its curated rating/cover/chapter-count and sometimes
+// fall through to live third-party data instead (visible as a rating that
+// didn't match the website, or a cover that seemed to "cycle").
+function normTitle(s) {
+  return (s || '').toLowerCase().trim();
+}
 export function findPoolEntry(title, searchKey) {
-  return MANGA_POOL.find((m) =>
-    m.title === title || m.searchKey === title ||
-    (searchKey && (m.title === searchKey || m.searchKey === searchKey))
-  );
+  const t = normTitle(title);
+  const sk = normTitle(searchKey);
+  return MANGA_POOL.find((m) => {
+    const mt = normTitle(m.title);
+    const msk = normTitle(m.searchKey);
+    return mt === t || msk === t || (sk && (mt === sk || msk === sk));
+  });
 }

@@ -23,6 +23,15 @@ import { useResponsive, TABLET_GRID_MAX_WIDTH } from '../utils/responsive';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
 const TABS = ['Reading', 'Completed', 'Bookmarked', 'Downloaded'];
+// Context-menu delete label matches whichever tab the long-pressed entry lives
+// in, instead of a generic "Delete from Library" — each entry only ever lives
+// in one section at a time, so this is always accurate.
+const DELETE_LABEL = {
+  Reading: 'Delete from Reading',
+  Completed: 'Delete from Completed',
+  Bookmarked: 'Delete from Bookmarked',
+  Downloaded: 'Delete from Downloaded',
+};
 const UPDATE_CACHE_KEY = '@mangarecs/updates_cache';
 const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
 const RATINGS_CACHE_KEY = '@mangarecs/ratings_cache';
@@ -471,7 +480,7 @@ export default function LibraryScreen() {
   // to long-press "Mark as Completed".
 
   function isKnownFinished(title) {
-    const pool = MANGA_POOL.find((m) => m.title === title || m.searchKey === title);
+    const pool = findPoolEntry(title);
     if (!pool) return false;
     return pool.status === 'completed' || COMPLETED_IDS.has(String(pool.id));
   }
@@ -1272,18 +1281,26 @@ export default function LibraryScreen() {
             <View style={[styles.contextMenu, { top: menuTop, left: menuLeft }]}>
               <TouchableOpacity style={styles.contextMenuItem} onPress={handleDeleteFromLibrary}>
                 <Ionicons name="trash-outline" size={15} color="#FF3B30" />
-                <Text style={[styles.contextMenuText, { color: '#FF3B30' }]}>Delete from Library</Text>
+                <Text style={[styles.contextMenuText, { color: '#FF3B30' }]}>{DELETE_LABEL[activeTab] || 'Delete from Library'}</Text>
               </TouchableOpacity>
-              <View style={styles.contextDivider} />
-              <TouchableOpacity style={styles.contextMenuItem} onPress={handleAddToBookmarked}>
-                <Ionicons name="bookmark-outline" size={15} color="#A09CE0" />
-                <Text style={styles.contextMenuText}>Add to Bookmarked</Text>
-              </TouchableOpacity>
-              <View style={styles.contextDivider} />
-              <TouchableOpacity style={styles.contextMenuItem} onPress={handleMarkAsCompleted}>
-                <Ionicons name="checkmark-circle-outline" size={15} color="#1D9E75" />
-                <Text style={[styles.contextMenuText, { color: '#1D9E75' }]}>Mark as Completed</Text>
-              </TouchableOpacity>
+              {activeTab !== 'Bookmarked' && (
+                <>
+                  <View style={styles.contextDivider} />
+                  <TouchableOpacity style={styles.contextMenuItem} onPress={handleAddToBookmarked}>
+                    <Ionicons name="bookmark-outline" size={15} color="#A09CE0" />
+                    <Text style={styles.contextMenuText}>Add to Bookmarked</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              {activeTab !== 'Completed' && (
+                <>
+                  <View style={styles.contextDivider} />
+                  <TouchableOpacity style={styles.contextMenuItem} onPress={handleMarkAsCompleted}>
+                    <Ionicons name="checkmark-circle-outline" size={15} color="#1D9E75" />
+                    <Text style={[styles.contextMenuText, { color: '#1D9E75' }]}>Mark as Completed</Text>
+                  </TouchableOpacity>
+                </>
+              )}
               <View style={styles.contextDivider} />
               <TouchableOpacity style={styles.contextMenuItem} onPress={handleOpenRateModal}>
                 <Ionicons name="star-outline" size={15} color="#FFD700" />

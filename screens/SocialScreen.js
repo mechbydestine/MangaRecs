@@ -1007,6 +1007,8 @@ export default function SocialScreen() {
       await supabase.from('reports').insert({
         reporter_id: user?.id || currentUserId,
         content_id: String(reportItem.id),
+        content_type: 'series_discussion',
+        content_snapshot: reportItem.title || '',
         reason,
         created_at: new Date().toISOString(),
       });

@@ -1,4 +1,4 @@
-﻿import { View, Text, StyleSheet, Modal, TouchableOpacity, Share } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../utils/ThemeContext';
@@ -9,7 +9,11 @@ const SHARE_CARDS = [
   { id: 'rating',   label: 'My Rating',         emoji: '⭐' },
 ];
 
-export default function ShareToInstagram({ open, onClose, series, chapter, progress }) {
+// A shareable "story card" preview (like Instagram/TikTok's own story-share
+// cards) that hands off to the device's native share sheet — so the actual
+// destination picker is the real OS grid of installed apps, not a single
+// hardcoded app.
+export default function ShareCard({ open, onClose, series, chapter, progress }) {
   const { colors } = useTheme();
   const [selectedCard, setSelectedCard] = useState('progress');
   const [shared, setShared] = useState(false);
@@ -34,7 +38,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
     } catch (_) {}
   }
 
-  async function handleInstagram() {
+  async function handleShare() {
     try {
       await Share.share({
         message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on MangaRecs! 📚\nhttps://mangarecs.app/series/${series?.id || 'discover'}`,
@@ -51,7 +55,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: colors.text }]}>Share</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Share as Card</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={18} color={colors.muted} />
             </TouchableOpacity>
@@ -132,7 +136,7 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
                           key={s}
                           style={[
                             styles.star,
-                            { color: s <= Math.round(series?.rating || 4) ? '#facc15' : 'rgba(255,255,255,0.2)' },
+                            { color: s <= Math.round((series?.rating || 8) / 2) ? '#facc15' : 'rgba(255,255,255,0.2)' },
                           ]}
                         >
                           ★
@@ -161,9 +165,9 @@ export default function ShareToInstagram({ open, onClose, series, chapter, progr
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.igBtn} onPress={handleInstagram}>
+            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
               <Ionicons name="share-social-outline" size={16} color="#fff" />
-              <Text style={styles.igBtnText}>Share</Text>
+              <Text style={styles.shareBtnText}>Share</Text>
             </TouchableOpacity>
           </View>
 
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   copyBtnText: { fontSize: 14, fontWeight: '500', paddingRight: 2 },
-  igBtn: {
+  shareBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,7 +302,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#C13584',
+    backgroundColor: '#7B5CFF',
   },
-  igBtnText: { fontSize: 14, fontWeight: '600', color: '#fff', paddingRight: 2 },
+  shareBtnText: { fontSize: 14, fontWeight: '600', color: '#fff', paddingRight: 2 },
 });

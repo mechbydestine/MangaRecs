@@ -1280,14 +1280,16 @@ DROP FUNCTION IF EXISTS toggle_profile_upvote(UUID);
 DROP TABLE IF EXISTS profile_upvotes;
 DROP TABLE IF EXISTS badge_endorsements;
 
--- ── 39. Series ratings (1-5 stars) ────────────────────────────────────────────
+-- ── 39. Series ratings (1-10 points, half-star granularity) ──────────────────
 -- One rating per (user, series) — re-rating overwrites in place. Feeds the
 -- 'ratings' badge stat (profiles.ratings_count) and, client-side, nudges
 -- genre_weights via the existing upsert_genre_weight RPC.
+-- `stars` holds POINTS 1-10 (each of the 5 displayed stars is worth 2 points,
+-- so half-star taps are representable) — see §40 for the 5-star-scale rescale.
 CREATE TABLE IF NOT EXISTS series_ratings (
   user_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   series_title TEXT NOT NULL,
-  stars        SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
+  stars        SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 10),
   created_at   TIMESTAMPTZ DEFAULT now(),
   updated_at   TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (user_id, series_title)
@@ -1310,7 +1312,7 @@ DECLARE
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
   IF p_series_title IS NULL OR length(trim(p_series_title)) = 0 THEN RAISE EXCEPTION 'invalid series'; END IF;
-  IF p_stars < 1 OR p_stars > 5 THEN RAISE EXCEPTION 'stars must be 1-5'; END IF;
+  IF p_stars < 1 OR p_stars > 10 THEN RAISE EXCEPTION 'stars must be 1-10'; END IF;
   PERFORM consume_rate(uid, 'series_rate', 30, INTERVAL '1 hour');
 
   INSERT INTO series_ratings (user_id, series_title, stars, updated_at)
@@ -1344,6 +1346,26 @@ BEGIN
   RETURN jsonb_build_object('avg', COALESCE(v_avg, 0), 'count', COALESCE(v_count, 0), 'yourRating', v_mine);
 END; $$;
 GRANT EXECUTE ON FUNCTION get_series_rating(TEXT) TO authenticated, anon;
+
+-- ── 39a. Rescale existing series_ratings from 1-5 stars to 1-10 points ───────
+-- §39's table/RPCs above already reflect the new 1-10 range for fresh installs.
+-- On an already-deployed project the table still has the old 1-5 CHECK and
+-- old data — this doubles every stored rating (old 4★ -> 8/10) and widens the
+-- constraint. Guarded on the constraint's current definition so it's a no-op
+-- (safe to re-run) once it has already been applied.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'series_ratings'::regclass
+      AND conname = 'series_ratings_stars_check'
+      AND pg_get_constraintdef(oid) LIKE '%<= 5%'
+  ) THEN
+    ALTER TABLE series_ratings DROP CONSTRAINT series_ratings_stars_check;
+    UPDATE series_ratings SET stars = stars * 2;
+    ALTER TABLE series_ratings ADD CONSTRAINT series_ratings_stars_check CHECK (stars BETWEEN 1 AND 10);
+  END IF;
+END $$;
 
 -- ── 40. Discord-style identity: editable display_name + immutable username ──
 -- Two names per user from here on:
@@ -1511,3 +1533,95 @@ DROP POLICY IF EXISTS "Anyone can sign up for launch notify" ON launch_notify;
 CREATE POLICY "Anyone can sign up for launch notify"
   ON launch_notify FOR INSERT
   WITH CHECK (true);
+
+-- ── 43. Moderation queue: report metadata + admin-gated RPCs ─────────────────
+-- `reports` (§9/§45) only ever had the RLS to let a reporter INSERT and the
+-- service_role (edge function) SELECT — nothing let a human actually browse
+-- the queue. Adds what kind of content was reported and a text snapshot of it
+-- at report time (so the queue still shows something useful if the underlying
+-- comment/message is edited or deleted later), plus two SECURITY DEFINER RPCs
+-- gated to the single admin account (same id report-alert already hardcodes)
+-- so the client can list and resolve reports without opening broader RLS.
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS content_type TEXT;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS content_snapshot TEXT;
+
+CREATE OR REPLACE FUNCTION get_reports_queue()
+RETURNS TABLE(
+  id UUID, reporter_username TEXT, content_type TEXT, content_id TEXT,
+  content_snapshot TEXT, reason TEXT, resolved BOOLEAN, created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public STABLE AS $$
+BEGIN
+  -- `!=` against NULL evaluates to NULL (not TRUE), so an unauthenticated caller
+  -- (auth.uid() IS NULL) silently skipped this guard entirely. IS DISTINCT FROM
+  -- treats NULL as a real value and closes that hole.
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  RETURN QUERY
+  SELECT r.id, p.username, r.content_type, r.content_id, r.content_snapshot, r.reason, r.resolved, r.created_at
+  FROM reports r
+  LEFT JOIN profiles p ON p.id = r.reporter_id
+  ORDER BY r.resolved ASC, r.created_at DESC
+  LIMIT 200;
+END; $$;
+REVOKE ALL ON FUNCTION get_reports_queue() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_reports_queue() TO authenticated;
+
+CREATE OR REPLACE FUNCTION resolve_report(p_report_id UUID, p_resolved BOOLEAN DEFAULT true)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  -- Same NULL-safety fix as get_reports_queue() above.
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  UPDATE reports SET resolved = p_resolved WHERE id = p_report_id;
+END; $$;
+REVOKE ALL ON FUNCTION resolve_report(UUID, BOOLEAN) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION resolve_report(UUID, BOOLEAN) TO authenticated;
+
+-- ── 44. Baseline social-proof counts + likes/like_count column reconciliation ─
+-- §36 added `likes` alongside the original `like_count`, but every live path
+-- (increment_manga_likes, get_personalized_feed's scoring, realtime updates)
+-- only ever touched `likes` — `like_count` was a dead column frozen at 0 since
+-- §43's reset, while the app's initial feed fetch read *that* dead column.
+-- The client fix (FeedScreen.js) now reads `likes`; this backfills it so a
+-- once-legitimate `like_count` value isn't lost, and is a no-op going forward.
+UPDATE manga_pool SET likes = GREATEST(likes, like_count) WHERE like_count > likes;
+
+-- Every count is 0 for a brand-new account base, which reads as "nobody uses
+-- this app" to a new visitor. Seed likes/bookmarks/shares with numbers scaled
+-- by each title's own popularity (its `readers` figure, e.g. "12.3M"), as if
+-- roughly 100 early users had already engaged proportionally to how popular
+-- the series actually is — comments are deliberately left untouched (real
+-- discussion counts, not a number that's fine to fake). Only raises a count
+-- that's currently below its computed baseline, so any already-live/organic
+-- number (from real likes/bookmarks/shares since launch) is never lowered.
+CREATE OR REPLACE FUNCTION _parse_reader_count(txt TEXT) RETURNS NUMERIC
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE
+    WHEN txt IS NULL OR txt = '' THEN 0
+    WHEN txt ~* '[0-9.]+\s*M' THEN (regexp_replace(txt, '[^0-9.]', '', 'g'))::numeric * 1000000
+    WHEN txt ~* '[0-9.]+\s*K' THEN (regexp_replace(txt, '[^0-9.]', '', 'g'))::numeric * 1000
+    ELSE COALESCE(NULLIF(regexp_replace(txt, '[^0-9.]', '', 'g'), '')::numeric, 0)
+  END;
+$$;
+
+DO $$
+DECLARE
+  r RECORD;
+  pct NUMERIC;
+BEGIN
+  FOR r IN
+    SELECT id, likes, bookmark_count, share_count,
+           PERCENT_RANK() OVER (ORDER BY _parse_reader_count(readers)) AS p
+    FROM manga_pool
+  LOOP
+    pct := r.p;
+    UPDATE manga_pool SET
+      likes          = GREATEST(likes,          (5  + pct * 90 + (random() * 10 - 5))::int),
+      bookmark_count = GREATEST(bookmark_count,  (3  + pct * 55 + (random() * 8  - 4))::int),
+      share_count    = GREATEST(share_count,     (1  + pct * 30 + (random() * 6  - 3))::int)
+    WHERE id = r.id;
+  END LOOP;
+END $$;
