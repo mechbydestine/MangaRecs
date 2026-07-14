@@ -184,7 +184,12 @@
     font-size: 1.6rem; font-weight: 800; color: #fff; box-shadow: 0 0 0 4px var(--bg-panel);
   }
   .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .profile-namewrap { flex: 1; min-width: 200px; padding-top: 32px; }
+  .profile-namewrap { flex: 1 1 160px; min-width: 0; padding-top: 32px; }
+  @media (max-width: 420px) {
+    .profile-hero-body { padding: 0 14px 16px; gap: 12px; margin-top: -24px; }
+    .profile-avatar { width: 64px; height: 64px; font-size: 1.2rem; }
+    .profile-namewrap { padding-top: 24px; }
+  }
   .profile-username { font-size: 1.4rem; font-weight: 800; margin: 0 0 4px; }
   .profile-handle { font-size: 0.82rem; color: var(--ink-faint); margin: 6px 0 0; }
   .profile-bio-text { font-size: 0.9rem; color: var(--ink-muted); margin: 0; display: inline; }
@@ -782,7 +787,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="poster-title">' + esc(r.series_title) + '</div>' +
       (r.status === 'reading' ?
         '<div class="lib-progress">' +
-          '<span class="lib-progress-text">Ch. ' + (r.current_chapter || 1) + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</span>' +
+          '<span class="lib-progress-text">Ch. ' + (r.current_chapter != null ? r.current_chapter : 1) + (r.total_chapters ? ' of ' + r.total_chapters : '') + '</span>' +
         '</div>' : '') +
     '</div>';
   }
