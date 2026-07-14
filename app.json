@@ -11,6 +11,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080614"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mangarecs.app",
@@ -41,15 +46,6 @@
     "plugins": [
       "expo-web-browser",
       "expo-audio",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#080614"
-        }
-      ],
       [
         "expo-notifications",
         {
