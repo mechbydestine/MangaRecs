@@ -593,7 +593,15 @@ export default function LibraryScreen() {
     && !deletedIds.has(liveReading.title)
     && !deletedIds.has(liveReading.searchKey)
     && !INVALID_HIST_TITLE.test((liveReading.title || '').trim())
-    && !liveReading.title?.startsWith('http');
+    && !liveReading.title?.startsWith('http')
+    // profile.currently_reading is a standalone "last opened" pointer that
+    // never gets cleared when that series' real reading_progress row moves to
+    // 'completed' (or gets bookmarked/deleted) — so it kept rendering a
+    // phantom "still reading" card here even after the authoritative row said
+    // otherwise. That phantom card shares the same title as the real row, so
+    // deleting it deleted the real (e.g. completed) row too. Defer entirely
+    // to reading_progress whenever it already has ANY row for this title.
+    && !progressRows.some((r) => r.series_title === liveReading.title);
 
   const readingSeries = [
     ...(liveReadingValid && !baseReadingSeries.some((s) => s.title === liveReading.title) && !progressReading.some((s) => s.title === liveReading.title) ? [liveReading] : []),
