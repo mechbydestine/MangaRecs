@@ -175,14 +175,16 @@
   }
 
   /* ── My Profile ────────────────────────────────────────────────────── */
-  .profile-hero { display: flex; align-items: center; gap: 20px; padding: 28px 0; flex-wrap: wrap; }
+  .profile-hero-card { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--bg-panel); margin: 20px 0 18px; }
+  .profile-banner { height: 110px; width: 100%; background-size: cover; background-position: center; }
+  .profile-hero-body { display: flex; align-items: center; gap: 16px; padding: 0 20px 20px; margin-top: -32px; flex-wrap: wrap; }
   .profile-avatar {
     width: 84px; height: 84px; border-radius: 50%; border: 3px solid; flex: none;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
-    font-size: 1.6rem; font-weight: 800; color: #fff;
+    font-size: 1.6rem; font-weight: 800; color: #fff; box-shadow: 0 0 0 4px var(--bg-panel);
   }
   .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .profile-namewrap { flex: 1; min-width: 200px; }
+  .profile-namewrap { flex: 1; min-width: 200px; padding-top: 32px; }
   .profile-username { font-size: 1.4rem; font-weight: 800; margin: 0 0 4px; }
   .profile-handle { font-size: 0.82rem; color: var(--ink-faint); margin: 6px 0 0; }
   .profile-bio-text { font-size: 0.9rem; color: var(--ink-muted); margin: 0; display: inline; }
@@ -195,7 +197,18 @@
   .profile-bio-actions { display: flex; gap: 8px; margin-top: 8px; }
   .profile-bio-actions .btn-primary, .profile-bio-actions .btn-ghost { padding: 8px 14px; font-size: 0.8rem; }
 
-  .profile-stats-row { display: flex; gap: 10px; margin: 20px 0 14px; flex-wrap: wrap; }
+  .profile-favorites { margin: 0 0 22px; }
+  .profile-favorites-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+  .profile-favorites-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .profile-fave { flex: none; width: 88px; text-align: center; }
+  .profile-fave-cover {
+    width: 88px; height: 118px; border-radius: 10px; background-size: cover; background-position: center;
+    border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; font-weight: 800; color: #fff; box-shadow: var(--shadow);
+  }
+  .profile-fave-title { font-size: 0.74rem; font-weight: 600; margin-top: 7px; line-height: 1.25; color: var(--ink-muted); }
+
+  .profile-stats-row { display: flex; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
   .profile-stat-card {
     flex: 1; min-width: 110px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
     padding: 14px 12px; text-align: center; cursor: pointer; font-family: inherit;
@@ -204,32 +217,18 @@
   .profile-stat-value { font-size: 1.2rem; font-weight: 800; color: var(--stat-c, var(--accent)); }
   .profile-stat-label { font-size: 0.74rem; color: var(--ink-muted); margin-top: 2px; font-weight: 600; }
 
-  .profile-streak-grid { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
-  .profile-streak-daylabels { display: flex; flex-direction: column; gap: 3px; flex: none; }
-  .profile-streak-month-spacer { height: 14px; }
-  .profile-streak-daylabel { height: 11px; width: 14px; font-size: 0.55rem; color: var(--ink-faint); line-height: 11px; }
-  .profile-streak-weeks { display: flex; gap: 3px; }
-  .profile-streak-col { display: flex; flex-direction: column; gap: 3px; flex: none; }
-  .profile-streak-month { height: 14px; font-size: 0.6rem; color: var(--ink-faint); font-weight: 700; white-space: nowrap; }
-  .profile-streak-cell { width: 11px; height: 11px; border-radius: 2px; }
-
-  .profile-badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin: 16px 0 24px; }
-  .profile-badge-tile {
-    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; border-radius: 12px;
-    border: 1.5px solid var(--line); text-align: center; cursor: default;
+  .profile-streak-card { width: fit-content; max-width: 100%; margin-bottom: 30px; }
+  .profile-streak-grid { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+  .profile-streak-daylabels { display: flex; flex-direction: column; gap: 4px; flex: none; }
+  .profile-streak-month-spacer { height: 18px; }
+  .profile-streak-daylabel { height: 15px; width: 18px; font-size: 0.62rem; color: var(--ink-faint); line-height: 15px; }
+  .profile-streak-weeks { display: flex; gap: 4px; }
+  .profile-streak-col { display: flex; flex-direction: column; gap: 4px; flex: none; }
+  .profile-streak-month { height: 18px; font-size: 0.66rem; color: var(--ink-faint); font-weight: 700; white-space: nowrap; }
+  .profile-streak-cell { width: 15px; height: 15px; border-radius: 3px; }
+  @media (max-width: 480px) {
+    .profile-streak-daylabel, .profile-streak-cell { width: 12px; height: 12px; }
   }
-  .profile-badge-tile.locked { opacity: 0.45; padding: 8px; }
-  .profile-badge-emoji { font-size: 1.6rem; }
-  .profile-badge-name { font-size: 0.7rem; font-weight: 700; line-height: 1.2; }
-
-  .profile-nextup { margin-bottom: 30px; }
-  .profile-nextup-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 10px; }
-  .profile-nextup-row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .profile-nextup-card { flex: 1; min-width: 130px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; }
-  .profile-nextup-name { font-size: 0.78rem; font-weight: 700; margin: 6px 0 8px; }
-  .profile-nextup-track { height: 5px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; }
-  .profile-nextup-fill { height: 100%; border-radius: 999px; }
-  .profile-nextup-count { font-size: 0.7rem; color: var(--ink-faint); margin-top: 6px; }
 
   /* ── Poster grid ───────────────────────────────────────────────────── */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
@@ -980,11 +979,28 @@ document.addEventListener('DOMContentLoaded', function () {
     '</button>';
   }
 
-  function profileBadgeTileHtml(badge) {
-    var g = BADGE_GRADES[badge.grade];
-    return '<div class="profile-badge-tile" style="border-color:' + g.border + ';background:' + g.bg + ';" title="' + esc(badge.desc) + '">' +
-      '<span class="profile-badge-emoji">' + badge.icon + '</span>' +
-      '<span class="profile-badge-name" style="color:' + g.color + ';">' + esc(badge.name) + '</span>' +
+  function normalizeFavesWeb(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(function (f) {
+      if (typeof f === 'string') return { title: f };
+      if (f && !f.title && (f.seriesTitle || f.series_title || f.name)) {
+        var copy = {};
+        for (var k in f) { if (f.hasOwnProperty(k)) copy[k] = f[k]; }
+        copy.title = f.seriesTitle || f.series_title || f.name;
+        return copy;
+      }
+      return f;
+    }).filter(function (f) { return f && f.title; }).slice(0, 5);
+  }
+
+  function profileFaveThumbHtml(f) {
+    var initial = (f.title || '?').charAt(0).toUpperCase();
+    var color = f.color || '#241F45';
+    return '<div class="profile-fave">' +
+      '<div class="profile-fave-cover" style="' + (f.coverUrl ? 'background-image:url(' + esc(f.coverUrl) + ');' : 'background:' + esc(color) + ';') + '">' +
+        (f.coverUrl ? '' : '<span>' + esc(initial) + '</span>') +
+      '</div>' +
+      '<div class="profile-fave-title">' + esc(f.title) + '</div>' +
     '</div>';
   }
 
@@ -1021,9 +1037,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var stats = profileToBadgeStats(profile);
       var earnedIds = computeEarnedBadgeIds(stats);
-      var earnedBadges = ALL_BADGES.filter(function (b) { return earnedIds.has(b.id) && !b.hidden; })
-        .sort(function (a, b) { return GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade); });
-      var nextUp = nextUpBadges(stats, earnedIds, 3);
+      var faves = normalizeFavesWeb(profile.favorites);
 
       var username = profile.username || 'Reader';
       var bio = profile.bio || '';
@@ -1039,26 +1053,36 @@ document.addEventListener('DOMContentLoaded', function () {
         : (stats.hours_read || 0);
 
       app.innerHTML =
-        '<div class="profile-hero">' +
-          '<div class="profile-avatar" style="background:linear-gradient(135deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');border-color:' + theme.ring + ';">' +
-            (profile.avatar_url ? '<img src="' + esc(profile.avatar_url) + '" alt="" />' : '<span>' + esc(initials) + '</span>') +
-          '</div>' +
-          '<div class="profile-namewrap">' +
-            '<h1 class="profile-username">' + esc(username) + '</h1>' +
-            '<div class="profile-bio-view" id="profileBioView">' +
-              '<p class="profile-bio-text">' + (bio ? esc(bio) : '<span class="profile-bio-empty">Add a bio so people know your taste…</span>') + '</p>' +
-              '<button class="profile-bio-edit-btn" id="profileBioEditBtn" type="button">Edit bio</button>' +
+        '<div class="profile-hero-card">' +
+          '<div class="profile-banner" style="' + (profile.banner_url ? 'background-image:url(' + esc(profile.banner_url) + ');' : 'background:linear-gradient(120deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');') + '"></div>' +
+          '<div class="profile-hero-body">' +
+            '<div class="profile-avatar" style="background:linear-gradient(135deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');border-color:' + theme.ring + ';">' +
+              (profile.avatar_url ? '<img src="' + esc(profile.avatar_url) + '" alt="" />' : '<span>' + esc(initials) + '</span>') +
             '</div>' +
-            '<div class="profile-bio-edit" id="profileBioEdit" style="display:none;">' +
-              '<textarea id="profileBioInput" maxlength="100" placeholder="Write your bio...">' + esc(bio) + '</textarea>' +
-              '<div class="profile-bio-actions">' +
-                '<button class="btn-primary" id="profileBioSave" type="button">Save</button>' +
-                '<button class="btn-ghost" id="profileBioCancel" type="button">Cancel</button>' +
+            '<div class="profile-namewrap">' +
+              '<h1 class="profile-username">' + esc(username) + '</h1>' +
+              '<div class="profile-bio-view" id="profileBioView">' +
+                '<p class="profile-bio-text">' + (bio ? esc(bio) : '<span class="profile-bio-empty">Add a bio so people know your taste…</span>') + '</p>' +
+                '<button class="profile-bio-edit-btn" id="profileBioEditBtn" type="button">Edit bio</button>' +
               '</div>' +
+              '<div class="profile-bio-edit" id="profileBioEdit" style="display:none;">' +
+                '<textarea id="profileBioInput" maxlength="100" placeholder="Write your bio...">' + esc(bio) + '</textarea>' +
+                '<div class="profile-bio-actions">' +
+                  '<button class="btn-primary" id="profileBioSave" type="button">Save</button>' +
+                  '<button class="btn-ghost" id="profileBioCancel" type="button">Cancel</button>' +
+                '</div>' +
+              '</div>' +
+              '<p class="profile-handle">@' + esc(profile.username || 'reader') + (joinDate ? ' · Joined ' + joinDate : '') + '</p>' +
             '</div>' +
-            '<p class="profile-handle">@' + esc(profile.username || 'reader') + (joinDate ? ' · Joined ' + joinDate : '') + '</p>' +
           '</div>' +
         '</div>' +
+
+        (faves.length
+          ? '<div class="profile-favorites">' +
+              '<div class="profile-favorites-title">Favorites</div>' +
+              '<div class="profile-favorites-row">' + faves.map(profileFaveThumbHtml).join('') + '</div>' +
+            '</div>'
+          : '') +
 
         '<div class="profile-stats-row" id="profileStatsRow">' +
           profileStatCardHtml('read', 'Read', String(entriesRead), '#7B5CFF') +
@@ -1067,29 +1091,10 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<div class="profile-stat-detail" id="profileStatDetail" style="display:none;"></div>' +
 
-        '<div class="card">' +
+        '<div class="card profile-streak-card">' +
           '<div class="card-title">Reading Streak' + (stats.streak_count ? ' · ' + stats.streak_count + 'd' : '') + '</div>' +
           profileStreakGridHtml(dailyLog) +
-        '</div>' +
-
-        '<div class="section-head"><h1 class="section-title" style="font-size:1.1rem;">Badges Earned</h1><span style="color:var(--ink-faint);font-size:0.84rem;">' + earnedIds.size + ' / ' + ALL_BADGES.length + '</span></div>' +
-        (earnedBadges.length
-          ? '<div class="profile-badges-grid">' + earnedBadges.map(profileBadgeTileHtml).join('') + '</div>'
-          : '<p class="statemsg" style="padding:24px 0;">No badges yet — start reading to earn your first one.</p>') +
-
-        (nextUp.length
-          ? '<div class="profile-nextup"><div class="profile-nextup-title">NEXT UP</div><div class="profile-nextup-row">' +
-              nextUp.map(function (n) {
-                var g = BADGE_GRADES[n.badge.grade];
-                return '<div class="profile-nextup-card">' +
-                  '<div class="profile-badge-tile locked" style="border-color:' + g.border + ';"><span class="profile-badge-emoji">' + n.badge.icon + '</span></div>' +
-                  '<div class="profile-nextup-name">' + esc(n.badge.name) + '</div>' +
-                  '<div class="profile-nextup-track"><div class="profile-nextup-fill" style="width:' + Math.round(n.pct * 100) + '%;background:' + g.color + ';"></div></div>' +
-                  '<div class="profile-nextup-count">' + n.current.toLocaleString() + ' / ' + n.target.toLocaleString() + '</div>' +
-                '</div>';
-              }).join('') +
-            '</div></div>'
-          : '');
+        '</div>';
 
       document.getElementById('profileBioEditBtn').addEventListener('click', function () {
         document.getElementById('profileBioView').style.display = 'none';
