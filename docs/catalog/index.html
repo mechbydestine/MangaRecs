@@ -144,6 +144,7 @@
   .catchip.active { background: var(--accent); color: #fff; border-color: transparent; }
   #catRailMobile { display: none; }
   @media (max-width: 900px) { #catRailMobile { display: flex; } }
+  .navtabs.lib-hide, #catRailMobile.lib-hide { display: none !important; }
 
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
   .section-title { font-size: 1.3rem; font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: -0.005em; }
@@ -734,6 +735,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderLibrary() {
     setActiveTab(null);
+    navTabsEl.classList.add('lib-hide');
+    catRailMobile.classList.add('lib-hide');
     if (!getCurrentUser()) {
       app.innerHTML =
         '<div class="lib-signedout">' +
@@ -850,6 +853,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ── Router ────────────────────────────────────────────────────────────
   function router() {
+    navTabsEl.classList.remove('lib-hide');
+    catRailMobile.classList.remove('lib-hide');
     var hash = location.hash.replace(/^#/, '') || '/';
     var parts = hash.split('/').filter(Boolean);
     if (parts[0] === 'title' && parts[1]) return renderDetail(parts[1]);
