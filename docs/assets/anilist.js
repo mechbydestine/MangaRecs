@@ -50,7 +50,7 @@ var MEDIA_FIELDS = 'id title { romaji english native } description(asHtml: false
   'staff(perPage: 6) { edges { role node { name { full } } } } ' +
   'characters(perPage: 8, sort: ROLE) { edges { role node { id name { full } image { medium } } } } ' +
   'tags { name isMediaSpoiler rank } ' +
-  'externalLinks { url site }';
+  'externalLinks { url site type isDisabled }';
 
 function searchMedia(query, category, page) {
   var filters = 'search: $search, type: MANGA, sort: SEARCH_MATCH';

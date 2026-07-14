@@ -416,7 +416,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© 2026 MangaRecs. Built solo.</span>
+    <span>© 2026 MangaRecs. Built solo. Catalog data via <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.</span>
     <span><a href="/">Home</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
   </div>
 </footer>
@@ -561,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var genresHtml = m.genres.map(function (g) { return '<span class="genrechip">' + esc(g) + '</span>'; }).join('');
       var spoilerTags = m.tags.filter(function (t) { return t.rank >= 60 && !t.isMediaSpoiler; }).slice(0, 8);
       var warnTags = m.tags.filter(function (t) { return /Gore|Violence|Sexual|Rape|Suicide|Abuse/i.test(t.name); });
-      var readLinks = m.externalLinks.filter(function (l) { return l.site && l.url; });
+      var readLinks = m.externalLinks.filter(function (l) { return l.site && l.url && l.type === 'STREAMING' && !l.isDisabled; });
       var descHtml = (m.description || 'No synopsis available.').replace(/<br\s*\/?>/gi, ' ').replace(/\n+/g, ' ');
       var descShort = descHtml.length > 420 ? descHtml.slice(0, 420) + '…' : descHtml;
       var recs = ((m.recommendations && m.recommendations.nodes) || [])
@@ -618,6 +618,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '</dl>' +
             '</div>' +
             (readLinks.length ? '<div class="card"><div class="card-title">Read Available</div>' +
+              '<p style="font-size:0.78rem;color:var(--ink-faint);margin:-4px 0 12px;">External, official sources — not hosted or affiliated with MangaRecs.</p>' +
               readLinks.map(function (l) { return '<a class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:flex-start;" href="' + l.url + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>' + esc(l.site) + '</a>'; }).join('') +
               '</div>' : '') +
             (warnTags.length ? '<div class="card warncard"><div class="card-title">Content Warnings</div>' +
