@@ -174,6 +174,63 @@
     display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 0.72rem; color: var(--ink-faint);
   }
 
+  /* ── My Profile ────────────────────────────────────────────────────── */
+  .profile-hero { display: flex; align-items: center; gap: 20px; padding: 28px 0; flex-wrap: wrap; }
+  .profile-avatar {
+    width: 84px; height: 84px; border-radius: 50%; border: 3px solid; flex: none;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    font-size: 1.6rem; font-weight: 800; color: #fff;
+  }
+  .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-namewrap { flex: 1; min-width: 200px; }
+  .profile-username { font-size: 1.4rem; font-weight: 800; margin: 0 0 4px; }
+  .profile-handle { font-size: 0.82rem; color: var(--ink-faint); margin: 6px 0 0; }
+  .profile-bio-text { font-size: 0.9rem; color: var(--ink-muted); margin: 0; display: inline; }
+  .profile-bio-empty { color: var(--ink-faint); }
+  .profile-bio-edit-btn { background: none; border: none; color: var(--accent); font-size: 0.78rem; font-weight: 700; margin-left: 8px; cursor: pointer; padding: 0; }
+  .profile-bio-edit textarea {
+    width: 100%; max-width: 420px; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; color: var(--ink); font-size: 0.86rem; font-family: inherit; resize: vertical; min-height: 60px; box-sizing: border-box;
+  }
+  .profile-bio-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .profile-bio-actions .btn-primary, .profile-bio-actions .btn-ghost { padding: 8px 14px; font-size: 0.8rem; }
+
+  .profile-stats-row { display: flex; gap: 10px; margin: 20px 0 14px; flex-wrap: wrap; }
+  .profile-stat-card {
+    flex: 1; min-width: 110px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 12px; text-align: center; cursor: pointer; font-family: inherit;
+  }
+  .profile-stat-card:hover { border-color: var(--stat-c, var(--accent)); }
+  .profile-stat-value { font-size: 1.2rem; font-weight: 800; color: var(--stat-c, var(--accent)); }
+  .profile-stat-label { font-size: 0.74rem; color: var(--ink-muted); margin-top: 2px; font-weight: 600; }
+
+  .profile-streak-grid { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+  .profile-streak-daylabels { display: flex; flex-direction: column; gap: 3px; flex: none; }
+  .profile-streak-month-spacer { height: 14px; }
+  .profile-streak-daylabel { height: 11px; width: 14px; font-size: 0.55rem; color: var(--ink-faint); line-height: 11px; }
+  .profile-streak-weeks { display: flex; gap: 3px; }
+  .profile-streak-col { display: flex; flex-direction: column; gap: 3px; flex: none; }
+  .profile-streak-month { height: 14px; font-size: 0.6rem; color: var(--ink-faint); font-weight: 700; white-space: nowrap; }
+  .profile-streak-cell { width: 11px; height: 11px; border-radius: 2px; }
+
+  .profile-badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin: 16px 0 24px; }
+  .profile-badge-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; border-radius: 12px;
+    border: 1.5px solid var(--line); text-align: center; cursor: default;
+  }
+  .profile-badge-tile.locked { opacity: 0.45; padding: 8px; }
+  .profile-badge-emoji { font-size: 1.6rem; }
+  .profile-badge-name { font-size: 0.7rem; font-weight: 700; line-height: 1.2; }
+
+  .profile-nextup { margin-bottom: 30px; }
+  .profile-nextup-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 10px; }
+  .profile-nextup-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .profile-nextup-card { flex: 1; min-width: 130px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; }
+  .profile-nextup-name { font-size: 0.78rem; font-weight: 700; margin: 6px 0 8px; }
+  .profile-nextup-track { height: 5px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; }
+  .profile-nextup-fill { height: 100%; border-radius: 999px; }
+  .profile-nextup-count { font-size: 0.7rem; color: var(--ink-faint); margin-top: 6px; }
+
   /* ── Poster grid ───────────────────────────────────────────────────── */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
   @media (max-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
@@ -425,6 +482,7 @@
 <script src="/assets/auth.js" defer></script>
 <script src="/assets/nav-widgets.js" defer></script>
 <script src="/assets/anilist.js" defer></script>
+<script src="/assets/badges.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
@@ -843,6 +901,255 @@ document.addEventListener('DOMContentLoaded', function () {
       }).catch(function () { document.getElementById('libList').innerHTML = '<p class="statemsg">Couldn\'t load your library. Try again in a moment.</p>'; });
   }
 
+  // ── My Profile ────────────────────────────────────────────────────────
+  var PROFILE_THEMES = {
+    default: { ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'] },
+    rose:    { ring: '#D4537E', gradient: ['#D4537E', '#993556'] },
+    sky:     { ring: '#378ADD', gradient: ['#378ADD', '#185FA5'] },
+    emerald: { ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'] },
+    amber:   { ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'] },
+    violet:  { ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'] },
+    crimson: { ring: '#FF5C7A', gradient: ['#FF5C7A', '#7A0F2E'] },
+  };
+
+  function fmtHrsWeb(h) {
+    h = h || 0;
+    if (h < 1) return Math.round(h * 60) + 'm';
+    return (Math.round(h * 10) / 10) + 'h';
+  }
+
+  function profileDateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function profileStreakColor(hours) {
+    if (!hours || hours <= 0) return null;
+    if (hours < 0.25) return '#2D2872';
+    if (hours < 0.75) return '#3D3580';
+    if (hours < 1.5) return '#4A40A0';
+    return '#7B5CFF';
+  }
+
+  function profileStreakGridHtml(dailyLog) {
+    var log = dailyLog || {};
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    var startSunday = new Date(firstOfLastMonth);
+    startSunday.setDate(startSunday.getDate() - startSunday.getDay());
+    var allDays = [];
+    var cursor = new Date(startSunday);
+    while (cursor <= today) { allDays.push(new Date(cursor)); cursor.setDate(cursor.getDate() + 1); }
+    while (allDays.length % 7 !== 0) allDays.push(null);
+    var weeks = [];
+    for (var i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
+
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var monthHeaders = weeks.map(function (week) {
+      for (var j = 0; j < week.length; j++) { if (week[j] && week[j].getDate() === 1) return MONTHS[week[j].getMonth()]; }
+      return null;
+    });
+    if (!monthHeaders[0]) {
+      var first = weeks[0].filter(Boolean)[0];
+      monthHeaders[0] = first ? MONTHS[first.getMonth()] : null;
+    }
+
+    var colsHtml = weeks.map(function (week, wi) {
+      var cellsHtml = week.map(function (day) {
+        if (!day) return '<div class="profile-streak-cell" style="background:var(--bg-sunken);opacity:.15;"></div>';
+        var future = day > today;
+        var hours = future ? 0 : (log[profileDateKey(day)] || 0);
+        var color = profileStreakColor(hours);
+        var inMonth = day.getMonth() === today.getMonth() && day.getFullYear() === today.getFullYear();
+        return '<div class="profile-streak-cell" style="background:' + (color || 'var(--bg-sunken)') + ';opacity:' + (future ? 0.15 : inMonth ? 1 : 0.45) + ';" title="' + profileDateKey(day) + (hours ? ' · ' + fmtHrsWeb(hours) : '') + '"></div>';
+      }).join('');
+      return '<div class="profile-streak-col"><div class="profile-streak-month">' + (monthHeaders[wi] || '') + '</div>' + cellsHtml + '</div>';
+    }).join('');
+
+    return '<div class="profile-streak-grid">' +
+      '<div class="profile-streak-daylabels"><div class="profile-streak-month-spacer"></div>' +
+        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(function (l) { return '<div class="profile-streak-daylabel">' + l + '</div>'; }).join('') +
+      '</div>' +
+      '<div class="profile-streak-weeks">' + colsHtml + '</div>' +
+    '</div>';
+  }
+
+  function profileStatCardHtml(key, label, value, color) {
+    return '<button class="profile-stat-card" type="button" data-stat="' + key + '" style="--stat-c:' + color + ';">' +
+      '<div class="profile-stat-value">' + esc(value) + '</div>' +
+      '<div class="profile-stat-label">' + esc(label) + '</div>' +
+    '</button>';
+  }
+
+  function profileBadgeTileHtml(badge) {
+    var g = BADGE_GRADES[badge.grade];
+    return '<div class="profile-badge-tile" style="border-color:' + g.border + ';background:' + g.bg + ';" title="' + esc(badge.desc) + '">' +
+      '<span class="profile-badge-emoji">' + badge.icon + '</span>' +
+      '<span class="profile-badge-name" style="color:' + g.color + ';">' + esc(badge.name) + '</span>' +
+    '</div>';
+  }
+
+  function renderProfile() {
+    setActiveTab(null);
+    navTabsEl.classList.add('lib-hide');
+    catRailMobile.classList.add('lib-hide');
+    if (!getCurrentUser()) {
+      app.innerHTML =
+        '<div class="lib-signedout">' +
+          '<h1 class="section-title">My Profile</h1>' +
+          '<p>Sign in to see your profile, synced with the app.</p>' +
+        '</div>';
+      return;
+    }
+    app.innerHTML = '<div class="skeleton" style="height:320px;border-radius:16px;"></div>';
+    var uid = getCurrentUser().id;
+
+    Promise.all([
+      sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
+      sb.auth.getUser(),
+      sb.from('reading_progress').select('series_title,current_chapter,total_chapters,status').eq('user_id', uid),
+    ]).then(function (results) {
+      var profile = (results[0] && results[0].data) || {};
+      var authUser = results[1] && results[1].data && results[1].data.user;
+      var progressRows = (results[2] && results[2].data) || [];
+
+      var entriesRead = 0;
+      var seen = {};
+      progressRows.forEach(function (r) {
+        var qualifies = r.status === 'completed' || (r.total_chapters > 0 && r.current_chapter / r.total_chapters >= 0.5);
+        if (qualifies && !seen[r.series_title]) { seen[r.series_title] = true; entriesRead++; }
+      });
+
+      var stats = profileToBadgeStats(profile);
+      var earnedIds = computeEarnedBadgeIds(stats);
+      var earnedBadges = ALL_BADGES.filter(function (b) { return earnedIds.has(b.id) && !b.hidden; })
+        .sort(function (a, b) { return GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade); });
+      var nextUp = nextUpBadges(stats, earnedIds, 3);
+
+      var username = profile.username || 'Reader';
+      var bio = profile.bio || '';
+      var joinDate = authUser && authUser.created_at
+        ? new Date(authUser.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : '';
+      var theme = PROFILE_THEMES[profile.color] || PROFILE_THEMES.default;
+      var initials = username.slice(0, 2).toUpperCase();
+
+      var dailyLog = profile.daily_log || {};
+      var totalHrs = Object.keys(dailyLog).length
+        ? Object.values(dailyLog).reduce(function (s, h) { return s + h; }, 0)
+        : (stats.hours_read || 0);
+
+      app.innerHTML =
+        '<div class="profile-hero">' +
+          '<div class="profile-avatar" style="background:linear-gradient(135deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');border-color:' + theme.ring + ';">' +
+            (profile.avatar_url ? '<img src="' + esc(profile.avatar_url) + '" alt="" />' : '<span>' + esc(initials) + '</span>') +
+          '</div>' +
+          '<div class="profile-namewrap">' +
+            '<h1 class="profile-username">' + esc(username) + '</h1>' +
+            '<div class="profile-bio-view" id="profileBioView">' +
+              '<p class="profile-bio-text">' + (bio ? esc(bio) : '<span class="profile-bio-empty">Add a bio so people know your taste…</span>') + '</p>' +
+              '<button class="profile-bio-edit-btn" id="profileBioEditBtn" type="button">Edit bio</button>' +
+            '</div>' +
+            '<div class="profile-bio-edit" id="profileBioEdit" style="display:none;">' +
+              '<textarea id="profileBioInput" maxlength="100" placeholder="Write your bio...">' + esc(bio) + '</textarea>' +
+              '<div class="profile-bio-actions">' +
+                '<button class="btn-primary" id="profileBioSave" type="button">Save</button>' +
+                '<button class="btn-ghost" id="profileBioCancel" type="button">Cancel</button>' +
+              '</div>' +
+            '</div>' +
+            '<p class="profile-handle">@' + esc(profile.username || 'reader') + (joinDate ? ' · Joined ' + joinDate : '') + '</p>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="profile-stats-row" id="profileStatsRow">' +
+          profileStatCardHtml('read', 'Read', String(entriesRead), '#7B5CFF') +
+          profileStatCardHtml('time', 'Time Read', fmtHrsWeb(totalHrs), '#1D9E75') +
+          profileStatCardHtml('genre', 'Fav. Genre', profile.favorite_genre || '—', '#FFD700') +
+        '</div>' +
+        '<div class="profile-stat-detail" id="profileStatDetail" style="display:none;"></div>' +
+
+        '<div class="card">' +
+          '<div class="card-title">Reading Streak' + (stats.streak_count ? ' · ' + stats.streak_count + 'd' : '') + '</div>' +
+          profileStreakGridHtml(dailyLog) +
+        '</div>' +
+
+        '<div class="section-head"><h1 class="section-title" style="font-size:1.1rem;">Badges Earned</h1><span style="color:var(--ink-faint);font-size:0.84rem;">' + earnedIds.size + ' / ' + ALL_BADGES.length + '</span></div>' +
+        (earnedBadges.length
+          ? '<div class="profile-badges-grid">' + earnedBadges.map(profileBadgeTileHtml).join('') + '</div>'
+          : '<p class="statemsg" style="padding:24px 0;">No badges yet — start reading to earn your first one.</p>') +
+
+        (nextUp.length
+          ? '<div class="profile-nextup"><div class="profile-nextup-title">NEXT UP</div><div class="profile-nextup-row">' +
+              nextUp.map(function (n) {
+                var g = BADGE_GRADES[n.badge.grade];
+                return '<div class="profile-nextup-card">' +
+                  '<div class="profile-badge-tile locked" style="border-color:' + g.border + ';"><span class="profile-badge-emoji">' + n.badge.icon + '</span></div>' +
+                  '<div class="profile-nextup-name">' + esc(n.badge.name) + '</div>' +
+                  '<div class="profile-nextup-track"><div class="profile-nextup-fill" style="width:' + Math.round(n.pct * 100) + '%;background:' + g.color + ';"></div></div>' +
+                  '<div class="profile-nextup-count">' + n.current.toLocaleString() + ' / ' + n.target.toLocaleString() + '</div>' +
+                '</div>';
+              }).join('') +
+            '</div></div>'
+          : '');
+
+      document.getElementById('profileBioEditBtn').addEventListener('click', function () {
+        document.getElementById('profileBioView').style.display = 'none';
+        document.getElementById('profileBioEdit').style.display = 'block';
+        document.getElementById('profileBioInput').focus();
+      });
+      document.getElementById('profileBioCancel').addEventListener('click', function () {
+        document.getElementById('profileBioEdit').style.display = 'none';
+        document.getElementById('profileBioView').style.display = 'block';
+      });
+      document.getElementById('profileBioSave').addEventListener('click', function () {
+        var clean = document.getElementById('profileBioInput').value.trim();
+        var btn = this;
+        btn.disabled = true;
+        sb.from('profiles').update({ bio: clean }).eq('id', uid).then(function (res) {
+          btn.disabled = false;
+          if (res.error) { alert('Could not save bio — try again.'); return; }
+          renderProfile();
+        });
+      });
+
+      var statDetailEl = document.getElementById('profileStatDetail');
+      var statSections = {
+        read: { title: 'Reading', color: '#7B5CFF', rows: [
+          ['Entries read', String(entriesRead)],
+          ['Chapters read', String(stats.chapters_read)],
+          ['Series in library', String(stats.series_count)],
+          ['Series completed', String(stats.completed_count)],
+          ['Badges earned', String(earnedIds.size)],
+        ] },
+        time: { title: 'Time Read', color: '#1D9E75', rows: [
+          ['Total', fmtHrsWeb(totalHrs)],
+          ['Current streak', stats.streak_count + 'd'],
+        ] },
+        genre: { title: 'Taste', color: '#FFD700', rows: [
+          ['Favorite genre', profile.favorite_genre || '—'],
+          ['Genres explored', String(stats.genres_count)],
+          ['Ratings given', String(stats.ratings_count)],
+          ['Comments', String(stats.comments_count)],
+          ['Likes given', String(stats.likes_given)],
+        ] },
+      };
+      var openStat = null;
+      document.getElementById('profileStatsRow').addEventListener('click', function (e) {
+        var card = e.target.closest('.profile-stat-card');
+        if (!card) return;
+        var key = card.getAttribute('data-stat');
+        if (openStat === key) { statDetailEl.style.display = 'none'; openStat = null; return; }
+        openStat = key;
+        var s = statSections[key];
+        statDetailEl.innerHTML = '<div class="card"><div class="card-title" style="color:' + s.color + ';">' + s.title + '</div>' +
+          s.rows.map(function (r) { return '<div class="info-row"><dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('') +
+        '</div>';
+        statDetailEl.style.display = 'block';
+      });
+    }).catch(function () {
+      app.innerHTML = '<p class="statemsg">Couldn\'t load your profile. Try again in a moment.</p>';
+    });
+  }
+
   function setActiveTab(id) {
     [navTabsEl, catRailMobile].forEach(function (rail) {
       Array.prototype.forEach.call(rail.children, function (el) {
@@ -861,6 +1168,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (parts[0] === 'browse' && parts[1]) return renderBrowse(parts[1]);
     if (parts[0] === 'search' && parts[1]) return renderSearch(decodeURIComponent(parts[1]));
     if (parts[0] === 'library') return renderLibrary();
+    if (parts[0] === 'profile') return renderProfile();
     return renderHome();
   }
   window.navigate = function (path) { location.hash = path; };

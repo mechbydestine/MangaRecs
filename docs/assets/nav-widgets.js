@@ -69,6 +69,7 @@ function initAccountPanel(btnId, panelId) {
   function signedInHtml(user) {
     return '' +
       '<div class="account-email">' + (user.email || 'Signed in') + '</div>' +
+      '<a class="btn-ghost-sm" href="/catalog/#/profile" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">My Profile</a>' +
       '<button class="btn-ghost-sm" id="accSignOut" type="button">Sign out</button>';
   }
 
