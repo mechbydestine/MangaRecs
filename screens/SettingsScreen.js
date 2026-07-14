@@ -894,7 +894,7 @@ export default function SettingsScreen({ navigation }) {
           onPress={async () => { await clearBadgeCache(); supabase.auth.signOut(); }}
           activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-          <Text style={styles.signOutText}>Log Out</Text>
+          <Text style={styles.signOutText} numberOfLines={1} allowFontScaling={false}>Log Out</Text>
         </TouchableOpacity>
 
         </View>
