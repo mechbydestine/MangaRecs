@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFonts } from 'expo-font';
 import * as Updates from 'expo-updates';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
@@ -440,6 +441,12 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
 // ── App ───────────────────────────────────────────────────────────────────
 
 export default function App() {
+  // Brand wordmark font (the site's nav/footer "MangaRecs" lockup, Libre
+  // Franklin ExtraBold under the hood) — loaded here so it's ready before the
+  // splash fallback and intro ever paint, instead of flashing in afterward.
+  const [fontsLoaded] = useFonts({
+    MangaRecsBrand: require('./assets/fonts/MangaRecsBrand-ExtraBold.ttf'),
+  });
   const [session, setSession]                 = useState(null);
   const [loading, setLoading]                 = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -601,13 +608,13 @@ export default function App() {
     };
   }, []);
 
-  if (loading || showIntro === null) {
+  if (loading || showIntro === null || !fontsLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
         <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120, marginBottom: 18 }} resizeMode="contain" />
         <View style={{ flexDirection: 'row' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5 }}>Manga</Text>
-          <Text style={{ color: '#B18CFF', fontSize: 30, fontWeight: '800', letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
+          <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#FFFFFF', fontSize: 30, letterSpacing: 0.5 }}>Manga</Text>
+          <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#B18CFF', fontSize: 30, letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
         </View>
         <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
       </View>
