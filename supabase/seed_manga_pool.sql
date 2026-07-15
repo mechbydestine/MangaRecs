@@ -1,10 +1,10 @@
 -- ── manga_pool seed ──────────────────────────────────────────────────────────
 -- Run ONCE in the Supabase SQL Editor after applying supabase_migrations.sql.
 -- Safe to re-run: ON CONFLICT (id) DO NOTHING.
--- Total target: 10,000 rows  (≈400 real curated entries + ≈9,600 generated)
+-- Real curated entries only — no procedurally-generated filler rows.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- ── PART 1: Real curated entries ─────────────────────────────────────────────
+-- ── Real curated entries ─────────────────────────────────────────────────────
 
 INSERT INTO manga_pool
   (id, title, lang, search_key, description, genres, rating, chapters, readers, author, updated, color, like_count, comment_count, nsfw)
@@ -251,83 +251,4 @@ VALUES
 ('amrngds','American Gods: The Shadows','en',NULL,'A man released from prison is hired by a stranger called Wednesday — who turns out to be an old god recruiting for a war against the new gods of media, technology, and globalisation.',ARRAY['Fantasy','Supernatural'],4.7,9,'2.5M','P. Craig Russell','7y ago','#1A0D0A',69000,5700,false),
 ('hmstk','Homestuck','en',NULL,'Four kids playing a computer game accidentally bring about the end of the world and must survive a labyrinthine adventure spanning universes, time, and reality itself.',ARRAY['Sci-Fi','Comedy'],4.5,8123,'6.1M','Andrew Hussie','8y ago','#1A1A0D',143000,11500,false)
 
-ON CONFLICT (id) DO NOTHING;
-
--- ── PART 2: Generated entries (gen_1 … gen_9600) ─────────────────────────────
--- Synthesised from rich vocabulary arrays; plausible genre/lang/rating distribution.
--- These expand the pool from ~400 real entries to 10,000 total.
-
-INSERT INTO manga_pool (id, title, lang, description, genres, rating, chapters, readers, color, like_count, comment_count)
-SELECT
-  'gen_' || gs AS id,
-
-  -- Title: adjective prefix + noun suffix  (80 × 120 = 9,600 unique combos)
-  (ARRAY[
-    'The Rising','Eternal','Fallen','Shadow','Ancient','Hidden','Blazing','Crimson',
-    'Shattered','Iron','Void','Silver','Golden','Dark','Celestial','Forsaken',
-    'Boundless','Undying','Sovereign','Phantom','Sacred','Cursed','Infinite','Hollow',
-    'Radiant','Midnight','Forgotten','Thunder','Dragon','Divine','Demon','Arcane',
-    'Lone','Sealed','Awakened','Shining','Wild','Lost','Broken','Ascendant',
-    'Vengeful','Immortal','Primordial','Twisted','Black','White','Jade','Blood',
-    'Frost','Storm','Night','Crimson','Bone','Soul','Star','Heaven',
-    'Hell','Abyss','Blade','Spear','Shield','Claw','Fist','Arrow',
-    'Wandering','Reborn','Forgotten','Silent','Burning','Fleeting','Rogue','Noble',
-    'Invincible','Supreme','Unbroken','Exile','Cursed','Hunted','Awakening','Fated'
-  ])[(gs % 80) + 1]
-  || ' ' ||
-  (ARRAY[
-    'Warrior','Kingdom','Legend','Path','Chronicle','Emperor','Sage','Phoenix',
-    'Dragon','Spirit','Blade','Monarch','Cultivator','Hunter','Guardian','Prodigy',
-    'Disciple','Swordsman','Mage','Archer','Assassin','Knight','Heir','Lord',
-    'Empress','Princess','Warlord','Wanderer','Scholar','Physician','Alchemist','Prophet',
-    'Sovereign','Hero','Villain','Demon','Saint','Sinner','Survivor','Champion',
-    'Exile','Fugitive','Berserker','Ronin','Shinobi','Paladin','Warlock','Witch',
-    'Summoner','Necromancer','Ranger','Rogue','Bard','Monk','Cleric','Tamer',
-    'Illusionist','Elementalist','Bloodliner','Reincarnator','Regressor','Commander','General','Admiral',
-    'Mercenary','Bounty Hunter','Pirate','Samurai','Ninja','Knight','Duelist','Oracle',
-    'Diviner','Inventor','Engineer','Blacksmith','Chef','Artist','Musician','Actor',
-    'Idol','Detective','Lawyer','Doctor','Teacher','Farmer','Fisherman','Carpenter',
-    'Sailor','Pilot','Soldier','Spy','Diplomat','Merchant','Scholar','Loner',
-    'Fool','Prodigy','Outcast','Pariah','Rebel','Revolutionary','Peacemaker','Betrayer'
-  ])[(((gs + 13) % 103) + 1)] AS title,
-
-  -- Language distribution: ja 35%, ko 35%, zh 20%, en 10%
-  (ARRAY['ja','ja','ja','ja','ja','ja','ja','ko','ko','ko','ko','ko','ko','ko','zh','zh','zh','zh','en','en'])[(gs % 20) + 1] AS lang,
-
-  -- Description
-  'An epic ' ||
-  (ARRAY['action','romance','fantasy','thriller','drama','comedy','supernatural','adventure',
-         'sports','horror','mystery','sci-fi','isekai','martial arts','psychological','historical'])[(gs % 16) + 1]
-  || ' story following a determined protagonist on a journey to uncover their true potential.' AS description,
-
-  -- Genres (single genre; client-side scoring still works fine)
-  ARRAY[(ARRAY[
-    'Action','Romance','Fantasy','Thriller','Drama','Comedy','Supernatural','Adventure',
-    'Sports','Horror','Mystery','Sci-Fi','Isekai','Martial Arts','Psychological',
-    'Historical','Slice of Life','Dark Fantasy','Superhero','Sci-Fi'
-  ])[(gs % 20) + 1]] AS genres,
-
-  -- Rating: 3.5–4.9  (cycles through 15 values)
-  (3.5 + ROUND((((gs % 15) * 0.1))::numeric, 1)) AS rating,
-
-  -- Chapter count: 10–800
-  ((gs % 200) + 10) AS chapters,
-
-  -- Readers: formatted string like '120K' to '4.8M'
-  CASE
-    WHEN gs % 10 < 3 THEN (((gs % 50) + 1) * 100)::text || 'K'
-    WHEN gs % 10 < 7 THEN (((gs % 20) + 5) * 50)::text || 'K'
-    ELSE ((1.0 + ROUND(((gs % 40) * 0.1)::numeric, 1))::text) || 'M'
-  END AS readers,
-
-  -- Color: cycles through 8 dark palette colors
-  (ARRAY['#0D1A2D','#1A0D0A','#0A1A2D','#2D1A0A','#0D0A2D','#1A2D0D','#2D0A0A','#0A0D1A'])[(gs % 8) + 1] AS color,
-
-  -- Like count: 1K–80K
-  ((gs % 80000) + 1000) AS like_count,
-
-  -- Comment count: 100–7000
-  ((gs % 7000) + 100) AS comment_count
-
-FROM generate_series(1, 9600) gs
 ON CONFLICT (id) DO NOTHING;

@@ -1028,9 +1028,9 @@ export default function ProfileScreen() {
                   <Ionicons name="time" size={11} color="#7B5CFF" />
                   <Text style={styles.todayBadgeText}>{(() => {
                     const hrs = dailyLog[localDateKey()] || 0;
-                    if (hrs <= 0) return 'Start reading';
-                    if (hrs < 1)  return `${Math.round(hrs * 60)}m today`;
-                    return `${Math.floor(hrs)}h ${Math.round((hrs % 1) * 60)}m Today `;
+                    if (hrs <= 0) return 'Start';
+                    if (hrs < 1)  return `${Math.round(hrs * 60)}m `;
+                    return `${Math.floor(hrs)}h ${Math.round((hrs % 1) * 60)}m Today`;
                   })()}</Text>
                 </View>
                 <View style={styles.fireBadge}>

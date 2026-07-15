@@ -22,7 +22,7 @@ import { rateSeries, getSeriesRating } from '../utils/ratings';
 import { useResponsive, TABLET_GRID_MAX_WIDTH } from '../utils/responsive';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
-const TABS = ['Reading', 'Completed', 'Bookmarked', 'Downloaded'];
+const TABS = ['Reading', 'Bookmarked', 'Downloaded', 'Completed'];
 // Context-menu delete label matches whichever tab the long-pressed entry lives
 // in, instead of a generic "Delete from Library" — each entry only ever lives
 // in one section at a time, so this is always accurate.
@@ -34,7 +34,10 @@ const DELETE_LABEL = {
 };
 const UPDATE_CACHE_KEY = '@mangarecs/updates_cache';
 const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
-const RATINGS_CACHE_KEY = '@mangarecs/ratings_cache';
+// v2: getMangaStatistics now returns { rating, readers } (was a bare, halved
+// rating number) and ratings are on the pool's native 0–10 scale — bump the
+// key so devices don't keep serving the old halved value for up to 7 days.
+const RATINGS_CACHE_KEY = '@mangarecs/ratings_cache_v2';
 const RATINGS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SORT_MODE_KEY = '@mangarecs/library_sort_mode';
 const CUSTOM_ORDER_KEY = '@mangarecs/library_custom_order';
@@ -886,7 +889,7 @@ export default function LibraryScreen() {
       if (toFetch.length) {
         const stats = await getMangaStatistics(toFetch.map((t) => t.mangaId));
         toFetch.forEach(({ key, mangaId }) => {
-          const rating = stats[mangaId] || null;
+          const rating = stats[mangaId]?.rating || null;
           cache[key] = { ts: now, rating };
           if (rating) found[key] = rating;
         });

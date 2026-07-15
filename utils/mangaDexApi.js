@@ -165,9 +165,11 @@ export async function getMangaChapters(mangaId) {
   }
 }
 
-// Batch community-rating lookup via the MangaDex statistics endpoint.
-// Returns { [mangaId]: rating } on the app's 5-point scale (1 decimal),
-// omitting ids with no rating yet (brand-new series).
+// Batch community-rating + follower-count lookup via the MangaDex statistics
+// endpoint. Returns { [mangaId]: { rating, readers } } — rating stays on
+// MangaDex's native 0–10 scale (matches the curated pool, e.g. One Piece
+// 9.1), readers is a formatted follower count (e.g. "812K"). Ids with no
+// rating/follows yet (brand-new series) omit that key rather than faking one.
 export async function getMangaStatistics(ids) {
   const out = {};
   if (!ids?.length) return out;
@@ -181,8 +183,12 @@ export async function getMangaStatistics(ids) {
       if (!resp?.ok) continue;
       const json = await resp.json();
       Object.entries(json?.statistics || {}).forEach(([id, s]) => {
-        const ten = s?.rating?.bayesian || s?.rating?.average; // 0–10 scale
-        if (ten) out[id] = Math.round((ten / 2) * 10) / 10;
+        const entry = {};
+        const ten = s?.rating?.bayesian || s?.rating?.average; // native 0–10 scale
+        if (ten) entry.rating = Math.round(ten * 10) / 10;
+        const readers = formatReaderCount(s?.follows);
+        if (readers) entry.readers = readers;
+        if (Object.keys(entry).length) out[id] = entry;
       });
     }
   } catch (_) {}
@@ -238,6 +244,34 @@ function stableColorForId(id) {
   return DARK_COLORS[Math.abs(h) % DARK_COLORS.length];
 }
 
+// Formats a raw follower count the same way the curated pool's "readers"
+// strings are written (e.g. "24.7M", "812K") so live entries match on sight.
+function formatReaderCount(n) {
+  if (!n || n <= 0) return '';
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
+
+// Formats an ISO timestamp into the same relative-time shorthand the curated
+// pool uses ("2d ago", "3w ago", "1y ago") instead of the static "recently".
+function formatUpdatedAgo(isoDate) {
+  if (!isoDate) return 'recently';
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  if (!Number.isFinite(diffMs) || diffMs < 0) return 'recently';
+  const min = Math.floor(diffMs / 60000);
+  if (min < 60) return min <= 1 ? 'just now' : `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  const week = Math.floor(day / 7);
+  if (week < 5) return `${week}w ago`;
+  const month = Math.floor(day / 30);
+  if (month < 12) return `${month}mo ago`;
+  return `${Math.floor(day / 365)}y ago`;
+}
+
 function normalizeManga(manga) {
   const attrs = manga.attributes || {};
   const titleObj = attrs.title || {};
@@ -277,12 +311,15 @@ function normalizeManga(manga) {
     description: desc.slice(0, 220),
     genre: genres,
     genres,
-    rating: 4.5,
+    // null (not a fake placeholder) until getMangaStatistics fills in a real
+    // 0–10 score — MangaDetailScreen/FeedScreen already hide the rating pill
+    // when it's falsy, which is more honest than showing a made-up number.
+    rating: null,
     chapters,
     readers: '',
     color: stableColorForId(manga.id),
     author,
-    updated: 'recently',
+    updated: formatUpdatedAgo(attrs.updatedAt),
     likeCount: 0,
     commentCount: 0,
     discussing: 0,
@@ -293,9 +330,10 @@ function normalizeManga(manga) {
   };
 }
 
-// v3: entries now carry real community ratings instead of a hardcoded 4.5
-const POPULAR_CACHE_KEY = '@mangarecs/mdex_popular_v3';
-const RECENT_CACHE_KEY  = '@mangarecs/mdex_recent_v3';
+// v4: rating now matches the curated pool's 0–10 scale (was halved to a
+// 0–5 scale before) and readers is backfilled from MangaDex follow counts.
+const POPULAR_CACHE_KEY = '@mangarecs/mdex_popular_v4';
+const RECENT_CACHE_KEY  = '@mangarecs/mdex_recent_v4';
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
 async function readCache(key) {
@@ -335,7 +373,11 @@ export async function fetchPopularManga({ limit = 30, allowNsfw = false } = {}) 
     const data = (json?.data || []).map(normalizeManga);
     if (data.length) {
       const stats = await getMangaStatistics(data.map((d) => d.id));
-      data.forEach((d) => { if (stats[d.id]) d.rating = stats[d.id]; });
+      data.forEach((d) => {
+        const s = stats[d.id];
+        if (s?.rating) d.rating = s.rating;
+        if (s?.readers) d.readers = s.readers;
+      });
       await writeCache(POPULAR_CACHE_KEY, data);
     }
     return data;
@@ -362,7 +404,11 @@ export async function fetchRecentlyUpdated({ limit = 20, allowNsfw = false } = {
     const data = (json?.data || []).map(normalizeManga);
     if (data.length) {
       const stats = await getMangaStatistics(data.map((d) => d.id));
-      data.forEach((d) => { if (stats[d.id]) d.rating = stats[d.id]; });
+      data.forEach((d) => {
+        const s = stats[d.id];
+        if (s?.rating) d.rating = s.rating;
+        if (s?.readers) d.readers = s.readers;
+      });
       await writeCache(RECENT_CACHE_KEY, data);
     }
     return data;
