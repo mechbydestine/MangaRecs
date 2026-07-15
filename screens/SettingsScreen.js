@@ -407,7 +407,7 @@ export default function SettingsScreen({ navigation }) {
   function handleClearCache() {
     Alert.alert(
       'Clear cache?',
-      'This frees up cached cover images and deletes any chapters you downloaded for offline reading. Your library, ratings, and reading progress are not affected.',
+      'This frees up cached cover images. Your library, ratings, reading progress, and downloaded chapters are not affected.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Clear', style: 'destructive', onPress: performClearCache },
@@ -418,26 +418,12 @@ export default function SettingsScreen({ navigation }) {
   async function performClearCache() {
     clearAllCoversCache();
     try {
+      // Downloaded chapters live under documentDirectory (chapters/), not
+      // cacheDirectory — only wipe cacheDirectory so offline downloads survive.
       const cacheDir = FileSystem.cacheDirectory;
       if (cacheDir) {
         const items = await FileSystem.readDirectoryAsync(cacheDir).catch(() => []);
         await Promise.all(items.map((name) => FileSystem.deleteAsync(cacheDir + name, { idempotent: true }).catch(() => {})));
-      }
-    } catch (_) {}
-    try {
-      // Downloaded chapters live under documentDirectory, not cacheDirectory, so
-      // the block above never reached them even though this button promises to
-      // free "images & chapters". Wipe the folder and drop the now-dangling
-      // "downloaded" entries from the saved library list so Library doesn't
-      // keep showing offline chapters that no longer exist on disk.
-      await FileSystem.deleteAsync(FileSystem.documentDirectory + 'chapters/', { idempotent: true }).catch(() => {});
-      const savedRaw = await AsyncStorage.getItem('@mangarecs_saved');
-      if (savedRaw) {
-        const saved = JSON.parse(savedRaw);
-        const kept = saved.filter((s) => !s.downloaded);
-        if (kept.length !== saved.length) {
-          await AsyncStorage.setItem('@mangarecs_saved', JSON.stringify(kept));
-        }
       }
     } catch (_) {}
     setCacheCleared(true);
@@ -894,7 +880,6 @@ export default function SettingsScreen({ navigation }) {
           onPress={async () => { await clearBadgeCache(); supabase.auth.signOut(); }}
           activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-          <Text style={styles.signOutText} numberOfLines={1} allowFontScaling={false}>Log Out</Text>
         </TouchableOpacity>
 
         </View>
@@ -945,7 +930,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.plansRow}>
               {[
                 { id: 'free', icon: 'flash-outline', label: 'Free', glow: '#7B5CFF', price: '$0' },
-                { id: 'pro', icon: 'star', label: 'Pro', glow: '#FFD700', price: proBilling === 'monthly' ? '$4.99/mo' : '$29.99/yr' },
+                { id: 'pro', icon: 'star', label: 'Pro', glow: '#FFD700', price: proBilling === 'monthly' ? '$3.99/mo' : '$29.99/yr' },
               ].map((plan) => (
                 <TouchableOpacity
                   key={plan.id}
@@ -968,7 +953,7 @@ export default function SettingsScreen({ navigation }) {
                 <TouchableOpacity
                   style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, proBilling === 'monthly' && styles.billingBtnActive]}
                   onPress={() => setProBilling('monthly')}>
-                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'monthly' && styles.billingBtnTextActive]}>$4.99/Mo</Text>
+                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'monthly' && styles.billingBtnTextActive]}>$3.99/Mo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, proBilling === 'yearly' && styles.billingBtnActive]}
@@ -1001,9 +986,12 @@ export default function SettingsScreen({ navigation }) {
               'Custom Audio Ambience uploads',
               'Early chapter release reminders & countdown timers',
               'Exclusive Pro badge & profile flair',
+              'Animated avatar ring',
+              'Reading Year in Review — shareable recap',
+              'Pro-only book clubs & invite-only discussions',
               'Beta features & early access',
               'Creator insights & analytics',
-              'Priority support',
+              'Direct line to the dev for support & feedback',
             ].map((f) => (
               <View key={f} style={styles.featureRow}>
                 <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
@@ -1020,7 +1008,7 @@ export default function SettingsScreen({ navigation }) {
               }}>
               <Text style={[styles.ctaBtnText, selectedPlan === 'pro' && styles.ctaBtnTextPro]}>
                 {selectedPlan === 'free' ? "You're on the Free plan" :
-                 `Start Free Trial — ${proBilling === 'yearly' ? '$29.99/yr' : '$4.99/mo'}`}
+                 `Subscribe — ${proBilling === 'yearly' ? '$29.99/yr' : '$3.99/mo'}`}
               </Text>
             </TouchableOpacity>
             {selectedPlan !== 'free' && (
@@ -1184,7 +1172,6 @@ const styles = StyleSheet.create({
   exportRow: { borderTopWidth: 1, marginTop: 12, paddingTop: 12 },
   exportBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#FF3B30' },
-  signOutText: { color: '#FF3B30', fontSize: 15, fontWeight: '600', marginLeft: 8 },
   deleteOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', paddingHorizontal: 24 },
   deleteSheet: { borderRadius: 20, padding: 24, borderWidth: 1, alignItems: 'center' },
   deleteIconWrap: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },

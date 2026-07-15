@@ -6,7 +6,7 @@
 
 **Your next story, recommended.**
 
-A social manga & manhwa reader — track your library, get AI-powered recommendations, and talk about what you're reading with friends. Available on the app, or browse the catalog on the web at [mangarecs.net](https://mangarecs.net).
+The social home for your manga & manhwa library — track what you're reading, "Rec" titles to friends, talk chapters in Comms, and climb the badge ladder. Read anywhere on the web when you're ready, right in the app. Available on the app, or browse the catalog on the web at [mangarecs.net](https://mangarecs.net).
 
 [![Download APK](https://img.shields.io/badge/Download-APK-7B5CFF?style=for-the-badge&logo=android&logoColor=white)](https://github.com/mechbydestine/MangaRecs/releases/download/v1.2.0-preview/MangaRecs.apk)
 [![Website](https://img.shields.io/badge/Website-mangarecs.net-444?style=for-the-badge&logo=googlechrome&logoColor=white)](https://mangarecs.net)
@@ -19,5 +19,5 @@ A social manga & manhwa reader — track your library, get AI-powered recommenda
 
 | | | |
 |---|---|---|
-| ![Home feed](./assets/store/screenshots/home.jpg) | ![Library](./assets/store/screenshots/library.jpg) | ![For You recommendations](./assets/store/screenshots/recs.jpg) |
-| ![Community](./assets/store/screenshots/comms.jpg) | ![Profile](./assets/store/screenshots/profile.jpg) | ![Discussion thread](./assets/store/screenshots/discussion.jpg) |
+| ![Library](./assets/store/screenshots/library.jpg) | ![Community](./assets/store/screenshots/comms.jpg) | ![Discussion thread](./assets/store/screenshots/discussion.jpg) |
+| ![Profile](./assets/store/screenshots/profile.jpg) | ![Home feed](./assets/store/screenshots/home.jpg) | ![For You recommendations](./assets/store/screenshots/recs.jpg) |

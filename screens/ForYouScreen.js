@@ -17,6 +17,7 @@ import { supabase } from '../supabase';
 import { syncReadOpen, updateGenreWeights, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { showAppToast } from '../utils/appToast';
 import { MANGA_POOL } from '../utils/mangaPool';
+import { augmentPoolFromApi } from './FeedScreen';
 import { GENRES } from '../utils/genres';
 import { useResponsive } from '../utils/responsive';
 
@@ -456,6 +457,10 @@ export default function ForYouScreen() {
       try { setDismissedIds(new Set(JSON.parse(raw))); } catch (_) {}
     }).catch(() => {});
   }, []);
+
+  // Live MangaDex titles augment the shared MANGA_POOL — trigger this here
+  // too, since ForYou may be opened before the Feed tab ever mounts.
+  useEffect(() => { augmentPoolFromApi(); }, []);
 
   function dismissRec(series) {
     setDismissedIds((prev) => {

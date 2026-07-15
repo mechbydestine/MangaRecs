@@ -1,7 +1,7 @@
 ﻿import {
   View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity,
   Modal, TextInput, RefreshControl, KeyboardAvoidingView,
-  Platform, Animated, Image, ActivityIndicator, ScrollView, Share,
+  Platform, Animated, Image, ActivityIndicator, ScrollView, Share, Linking,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,6 +33,15 @@ const COVER_W    = Math.round(CARD_CONTENT_W * 0.66);
 const COVER_H    = Math.round(COVER_W * 1.44);
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
+
+// Matches the palette used everywhere else a user's chosen profile color
+// shows up (SocialScreen/DMScreen) — comment avatars were a flat purple
+// placeholder regardless of the commenter's real avatar/chroma.
+const THEME_COLORS = {
+  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
+  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
+};
+function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
 
 
 // ── Module-level feed state ──────────────────────────────────────────────────
@@ -281,14 +290,24 @@ function buildSectionedFeed(savedIds, likedSet) {
 }
 
 // Fetches popular manga from MangaDex and adds new items to MANGA_POOL.
-// Runs once per app session; subsequent calls are instant from AsyncStorage cache.
+// Succeeds once per app session (subsequent calls are instant from the
+// AsyncStorage cache); a failed/timed-out attempt does NOT latch permanently
+// — it retries on the next call once RETRY_COOLDOWN has passed, instead of
+// silently never showing live entries for the rest of the session. Exported
+// so other screens (e.g. ForYouScreen) that read MANGA_POOL before FeedScreen
+// ever mounts can trigger the same fetch instead of seeing an empty live tier.
 let _feedLiveLoaded = false;
-async function augmentPoolFromApi() {
+let _feedLoadAttemptAt = 0;
+const RETRY_COOLDOWN = 60 * 1000;
+export async function augmentPoolFromApi() {
   if (_feedLiveLoaded) return;
-  _feedLiveLoaded = true;
+  const now = Date.now();
+  if (now - _feedLoadAttemptAt < RETRY_COOLDOWN) return;
+  _feedLoadAttemptAt = now;
   try {
     const items = await fetchPopularManga({ limit: 30 });
     if (!items.length) return;
+    _feedLiveLoaded = true;
     const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '').trim();
     const seenIds    = new Set(MANGA_POOL.map((m) => String(m.id)));
     // Check both title AND searchKey so "Attack on Titan" dedupes against searchKey "Shingeki no Kyojin"
@@ -578,15 +597,19 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
             <Text style={[styles.description, { color: cardDesc }]} numberOfLines={2}>{item.description}</Text>
           </TouchableOpacity>
           <View style={styles.meta}>
-            <Ionicons name="star" size={13} color="#FFD700" />
-            <Text style={[styles.metaText, { color: cardMuted }]}>{item.rating}</Text>
-            <Ionicons name="book-outline" size={13} color={cardMuted} style={{ marginLeft: 10 }} />
+            {item.rating ? (
+              <>
+                <Ionicons name="star" size={13} color="#FFD700" />
+                <Text style={[styles.metaText, { color: cardMuted }]}>{item.rating}</Text>
+              </>
+            ) : null}
+            <Ionicons name="book-outline" size={13} color={cardMuted} style={{ marginLeft: item.rating ? 10 : 0 }} />
             <Text style={[styles.metaText, { color: cardMuted }]}>{item.chapters} ch</Text>
             <Ionicons name="time-outline" size={13} color={cardMuted} style={{ marginLeft: 10 }} />
             <Text style={[styles.metaText, { color: cardMuted }]}>{item.updated}</Text>
           </View>
           <Text style={[styles.author, { color: cardAuthor }]}>
-            {'by '}{item.author}{' · '}{item.readers}
+            {'by '}{item.author}{item.readers ? ` · ${item.readers}` : ''}
             {item.status ? <Text style={{ color: item.status === 'Completed' ? '#1D9E75' : '#9B9AA3', fontStyle: 'normal' }}>{' · '}{item.status}</Text> : ''}
           </Text>
         </View>
@@ -663,7 +686,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
       setRepliesLoading(true);
       const { data } = await supabase
         .from('comments')
-        .select('id, text, created_at, author:user_id(username, display_name)')
+        .select('id, text, created_at, author:user_id(username, display_name, avatar_url, color)')
         .eq('parent_id', item.id)
         .order('created_at', { ascending: true });
       if (data) {
@@ -674,7 +697,11 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
           const h = Math.floor(m / 60);
           const d = Math.floor(h / 24);
           const time = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : m > 0 ? `${m}m ago` : 'Just now';
-          return { id: r.id, name, avatar: name.charAt(0).toUpperCase(), time, text: r.text };
+          return {
+            id: r.id, name, avatar: name.charAt(0).toUpperCase(),
+            avatarUrl: r.author?.avatar_url || null, color: r.author?.color || null,
+            time, text: r.text,
+          };
         }));
       }
       setRepliesLoading(false);
@@ -684,8 +711,10 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
 
   return (
     <View style={styles.commentRow}>
-      <View style={styles.commentAvatar}>
-        <Text style={styles.commentAvatarText}>{item.avatar}</Text>
+      <View style={[styles.commentAvatar, { backgroundColor: themeColor(item.color) }]}>
+        {item.avatarUrl
+          ? <Image source={{ uri: item.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          : <Text style={styles.commentAvatarText}>{item.avatar}</Text>}
       </View>
 
       <View style={styles.commentContent}>
@@ -732,8 +761,10 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
             <View style={styles.replyThread}>
               {replies.map((r) => (
                 <View key={r.id} style={styles.replyItem}>
-                  <View style={styles.replyAvatar}>
-                    <Text style={styles.replyAvatarText}>{r.avatar}</Text>
+                  <View style={[styles.replyAvatar, { backgroundColor: themeColor(r.color) }]}>
+                    {r.avatarUrl
+                      ? <Image source={{ uri: r.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                      : <Text style={styles.replyAvatarText}>{r.avatar}</Text>}
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
@@ -788,6 +819,8 @@ export default function FeedScreen() {
   const { items: notifications, unreadCount, load: reloadNotifs, clearAll: handleClearAllNotif, markAllSeen, acceptFriendRequest } = useNotifications();
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState('Reader');
+  const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState(null);
+  const [currentUserColor, setCurrentUserColor] = useState(null);
   const [commentFetching, setCommentFetching] = useState(false);
   const [notifOpen, setNotifOpen]     = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
@@ -798,6 +831,9 @@ export default function FeedScreen() {
   const [shareChapter, setShareChapter]     = useState(1);
   const [sendFriends, setSendFriends]       = useState([]);
   const [sendSentTo, setSendSentTo]         = useState({});
+  const [friendSearchOpen, setFriendSearchOpen]   = useState(false);
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
+  const [linkCopied, setLinkCopied]         = useState(false);
   const [activeItem, setActiveItem]   = useState(null);
   const [commentInput, setCommentInput] = useState('');
   const [commentSpoiler, setCommentSpoiler] = useState(false);
@@ -815,8 +851,10 @@ export default function FeedScreen() {
     if (!session?.user?.id) return;
     const uid = session.user.id;
     setCurrentUserId(uid);
-    supabase.from('profiles').select('username, display_name').eq('id', uid).maybeSingle().then(({ data }) => {
+    supabase.from('profiles').select('username, display_name, avatar_url, color').eq('id', uid).maybeSingle().then(({ data }) => {
       if (data?.username) setCurrentUsername(data.display_name || data.username);
+      setCurrentUserAvatarUrl(data?.avatar_url || null);
+      setCurrentUserColor(data?.color || null);
     });
   }
 
@@ -1145,6 +1183,8 @@ export default function FeedScreen() {
     setShareChapter(1);
     setSendSentTo({});
     setSendFriends([]);
+    setFriendSearchOpen(false);
+    setFriendSearchQuery('');
     setShareSheetOpen(true);
     // Load share progress and friends list in parallel
     const progressQuery = currentUserId && item?.title && item?.chapters > 0
@@ -1160,9 +1200,9 @@ export default function FeedScreen() {
     }
     if (rows?.length > 0) {
       const friendIds = rows.map((f) => f.requester_id === currentUserId ? f.addressee_id : f.requester_id);
-      const { data: profiles } = await supabase.from('profiles').select('id, username, display_name, color, avatar_url').in('id', friendIds);
+      const { data: profiles } = await supabase.from('profiles').select('id, username, display_name, color, avatar_url, streak_count').in('id', friendIds);
       if (profiles) {
-        setSendFriends(profiles.map((p) => ({ id: p.id, name: p.display_name || p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url })));
+        setSendFriends(profiles.map((p) => ({ id: p.id, name: p.display_name || p.username || 'Friend', color: p.color, avatarUrl: p.avatar_url, streak: p.streak_count || 0 })));
       }
     }
   }
@@ -1178,6 +1218,38 @@ export default function FeedScreen() {
         message: `Check out ${activeItem.title} on MangaRecs! 📚\nhttps://mangarecs.app/series/${activeItem.id || 'discover'}`,
       });
     } catch (_) {}
+  }
+
+  function getShareText() {
+    const link = `https://mangarecs.app/series/${activeItem?.id || 'discover'}`;
+    const blurb = `Check out ${activeItem?.title || 'this manga'} on MangaRecs! 📚`;
+    return { link, blurb, full: `${blurb}\n${link}` };
+  }
+
+  async function handleCopyLink() {
+    try {
+      await Share.share({ message: getShareText().full });
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (_) {}
+  }
+
+  function shareViaSMS() {
+    const sep = Platform.OS === 'ios' ? '&' : '?';
+    Linking.openURL(`sms:${sep}body=${encodeURIComponent(getShareText().full)}`).catch(() => {});
+  }
+
+  function shareViaEmail() {
+    const { blurb, link } = getShareText();
+    Linking.openURL(`mailto:?subject=${encodeURIComponent('Check this out on MangaRecs')}&body=${encodeURIComponent(`${blurb}\n${link}`)}`).catch(() => {});
+  }
+
+  function shareViaWhatsApp() {
+    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(getShareText().full)}`).catch(() => {});
+  }
+
+  function shareViaFacebook() {
+    Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareText().link)}`).catch(() => {});
   }
 
   async function handleSendRecommendation(friend) {
@@ -1242,6 +1314,8 @@ export default function FeedScreen() {
       id: `opt-${Date.now()}`,
       user: currentUsername,
       avatar: currentUsername.charAt(0).toUpperCase(),
+      avatarUrl: currentUserAvatarUrl,
+      color: currentUserColor,
       time: 'Just now',
       text,
       likes: 0,
@@ -1278,7 +1352,7 @@ export default function FeedScreen() {
 
     const { data, error } = await supabase
       .from('comments')
-      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username, display_name)')
+      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username, display_name, avatar_url, color)')
       .eq('series_title', item.title)
       .is('parent_id', null)
       .order('created_at', { ascending: false })
@@ -1311,7 +1385,12 @@ export default function FeedScreen() {
       const d = Math.floor(h / 24);
       const time = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : m > 0 ? `${m}m ago` : 'Just now';
       const name = row.author?.display_name || row.author?.username || 'Reader';
-      return { id: row.id, user: name, avatar: name.charAt(0).toUpperCase(), time, text: row.text, likes: row.likes || 0, liked: likedSet.has(row.id), spoiler: row.spoiler || false, replyCount: replyCountMap[row.id] || 0 };
+      return {
+        id: row.id, user: name, avatar: name.charAt(0).toUpperCase(),
+        avatarUrl: row.author?.avatar_url || null, color: row.author?.color || null,
+        time, text: row.text, likes: row.likes || 0, liked: likedSet.has(row.id),
+        spoiler: row.spoiler || false, replyCount: replyCountMap[row.id] || 0,
+      };
     });
     setComments((prev) => ({ ...prev, [item.id]: mapped }));
     setCommentFetching(false);
@@ -1558,8 +1637,10 @@ export default function FeedScreen() {
             />
 
             <View style={[styles.commentInputBar, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
-              <View style={styles.commentInputAvatar}>
-                <Text style={styles.commentAvatarText}>{currentUsername.charAt(0).toUpperCase()}</Text>
+              <View style={[styles.commentInputAvatar, { backgroundColor: themeColor(currentUserColor) }]}>
+                {currentUserAvatarUrl
+                  ? <Image source={{ uri: currentUserAvatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                  : <Text style={styles.commentAvatarText}>{currentUsername.charAt(0).toUpperCase()}</Text>}
               </View>
               <TextInput
                 ref={commentInputRef}
@@ -1598,76 +1679,147 @@ export default function FeedScreen() {
         <TouchableOpacity style={feedSendStyles.overlay} activeOpacity={1} onPress={() => setShareSheetOpen(false)}>
           <View style={[feedShareStyles.sheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
             <View style={[feedSendStyles.handle, { backgroundColor: colors.border }]} />
-            <Text style={[feedSendStyles.title, { color: colors.text }]}>Share</Text>
-            {activeItem ? (
-              <Text style={[feedSendStyles.mangaName, { color: colors.muted }]}>{activeItem.title}</Text>
-            ) : null}
 
-            {/* External share options — mirrors how TikTok/Instagram split their own
-                share sheet: a couple of quick, purpose-built actions up top, then a
-                hand-off to the real OS share sheet (every installed app, as icons) */}
-            <View style={feedShareStyles.quickRow}>
+            {/* Header: search · title · close — Snapchat-style "Send to" bar */}
+            <View style={feedSendStyles.headerRow}>
               <TouchableOpacity
-                style={[feedShareStyles.quickBtn, { backgroundColor: colors.inputBg }]}
-                onPress={() => { setShareSheetOpen(false); setCardShareOpen(true); }}
-                activeOpacity={0.75}>
-                <View style={[feedShareStyles.quickIcon, { backgroundColor: '#7B5CFF' }]}>
-                  <Ionicons name="albums-outline" size={18} color="#fff" />
-                </View>
-                <Text style={[feedShareStyles.quickLabel, { color: colors.text }]}>Share as Card</Text>
+                style={feedSendStyles.headerIconBtn}
+                onPress={() => setFriendSearchOpen((o) => !o)}
+                activeOpacity={0.7}>
+                <Ionicons name="search" size={20} color={colors.text} />
               </TouchableOpacity>
+              <Text style={[feedSendStyles.headerTitle, { color: colors.text }]}>Send to</Text>
               <TouchableOpacity
-                style={[feedShareStyles.quickBtn, { backgroundColor: colors.inputBg }]}
-                onPress={handleNativeShare}
-                activeOpacity={0.75}>
-                <View style={[feedShareStyles.quickIcon, { backgroundColor: '#3A3A42' }]}>
-                  <Ionicons name="ellipsis-horizontal" size={18} color="#fff" />
-                </View>
-                <Text style={[feedShareStyles.quickLabel, { color: colors.text }]}>More</Text>
+                style={feedSendStyles.headerIconBtn}
+                onPress={() => setShareSheetOpen(false)}
+                activeOpacity={0.7}>
+                <Ionicons name="close" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
+            {activeItem ? (
+              <Text style={[feedSendStyles.mangaName, { color: colors.muted }]} numberOfLines={1}>{activeItem.title}</Text>
+            ) : null}
+            {friendSearchOpen ? (
+              <View style={[feedSendStyles.searchBox, { backgroundColor: colors.inputBg }]}>
+                <Ionicons name="search" size={14} color={colors.muted} />
+                <TextInput
+                  style={[feedSendStyles.searchInput, { color: colors.text }]}
+                  placeholder="Search friends"
+                  placeholderTextColor={colors.muted}
+                  value={friendSearchQuery}
+                  onChangeText={setFriendSearchQuery}
+                  autoFocus
+                />
+              </View>
+            ) : null}
 
-            <View style={[feedShareStyles.divider, { backgroundColor: colors.border }]} />
-            <Text style={[feedShareStyles.sectionTitle, { color: colors.muted }]}>Send to a Friend</Text>
-
-            {/* Friends list */}
+            {/* Friends row — tap an avatar to send directly, like a Snap send */}
             {sendFriends.length === 0 ? (
               <View style={feedSendStyles.noFriends}>
-                <Ionicons name="people-outline" size={32} color={colors.muted} />
+                <Ionicons name="people-outline" size={28} color={colors.muted} />
                 <Text style={[feedSendStyles.noFriendsText, { color: colors.muted }]}>
                   Add friends first to send recommendations.
                 </Text>
               </View>
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-                {sendFriends.map((friend) => {
-                  const status = sendSentTo[friend.id];
-                  const THEME_COLORS = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A' };
-                  const accent = THEME_COLORS[friend.color] || '#7B5CFF';
-                  return (
-                    <View key={friend.id} style={[feedSendStyles.friendRow, { borderBottomColor: colors.border }]}>
-                      <View style={[feedSendStyles.friendAvatar, { backgroundColor: accent }]}>
-                        {friend.avatarUrl
-                          ? <Image source={{ uri: friend.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                          : <Text style={feedSendStyles.friendAvatarText}>{(friend.name || '?').charAt(0).toUpperCase()}</Text>}
-                      </View>
-                      <Text style={[feedSendStyles.friendName, { color: colors.text }]}>{friend.name}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={feedSendStyles.friendsRow}>
+                {sendFriends
+                  .filter((f) => f.name.toLowerCase().includes(friendSearchQuery.trim().toLowerCase()))
+                  .map((friend) => {
+                    const status = sendSentTo[friend.id];
+                    const THEME_COLORS = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A' };
+                    const accent = THEME_COLORS[friend.color] || '#7B5CFF';
+                    return (
                       <TouchableOpacity
-                        style={[feedSendStyles.sendBtn, status === 'sent' && feedSendStyles.sendBtnSent]}
+                        key={friend.id}
+                        style={feedSendStyles.friendItem}
                         onPress={() => !status && handleSendRecommendation(friend)}
                         disabled={!!status}
-                        activeOpacity={0.8}>
-                        {status === 'sending' ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Text style={feedSendStyles.sendBtnText}>{status === 'sent' ? 'Sent ✓' : 'Send'}</Text>
-                        )}
+                        activeOpacity={0.75}>
+                        <View style={[feedSendStyles.avatarCircle, { backgroundColor: accent }]}>
+                          {friend.avatarUrl
+                            ? <Image source={{ uri: friend.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                            : <Text style={feedSendStyles.avatarText}>{(friend.name || '?').charAt(0).toUpperCase()}</Text>}
+                          {(status === 'sending' || status === 'sent') && (
+                            <View style={[StyleSheet.absoluteFill, feedSendStyles.avatarStatusOverlay]}>
+                              {status === 'sending'
+                                ? <ActivityIndicator size="small" color="#fff" />
+                                : <Ionicons name="checkmark-circle" size={22} color="#1D9E75" />}
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[feedSendStyles.friendNameSmall, { color: colors.text }]} numberOfLines={1}>{friend.name}</Text>
+                        {friend.streak > 0 ? (
+                          <View style={feedSendStyles.streakRow}>
+                            <Ionicons name="flame" size={10} color={friend.streak >= 30 ? '#FF5C7A' : '#EF9F27'} />
+                            <Text style={feedSendStyles.streakText}>{friend.streak}</Text>
+                          </View>
+                        ) : null}
                       </TouchableOpacity>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
               </ScrollView>
             )}
+
+            <View style={[feedShareStyles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[feedShareStyles.sectionTitle, { color: colors.muted }]}>Share to</Text>
+
+            {/* External destinations — individual deep links where we can hand off
+                a pre-filled message, plus a catch-all "More" to the real OS share
+                sheet for everything else installed */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={feedSendStyles.destRow}>
+              <TouchableOpacity
+                style={feedSendStyles.destItem}
+                onPress={() => { setShareSheetOpen(false); setCardShareOpen(true); }}
+                activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#7B5CFF' }]}>
+                  <Ionicons name="albums-outline" size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>Card</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={feedSendStyles.destItem} onPress={handleCopyLink} activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#4A90D9' }]}>
+                  <Ionicons name={linkCopied ? 'checkmark' : 'link'} size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>{linkCopied ? 'Copied!' : 'Copy Link'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={feedSendStyles.destItem} onPress={shareViaWhatsApp} activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#25D366' }]}>
+                  <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={feedSendStyles.destItem} onPress={shareViaFacebook} activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#1877F2' }]}>
+                  <Ionicons name="logo-facebook" size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>Facebook</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={feedSendStyles.destItem} onPress={shareViaSMS} activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#3AC1E8' }]}>
+                  <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>SMS</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={feedSendStyles.destItem} onPress={shareViaEmail} activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#5C8DE8' }]}>
+                  <Ionicons name="mail" size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={feedSendStyles.destItem} onPress={handleNativeShare} activeOpacity={0.75}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: '#3A3A42' }]}>
+                  <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+                </View>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>More</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -1912,7 +2064,7 @@ const styles = StyleSheet.create({
 
   // Comment row (TikTok layout)
   commentRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14, alignItems: 'flex-start' },
-  commentAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(123,92,255,0.45)', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 },
+  commentAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(123,92,255,0.45)', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0, overflow: 'hidden' },
   commentAvatarText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   commentContent: { flex: 1 },
   commentMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginBottom: 5 },
@@ -1934,7 +2086,7 @@ const styles = StyleSheet.create({
   // Reply thread
   replyThread: { marginTop: 8, paddingLeft: 4 },
   replyItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
-  replyAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(123,92,255,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0 },
+  replyAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(123,92,255,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0, overflow: 'hidden' },
   replyAvatarText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   replyName: { fontSize: 12, fontWeight: '700' },
   replyTime: { fontSize: 10 },
@@ -1942,7 +2094,7 @@ const styles = StyleSheet.create({
 
   // Comment input
   commentInputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 10, borderTopWidth: 1 },
-  commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(123,92,255,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(123,92,255,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' },
   commentInput: { flex: 1, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 80 },
   commentSpoilerBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   commentSpoilerBtnActive: { backgroundColor: 'rgba(255,59,48,0.16)' },
@@ -1994,27 +2146,32 @@ const styles = StyleSheet.create({
 
 const feedShareStyles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 10, maxHeight: '72%' },
-  quickRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 4 },
-  quickBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 14 },
-  quickIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  quickLabel: { fontSize: 12, fontWeight: '600' },
-  divider: { height: 1, marginHorizontal: 20, marginVertical: 16 },
-  sectionTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: 20, marginBottom: 4 },
+  divider: { height: 1, marginHorizontal: 20, marginVertical: 14 },
+  sectionTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: 20, marginBottom: 10 },
 });
 
 const feedSendStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
-  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 10, maxHeight: '60%' },
-  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  title: { fontSize: 17, fontWeight: '700', paddingHorizontal: 20, marginBottom: 2 },
-  mangaName: { fontSize: 13, paddingHorizontal: 20, marginBottom: 16 },
-  noFriends: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 24 },
+  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 10, maxHeight: '72%' },
+  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
+  headerIconBtn: { padding: 8, borderRadius: 20 },
+  headerTitle: { fontSize: 17, fontWeight: '700' },
+  mangaName: { fontSize: 13, textAlign: 'center', marginTop: 2, marginBottom: 12, paddingHorizontal: 20 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12 },
+  searchInput: { flex: 1, fontSize: 14, padding: 0 },
+  noFriends: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 24 },
   noFriendsText: { fontSize: 13, textAlign: 'center', marginTop: 10, lineHeight: 18 },
-  friendRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
-  friendAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginRight: 12 },
-  friendAvatarText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  friendName: { flex: 1, fontSize: 15, fontWeight: '500' },
-  sendBtn: { backgroundColor: '#7B5CFF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 },
-  sendBtnSent: { backgroundColor: '#1D9E75' },
-  sendBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  friendsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 14 },
+  friendItem: { alignItems: 'center', width: 66 },
+  avatarCircle: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  avatarStatusOverlay: { backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', borderRadius: 29 },
+  friendNameSmall: { fontSize: 12, fontWeight: '600', marginTop: 6, textAlign: 'center' },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 },
+  streakText: { fontSize: 10, fontWeight: '700', color: '#EF9F27' },
+  destRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 8, gap: 16 },
+  destItem: { alignItems: 'center', width: 60 },
+  destIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  destLabel: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
 });

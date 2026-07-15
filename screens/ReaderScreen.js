@@ -563,7 +563,7 @@ const EXTRACT_CHAPTER_COUNT_JS = `
   var url = window.location.href;
   var path = window.location.pathname;
   if (!path || path === '/' || path === '') return true;
-  if (/[?&](s|q|search|keyword|query|term|name|word)=|\\/search[/?#]|\\/filter[/?#]/.test(url)) return true;
+  if (/[?&](s|q|search|keyword|query|term|name|word)=|\\/search[/?#]|\\/filter[/?#]|\\/browse[/?#]/.test(url)) return true;
   if (/\\/viewer[/?#]|\\/reader[/?#]|chapter[-\\/]\\d|episode[-\\/]\\d|ep[-\\/]\\d|\\/ch-\\d/i.test(url)) return true;
   if (/\\/chapter\\/[a-f0-9]{8}-/i.test(url)) return true; // MangaDex chapter UUID
 
@@ -731,6 +731,12 @@ function detectSiteFromUrl(url) {
   }) || null;
 }
 
+// Shared "this is a listing/search page, not an actual chapter" test — used
+// to stop a generic page heading (e.g. MangaFire's "Browse" page title) from
+// ever being treated as a manga title, and to stop such pages from being
+// saved as a reading session.
+const NON_CHAPTER_URL_RE = /[?&](s|q|search|keyword|query|term|name|word)=|\/search[/?#]|\/filter[/?#]|\/browse[/?#]/;
+
 function parseMangaInfo(rawTitle, heading) {
   let manga = '', chapter = '';
   const t = rawTitle || '';
@@ -751,12 +757,23 @@ function parseMangaInfo(rawTitle, heading) {
   return { manga, chapter };
 }
 
+// Some sites (e.g. MangaFire) put an opaque, globally-incrementing internal
+// chapter ID in this URL slot instead of the manga's actual chapter number —
+// those IDs run into the millions, so anything past a sane chapter ceiling
+// is almost certainly an ID, not a chapter number. Reject it rather than
+// showing "Chapter 9038022"; the real number gets reconciled separately from
+// the scraped chapter list (see the webChapterList-vs-currentUrl effect).
+const MAX_SANE_CHAPTER = 3000;
+
 function extractChapterFromUrl(url) {
   if (!url) return null;
   const ep = /[?&]episode_no=(\d+)/.exec(url);
   if (ep) return parseInt(ep[1], 10);
   const ch = /\/chapter[-/](\d+(?:\.\d+)?)/i.exec(url);
-  if (ch) return Math.ceil(parseFloat(ch[1]));
+  if (ch) {
+    const num = Math.ceil(parseFloat(ch[1]));
+    return num <= MAX_SANE_CHAPTER ? num : null;
+  }
   return null;
 }
 
@@ -1610,11 +1627,26 @@ export default function ReaderScreen({ route, navigation }) {
 
   // ── Resume save — WebView mode ────────────────────────────────────────────
 
+  // Reconcile the displayed chapter number against the site's own scraped
+  // chapter list (webChapterList) as soon as it loads — some sites (MangaFire)
+  // put an opaque, globally-incrementing internal ID in the chapter URL
+  // instead of the manga's real chapter number, which MAX_SANE_CHAPTER can't
+  // always catch (small IDs slip through). The scraped list's numbers come
+  // straight from the site's own chapter-list text, so an href match here is
+  // ground truth — this is what keeps the chapter-list picker's "active" item
+  // in sync with the actual page instead of highlighting nothing.
+  useEffect(() => {
+    if (readerMode !== 'webview' || !webChapterList.length || !currentUrl) return;
+    const norm = (u) => (u || '').replace(/\/$/, '').replace(/[?#].*$/, '');
+    const match = webChapterList.find((c) => norm(c.href) === norm(currentUrl));
+    if (match && match.num !== currentChapter) setCurrentChapter(match.num);
+  }, [webChapterList, currentUrl, readerMode]);
+
   useEffect(() => {
     if (readerMode !== 'webview' || !currentUrl || !searchQuery) return;
     const path = currentUrl.replace(/^https?:\/\/[^/]+/, '').replace(/[?#].*$/, '');
     if (!path || path === '/' || path === '') return;
-    if (/[?&](s|q|search|keyword|query|term|name|word)=|\/search[/?#]|\/filter[/?#]/.test(currentUrl)) return;
+    if (NON_CHAPTER_URL_RE.test(currentUrl)) return;
     const title = mangaTitle || routeTitle;
     if (!title) return;
     const effectiveKey = resumeKey || (RESUME_KEY_PFX + encodeURIComponent(title));
@@ -2437,6 +2469,7 @@ export default function ReaderScreen({ route, navigation }) {
                   if (msg.type === 'siteHomepage' || msg.type === 'searchFailed') {
                     popAndNavigateFallback(null);
                   } else if (msg.type === 'pageInfo') {
+                    if (NON_CHAPTER_URL_RE.test(msg.url || '')) return;
                     const { manga, chapter } = parseMangaInfo(msg.title, msg.heading);
                     if (manga && manga !== mangaTitle) {
                       animateTitle(manga, chapter);

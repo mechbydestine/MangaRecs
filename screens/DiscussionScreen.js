@@ -1,12 +1,13 @@
 ﻿import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useProfile } from '../utils/ProfileContext';
 import { MangaCover } from '../utils/mangaCovers';
 import { supabase } from '../supabase';
 import { insertActivity } from '../utils/activityFeed';
@@ -29,10 +30,14 @@ function containsBlockedDomain(text) {
 
 const REPORT_REASONS = ['Piracy link', 'Copyrighted content', 'Harassment', 'Spam', 'Other'];
 
-function avatarColor(name) {
-  const hue = (name || '?').charCodeAt(0) * 47 % 360;
-  return `hsl(${hue}, 55%, 32%)`;
-}
+// Matches the palette used everywhere else a user's chosen profile color
+// shows up (SocialScreen/DMScreen) — comments were falling back to a
+// name-hashed color instead of the commenter's real avatar/chroma.
+const THEME_COLORS = {
+  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
+  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
+};
+function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
 
 function timeAgo(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -60,6 +65,7 @@ export default function DiscussionScreen() {
     discussing,
   } = route.params || {};
 
+  const { profile } = useProfile();
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [isSpoilerPost, setIsSpoilerPost] = useState(false);
@@ -120,7 +126,7 @@ export default function DiscussionScreen() {
     // don't just vanish from the thread.
     let query = supabase
       .from('comments')
-      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username, display_name)')
+      .select('id, user_id, text, likes, spoiler, created_at, author:user_id(username, display_name, avatar_url, color)')
       .eq('series_title', title)
       .is('parent_id', null);
     query = selectedChapter === latestChapter
@@ -140,7 +146,7 @@ export default function DiscussionScreen() {
     if (data.length > 0) {
       const { data: replies } = await supabase
         .from('comments')
-        .select('id, user_id, text, likes, spoiler, created_at, parent_id, author:user_id(username, display_name)')
+        .select('id, user_id, text, likes, spoiler, created_at, parent_id, author:user_id(username, display_name, avatar_url, color)')
         .in('parent_id', data.map((c) => c.id))
         .order('created_at', { ascending: true });
       if (replies) replyRows = replies;
@@ -171,6 +177,8 @@ export default function DiscussionScreen() {
         userId: r.user_id,
         name: rName,
         avatar: rName.charAt(0).toUpperCase(),
+        avatarUrl: r.author?.avatar_url || null,
+        color: r.author?.color || null,
         time: timeAgo(r.created_at),
         text: r.text,
         likes: r.likes || 0,
@@ -186,6 +194,8 @@ export default function DiscussionScreen() {
         userId: row.user_id,
         name,
         avatar: name.charAt(0).toUpperCase(),
+        avatarUrl: row.author?.avatar_url || null,
+        color: row.author?.color || null,
         time: timeAgo(row.created_at),
         text: row.text,
         likes: row.likes || 0,
@@ -243,6 +253,8 @@ export default function DiscussionScreen() {
               id: data.id,
               name: 'You',
               avatar: 'Y',
+              avatarUrl: profile?.avatar_url || null,
+              color: profile?.color || null,
               time: 'just now',
               text: data.text,
               likes: 0,
@@ -257,6 +269,8 @@ export default function DiscussionScreen() {
           id: data.id,
           name: 'You',
           avatar: 'Y',
+          avatarUrl: profile?.avatar_url || null,
+          color: profile?.color || null,
           time: 'just now',
           text: data.text,
           likes: 0,
@@ -465,8 +479,10 @@ export default function DiscussionScreen() {
                 <View style={[styles.commentRow, { borderBottomColor: repliesOpen && hasReplies ? 'transparent' : colors.border }]}>
                   {/* Avatar column */}
                   <View style={styles.avatarCol}>
-                    <View style={[styles.avatar, { backgroundColor: avatarColor(comment.name) }]}>
-                      <Text style={styles.avatarText}>{comment.avatar}</Text>
+                    <View style={[styles.avatar, { backgroundColor: themeColor(comment.color) }]}>
+                      {comment.avatarUrl
+                        ? <Image source={{ uri: comment.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                        : <Text style={styles.avatarText}>{comment.avatar}</Text>}
                     </View>
                     {repliesOpen && hasReplies && (
                       <View style={[styles.threadLine, { backgroundColor: colors.border }]} />
@@ -548,8 +564,10 @@ export default function DiscussionScreen() {
                       </View>
 
                       {/* Reply avatar */}
-                      <View style={[styles.replyAvatar, { backgroundColor: avatarColor(reply.name) }]}>
-                        <Text style={styles.replyAvatarText}>{reply.avatar}</Text>
+                      <View style={[styles.replyAvatar, { backgroundColor: themeColor(reply.color) }]}>
+                        {reply.avatarUrl
+                          ? <Image source={{ uri: reply.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                          : <Text style={styles.replyAvatarText}>{reply.avatar}</Text>}
                       </View>
 
                       {/* Reply body */}
@@ -724,7 +742,7 @@ const styles = StyleSheet.create({
   // Comments
   commentRow: { flexDirection: 'row', paddingLeft: 16, paddingRight: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1 },
   avatarCol: { marginRight: 12, alignItems: 'center', width: 36 },
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   threadLine: { width: 2, flex: 1, marginTop: 6, borderRadius: 1, minHeight: 16 },
   avatarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   chapterChipRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 10, gap: 8 },
@@ -746,7 +764,7 @@ const styles = StyleSheet.create({
   // Replies
   replyRow: { flexDirection: 'row', paddingLeft: 16, paddingRight: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
   threadPad: { width: 36, marginRight: 12, alignItems: 'center' },
-  replyAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 10, marginTop: 2, flexShrink: 0 },
+  replyAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 10, marginTop: 2, flexShrink: 0, overflow: 'hidden' },
   replyAvatarText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   replyBody: { flex: 1 },
   // Input

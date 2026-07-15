@@ -2,7 +2,7 @@
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, Image, Animated, Platform, AppState, StyleSheet } from 'react-native';
+import { View, Text, Animated, Platform, AppState, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +46,7 @@ import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
 import BadgeCeremony from './components/BadgeCeremony';
+import StarLogo from './components/StarLogo';
 
 const navigationRef = createNavigationContainerRef();
 
@@ -454,6 +455,17 @@ export default function App() {
   const [showIntro, setShowIntro]             = useState(null); // null = not determined yet
   const [introDone, setIntroDone]             = useState(false);
 
+  // Splash: stays up at least 2s while a real (foreground) update check runs,
+  // silently — no "checking for update" text. An update found here is fetched
+  // and applied via reload, which naturally replays this same sequence on the
+  // new bundle and lets the existing isNewUpdate check trigger the intro. No
+  // update: the splash just crossfades into the app once everything's ready.
+  const [minSplashElapsed, setMinSplashElapsed]     = useState(false);
+  const [updateCheckDone, setUpdateCheckDone]       = useState(false);
+  const [updateReadyToReload, setUpdateReadyToReload] = useState(false);
+  const [splashMounted, setSplashMounted]           = useState(true);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     loadSavedAmbience();
 
@@ -608,52 +620,117 @@ export default function App() {
     };
   }, []);
 
-  if (loading || showIntro === null || !fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120, marginBottom: 18 }} resizeMode="contain" />
-        <View style={{ flexDirection: 'row' }}>
-          <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#FFFFFF', fontSize: 30, letterSpacing: 0.5 }}>Manga</Text>
-          <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#B18CFF', fontSize: 30, letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
-        </View>
-        <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
-      </View>
-    );
-  }
+  // Splash floor: guarantees at least 2s on screen regardless of how fast
+  // everything else resolves, so it never looks like a flicker.
+  useEffect(() => {
+    const t = setTimeout(() => setMinSplashElapsed(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
 
-  if (showIntro && !introDone) {
-    return (
-      <IntroScreen
-        onComplete={() => {
-          AsyncStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION).catch(() => {});
-          if (Updates.updateId) AsyncStorage.setItem(LAST_SEEN_UPDATE_KEY, Updates.updateId).catch(() => {});
-          setIntroDone(true);
-        }}
-      />
-    );
-  }
+  // Real update check, run once at launch (not just in the background/AFK
+  // path below). A hung network shouldn't strand anyone on the splash
+  // forever, so a fallback timer force-settles it after 8s.
+  useEffect(() => {
+    let settled = false;
+    const fallback = setTimeout(() => {
+      if (!settled) { settled = true; setUpdateCheckDone(true); }
+    }, 8000);
+
+    (async () => {
+      if (!Updates.isEnabled) {
+        if (!settled) { settled = true; clearTimeout(fallback); setUpdateCheckDone(true); }
+        return;
+      }
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (result.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          if (!settled) { settled = true; clearTimeout(fallback); setUpdateReadyToReload(true); }
+        } else if (!settled) {
+          settled = true; clearTimeout(fallback); setUpdateCheckDone(true);
+        }
+      } catch (_) {
+        if (!settled) { settled = true; clearTimeout(fallback); setUpdateCheckDone(true); }
+      }
+    })();
+
+    return () => { settled = true; clearTimeout(fallback); };
+  }, []);
+
+  const contentReady = !loading && showIntro !== null && fontsLoaded;
+  const readyToLeaveSplash = contentReady && minSplashElapsed && (updateCheckDone || updateReadyToReload);
+
+  useEffect(() => {
+    if (!readyToLeaveSplash) return;
+    if (updateReadyToReload) {
+      // An update's already downloaded — reload onto it. This same sequence
+      // replays on the new bundle, where isNewUpdate flips true and the
+      // intro plays to signal what changed.
+      Updates.reloadAsync().catch(() => setUpdateCheckDone(true));
+      return;
+    }
+    Animated.timing(splashOpacity, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => setSplashMounted(false));
+  }, [readyToLeaveSplash, updateReadyToReload]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={markTouch}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <QueryClientProvider client={queryClient}>
-            <ProfileProvider>
-              <NotificationsProvider>
-                <RootNavigator
-                  session={session}
-                  needsOnboarding={needsOnboarding}
-                  onOnboardingComplete={() => setNeedsOnboarding(false)}
-                  needsGuidelines={needsGuidelines}
-                  onGuidelinesComplete={() => setNeedsGuidelines(false)}
-                />
-                <ToastHost />
-                <BadgeCeremony />
-              </NotificationsProvider>
-            </ProfileProvider>
-          </QueryClientProvider>
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+      {contentReady && (
+        showIntro && !introDone ? (
+          <IntroScreen
+            onComplete={() => {
+              AsyncStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_APP_VERSION).catch(() => {});
+              if (Updates.updateId) AsyncStorage.setItem(LAST_SEEN_UPDATE_KEY, Updates.updateId).catch(() => {});
+              setIntroDone(true);
+            }}
+          />
+        ) : (
+          <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={markTouch}>
+            <SafeAreaProvider>
+              <ThemeProvider>
+                <QueryClientProvider client={queryClient}>
+                  <ProfileProvider>
+                    <NotificationsProvider>
+                      <RootNavigator
+                        session={session}
+                        needsOnboarding={needsOnboarding}
+                        onOnboardingComplete={() => setNeedsOnboarding(false)}
+                        needsGuidelines={needsGuidelines}
+                        onGuidelinesComplete={() => setNeedsGuidelines(false)}
+                      />
+                      <ToastHost />
+                      <BadgeCeremony />
+                    </NotificationsProvider>
+                  </ProfileProvider>
+                </QueryClientProvider>
+              </ThemeProvider>
+            </SafeAreaProvider>
+          </GestureHandlerRootView>
+        )
+      )}
+
+      {splashMounted && (
+        <Animated.View
+          pointerEvents="none"
+          style={{ ...StyleSheet.absoluteFillObject, opacity: splashOpacity, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View style={{ marginBottom: 18 }}>
+            <StarLogo size={112} continuous />
+          </View>
+          {fontsLoaded && (
+            <>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#FFFFFF', fontSize: 30, letterSpacing: 0.5 }}>Manga</Text>
+                <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#B18CFF', fontSize: 30, letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
+              </View>
+              <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
+            </>
+          )}
+        </Animated.View>
+      )}
+    </View>
   );
 }
