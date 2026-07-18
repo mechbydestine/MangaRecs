@@ -849,6 +849,11 @@ export const MANGA_POOL = [
   { id: 'lfg', title: 'Looking for Group', lang: 'en', description: 'An MMO player forced to team up with a psychotic, murderous undead warrior finds the partnership works disturbingly well — for both questing and everything else.', genres: ['Fantasy', 'Comedy'], rating: 8.2, chapters: 500, readers: '500K', author: 'Ryan Sohmer & Lar deSouza', updated: '1m ago', color: '#1A0A2D', likeCount: 13000, commentCount: 1000, status: 'ongoing' },
   { id: 'twknds', title: 'TwoKinds', lang: 'en', description: 'A human raised among wolf-like beastfolk is thrown back into human society right as a war between the two peoples reignites — leaving him without a side to stand on.', genres: ['Fantasy', 'Adventure'], rating: 7.7, chapters: 400, readers: '500K', author: 'Tom Fischbach', updated: '2w ago', color: '#0A1A0D', likeCount: 13000, commentCount: 1000, status: 'ongoing' },
   { id: 'tpoh', title: 'The Property of Hate', lang: 'en', description: 'A girl born without the ability to feel anything but hate wanders a fractured dreamlike world made entirely of stories, trying to figure out where she fits into any of them.', genres: ['Fantasy', 'Psychological'], rating: 8.0, chapters: 6, readers: '300K', author: 'Sarah Miletic', updated: '3y ago', color: '#0A0A0A', likeCount: 8000, commentCount: 600, status: 'ongoing' },
+  // Adaptation not out yet — comingSoon renders the "UNRELEASED" chip in
+  // FeedScreen/ForYouScreen instead of opening the Reader. Flip comingSoon
+  // to false (and fill in real chapters/readers/rating) the moment the
+  // manhwa/manhua adaptation actually publishes its first chapter.
+  { id: 'shdwslv', title: 'Shadow Slave', lang: 'ko', searchKey: 'Shadow Slave', description: 'A high-schooler chosen as one of the world\'s "Awakened" is dragged each night into the Sunless Realm, a nightmare dimension of monsters and rival hunters, and quickly learns the safest path to survival there is also the darkest one.', genres: ['Fantasy', 'Horror', 'Action'], chapters: 0, readers: '0', author: 'Guiltythree', updated: 'unreleased', color: '#170A22', likeCount: 0, commentCount: 0, status: 'ongoing', comingSoon: true },
 ];
 
 // Shared lookup so every screen resolves the same pool entry for a given

@@ -40,7 +40,7 @@ const PRIVACY_SECTIONS = [
   },
   {
     title: 'Contact',
-    body: 'Questions about this policy? Reach us at support@mangarecs.app.',
+    body: 'Questions about this policy? Reach us at support@mangarecs.net.',
   },
 ];
 
@@ -76,7 +76,7 @@ const TERMS_SECTIONS = [
   },
   {
     title: 'Contact',
-    body: 'Questions? Reach us at support@mangarecs.app.',
+    body: 'Questions? Reach us at support@mangarecs.net.',
   },
 ];
 

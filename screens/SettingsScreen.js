@@ -463,6 +463,7 @@ export default function SettingsScreen({ navigation }) {
       <ScrollView showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
         <View style={isTablet ? styles.tabletWrap : null}>
 
+        {/* ── Account ─────────────────────────────────────────────────── */}
         <SectionCard title="Display name" icon="person-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>Shown across MangaRecs — change this anytime</Text>
           <View style={styles.urlRow}>
@@ -501,136 +502,6 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 0 }]}>
               @{profile?.username} — your permanent handle, set at signup and used to identify you. Can't be changed.
             </Text>
-          </View>
-        </SectionCard>
-
-        <SectionCard title="Appearance" icon="color-palette-outline">
-          <Text style={[styles.cardTitle, { color: colors.text }]}>App Theme</Text>
-          <View style={styles.themeRow}>
-            {THEMES.map((t) => (
-              <TouchableOpacity
-                key={t.id}
-                style={[styles.themeBtn, { borderColor: colors.border }, theme === t.id && styles.themeBtnActive]}
-                onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
-                activeOpacity={0.8}>
-                <Ionicons name={t.icon} size={20} color={theme === t.id ? '#7B5CFF' : colors.muted} />
-                <Text style={[styles.themeBtnText, { color: colors.muted }, theme === t.id && styles.themeBtnTextActive]}>{t.label}</Text>
-                {theme === t.id && <View style={styles.activeDot} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </SectionCard>
-
-        <SectionCard title="Content" icon="shield-outline">
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>AI Recommendations</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
-            </View>
-            <Switch
-              value={aiRec}
-              onValueChange={toggleAiRec}
-              trackColor={{ false: colors.border, true: '#7B5CFF' }}
-              thumbColor="#fff"
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}
-            onPress={() => { setShowTasteModal(true); loadGenrePrefs(); }}
-            activeOpacity={0.7}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Tune My Taste</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>See and adjust the genre weights behind your Recs feed.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-          </TouchableOpacity>
-          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
-                {ageVerified && (
-                  <View style={{ backgroundColor: 'rgba(123,92,255,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9, color: '#7B5CFF', fontWeight: '700' }}>VERIFIED</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
-                {ageVerified
-                  ? 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.'
-                  : 'Verify your age to unlock adult content.'}
-              </Text>
-            </View>
-            {ageVerified ? (
-              <Switch
-                value={allowNsfw}
-                onValueChange={toggleNsfw}
-                trackColor={{ false: colors.border, true: '#f03f3f' }}
-                thumbColor="#fff"
-              />
-            ) : (
-              <TouchableOpacity
-                style={{ backgroundColor: '#7B5CFF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
-                onPress={() => setShowAgeGate(true)}
-                activeOpacity={0.8}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Verify Age</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </SectionCard>
-
-        <AgeGateModal
-          visible={showAgeGate}
-          onVerified={() => { setAgeVerified(true); setShowAgeGate(false); }}
-          onDismiss={() => setShowAgeGate(false)}
-        />
-
-        <SectionCard title="Notifications" icon="notifications-outline">
-          {[
-            { key: 'newChapter', label: 'New chapter alerts', desc: 'Get notified when your series update' },
-            { key: 'friendActivity', label: 'Friend activity', desc: 'See what your friends are reading' },
-            { key: 'comments', label: 'Comments', desc: 'Get notified when someone comments on your series' },
-            { key: 'directMessages', label: 'Direct messages', desc: 'Get notified when a friend sends you a message' },
-          ].map((item, i) => (
-            <View key={item.key} style={[styles.toggleRow, i > 0 && [styles.borderTop, { borderTopColor: colors.border }]]}>
-              <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{item.label}</Text>
-                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{item.desc}</Text>
-              </View>
-              <Switch
-                value={notifs[item.key]}
-                onValueChange={() => toggleNotif(item.key)}
-                trackColor={{ false: colors.border, true: '#7B5CFF' }}
-                thumbColor="#fff"
-              />
-            </View>
-          ))}
-        </SectionCard>
-
-        <SectionCard title="Status" icon="radio-button-on-outline">
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Show online status</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Let friends see when you're online, idle, or reading</Text>
-            </View>
-            <Switch
-              value={showActivity}
-              onValueChange={toggleShowActivity}
-              trackColor={{ false: colors.border, true: '#7B5CFF' }}
-              thumbColor="#fff"
-            />
-          </View>
-          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Appear busy</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
-            </View>
-            <Switch
-              value={isBusy}
-              onValueChange={toggleBusy}
-              trackColor={{ false: colors.border, true: '#E5534B' }}
-              thumbColor="#fff"
-              disabled={!showActivity}
-            />
           </View>
         </SectionCard>
 
@@ -744,12 +615,136 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
-        <SectionCard title="Audio Ambience" icon="musical-notes-outline">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Ionicons name="headset-outline" size={18} color="#7B5CFF" />
-            <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0 }]}>
-              Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
-            </Text>
+        {/* ── Notifications ───────────────────────────────────────────── */}
+        <SectionCard title="Notifications" icon="notifications-outline">
+          {[
+            { key: 'newChapter', label: 'New chapter alerts', desc: 'Get notified when your series update' },
+            { key: 'friendActivity', label: 'Friend activity', desc: 'See what your friends are reading' },
+            { key: 'comments', label: 'Comments', desc: 'Get notified when someone comments on your series' },
+            { key: 'directMessages', label: 'Direct messages', desc: 'Get notified when a friend sends you a message' },
+          ].map((item, i) => (
+            <View key={item.key} style={[styles.toggleRow, i > 0 && [styles.borderTop, { borderTopColor: colors.border }]]}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{item.label}</Text>
+                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{item.desc}</Text>
+              </View>
+              <Switch
+                value={notifs[item.key]}
+                onValueChange={() => toggleNotif(item.key)}
+                trackColor={{ false: colors.border, true: '#7B5CFF' }}
+                thumbColor="#fff"
+              />
+            </View>
+          ))}
+        </SectionCard>
+
+        {/* ── Privacy & Content ───────────────────────────────────────── */}
+        <SectionCard title="Content" icon="shield-outline">
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>AI Recommendations</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
+            </View>
+            <Switch
+              value={aiRec}
+              onValueChange={toggleAiRec}
+              trackColor={{ false: colors.border, true: '#7B5CFF' }}
+              thumbColor="#fff"
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}
+            onPress={() => { setShowTasteModal(true); loadGenrePrefs(); }}
+            activeOpacity={0.7}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Tune My Taste</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>See and adjust the genre weights behind your Recs feed.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </TouchableOpacity>
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
+                {ageVerified && (
+                  <View style={{ backgroundColor: 'rgba(123,92,255,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 9, color: '#7B5CFF', fontWeight: '700' }}>VERIFIED</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
+                {ageVerified
+                  ? 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.'
+                  : 'Verify your age to unlock adult content.'}
+              </Text>
+            </View>
+            {ageVerified ? (
+              <Switch
+                value={allowNsfw}
+                onValueChange={toggleNsfw}
+                trackColor={{ false: colors.border, true: '#f03f3f' }}
+                thumbColor="#fff"
+              />
+            ) : (
+              <TouchableOpacity
+                style={{ backgroundColor: '#7B5CFF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
+                onPress={() => setShowAgeGate(true)}
+                activeOpacity={0.8}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Verify Age</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </SectionCard>
+
+        <AgeGateModal
+          visible={showAgeGate}
+          onVerified={() => { setAgeVerified(true); setShowAgeGate(false); }}
+          onDismiss={() => setShowAgeGate(false)}
+        />
+
+        <SectionCard title="Status" icon="radio-button-on-outline">
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Show online status</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Let friends see when you're online, idle, or reading</Text>
+            </View>
+            <Switch
+              value={showActivity}
+              onValueChange={toggleShowActivity}
+              trackColor={{ false: colors.border, true: '#7B5CFF' }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Appear busy</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
+            </View>
+            <Switch
+              value={isBusy}
+              onValueChange={toggleBusy}
+              trackColor={{ false: colors.border, true: '#E5534B' }}
+              thumbColor="#fff"
+              disabled={!showActivity}
+            />
+          </View>
+        </SectionCard>
+
+        {/* ── Appearance & Reader ─────────────────────────────────────── */}
+        <SectionCard title="Appearance" icon="color-palette-outline">
+          <Text style={[styles.cardTitle, { color: colors.text }]}>App Theme</Text>
+          <View style={styles.themeRow}>
+            {THEMES.map((t) => (
+              <TouchableOpacity
+                key={t.id}
+                style={[styles.themeBtn, { borderColor: colors.border }, theme === t.id && styles.themeBtnActive]}
+                onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
+                activeOpacity={0.8}>
+                <Ionicons name={t.icon} size={20} color={theme === t.id ? '#7B5CFF' : colors.muted} />
+                <Text style={[styles.themeBtnText, { color: colors.muted }, theme === t.id && styles.themeBtnTextActive]}>{t.label}</Text>
+                {theme === t.id && <View style={styles.activeDot} />}
+              </TouchableOpacity>
+            ))}
           </View>
         </SectionCard>
 
@@ -789,8 +784,16 @@ export default function SettingsScreen({ navigation }) {
               );
             })}
           </View>
+
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border, alignItems: 'center' }]}>
+            <Ionicons name="headset-outline" size={18} color="#7B5CFF" style={{ marginRight: 10 }} />
+            <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
+              Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
+            </Text>
+          </View>
         </SectionCard>
 
+        {/* ── Subscription ─────────────────────────────────────────────── */}
         <TouchableOpacity style={styles.upgradeCard} onPress={() => setShowPlans(true)} activeOpacity={0.85}>
           <View style={styles.upgradeLeft}>
             <Ionicons name="star" size={20} color="#FFD700" />
@@ -802,6 +805,7 @@ export default function SettingsScreen({ navigation }) {
           <Ionicons name="open-outline" size={18} color={colors.muted} />
         </TouchableOpacity>
 
+        {/* ── Storage & About ──────────────────────────────────────────── */}
         <SectionCard title="Storage & Data" icon="trash-outline">
           <View style={styles.cacheRow}>
             <View>
@@ -819,7 +823,7 @@ export default function SettingsScreen({ navigation }) {
         </SectionCard>
 
         <SectionCard title="About" icon="information-circle-outline">
-          <SettingsRow icon="help-circle-outline" label="Help & Support" desc="FAQs, contact us, report a bug" onPress={() => Linking.openURL('mailto:support@mangarecs.app?subject=Help%20%26%20Support')} />
+          <SettingsRow icon="help-circle-outline" label="Help & Support" desc="FAQs, contact us, report a bug" onPress={() => Linking.openURL('mailto:support@mangarecs.net?subject=Help%20%26%20Support')} />
           <SettingsRow icon="people-outline" label="Community Guidelines" desc="Read our community standards" onPress={() => navigation.navigate('Guidelines')} />
           <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
           <SettingsRow icon="document-text-outline" label="Terms of Use" onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
@@ -851,6 +855,7 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
+        {/* ── Danger zone ──────────────────────────────────────────────── */}
         {userId === ADMIN_USER_ID && (
           <SectionCard title="Admin" icon="hammer-outline">
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Moderation')} activeOpacity={0.7}>
