@@ -37,7 +37,6 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.mangarecs.app",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
@@ -47,6 +46,7 @@
     "plugins": [
       "expo-web-browser",
       "expo-audio",
+      "./plugins/withoutRecordAudio.js",
       "expo-apple-authentication",
       [
         "expo-notifications",

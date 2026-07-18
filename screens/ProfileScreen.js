@@ -23,6 +23,7 @@ import BadgeIcon from '../components/BadgeIcon';
 import { getMergedDailyLog, calculateStreak, localDateKey } from '../utils/readerUtils';
 import { showAppToast } from '../utils/appToast';
 import { useResponsive } from '../utils/responsive';
+import { containsBlockedLanguage } from '../utils/contentFilter';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -719,6 +720,10 @@ export default function ProfileScreen() {
 
   async function saveBio() {
     const clean = bioDraft.trim();
+    if (containsBlockedLanguage(clean)) {
+      showAppToast('That bio contains language that isn\'t allowed here');
+      return;
+    }
     setBio(clean);
     setEditingBio(false);
     const { error } = await updateProfile({ bio: clean });
