@@ -1625,3 +1625,31 @@ BEGIN
     WHERE id = r.id;
   END LOOP;
 END $$;
+
+-- ── 53. DM rich media: images/GIFs/stickers ───────────────────────────────────
+-- message_type gains 'image' | 'gif' | 'sticker' alongside the existing
+-- 'text' | 'recommendation' (no CHECK constraint on this column, so no
+-- migration needed for the new values themselves — only the new columns and
+-- storage bucket they reference).
+ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS media_url  TEXT;
+ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS sticker_id TEXT;
+
+-- Separate bucket from 'avatars' (different lifecycle/moderation surface —
+-- chat media isn't a profile asset), same ownership-by-folder-prefix pattern:
+-- uploads must live under <senderId>/..., exactly like the existing avatars
+-- bucket policy (§20/§44).
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('dm-media', 'dm-media', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Public read dm-media" ON storage.objects;
+DROP POLICY IF EXISTS "Own upload dm-media"  ON storage.objects;
+DROP POLICY IF EXISTS "Own delete dm-media"  ON storage.objects;
+CREATE POLICY "Public read dm-media"
+  ON storage.objects FOR SELECT USING (bucket_id = 'dm-media');
+CREATE POLICY "Own upload dm-media"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'dm-media' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "Own delete dm-media"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'dm-media' AND auth.uid()::text = (storage.foldername(name))[1]);

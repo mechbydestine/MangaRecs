@@ -19,7 +19,8 @@ import { Bone } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
-import { useProfile } from '../utils/ProfileContext';
+import { useProfile, uploadMediaFile } from '../utils/ProfileContext';
+import * as ImagePicker from 'expo-image-picker';
 import { sendDMPush } from '../utils/pushNotifications';
 
 // Same key SocialScreen reads — records when this thread was last viewed so
@@ -116,6 +117,26 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
   const bgOther = colors.card;
   const isSending = !!msg._sending;
   const hasFailed = !!msg._failed;
+
+  if (msg.message_type === 'image' && msg.media_url) {
+    return (
+      <View style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther, isSending && { opacity: 0.6 }]}>
+        <Image source={{ uri: msg.media_url }} style={styles.imageBubble} resizeMode="cover" />
+        <View style={[styles.bubbleStatus, isOwn ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' }]}>
+          {hasFailed && onRetry && (
+            <TouchableOpacity onPress={() => onRetry(msg)} style={styles.retryBtn}>
+              <Ionicons name="refresh" size={10} color="#FF453A" />
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.bubbleTime, { color: hasFailed ? '#FF453A' : colors.muted }]}>
+            {hasFailed ? 'Failed to send' : timeLabel(msg.created_at)}
+          </Text>
+          {isSending && <Ionicons name="time-outline" size={11} color={colors.muted} style={{ marginLeft: 4 }} />}
+        </View>
+      </View>
+    );
+  }
 
   if (msg.message_type === 'recommendation' && msg.manga_data) {
     return (
@@ -342,6 +363,8 @@ export default function DMScreen() {
     setMessages((prev) => prev.filter((m) => m.id !== failedMsg.id));
     if (failedMsg.message_type === 'recommendation' && failedMsg.manga_data) {
       sendRecommendation(failedMsg.manga_data);
+    } else if (failedMsg.message_type === 'image' && failedMsg.media_url) {
+      sendImage(failedMsg.media_url);
     } else {
       setText(failedMsg.content || '');
     }
@@ -391,6 +414,61 @@ export default function DMScreen() {
       sendDMPush(friendId, myDisplayName, `📚 ${manga.title}`).catch(() => {});
     } else {
       if (error) console.warn('[DM rec send error]', error.code, error.message, error.details);
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
+    }
+  }
+
+  async function pickAndSendImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    sendImage(result.assets[0].uri);
+  }
+
+  async function sendImage(localUri) {
+    if (!myId) return;
+
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const optimistic = {
+      id: tempId,
+      sender_id: myId,
+      recipient_id: friendId,
+      message_type: 'image',
+      media_url: localUri, // local file:// uri — shown immediately, swapped for the real Storage URL once uploaded
+      created_at: new Date().toISOString(),
+      _sending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
+
+    const { url: mediaUrl, error: uploadError } = await uploadMediaFile(
+      localUri, 'dm-media', `${myId}/${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    if (uploadError || !mediaUrl) {
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: uploadError?.message } : m)));
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .insert({ sender_id: myId, recipient_id: friendId, message_type: 'image', media_url: mediaUrl })
+      .select()
+      .maybeSingle();
+
+    if (data) {
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? data : m)));
+      supabase.from('notifications').insert({
+        user_id: friendId,
+        actor_id: myId,
+        type: 'direct_message',
+        data: { message_type: 'image' },
+      }).then(() => {});
+      sendDMPush(friendId, myDisplayName, '📷 Photo').catch(() => {});
+    } else {
+      if (error) console.warn('[DM image send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
     }
   }
@@ -459,6 +537,9 @@ export default function DMScreen() {
         <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }, isTablet && styles.tabletWrap]}>
           <TouchableOpacity style={styles.recBtn} onPress={() => setShowPicker(true)} activeOpacity={0.8}>
             <Ionicons name="paper-plane-outline" size={22} color="#7B5CFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.recBtn} onPress={pickAndSendImage} activeOpacity={0.8}>
+            <Ionicons name="image-outline" size={22} color="#7B5CFF" />
           </TouchableOpacity>
 
           <TextInput
@@ -542,6 +623,7 @@ const styles = StyleSheet.create({
   recLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 6, alignSelf: 'flex-start' },
   recLabelText: { fontSize: 10, fontWeight: '600' },
 
+  imageBubble: { width: 200, height: 200, borderRadius: 16 },
   recCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden', width: 240 },
   recRow: { flexDirection: 'row', padding: 10 },
   recCoverWrap: { width: 72, height: 100, borderRadius: 8, overflow: 'hidden', marginRight: 10 },
