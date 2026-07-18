@@ -2,6 +2,68 @@
 
 const _cache = {};
 
+// ── Cross-site library import ───────────────────────────────────────────────
+// Manually-triggered (not auto-detected — see ReaderScreen.js's
+// startLibraryImport): the user taps "Import Library" while on a site with a
+// config below, we navigate to that site's own bookmark/list page, and run
+// its scrape script. If they aren't actually logged in, the scrape just finds
+// 0 items and the user is told to log in first — no fragile "did they just
+// log in" detection needed.
+//
+// Only Webtoon is implemented with real confidence (a large, stable site with
+// a well-known URL pattern). This is NOT verified against a live logged-in
+// session — there's no way to test that in the environment this was written
+// in — so treat the exact listUrl/scrape selectors as a first draft to
+// confirm against a real account before trusting the results. Add more sites
+// here once their real bookmark-page structure has actually been checked
+// live; guessing at aggregator sites' markup (which changes far more often
+// than Webtoon's) risks scraping garbage with high confidence, which is worse
+// than not having the feature — see mangarecs-project-state memory's account
+// of the 9,069-row junk-scrape incident for why that risk is taken seriously
+// here.
+export const LIBRARY_IMPORT_SITES = {
+  'webtoons.com': {
+    name: 'Webtoon',
+    listUrl: 'https://www.webtoons.com/en/member/bookmark',
+    scrapeScript: `
+(function() {
+  try {
+    var seen = {};
+    var results = [];
+    // Webtoon's series-home URL (/list?title_no=N) is a stable, long-standing
+    // pattern independent of whatever CSS classes the bookmark page's markup
+    // currently uses — more resilient to a template redesign than targeting
+    // specific class names would be.
+    document.querySelectorAll('a[href*="/list?title_no="]').forEach(function(a) {
+      var m = a.href.match(/title_no=(\\d+)/);
+      if (!m) return;
+      var titleNo = m[1];
+      if (seen[titleNo]) return;
+      seen[titleNo] = true;
+      var img = a.querySelector('img');
+      var title = (img && img.alt ? img.alt : a.textContent).trim();
+      if (!title) return;
+      results.push({ id: 'webtoon_' + titleNo, title: title });
+    });
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'libraryImportResult', items: results }));
+  } catch (e) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'libraryImportResult', items: [], error: String(e) }));
+  }
+})();
+true;
+`,
+  },
+};
+
+export function getLibraryImportConfig(url) {
+  if (!url) return null;
+  let hostname;
+  try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return null; }
+  return Object.entries(LIBRARY_IMPORT_SITES).find(
+    ([host]) => hostname === host || hostname.endsWith('.' + host)
+  )?.[1] || null;
+}
+
 export function clearResumeCache(title) {
   Object.keys(_cache).forEach((k) => { if (k.startsWith(title + '::')) delete _cache[k]; });
 }

@@ -12,7 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { TOP_SITES, buildSearchUrl, getDefaultSite, getReadingSiteForLang } from '../utils/mangaSearch';
 import { getFaviconUrl } from '../utils/mangaCovers';
-import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_JS, HOMEPAGE_DETECT_JS, SEARCH_WATCHDOG_JS, MANGADEX_CHAPTER_NAV_JS } from '../utils/siteResolver';
+import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_JS, HOMEPAGE_DETECT_JS, SEARCH_WATCHDOG_JS, MANGADEX_CHAPTER_NAV_JS, getLibraryImportConfig } from '../utils/siteResolver';
+import { findPoolEntry } from '../utils/mangaPool';
 import { searchMangaDex, getMangaChaptersCached, getChapterPages } from '../utils/mangaDexApi';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
@@ -1858,6 +1859,57 @@ export default function ReaderScreen({ route, navigation }) {
     setReportingPage(false);
   }
 
+  // ── Cross-site library import ────────────────────────────────────────────
+  // Manual, opt-in only — see utils/siteResolver.js's LIBRARY_IMPORT_SITES
+  // comment for why this isn't auto-detected. The user's real login happens
+  // entirely on the site's own page inside this WebView; MangaRecs never
+  // sees a password, only whatever the resulting authenticated page shows.
+  const libraryImportConfig = getLibraryImportConfig(currentUrl);
+  const [awaitingLibraryScrape, setAwaitingLibraryScrape] = useState(false);
+  const [libraryImportLoading, setLibraryImportLoading] = useState(false);
+  const [libraryImportItems, setLibraryImportItems] = useState(null); // null = not shown, [] = shown but empty
+  const [libraryImportSelected, setLibraryImportSelected] = useState({});
+  const [libraryImportSaving, setLibraryImportSaving] = useState(false);
+
+  function startLibraryImport() {
+    if (!libraryImportConfig) return;
+    setShowSitePicker(false);
+    setLibraryImportLoading(true);
+    setLibraryImportItems(null);
+    setAwaitingLibraryScrape(true);
+    setCurrentUrl(libraryImportConfig.listUrl);
+  }
+
+  async function handleLibraryImportResult(items) {
+    setLibraryImportLoading(false);
+    setLibraryImportItems(items || []);
+    setLibraryImportSelected(Object.fromEntries((items || []).map((it) => [it.id, true])));
+  }
+
+  async function confirmLibraryImport() {
+    setLibraryImportSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const toImport = (libraryImportItems || []).filter((it) => libraryImportSelected[it.id]);
+      for (const item of toImport) {
+        const pooled = findPoolEntry(item.title);
+        const seriesTitle = pooled?.title || item.title;
+        await supabase.from('reading_progress').upsert({
+          user_id: user.id,
+          series_title: seriesTitle,
+          status: 'bookmarked',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,series_title', ignoreDuplicates: true });
+      }
+      showToast(`Imported ${toImport.length} series into your Library`);
+    } catch (_) {
+      showToast("Couldn't finish importing — try again");
+    }
+    setLibraryImportSaving(false);
+    setLibraryImportItems(null);
+  }
+
   // ── API chapter loading ───────────────────────────────────────────────────
 
   async function loadApiChapter(idx) {
@@ -2435,8 +2487,13 @@ export default function ReaderScreen({ route, navigation }) {
               setWebCanGoBack(navState.canGoBack || false);
               setWebCanGoForward(navState.canGoForward || false);
               if (!navState.url) return;
-              // Intercept any login/auth wall before saving the URL or showing the page
-              if (isLoginUrl(navState.url)) {
+              // Only intercept a login wall while the app's own auto-search/auto-nav
+              // is actively driving navigation (searchQuery set) — there, hitting a
+              // login wall means "this source needs sign-in, try another automatically."
+              // A user manually browsing (no active search) is allowed to sign in
+              // anywhere they choose — e.g. to use their own library-import feature —
+              // exactly like they could in a normal browser tab.
+              if (searchQuery && isLoginUrl(navState.url)) {
                 webviewRef.current?.stopLoading();
                 handleLoginIntercepted();
                 return;
@@ -2462,6 +2519,10 @@ export default function ReaderScreen({ route, navigation }) {
               webviewRef.current?.injectJavaScript(AD_BLOCK_JS);
               if (forceDarkSites) webviewRef.current?.injectJavaScript(buildForceDarkJS(true));
               webviewRef.current?.injectJavaScript(EXTRACT_PAGE_INFO_JS);
+              if (awaitingLibraryScrape && libraryImportConfig) {
+                setAwaitingLibraryScrape(false);
+                webviewRef.current?.injectJavaScript(libraryImportConfig.scrapeScript);
+              }
               if (searchQuery) {
                 webviewRef.current?.injectJavaScript(`window.__mangarecsQuery = ${JSON.stringify(searchQuery)};`);
                 webviewRef.current?.injectJavaScript(AUTO_NAV_SEARCH_JS);
@@ -2534,6 +2595,8 @@ export default function ReaderScreen({ route, navigation }) {
                         Animated.timing(titleFade, { toValue: 1, duration: 160, useNativeDriver: true }).start();
                       });
                     }
+                  } else if (msg.type === 'libraryImportResult') {
+                    handleLibraryImportResult(msg.items);
                   } else if (msg.type === 'chapterCount') {
                     if (msg.count > 0) {
                       setWebChapterCount((prev) => Math.max(prev, msg.count));
@@ -2573,7 +2636,7 @@ export default function ReaderScreen({ route, navigation }) {
             onShouldStartLoadWithRequest={(req) => {
               const url = (req.url || '').toLowerCase();
               if (AD_NETWORK_PATTERNS.some((b) => url.includes(b))) return false;
-              if (isLoginUrl(req.url)) {
+              if (searchQuery && isLoginUrl(req.url)) {
                 setTimeout(() => handleLoginIntercepted(), 0);
                 return false;
               }
@@ -2835,6 +2898,21 @@ export default function ReaderScreen({ route, navigation }) {
               </TouchableOpacity>
             )}
 
+            {readerMode === 'webview' && libraryImportConfig && (
+              <TouchableOpacity
+                onPress={startLibraryImport}
+                disabled={libraryImportLoading}
+                style={styles.reportPageRow}
+                activeOpacity={0.7}>
+                {libraryImportLoading
+                  ? <ActivityIndicator size="small" color="#7B5CFF" />
+                  : <Ionicons name="download-outline" size={13} color="#7B5CFF" />}
+                <Text style={[styles.reportPageText, { color: '#7B5CFF' }]}>
+                  {libraryImportLoading ? `Checking your ${libraryImportConfig.name} library…` : `Import Library from ${libraryImportConfig.name}`}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
               {siteSuggestions ? (
                 <>
@@ -2879,6 +2957,57 @@ export default function ReaderScreen({ route, navigation }) {
                 </>
               )}
             </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Library import review ───────────────────────────────────────── */}
+      <Modal visible={libraryImportItems !== null} animationType="slide" transparent onRequestClose={() => setLibraryImportItems(null)}>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setLibraryImportItems(null)}>
+          <View style={[styles.siteSheet, sheetC.sheet]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.sheetHandle, sheetC.handle]} />
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, sheetC.title]}>
+                {libraryImportItems?.length ? `Found ${libraryImportItems.length} series` : 'Nothing found'}
+              </Text>
+              <TouchableOpacity onPress={() => setLibraryImportItems(null)}>
+                <Ionicons name="close" size={20} color="#9B9AA3" />
+              </TouchableOpacity>
+            </View>
+
+            {libraryImportItems?.length ? (
+              <>
+                <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                  {libraryImportItems.map((item) => {
+                    const checked = !!libraryImportSelected[item.id];
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.libraryImportRow}
+                        onPress={() => setLibraryImportSelected((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        activeOpacity={0.7}>
+                        <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={20} color={checked ? '#7B5CFF' : '#9B9AA3'} />
+                        <Text style={styles.libraryImportRowText} numberOfLines={1}>{item.title}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+                <TouchableOpacity
+                  style={[styles.libraryImportConfirmBtn, libraryImportSaving && { opacity: 0.6 }]}
+                  onPress={confirmLibraryImport}
+                  disabled={libraryImportSaving}>
+                  {libraryImportSaving
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.libraryImportConfirmText}>
+                        Import {Object.values(libraryImportSelected).filter(Boolean).length} into Library
+                      </Text>}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.libraryImportEmptyText}>
+                Didn't find a library — make sure you're logged in on this site, then tap Import again.
+              </Text>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -3267,6 +3396,11 @@ const styles = StyleSheet.create({
   siteGoBtnText:          { color: '#fff', fontSize: 12, fontWeight: '600' },
   reportPageRow:          { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, alignSelf: 'flex-start' },
   reportPageText:         { color: '#9B9AA3', fontSize: 11.5 },
+  libraryImportRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 10 },
+  libraryImportRowText:   { color: '#fff', fontSize: 14, flex: 1 },
+  libraryImportConfirmBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, marginHorizontal: 20, marginTop: 12, marginBottom: 24, paddingVertical: 14, alignItems: 'center' },
+  libraryImportConfirmText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  libraryImportEmptyText: { color: '#9B9AA3', fontSize: 13, textAlign: 'center', paddingHorizontal: 30, paddingVertical: 40 },
   siteSectionRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   siteSectionLabel:       { color: '#9B9AA3', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
   clearAllBtn:            { paddingVertical: 4, paddingHorizontal: 8 },
