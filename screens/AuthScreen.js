@@ -1,11 +1,13 @@
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, ActivityIndicator,
+  ScrollView, ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
+import { signInWithApple } from '../utils/appleAuth';
 import { useKeyboardPadding } from '../utils/keyboard';
 import StarLogo from '../components/StarLogo';
 
@@ -76,6 +78,18 @@ function GoogleButton({ onPress, loading }) {
   );
 }
 
+function AppleButton({ onPress, loading }) {
+  return (
+    <AppleAuthentication.AppleAuthenticationButton
+      buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+      cornerRadius={12}
+      style={styles.appleBtn}
+      onPress={loading ? () => {} : onPress}
+    />
+  );
+}
+
 function Divider() {
   return (
     <View style={styles.dividerRow}>
@@ -100,8 +114,15 @@ export default function AuthScreen() {
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
+  }, []);
 
   const keyboardPadding = useKeyboardPadding();
   const usernameStatus = useUsernameAvailability(mode === 'register' ? username : '');
@@ -138,6 +159,18 @@ export default function AuthScreen() {
       setError(err.message || 'Google sign-in failed');
     } finally {
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleApple() {
+    setAppleLoading(true);
+    setError('');
+    try {
+      await signInWithApple();
+    } catch (err) {
+      setError(err.message || 'Apple sign-in failed');
+    } finally {
+      setAppleLoading(false);
     }
   }
 
@@ -272,6 +305,7 @@ export default function AuthScreen() {
           {mode === 'login' && (
             <>
               <Text style={styles.cardTitle}>Welcome back</Text>
+              {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <Divider />
 
@@ -315,6 +349,7 @@ export default function AuthScreen() {
           {mode === 'register' && (
             <>
               <Text style={styles.cardTitle}>Create your account</Text>
+              {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <Divider />
 
@@ -504,6 +539,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 20,
     lineHeight: 18,
+  },
+  appleBtn: {
+    height: 46,
+    marginTop: 16,
   },
   googleBtn: {
     flexDirection: 'row',
