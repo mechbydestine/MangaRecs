@@ -17,6 +17,8 @@ import { findPoolEntry } from '../utils/mangaPool';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Bone } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
+import { containsBlockedLanguage } from '../utils/contentFilter';
+import { showAppToast } from '../utils/appToast';
 import { useProfile } from '../utils/ProfileContext';
 import { sendDMPush } from '../utils/pushNotifications';
 
@@ -296,6 +298,10 @@ export default function DMScreen() {
   async function sendText() {
     if (!myId || !text.trim()) return;
     const content = text.trim();
+    if (containsBlockedLanguage(content)) {
+      showAppToast('That message contains language that isn\'t allowed here');
+      return;
+    }
     setText('');
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;

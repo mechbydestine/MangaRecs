@@ -16,6 +16,7 @@ import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
 import { rateSeries, getSeriesRating } from '../utils/ratings';
 import { findPoolEntry } from '../utils/mangaPool';
 import { useResponsive } from '../utils/responsive';
+import { containsBlockedLanguage } from '../utils/contentFilter';
 
 
 const BLOCKED_DOMAINS = [
@@ -211,6 +212,10 @@ export default function DiscussionScreen() {
     if (!text || !currentUserId || commentLoading) return;
     if (containsBlockedDomain(text)) {
       setUrlError('Links to file-sharing sites are not allowed');
+      return;
+    }
+    if (containsBlockedLanguage(text)) {
+      setUrlError('That message contains language that isn\'t allowed here');
       return;
     }
     setUrlError('');

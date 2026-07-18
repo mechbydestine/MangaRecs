@@ -21,6 +21,8 @@ import { useNotifications } from '../utils/NotificationsContext';
 
 import { MANGA_POOL, COMPLETED_IDS } from '../utils/mangaPool';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
+import { containsBlockedLanguage } from '../utils/contentFilter';
+import { showAppToast } from '../utils/appToast';
 
 const { height, width } = Dimensions.get('window');
 const NOTIF_H    = Math.round(height * 0.40);
@@ -1215,13 +1217,13 @@ export default function FeedScreen() {
     setShareSheetOpen(false);
     try {
       await Share.share({
-        message: `Check out ${activeItem.title} on MangaRecs! 📚\nhttps://mangarecs.app/series/${activeItem.id || 'discover'}`,
+        message: `Check out ${activeItem.title} on MangaRecs! 📚\nhttps://mangarecs.net/catalog/title/${activeItem.id || ''}`,
       });
     } catch (_) {}
   }
 
   function getShareText() {
-    const link = `https://mangarecs.app/series/${activeItem?.id || 'discover'}`;
+    const link = `https://mangarecs.net/catalog/title/${activeItem?.id || ''}`;
     const blurb = `Check out ${activeItem?.title || 'this manga'} on MangaRecs! 📚`;
     return { link, blurb, full: `${blurb}\n${link}` };
   }
@@ -1309,6 +1311,10 @@ export default function FeedScreen() {
   async function handleSendComment() {
     const text = commentInput.trim();
     if (!text || !activeItem) return;
+    if (containsBlockedLanguage(text)) {
+      showAppToast('That comment contains language that isn\'t allowed here');
+      return;
+    }
     const isSpoiler = commentSpoiler;
     const optimistic = {
       id: `opt-${Date.now()}`,

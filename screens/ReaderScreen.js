@@ -37,13 +37,19 @@ const CHAPTER_ROW_H = 62;
 
 // ── Site list ──────────────────────────────────────────────────────────────
 
+// "featured" sites are what shows by default in the Quick Picks tray — kept
+// to official/licensed platforms only. Everything else (including MangaDex,
+// MangaFire, Asura Scans, Weeb Central) still works exactly as before and is
+// fully reachable via search or a pasted URL; opening one adds it to Recent,
+// so it becomes the user's own quick pick going forward. It's just not
+// something the app suggests out of the box.
 const MANGA_SITES = [
-  { name: 'MangaDex',         url: 'https://mangadex.org',                    emoji: '📚', featured: true },
-  { name: 'MangaFire',        url: 'https://mangafire.to',                    emoji: '🔥', featured: true },
-  { name: 'Asura Scans',      url: 'https://asurascans.com',                  emoji: '⚡', featured: true },
   { name: 'Webtoon',          url: 'https://www.webtoons.com',                emoji: '🎨', featured: true },
-  { name: 'Weeb Central',     url: 'https://weebcentral.com',                 emoji: '⚡', featured: true },
   { name: 'Manga Plus',       url: 'https://mangaplus.shueisha.co.jp',        emoji: '⭐', featured: true },
+  { name: 'MangaDex',         url: 'https://mangadex.org',                    emoji: '📚' },
+  { name: 'MangaFire',        url: 'https://mangafire.to',                    emoji: '🔥' },
+  { name: 'Asura Scans',      url: 'https://asurascans.com',                  emoji: '⚡' },
+  { name: 'Weeb Central',     url: 'https://weebcentral.com',                 emoji: '⚡' },
   { name: 'INKR',             url: 'https://inkr.com',                        emoji: '🖊️' },
   { name: 'Pixiv Comics',     url: 'https://comic.pixiv.net',                 emoji: '🎨' },
   { name: 'K MANGA',          url: 'https://kmanga.kodansha.com',             emoji: '🅺' },
