@@ -31,7 +31,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
   async function handleCopyLink() {
     try {
       await Share.share({
-        message: `https://mangarecs.app/series/${series?.id || 'discover'}`,
+        message: `https://mangarecs.net/catalog/title/${series?.id || ''}`,
       });
       setShared(true);
       setTimeout(() => setShared(false), 2000);
@@ -41,7 +41,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
   async function handleShare() {
     try {
       await Share.share({
-        message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on MangaRecs! 📚\nhttps://mangarecs.app/series/${series?.id || 'discover'}`,
+        message: `I'm reading ${series?.title || 'an amazing manga'} Ch.${chapter || 1} on MangaRecs! 📚\nhttps://mangarecs.net/catalog/title/${series?.id || ''}`,
       });
     } catch (_) {}
     onClose();

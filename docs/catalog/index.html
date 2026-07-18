@@ -614,6 +614,46 @@ document.addEventListener('DOMContentLoaded', function () {
     }).catch(function () { app.innerHTML = '<p class="statemsg">Search failed. Try again in a moment.</p>'; });
   }
 
+  // MangaRecs' own catalog (utils/mangaPool.js + the live manga_pool table)
+  // uses its own TEXT ids (short curated slugs like "sh", or MangaDex UUIDs
+  // for the API-augmented rows) — a completely different id space from
+  // AniList's numeric ids the rest of this page browses. Shared links from
+  // the app (Share.share() in FeedScreen.js/ShareCard.js) point at these
+  // pool ids, so they need this lighter, separate render path rather than
+  // renderDetail's AniList-only mediaById() lookup.
+  function renderPoolDetail(id) {
+    setActiveTab(null);
+    app.innerHTML = '<div class="skeleton" style="height:320px;border-radius:16px;"></div>';
+    sb.from('manga_pool').select('id,title,description,rating,cover_url').eq('id', id).maybeSingle()
+      .then(function (res) {
+        var m = res.data;
+        if (!m) { app.innerHTML = '<p class="statemsg">Title not found.</p>'; return; }
+        window.scrollTo(0, 0);
+        var scoreHtml = m.rating ? '<div class="info-row"><dt>Rating</dt><dd>' + Number(m.rating).toFixed(1) + ' / 10</dd></div>' : '';
+        app.innerHTML =
+          '<a class="backlink" href="#/" onclick="history.back();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>Back</a>' +
+          '<div class="detail-hero">' +
+            '<div class="detail-cover">' + (m.cover_url ? '<img src="' + m.cover_url + '" alt="" />' : '') + '</div>' +
+            '<div class="detail-titlewrap">' +
+              '<h1 class="detail-title">' + esc(m.title) + '</h1>' +
+              '<div class="detail-actions">' +
+                '<a class="btn-primary" href="mangarecs://series/' + encodeURIComponent(m.title) + '">Open in the MangaRecs app</a>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="detail-body">' +
+            '<div>' +
+              '<div class="card">' +
+                '<div class="card-title">Synopsis</div>' +
+                '<div class="synopsis">' + esc(m.description || 'No synopsis available.') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div><div class="card"><div class="card-title">Details</div><dl style="margin:0;">' + scoreHtml + '</dl></div></div>' +
+          '</div>';
+      })
+      .catch(function () { app.innerHTML = '<p class="statemsg">Couldn\'t load this title. Try again in a moment.</p>'; });
+  }
+
   function renderDetail(id) {
     setActiveTab(null);
     app.innerHTML = '<div class="skeleton" style="height:320px;border-radius:16px;"></div>';
@@ -1188,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', function () {
     catRailMobile.classList.remove('lib-hide');
     var hash = location.hash.replace(/^#/, '') || '/';
     var parts = hash.split('/').filter(Boolean);
-    if (parts[0] === 'title' && parts[1]) return renderDetail(parts[1]);
+    if (parts[0] === 'title' && parts[1]) return /^\d+$/.test(parts[1]) ? renderDetail(parts[1]) : renderPoolDetail(parts[1]);
     if (parts[0] === 'browse' && parts[1]) return renderBrowse(parts[1]);
     if (parts[0] === 'search' && parts[1]) return renderSearch(decodeURIComponent(parts[1]));
     if (parts[0] === 'library') return renderLibrary();
