@@ -216,6 +216,17 @@ function AmbienceVolumeSlider({ volume, color }) {
   );
 }
 
+// Officially-licensed sites (Webtoon, Manga Plus) run clean, well-built pages
+// with none of the popup/interstitial ad patterns scan-aggregator sites rely
+// on — the viewport-heuristic overlay/banner-strip removal in nukeOverlays()
+// below is exactly the kind of broad heuristic that has previously nuked real
+// site content (a real header, a legitimate full-screen settings panel) on
+// well-built pages. Known-good hosts get a lighter touch: the name/domain
+// based ad removal (CSS_RULES, SEL, isAd()) still runs everywhere since those
+// only ever touch elements that actually match an ad-network pattern, but the
+// viewport-shape guesswork is skipped where we already know it isn't needed.
+const LIGHT_AD_BLOCK_HOSTS = ['webtoons.com', 'mangaplus.shueisha.co.jp'];
+
 // ── Ad network patterns — used in both onShouldStartLoadWithRequest and onOpenWindow ──
 const AD_NETWORK_PATTERNS = [
   'doubleclick','googlesyndication','googleadservices','pagead2','adnxs',
@@ -241,6 +252,13 @@ const AD_BLOCK_JS = `
 (function() {
   if (window.__inkAB) return true;
   window.__inkAB = true;
+
+  // ── 0. Per-site level — light touch on known-good hosts (see
+  // LIGHT_AD_BLOCK_HOSTS above), aggressive (default) everywhere else ───────
+  var LIGHT_HOSTS = ${JSON.stringify(LIGHT_AD_BLOCK_HOSTS)};
+  var host = (location.hostname || '').replace(/^www\\./, '');
+  var LEVEL = LIGHT_HOSTS.some(function(h) { return host === h || host.slice(-(h.length + 1)) === '.' + h; })
+    ? 'light' : 'aggressive';
 
   // ── 1. Ad domain list (network + DOM) ────────────────────────────────────
   var AD = [
@@ -380,7 +398,10 @@ const AD_BLOCK_JS = `
     document.querySelectorAll('script[src],iframe[src]').forEach(function(el) {
       if (isAd(el.src || el.getAttribute('src'))) rm(el);
     });
-    nukeOverlays();
+    // Viewport-shape guesswork (full-screen dimmers, sticky banner strips) is
+    // the riskiest heuristic for false-positive removal of real content —
+    // skip it on hosts already known not to need it.
+    if (LEVEL !== 'light') nukeOverlays();
     // Unlock body scroll (popup libraries often set overflow:hidden)
     try {
       if (document.body) {
@@ -1810,6 +1831,33 @@ export default function ReaderScreen({ route, navigation }) {
     }
   }
 
+  // Lets a user flag a page that's broken (real content removed by the ad-block
+  // heuristics, or ads getting through) straight from the site picker they're
+  // already looking at — reuses the existing reports table/Moderation queue,
+  // just with a distinguishing content_type, so no new schema/screen is needed.
+  const [reportingPage, setReportingPage] = useState(false);
+  const [pageReported,  setPageReported]  = useState(false);
+
+  async function reportBrokenPage() {
+    if (!currentUrl || reportingPage) return;
+    setReportingPage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      let hostname = currentUrl;
+      try { hostname = new URL(currentUrl).hostname; } catch (_) {}
+      await supabase.from('reports').insert({
+        reporter_id: user?.id || null,
+        content_id: hostname,
+        content_type: 'reader_page',
+        content_snapshot: currentUrl.slice(0, 500),
+        reason: 'Reader page broken or ads getting through',
+      });
+      setPageReported(true);
+      setTimeout(() => setPageReported(false), 2500);
+    } catch (_) {}
+    setReportingPage(false);
+  }
+
   // ── API chapter loading ───────────────────────────────────────────────────
 
   async function loadApiChapter(idx) {
@@ -2770,6 +2818,23 @@ export default function ReaderScreen({ route, navigation }) {
               ) : null}
             </View>
 
+            {readerMode === 'webview' && currentUrl && (
+              <TouchableOpacity
+                onPress={reportBrokenPage}
+                disabled={reportingPage}
+                style={styles.reportPageRow}
+                activeOpacity={0.7}>
+                <Ionicons
+                  name={pageReported ? 'checkmark-circle' : 'flag-outline'}
+                  size={13}
+                  color={pageReported ? '#1D9E75' : '#9B9AA3'}
+                />
+                <Text style={[styles.reportPageText, pageReported && { color: '#1D9E75' }]}>
+                  {pageReported ? 'Thanks — reported!' : 'This page is broken or full of ads'}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
               {siteSuggestions ? (
                 <>
@@ -3200,6 +3265,8 @@ const styles = StyleSheet.create({
   siteInputField:         { flex: 1, color: '#fff', fontSize: 13, marginLeft: 8 },
   siteGoBtn:              { backgroundColor: '#7B5CFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   siteGoBtnText:          { color: '#fff', fontSize: 12, fontWeight: '600' },
+  reportPageRow:          { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, alignSelf: 'flex-start' },
+  reportPageText:         { color: '#9B9AA3', fontSize: 11.5 },
   siteSectionRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   siteSectionLabel:       { color: '#9B9AA3', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
   clearAllBtn:            { paddingVertical: 4, paddingHorizontal: 8 },

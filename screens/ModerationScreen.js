@@ -8,6 +8,7 @@ import { supabase } from '../supabase';
 const CONTENT_TYPE_LABELS = {
   discussion_comment: 'Comment',
   series_discussion: 'Series discussion',
+  reader_page: 'Broken reader page',
 };
 
 export default function ModerationScreen({ navigation }) {
