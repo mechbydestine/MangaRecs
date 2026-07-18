@@ -5,6 +5,37 @@ import { checkAndNotifyBadges } from './badgeEngine';
 
 const ProfileContext = createContext(null);
 
+// Generic Storage upload, extracted from uploadAvatar below (which adds its
+// own fixed avatar/banner path + profile-field-update behavior on top of
+// this). FileSystem.uploadAsync reads the local file URI natively — the
+// only reliable way in Expo RN; Uint8Array/ArrayBuffer bodies are silently
+// emptied by the RN fetch polyfill, producing 0-byte uploads.
+export async function uploadMediaFile(uri, bucket, path) {
+  const rawExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+  const ext = (rawExt === 'jpeg' || rawExt === 'heic' || rawExt === 'heif') ? 'jpg' : rawExt;
+  const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+  const fullPath = `${path}.${ext}`;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { error: new Error('Not signed in') };
+
+  const uploadUrl = `https://jlzsnmwyyjefjekscvgs.supabase.co/storage/v1/object/${bucket}/${fullPath}`;
+  const result = await FileSystem.uploadAsync(uploadUrl, uri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': mimeType,
+      'x-upsert': 'true',
+    },
+  });
+  if (result.status < 200 || result.status >= 300) {
+    return { error: new Error(`Upload failed (${result.status}): ${result.body}`) };
+  }
+  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+  return { url: publicUrl };
+}
+
 // Stat columns are server-owned (RPCs/triggers only — see migration section 36).
 // Any client update that still includes one would make the whole UPDATE fail
 // under the column-level grants, so they are stripped here defensively.
@@ -102,33 +133,8 @@ export function ProfileProvider({ children }) {
   async function uploadAvatar(uri, type = 'avatar') {
     if (!userId) return { error: new Error('Not signed in') };
     try {
-      const rawExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const ext = (rawExt === 'jpeg' || rawExt === 'heic' || rawExt === 'heif') ? 'jpg' : rawExt;
-      const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-      const path = `${userId}/${type}.${ext}`;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { error: new Error('Not signed in') };
-
-      // FileSystem.uploadAsync reads the local file URI natively — the only reliable
-      // way in Expo RN. Uint8Array/ArrayBuffer bodies are silently emptied by the
-      // RN fetch polyfill, producing 0-byte uploads.
-      const uploadUrl = `https://jlzsnmwyyjefjekscvgs.supabase.co/storage/v1/object/avatars/${path}`;
-      const result = await FileSystem.uploadAsync(uploadUrl, uri, {
-        httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': mimeType,
-          'x-upsert': 'true',
-        },
-      });
-
-      if (result.status < 200 || result.status >= 300) {
-        return { error: new Error(`Upload failed (${result.status}): ${result.body}`) };
-      }
-
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      const { url: publicUrl, error } = await uploadMediaFile(uri, 'avatars', `${userId}/${type}`);
+      if (error) return { error };
       // Path is constant per user, so bust caches on every change — otherwise
       // friends' devices keep showing the previously cached image forever.
       const versionedUrl = `${publicUrl}?v=${Date.now()}`;

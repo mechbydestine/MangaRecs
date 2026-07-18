@@ -24,7 +24,7 @@ function buildNotification(row) {
   else if (row.type === 'reply')           text = `replied to your comment on ${d.series_title || 'a series'}${d.text_preview ? `: "${d.text_preview}"` : ''}`;
   else if (row.type === 'like')            text = `liked ${d.series_title || 'your series'}`;
   else if (row.type === 'badge')           text = `You unlocked "${d.badge_name || 'a badge'}" — ${d.badge_desc || ''}`;
-  else if (row.type === 'direct_message')  text = d.message_type === 'recommendation' ? `sent a Rec: ${d.manga_title || 'a manga'}` : 'sent you a message';
+  else if (row.type === 'direct_message')  text = d.message_type === 'recommendation' ? `sent a Rec: ${d.manga_title || 'a manga'}` : d.message_type === 'image' ? 'sent you a photo' : 'sent you a message';
   else                                     text = d.message || 'sent you a notification';
   return {
     id: row.id,
