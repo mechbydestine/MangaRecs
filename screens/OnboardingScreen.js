@@ -1,16 +1,19 @@
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, ActivityIndicator,
+  ScrollView, ActivityIndicator, Platform,
 } from 'react-native';
-import { Ionicons, AntDesign } from '@expo/vector-icons';
-import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
+import { signInWithApple } from '../utils/appleAuth';
 import { MangaCover } from '../utils/mangaCovers';
 import { GENRES as GENRE_OPTIONS } from '../utils/genres';
 import { useKeyboardPadding } from '../utils/keyboard';
 import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
+import { GoogleButton, AppleButton, AuthDivider } from '../components/AuthButtons';
 import StarLogo from '../components/StarLogo';
 import { useResponsive } from '../utils/responsive';
 
@@ -52,6 +55,13 @@ function SignUpGate({ onDone }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
+  }, []);
 
   async function handleGoogle() {
     setGoogleLoading(true);
@@ -63,6 +73,19 @@ function SignUpGate({ onDone }) {
       setError(err.message || 'Google sign-in failed');
     } finally {
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleApple() {
+    setAppleLoading(true);
+    setError('');
+    try {
+      await signInWithApple();
+      onDone();
+    } catch (err) {
+      setError(err.message || 'Apple sign-in failed');
+    } finally {
+      setAppleLoading(false);
     }
   }
 
@@ -89,16 +112,9 @@ function SignUpGate({ onDone }) {
         <Text style={styles.headline}>Create your account</Text>
         <Text style={styles.sub}>Save your progress, preferences, and library.</Text>
 
-        <TouchableOpacity style={styles.googleBtn} onPress={handleGoogle} disabled={googleLoading}>
-          <AntDesign name="google" size={18} color="#fff" />
-          <Text style={styles.googleBtnText}>Continue with Google</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
+        <GoogleButton onPress={handleGoogle} loading={googleLoading} />
+        <AuthDivider />
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -596,15 +612,6 @@ const styles = StyleSheet.create({
   },
   gateFeatureText: { color: '#9B9AA3', fontSize: 12 },
 
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#0D0D0F', borderWidth: 1, borderColor: '#2A2A2F',
-    borderRadius: 12, paddingVertical: 14, marginTop: 12, marginBottom: 16, gap: 10,
-  },
-  googleBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#2A2A2F' },
-  dividerText: { color: '#9B9AA3', fontSize: 11, textTransform: 'uppercase', marginHorizontal: 10 },
   fieldWrap: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F',
     borderWidth: 1, borderColor: '#2A2A2F', borderRadius: 12, paddingHorizontal: 14, marginBottom: 12,
@@ -624,7 +631,7 @@ const styles = StyleSheet.create({
   discoverCardTitle: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginTop: 3, lineHeight: 17 },
   miniCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 3 },
   miniCardRating: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
-  chipRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20,

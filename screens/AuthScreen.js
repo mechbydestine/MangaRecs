@@ -2,14 +2,16 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Platform,
 } from 'react-native';
-import { Ionicons, AntDesign } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
 import { signInWithApple } from '../utils/appleAuth';
 import { useKeyboardPadding } from '../utils/keyboard';
 import StarLogo from '../components/StarLogo';
+import { GoogleButton, AppleButton, AuthDivider } from '../components/AuthButtons';
 
 function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
   const [hidden, setHidden] = useState(true);
@@ -67,37 +69,6 @@ export function UsernameStatusIcon({ status }) {
   if (status === 'available') return <Ionicons name="checkmark-circle" size={18} color="#1D9E75" />;
   if (status === 'taken') return <Ionicons name="close-circle" size={18} color="#FF453A" />;
   return null;
-}
-
-function GoogleButton({ onPress, loading }) {
-  return (
-    <TouchableOpacity style={styles.googleBtn} onPress={onPress} disabled={loading}>
-      <AntDesign name="google" size={18} color="#fff" />
-      <Text style={styles.googleBtnText}>Continue with Google</Text>
-    </TouchableOpacity>
-  );
-}
-
-function AppleButton({ onPress, loading }) {
-  return (
-    <AppleAuthentication.AppleAuthenticationButton
-      buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-      cornerRadius={12}
-      style={styles.appleBtn}
-      onPress={loading ? () => {} : onPress}
-    />
-  );
-}
-
-function Divider() {
-  return (
-    <View style={styles.dividerRow}>
-      <View style={styles.dividerLine} />
-      <Text style={styles.dividerText}>or</Text>
-      <View style={styles.dividerLine} />
-    </View>
-  );
 }
 
 export default function AuthScreen() {
@@ -293,6 +264,11 @@ export default function AuthScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
+          <LinearGradient
+            colors={['rgba(123,92,255,0.35)', 'rgba(123,92,255,0)']}
+            style={styles.brandGlow}
+            pointerEvents="none"
+          />
           <StarLogo size={64} />
         </View>
         <View style={styles.wordmarkRow}>
@@ -307,7 +283,7 @@ export default function AuthScreen() {
               <Text style={styles.cardTitle}>Welcome back</Text>
               {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
-              <Divider />
+              <AuthDivider />
 
               {notice ? <Text style={styles.notice}>{notice}</Text> : null}
               {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -351,7 +327,7 @@ export default function AuthScreen() {
               <Text style={styles.cardTitle}>Create your account</Text>
               {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
-              <Divider />
+              <AuthDivider />
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -495,6 +471,15 @@ const styles = StyleSheet.create({
   },
   brandRow: {
     marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    top: -38,
   },
   wordmarkRow: {
     flexDirection: 'row',
@@ -527,6 +512,10 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(123,92,255,0.18)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
+      android: { elevation: 8 },
+    }),
   },
   cardTitle: {
     color: '#fff',
