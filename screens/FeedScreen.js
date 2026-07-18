@@ -828,6 +828,13 @@ export default function FeedScreen() {
   const [searchOpen, setSearchOpen]   = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  // sms:/mailto: are default-queryable system schemes on both platforms (no
+  // extra entitlement needed), so canOpenURL reliably reflects real device
+  // capability here — unlike third-party app schemes (e.g. whatsapp://),
+  // which report false everywhere unless the scheme is declared in a native
+  // config plugin (LSApplicationQueriesSchemes / Android <queries>), so we
+  // deliberately don't try to detect those and always show them instead.
+  const [destAvailable, setDestAvailable] = useState({ sms: true, email: true });
   const [cardShareOpen, setCardShareOpen]   = useState(false);
   const [shareProgress, setShareProgress]   = useState(0);
   const [shareChapter, setShareChapter]     = useState(1);
@@ -1188,6 +1195,9 @@ export default function FeedScreen() {
     setFriendSearchOpen(false);
     setFriendSearchQuery('');
     setShareSheetOpen(true);
+    Promise.all([Linking.canOpenURL('sms:'), Linking.canOpenURL('mailto:')])
+      .then(([sms, email]) => setDestAvailable({ sms, email }))
+      .catch(() => {});
     // Load share progress and friends list in parallel
     const progressQuery = currentUserId && item?.title && item?.chapters > 0
       ? supabase.from('reading_progress').select('current_chapter').eq('user_id', currentUserId).eq('series_title', item.title).maybeSingle()
@@ -1807,13 +1817,21 @@ export default function FeedScreen() {
                 </View>
                 <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>Facebook</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={feedSendStyles.destItem} onPress={shareViaSMS} activeOpacity={0.75}>
+              <TouchableOpacity
+                style={[feedSendStyles.destItem, !destAvailable.sms && feedSendStyles.destItemDisabled]}
+                onPress={shareViaSMS}
+                disabled={!destAvailable.sms}
+                activeOpacity={0.75}>
                 <View style={[feedSendStyles.destIcon, { backgroundColor: '#3AC1E8' }]}>
                   <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
                 </View>
                 <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>SMS</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={feedSendStyles.destItem} onPress={shareViaEmail} activeOpacity={0.75}>
+              <TouchableOpacity
+                style={[feedSendStyles.destItem, !destAvailable.email && feedSendStyles.destItemDisabled]}
+                onPress={shareViaEmail}
+                disabled={!destAvailable.email}
+                activeOpacity={0.75}>
                 <View style={[feedSendStyles.destIcon, { backgroundColor: '#5C8DE8' }]}>
                   <Ionicons name="mail" size={20} color="#fff" />
                 </View>
@@ -2178,6 +2196,7 @@ const feedSendStyles = StyleSheet.create({
   streakText: { fontSize: 10, fontWeight: '700', color: '#EF9F27' },
   destRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 8, gap: 16 },
   destItem: { alignItems: 'center', width: 60 },
+  destItemDisabled: { opacity: 0.35 },
   destIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   destLabel: { fontSize: 11, fontWeight: '600', marginTop: 6, textAlign: 'center' },
 });
