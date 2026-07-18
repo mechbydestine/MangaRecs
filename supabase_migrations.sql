@@ -1653,3 +1653,76 @@ CREATE POLICY "Own upload dm-media"
 CREATE POLICY "Own delete dm-media"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'dm-media' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ── 54. Trending-title discovery: staging table + admin review RPCs ──────────
+-- The auto-discovery edge function (supabase/functions/trending-discovery)
+-- writes candidates here — NEVER directly into manga_pool — after cross-
+-- checking each MangaDex trending title against AniList for a real rating/
+-- synopsis/cover. A past scraper (lib/mangadex.js, deleted) once bulk-inserted
+-- 9,069 junk rows straight into the live catalog (fake 4.0 ratings, 0% covers,
+-- mangled non-JP titles); this staging table + manual approval step exists
+-- specifically so that can't happen again unattended.
+CREATE TABLE IF NOT EXISTS manga_pool_candidates (
+  id            TEXT PRIMARY KEY,          -- MangaDex id, same id manga_pool would use
+  title         TEXT NOT NULL,
+  lang          TEXT NOT NULL DEFAULT 'ja',
+  description   TEXT,
+  genres        TEXT[] NOT NULL DEFAULT '{}',
+  rating        NUMERIC(3,1),
+  chapters      INTEGER DEFAULT 0,
+  cover_url     TEXT,
+  color         TEXT DEFAULT '#0D1A2D',
+  source_note   TEXT,                       -- e.g. "MangaDex trending, matched AniList #12345"
+  status        TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected'
+  discovered_at TIMESTAMPTZ DEFAULT now(),
+  reviewed_at   TIMESTAMPTZ
+);
+-- RLS enabled with no public policies — the edge function writes via the
+-- service_role key (bypasses RLS entirely), and every other access path goes
+-- through the admin-gated RPCs below, same pattern as reports/get_reports_queue.
+ALTER TABLE manga_pool_candidates ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION get_trending_candidates()
+RETURNS SETOF manga_pool_candidates
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public STABLE AS $$
+BEGIN
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  RETURN QUERY
+  SELECT * FROM manga_pool_candidates
+  ORDER BY (status = 'pending') DESC, discovered_at DESC
+  LIMIT 200;
+END; $$;
+REVOKE ALL ON FUNCTION get_trending_candidates() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_trending_candidates() TO authenticated;
+
+CREATE OR REPLACE FUNCTION approve_trending_candidate(p_id TEXT)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE c manga_pool_candidates;
+BEGIN
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  SELECT * INTO c FROM manga_pool_candidates WHERE id = p_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'candidate not found'; END IF;
+
+  INSERT INTO manga_pool (id, title, lang, description, genres, rating, chapters, color, cover_url, updated)
+  VALUES (c.id, c.title, c.lang, c.description, c.genres, c.rating, c.chapters, c.color, c.cover_url, 'recently')
+  ON CONFLICT (id) DO NOTHING;
+
+  UPDATE manga_pool_candidates SET status = 'approved', reviewed_at = now() WHERE id = p_id;
+END; $$;
+REVOKE ALL ON FUNCTION approve_trending_candidate(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION approve_trending_candidate(TEXT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION reject_trending_candidate(p_id TEXT)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  UPDATE manga_pool_candidates SET status = 'rejected', reviewed_at = now() WHERE id = p_id;
+END; $$;
+REVOKE ALL ON FUNCTION reject_trending_candidate(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION reject_trending_candidate(TEXT) TO authenticated;
