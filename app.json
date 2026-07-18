@@ -19,6 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mangarecs.app",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Used to upload your profile photo.",
         "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
@@ -46,6 +47,7 @@
     "plugins": [
       "expo-web-browser",
       "expo-audio",
+      "expo-apple-authentication",
       [
         "expo-notifications",
         {
