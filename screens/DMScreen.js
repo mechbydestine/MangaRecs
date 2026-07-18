@@ -21,6 +21,8 @@ import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
 import { useProfile, uploadMediaFile } from '../utils/ProfileContext';
 import * as ImagePicker from 'expo-image-picker';
+import { Image as ExpoImage } from 'expo-image';
+import { searchGifs } from '../utils/tenor';
 import { sendDMPush } from '../utils/pushNotifications';
 
 // Same key SocialScreen reads — records when this thread was last viewed so
@@ -118,10 +120,16 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
   const isSending = !!msg._sending;
   const hasFailed = !!msg._failed;
 
-  if (msg.message_type === 'image' && msg.media_url) {
+  if ((msg.message_type === 'image' || msg.message_type === 'gif') && msg.media_url) {
+    const ImageComponent = msg.message_type === 'gif' ? ExpoImage : Image;
     return (
       <View style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther, isSending && { opacity: 0.6 }]}>
-        <Image source={{ uri: msg.media_url }} style={styles.imageBubble} resizeMode="cover" />
+        <ImageComponent
+          source={{ uri: msg.media_url }}
+          style={styles.imageBubble}
+          contentFit="cover"
+          resizeMode="cover"
+        />
         <View style={[styles.bubbleStatus, isOwn ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' }]}>
           {hasFailed && onRetry && (
             <TouchableOpacity onPress={() => onRetry(msg)} style={styles.retryBtn}>
@@ -221,6 +229,11 @@ export default function DMScreen() {
   const [text, setText] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [pickerItems, setPickerItems] = useState(QUICK_PICKS);
+  const [pickerTab, setPickerTab] = useState('manga'); // 'manga' | 'gif'
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState([]);
+  const [gifLoading, setGifLoading] = useState(false);
+  const gifSearchTimer = useRef(null);
 
   const listRef = useRef(null);
 
@@ -246,6 +259,20 @@ export default function DMScreen() {
       }
     });
   }, []);
+
+  // Debounced GIF search — runs on the featured/trending endpoint immediately
+  // when the GIF tab opens with an empty query, then re-searches as the user types.
+  useEffect(() => {
+    if (pickerTab !== 'gif' || !showPicker) return;
+    if (gifSearchTimer.current) clearTimeout(gifSearchTimer.current);
+    setGifLoading(true);
+    gifSearchTimer.current = setTimeout(async () => {
+      const results = await searchGifs(gifQuery);
+      setGifResults(results);
+      setGifLoading(false);
+    }, gifQuery ? 350 : 0);
+    return () => { if (gifSearchTimer.current) clearTimeout(gifSearchTimer.current); };
+  }, [gifQuery, pickerTab, showPicker]);
 
   // Realtime: append incoming messages from the other person instantly
   useEffect(() => {
@@ -365,6 +392,8 @@ export default function DMScreen() {
       sendRecommendation(failedMsg.manga_data);
     } else if (failedMsg.message_type === 'image' && failedMsg.media_url) {
       sendImage(failedMsg.media_url);
+    } else if (failedMsg.message_type === 'gif' && failedMsg.media_url) {
+      sendGif(failedMsg.media_url);
     } else {
       setText(failedMsg.content || '');
     }
@@ -414,6 +443,45 @@ export default function DMScreen() {
       sendDMPush(friendId, myDisplayName, `📚 ${manga.title}`).catch(() => {});
     } else {
       if (error) console.warn('[DM rec send error]', error.code, error.message, error.details);
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
+    }
+  }
+
+  async function sendGif(gifUrl) {
+    if (!myId) return;
+    setShowPicker(false);
+
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const optimistic = {
+      id: tempId,
+      sender_id: myId,
+      recipient_id: friendId,
+      message_type: 'gif',
+      media_url: gifUrl,
+      created_at: new Date().toISOString(),
+      _sending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
+
+    // Tenor URLs are already publicly hosted — no upload needed, just store the link.
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .insert({ sender_id: myId, recipient_id: friendId, message_type: 'gif', media_url: gifUrl })
+      .select()
+      .maybeSingle();
+
+    if (data) {
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? data : m)));
+      supabase.from('notifications').insert({
+        user_id: friendId,
+        actor_id: myId,
+        type: 'direct_message',
+        data: { message_type: 'gif' },
+      }).then(() => {});
+      sendDMPush(friendId, myDisplayName, '🎬 GIF').catch(() => {});
+    } else {
+      if (error) console.warn('[DM gif send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
     }
   }
@@ -535,11 +603,14 @@ export default function DMScreen() {
 
         {/* Input bar */}
         <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }, isTablet && styles.tabletWrap]}>
-          <TouchableOpacity style={styles.recBtn} onPress={() => setShowPicker(true)} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.recBtn} onPress={() => { setPickerTab('manga'); setShowPicker(true); }} activeOpacity={0.8}>
             <Ionicons name="paper-plane-outline" size={22} color="#7B5CFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.recBtn} onPress={pickAndSendImage} activeOpacity={0.8}>
             <Ionicons name="image-outline" size={22} color="#7B5CFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.recBtn} onPress={() => { setPickerTab('gif'); setShowPicker(true); }} activeOpacity={0.8}>
+            <Ionicons name="film-outline" size={22} color="#7B5CFF" />
           </TouchableOpacity>
 
           <TextInput
@@ -568,29 +639,77 @@ export default function DMScreen() {
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
           <View style={[styles.pickerSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.pickerHandle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.pickerTitle, { color: colors.text }]}>Recommend a Manga</Text>
-            <Text style={[styles.pickerSub, { color: colors.muted }]}>Pick one to send to {friendName}</Text>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.pickerGrid}>
-              {pickerItems.map((manga) => (
-                <TouchableOpacity
-                  key={manga.title}
-                  style={[styles.pickerCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-                  onPress={() => sendRecommendation(manga)}
-                  activeOpacity={0.85}>
-                  <View style={[styles.pickerCoverWrap, { backgroundColor: manga.color }]}>
-                    <MangaCover
-                      title={manga.searchKey || manga.title}
-                      lang={manga.lang}
-                      style={styles.pickerCover}
-                      color={manga.color}
-                    />
+            <View style={styles.pickerTabRow}>
+              <TouchableOpacity
+                style={[styles.pickerTabBtn, pickerTab === 'manga' && { borderBottomColor: '#7B5CFF', borderBottomWidth: 2 }]}
+                onPress={() => setPickerTab('manga')}>
+                <Text style={[styles.pickerTabText, { color: pickerTab === 'manga' ? colors.text : colors.muted }]}>Manga</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.pickerTabBtn, pickerTab === 'gif' && { borderBottomColor: '#7B5CFF', borderBottomWidth: 2 }]}
+                onPress={() => setPickerTab('gif')}>
+                <Text style={[styles.pickerTabText, { color: pickerTab === 'gif' ? colors.text : colors.muted }]}>GIF</Text>
+              </TouchableOpacity>
+            </View>
+
+            {pickerTab === 'manga' ? (
+              <>
+                <Text style={[styles.pickerSub, { color: colors.muted }]}>Pick one to send to {friendName}</Text>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.pickerGrid}>
+                  {pickerItems.map((manga) => (
+                    <TouchableOpacity
+                      key={manga.title}
+                      style={[styles.pickerCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      onPress={() => sendRecommendation(manga)}
+                      activeOpacity={0.85}>
+                      <View style={[styles.pickerCoverWrap, { backgroundColor: manga.color }]}>
+                        <MangaCover
+                          title={manga.searchKey || manga.title}
+                          lang={manga.lang}
+                          style={styles.pickerCover}
+                          color={manga.color}
+                        />
+                      </View>
+                      <Text style={[styles.pickerCardTitle, { color: colors.text }]} numberOfLines={2}>{manga.title}</Text>
+                      <Text style={[styles.pickerCardMeta, { color: colors.muted }]}>{manga.chapters} ch</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : (
+              <>
+                <View style={[styles.gifSearchRow, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                  <Ionicons name="search-outline" size={14} color={colors.muted} />
+                  <TextInput
+                    style={[styles.gifSearchInput, { color: colors.text }]}
+                    placeholder="Search GIFs…"
+                    placeholderTextColor={colors.muted}
+                    value={gifQuery}
+                    onChangeText={setGifQuery}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+                {gifLoading ? (
+                  <View style={styles.gifLoadingWrap}>
+                    <ActivityIndicator color="#7B5CFF" />
                   </View>
-                  <Text style={[styles.pickerCardTitle, { color: colors.text }]} numberOfLines={2}>{manga.title}</Text>
-                  <Text style={[styles.pickerCardMeta, { color: colors.muted }]}>{manga.chapters} ch</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                ) : gifResults.length === 0 ? (
+                  <Text style={[styles.pickerSub, { color: colors.muted, textAlign: 'center', marginTop: 20 }]}>
+                    No GIFs found — try a different search.
+                  </Text>
+                ) : (
+                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.gifGrid}>
+                    {gifResults.map((g) => (
+                      <TouchableOpacity key={g.id} onPress={() => sendGif(g.url)} activeOpacity={0.85} style={styles.gifCard}>
+                        <ExpoImage source={{ uri: g.previewUrl }} style={styles.gifThumb} contentFit="cover" />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -663,9 +782,17 @@ const styles = StyleSheet.create({
   pickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
   pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 10, maxHeight: '75%' },
   pickerHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
-  pickerTitle: { fontSize: 17, fontWeight: '700', paddingHorizontal: 20, marginBottom: 4 },
   pickerSub: { fontSize: 13, paddingHorizontal: 20, marginBottom: 16 },
   pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
+  pickerTabRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 10, gap: 20 },
+  pickerTabBtn: { paddingBottom: 10 },
+  pickerTabText: { fontSize: 14, fontWeight: '700' },
+  gifSearchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginBottom: 14, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, borderWidth: 1 },
+  gifSearchInput: { flex: 1, fontSize: 13 },
+  gifLoadingWrap: { paddingVertical: 40, alignItems: 'center' },
+  gifGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingBottom: 32, gap: 8 },
+  gifCard: { width: '31%', aspectRatio: 1, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(123,92,255,0.08)' },
+  gifThumb: { width: '100%', height: '100%' },
   pickerCard: { width: '29%', borderRadius: 12, borderWidth: 1, overflow: 'hidden', padding: 8, alignItems: 'center' },
   pickerCoverWrap: { width: '100%', aspectRatio: 0.7, borderRadius: 8, overflow: 'hidden', marginBottom: 6 },
   pickerCover: { width: '100%', height: '100%', borderRadius: 8 },
