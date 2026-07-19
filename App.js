@@ -23,6 +23,7 @@ import { checkForNewChapters } from './utils/chapterUpdates';
 import { markTouch, startPresenceHeartbeat, stopPresenceHeartbeat } from './utils/presence';
 import { light } from './utils/haptics';
 import CoverMorphOverlay from './components/CoverMorphOverlay';
+import WhatsNewModal from './components/WhatsNewModal';
 
 import FeedScreen from './screens/FeedScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
@@ -437,7 +438,12 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
       <ThemedStatusBar />
-      {session ? <AppNavigator /> : <AuthScreen />}
+      {session ? (
+        <>
+          <AppNavigator />
+          <WhatsNewModal />
+        </>
+      ) : <AuthScreen />}
     </NavigationContainer>
   );
 }

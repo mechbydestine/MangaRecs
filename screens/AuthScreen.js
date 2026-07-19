@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 140,
     height: 140,
-    borderRadius: 70,
+    borderRadius: 32, // rounded-square to match the app icon's shape, not a circle
     top: -38,
   },
   wordmarkRow: {

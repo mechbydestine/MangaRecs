@@ -14,7 +14,7 @@ export function GoogleButton({ onPress, loading }) {
       <View style={styles.iconSlot}>
         {loading ? <ActivityIndicator size="small" color="#fff" /> : <GoogleLogo size={18} />}
       </View>
-      <Text style={styles.googleBtnText}>Continue with Google</Text>
+      <Text style={styles.googleBtnText} numberOfLines={1} adjustsFontSizeToFit>Continue with Google</Text>
       <View style={styles.iconSlot} />
     </TouchableOpacity>
   );
@@ -56,6 +56,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   googleBtnText: {
+    flexShrink: 1,
+    textAlign: 'center',
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
