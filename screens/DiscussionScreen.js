@@ -17,6 +17,7 @@ import { rateSeries, getSeriesRating } from '../utils/ratings';
 import { findPoolEntry } from '../utils/mangaPool';
 import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
+import { light } from '../utils/haptics';
 
 
 const BLOCKED_DOMAINS = [
@@ -220,6 +221,7 @@ export default function DiscussionScreen() {
     }
     setUrlError('');
     setCommentLoading(true);
+    light();
 
     const payload = {
       user_id: currentUserId,
@@ -290,6 +292,7 @@ export default function DiscussionScreen() {
   }
 
   function handleLike(commentId) {
+    light();
     setComments((prev) => prev.map((c) =>
       c.id === commentId
         ? { ...c, liked: !c.liked, likes: c.liked ? c.likes - 1 : c.likes + 1 }
@@ -301,6 +304,7 @@ export default function DiscussionScreen() {
   }
 
   function handleReplyLike(commentId, replyId) {
+    light();
     setComments((prev) => prev.map((c) => {
       if (c.id !== commentId) return c;
       return {

@@ -23,6 +23,8 @@ import { MANGA_POOL, COMPLETED_IDS } from '../utils/mangaPool';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
+import { light, medium, selection } from '../utils/haptics';
+import { startCoverTransition } from '../utils/coverTransition';
 
 const { height, width } = Dimensions.get('window');
 const NOTIF_H    = Math.round(height * 0.40);
@@ -400,7 +402,7 @@ function SkeletonFeed() {
 // bookmarked changes through so the initial async sync (savedMap, server likes)
 // still reaches the correct card.
 
-const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, onComment, onShare, onOpen }) {
+const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBookmark, onComment, onShare, onOpen }) {
   const navigation = useNavigation();
   const { isDark } = useTheme();
   const cardOverlay   = isDark ? 'rgba(4,3,14,0.72)'      : 'rgba(245,245,250,0.78)';
@@ -410,17 +412,27 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   const cardAuthor    = isDark ? 'rgba(255,255,255,0.4)'   : 'rgba(13,13,15,0.38)';
   const cardBgOpacity = isDark ? 0.22 : 0.38;
 
+  const coverCardRef = useRef(null);
+
   function openDetail() {
     if (item.creatorSeriesId) return;
     const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
-    navigation.navigate('MangaDetail', {
+    const navParams = {
       title: item.title,
       searchKey: item.searchKey || item.title,
       lang: item.lang || 'ja',
       color: item.color,
       mangaId: item.mangaId || (isMangaDexUuid ? item.id : undefined),
       chapters: item.chapters,
-    });
+    };
+    if (coverUrl && !coverError && coverCardRef.current) {
+      coverCardRef.current.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          startCoverTransition({ uri: coverUrl, color: item.color, rect: { x, y, width, height, radius: 18 } });
+        }
+      });
+    }
+    navigation.navigate('MangaDetail', navParams);
   }
 
   // Per-card interaction state — lives here, never in the parent feed array
@@ -481,6 +493,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
   }
 
   function pulse(anim, cb) {
+    medium();
     Animated.sequence([
       Animated.spring(anim, { toValue: 0.68, useNativeDriver: true, speed: 100, bounciness: 0 }),
       Animated.spring(anim, { toValue: 1.35, useNativeDriver: true, speed: 18,  bounciness: 16 }),
@@ -503,9 +516,18 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
     pulse(saveScale, () => onBookmark(item.id, next));
   }
 
-  const cardOpacity   = enterAnim;
-  const cardScale     = enterAnim.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1] });
+  const entryOpacity  = enterAnim;
+  const entryScale    = enterAnim.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1] });
   const cardTranslate = enterAnim.interpolate({ inputRange: [0, 1], outputRange: [32, 0] });
+
+  // Momentum: as the card scrolls away from center (either direction) it eases
+  // down in scale/opacity, so a swipe feels like it has weight instead of an
+  // instant cut — same idea as TikTok's page transition.
+  const focusRange   = [(index - 1) * height, index * height, (index + 1) * height];
+  const focusScale   = scrollY.interpolate({ inputRange: focusRange, outputRange: [0.92, 1, 0.92], extrapolate: 'clamp' });
+  const focusOpacity = scrollY.interpolate({ inputRange: focusRange, outputRange: [0.5, 1, 0.5], extrapolate: 'clamp' });
+  const cardOpacity  = Animated.multiply(entryOpacity, focusOpacity);
+  const cardScale    = Animated.multiply(entryScale, focusScale);
 
   return (
     <Animated.View style={{ height, opacity: cardOpacity, transform: [{ scale: cardScale }, { translateY: cardTranslate }] }}>
@@ -533,7 +555,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, onLike, onBookmark, o
 
         {/* Centered manga cover with curved border */}
         <View style={styles.coverSection}>
-          <View style={[styles.coverCard, { width: COVER_W, height: COVER_H }]}>
+          <View ref={coverCardRef} style={[styles.coverCard, { width: COVER_W, height: COVER_H }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: item.color || '#0D1A2D' }]} />
             {coverUrl && !coverError ? (
               <AnimatedExpoImage
@@ -674,6 +696,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
   const [repliesLoading, setRepliesLoading] = useState(false);
 
   function handleLike() {
+    light();
     Animated.sequence([
       Animated.spring(likeScale, { toValue: 0.55, useNativeDriver: true, speed: 90, bounciness: 0 }),
       Animated.spring(likeScale, { toValue: 1.45, useNativeDriver: true, speed: 18, bounciness: 16 }),
@@ -854,6 +877,22 @@ export default function FeedScreen() {
   const toastAnim = useRef(new Animated.Value(0)).current;
   const commentInputRef = useRef(null);
   const loadingMoreRef  = useRef(false);
+
+  // Scroll-driven momentum for the paging feed — cards ease their scale/opacity
+  // in and out as they cross the viewport, and a light haptic ticks each time
+  // a swipe settles on a new card (mirrors TikTok's page-snap feedback).
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const onFeedScroll = useRef(
+    Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })
+  ).current;
+  const lastSnapIndexRef = useRef(0);
+  function onFeedMomentumEnd(e) {
+    const idx = Math.round(e.nativeEvent.contentOffset.y / height);
+    if (idx !== lastSnapIndexRef.current) {
+      lastSnapIndexRef.current = idx;
+      selection();
+    }
+  }
 
   async function loadUserInfo() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -1178,6 +1217,7 @@ export default function FeedScreen() {
   }
 
   function handleCommentOpen(item) {
+    light();
     setActiveItem(item);
     setCommentsOpen(true);
     setCommentSpoiler(false);
@@ -1185,6 +1225,7 @@ export default function FeedScreen() {
   }
 
   async function handleShareOpen(item) {
+    light();
     // Persist the share for the live counter (matches the optimistic +1 on tap)
     if (item?.id) supabase.rpc('increment_manga_shares', { p_manga_id: item.id, p_delta: 1 }).then(() => {});
     setActiveItem(item);
@@ -1346,6 +1387,7 @@ export default function FeedScreen() {
     ));
     setCommentInput('');
     setCommentSpoiler(false);
+    light();
     if (currentUserId) {
       await supabase.from('comments').insert({ user_id: currentUserId, series_title: activeItem.title, text, spoiler: isSpoiler });
       supabase.from('profiles').select('username, display_name').eq('id', currentUserId).maybeSingle().then(({ data }) => {
@@ -1546,6 +1588,7 @@ export default function FeedScreen() {
           <FeedCard
             item={item}
             index={index}
+            scrollY={scrollY}
             onLike={handleLike}
             onBookmark={handleBookmark}
             onComment={handleCommentOpen}
@@ -1558,7 +1601,11 @@ export default function FeedScreen() {
         snapToInterval={height}
         snapToAlignment="start"
         decelerationRate="fast"
-        overScrollMode="never"
+        overScrollMode="always"
+        bounces={true}
+        onScroll={onFeedScroll}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={onFeedMomentumEnd}
         getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
         removeClippedSubviews={true}
         windowSize={5}

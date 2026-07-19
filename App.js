@@ -21,6 +21,8 @@ import { loadSaved as loadSavedAmbience } from './utils/ambiencePlayer';
 import { hydrateCoverCache } from './utils/mangaCovers';
 import { checkForNewChapters } from './utils/chapterUpdates';
 import { markTouch, startPresenceHeartbeat, stopPresenceHeartbeat } from './utils/presence';
+import { light } from './utils/haptics';
+import CoverMorphOverlay from './components/CoverMorphOverlay';
 
 import FeedScreen from './screens/FeedScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
@@ -271,6 +273,7 @@ function TabNavigator() {
   const { unreadCount } = useNotifications();
   return (
     <Tab.Navigator
+      screenListeners={{ tabPress: () => light() }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color }) => {
@@ -703,6 +706,7 @@ export default function App() {
                       />
                       <ToastHost />
                       <BadgeCeremony />
+                      <CoverMorphOverlay />
                     </NotificationsProvider>
                   </ProfileProvider>
                 </QueryClientProvider>

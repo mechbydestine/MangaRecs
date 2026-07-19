@@ -1726,3 +1726,47 @@ BEGIN
 END; $$;
 REVOKE ALL ON FUNCTION reject_trending_candidate(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION reject_trending_candidate(TEXT) TO authenticated;
+
+-- ── 55. DM message reactions + swipe-to-reply ─────────────────────────────────
+-- reply_to_id: lets a bubble quote an earlier message in the same thread
+-- (swipe-to-reply in DMScreen.js). ON DELETE SET NULL so deleting the quoted
+-- message doesn't cascade-delete the reply that references it.
+ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS reply_to_id UUID REFERENCES direct_messages(id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS dm_message_reactions (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  message_id UUID NOT NULL REFERENCES direct_messages(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  emoji      TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(message_id, user_id, emoji)
+);
+CREATE INDEX IF NOT EXISTS dm_reactions_message_idx ON dm_message_reactions (message_id);
+
+ALTER TABLE dm_message_reactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Conversation parties read DM reactions" ON dm_message_reactions;
+DROP POLICY IF EXISTS "Own DM reaction insert"                  ON dm_message_reactions;
+DROP POLICY IF EXISTS "Own DM reaction delete"                  ON dm_message_reactions;
+-- Read/insert are gated on actually being a party to the underlying message
+-- (sender or recipient) — a reaction shouldn't be plantable by a third party.
+CREATE POLICY "Conversation parties read DM reactions" ON dm_message_reactions FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM direct_messages dm WHERE dm.id = message_id
+      AND (auth.uid() = dm.sender_id OR auth.uid() = dm.recipient_id)
+  ));
+CREATE POLICY "Own DM reaction insert" ON dm_message_reactions FOR INSERT
+  WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM direct_messages dm WHERE dm.id = message_id
+        AND (auth.uid() = dm.sender_id OR auth.uid() = dm.recipient_id)
+    )
+  );
+CREATE POLICY "Own DM reaction delete" ON dm_message_reactions FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- FULL so realtime DELETE payloads carry message_id/user_id (default replica
+-- identity only ships the primary key on deletes, which isn't enough for the
+-- client to know which thread/emoji a removed reaction belonged to).
+ALTER TABLE dm_message_reactions REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE dm_message_reactions;
