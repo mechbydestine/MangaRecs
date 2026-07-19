@@ -1,19 +1,17 @@
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, ActivityIndicator, Platform,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
-import { signInWithApple } from '../utils/appleAuth';
 import { MangaCover } from '../utils/mangaCovers';
 import { GENRES as GENRE_OPTIONS } from '../utils/genres';
 import { useKeyboardPadding } from '../utils/keyboard';
 import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
-import { GoogleButton, AppleButton, AuthDivider } from '../components/AuthButtons';
+import { GoogleButton, AuthDivider } from '../components/AuthButtons';
 import StarLogo from '../components/StarLogo';
 import { useResponsive } from '../utils/responsive';
 
@@ -55,13 +53,6 @@ function SignUpGate({ onDone }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const [appleAvailable, setAppleAvailable] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
-  }, []);
 
   async function handleGoogle() {
     setGoogleLoading(true);
@@ -73,19 +64,6 @@ function SignUpGate({ onDone }) {
       setError(err.message || 'Google sign-in failed');
     } finally {
       setGoogleLoading(false);
-    }
-  }
-
-  async function handleApple() {
-    setAppleLoading(true);
-    setError('');
-    try {
-      await signInWithApple();
-      onDone();
-    } catch (err) {
-      setError(err.message || 'Apple sign-in failed');
-    } finally {
-      setAppleLoading(false);
     }
   }
 
@@ -112,7 +90,6 @@ function SignUpGate({ onDone }) {
         <Text style={styles.headline}>Create your account</Text>
         <Text style={styles.sub}>Save your progress, preferences, and library.</Text>
 
-        {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
         <GoogleButton onPress={handleGoogle} loading={googleLoading} />
         <AuthDivider />
 

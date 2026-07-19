@@ -4,14 +4,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
-import { signInWithApple } from '../utils/appleAuth';
 import { useKeyboardPadding } from '../utils/keyboard';
 import StarLogo from '../components/StarLogo';
-import { GoogleButton, AppleButton, AuthDivider } from '../components/AuthButtons';
+import { GoogleButton, AuthDivider } from '../components/AuthButtons';
 
 function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
   const [hidden, setHidden] = useState(true);
@@ -85,15 +83,8 @@ export default function AuthScreen() {
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const [appleAvailable, setAppleAvailable] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-
-  useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
-  }, []);
 
   const keyboardPadding = useKeyboardPadding();
   const usernameStatus = useUsernameAvailability(mode === 'register' ? username : '');
@@ -130,18 +121,6 @@ export default function AuthScreen() {
       setError(err.message || 'Google sign-in failed');
     } finally {
       setGoogleLoading(false);
-    }
-  }
-
-  async function handleApple() {
-    setAppleLoading(true);
-    setError('');
-    try {
-      await signInWithApple();
-    } catch (err) {
-      setError(err.message || 'Apple sign-in failed');
-    } finally {
-      setAppleLoading(false);
     }
   }
 
@@ -281,7 +260,6 @@ export default function AuthScreen() {
           {mode === 'login' && (
             <>
               <Text style={styles.cardTitle}>Welcome back</Text>
-              {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <AuthDivider />
 
@@ -325,7 +303,6 @@ export default function AuthScreen() {
           {mode === 'register' && (
             <>
               <Text style={styles.cardTitle}>Create your account</Text>
-              {appleAvailable && <AppleButton onPress={handleApple} loading={appleLoading} />}
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <AuthDivider />
 
