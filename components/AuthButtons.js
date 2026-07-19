@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import GoogleLogo from './GoogleLogo';
 
 // Shared OAuth button row + divider for AuthScreen.js and OnboardingScreen.js's
-// SignUpGate — both screens offer the same Google/Apple sign-in, so a single
+// SignUpGate — both screens offer the same Google sign-in, so a single
 // definition keeps the branding/loading treatment in sync everywhere it's used.
+// (Apple Sign-In was removed 2026-07-19 — pulled pre-launch since it needs a
+// paid Apple Developer account; recoverable from git history, commit 794a24b,
+// whenever that's set up.)
 
 export function GoogleButton({ onPress, loading }) {
   return (
@@ -15,20 +17,6 @@ export function GoogleButton({ onPress, loading }) {
       <Text style={styles.googleBtnText}>Continue with Google</Text>
       <View style={styles.iconSlot} />
     </TouchableOpacity>
-  );
-}
-
-export function AppleButton({ onPress, loading }) {
-  return (
-    <View style={{ opacity: loading ? 0.6 : 1 }}>
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-        cornerRadius={12}
-        style={styles.appleBtn}
-        onPress={loading ? () => {} : onPress}
-      />
-    </View>
   );
 }
 
@@ -43,10 +31,6 @@ export function AuthDivider() {
 }
 
 const styles = StyleSheet.create({
-  appleBtn: {
-    height: 48,
-    marginTop: 14,
-  },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',

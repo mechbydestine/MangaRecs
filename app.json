@@ -19,7 +19,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mangarecs.app",
-      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Used to upload your profile photo.",
         "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
@@ -37,6 +36,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.mangarecs.app",
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
@@ -46,8 +46,6 @@
     "plugins": [
       "expo-web-browser",
       "expo-audio",
-      "./plugins/withoutRecordAudio.js",
-      "expo-apple-authentication",
       [
         "expo-notifications",
         {
