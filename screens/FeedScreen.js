@@ -26,6 +26,10 @@ import { showAppToast } from '../utils/appToast';
 import { light, medium, selection } from '../utils/haptics';
 import { startCoverTransition } from '../utils/coverTransition';
 
+// Plain FlatList can't take a native-driven onScroll — RN throws
+// "must be wrapped with Animated.createAnimatedComponent" without this.
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
+
 const { height, width } = Dimensions.get('window');
 const NOTIF_H    = Math.round(height * 0.40);
 const COMMENTS_H = Math.round(height * 0.88);
@@ -1581,7 +1585,7 @@ export default function FeedScreen() {
       </View>
 
       {/* Feed */}
-      <FlatList
+      <AnimatedFlatList
         data={feed}
         keyExtractor={(item) => item.feedKey}
         renderItem={({ item, index }) => (
