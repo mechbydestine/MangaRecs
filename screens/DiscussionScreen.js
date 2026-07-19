@@ -18,6 +18,7 @@ import { findPoolEntry } from '../utils/mangaPool';
 import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { light } from '../utils/haptics';
+import { showAppToast } from '../utils/appToast';
 
 
 const BLOCKED_DOMAINS = [
@@ -105,9 +106,15 @@ export default function DiscussionScreen() {
     try {
       const poolEntry = findPoolEntry(title, searchKey);
       const result = await rateSeries(currentUserId, title, stars, poolEntry?.genres || []);
-      setSeriesRating((prev) => (result ? { ...prev, avg: result.avg, count: result.count, submitting: false } : { ...prev, submitting: false }));
+      if (result) {
+        setSeriesRating((prev) => ({ ...prev, avg: result.avg, count: result.count, submitting: false }));
+      } else {
+        setSeriesRating((prev) => ({ ...prev, submitting: false }));
+        showAppToast("Couldn't save your rating — try again");
+      }
     } catch (_) {
       setSeriesRating((prev) => ({ ...prev, submitting: false }));
+      showAppToast("Couldn't save your rating — try again");
     }
   }
 
@@ -288,6 +295,8 @@ export default function DiscussionScreen() {
       }
       setCommentText('');
       setIsSpoilerPost(false);
+    } else {
+      showAppToast("Couldn't post your comment — try again");
     }
   }
 

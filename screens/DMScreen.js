@@ -894,7 +894,11 @@ export default function DMScreen() {
                 {replyingTo.sender_id === myId ? 'yourself' : friendName}
               </Text>: {quotedPreviewText(replyingTo)}
             </Text>
-            <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity
+              onPress={() => setReplyingTo(null)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel reply">
               <Ionicons name="close" size={15} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -905,19 +909,25 @@ export default function DMScreen() {
           <TouchableOpacity
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
             onPress={() => { light(); setPickerTab('manga'); setShowPicker(true); }}
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Recommend a manga">
             <Ionicons name="book" size={17} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
             onPress={() => { light(); pickAndSendImage(); }}
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Send a photo">
             <Ionicons name="image" size={17} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
             onPress={() => { light(); setPickerTab('gif'); setShowPicker(true); }}
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Send a GIF">
             <Ionicons name="happy" size={17} color={colors.text} />
           </TouchableOpacity>
 
@@ -930,13 +940,17 @@ export default function DMScreen() {
             multiline
             maxLength={1000}
             returnKeyType="default"
+            accessibilityLabel="Message input"
           />
 
           <TouchableOpacity
             style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
             onPress={sendText}
             disabled={!text.trim()}
-            activeOpacity={0.8}>
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: !text.trim() }}>
             <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
         </View>

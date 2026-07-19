@@ -48,6 +48,7 @@ import LegalScreen from './screens/LegalScreen';
 import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
+import AlertHost from './components/AlertHost';
 import BadgeCeremony from './components/BadgeCeremony';
 import StarLogo from './components/StarLogo';
 
@@ -711,6 +712,7 @@ export default function App() {
                         onGuidelinesComplete={() => setNeedsGuidelines(false)}
                       />
                       <ToastHost />
+                      <AlertHost />
                       <BadgeCeremony />
                       <CoverMorphOverlay />
                     </NotificationsProvider>

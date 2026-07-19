@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar,
-  Modal, Animated, ScrollView, TextInput, Dimensions, Alert, ActivityIndicator, Image, FlatList, Platform, Share, Pressable,
+  Modal, Animated, ScrollView, TextInput, Dimensions, ActivityIndicator, Image, FlatList, Platform, Share, Pressable,
   useWindowDimensions, PanResponder,
 } from 'react-native';
 import { PinchGestureHandler, PanGestureHandler, State as GHState } from 'react-native-gesture-handler';
@@ -2179,7 +2179,7 @@ export default function ReaderScreen({ route, navigation }) {
 
   async function executeChapterDownload(images) {
     if (!images || images.length === 0) {
-      Alert.alert('No pages found', 'Could not detect manga pages on this page. Try scrolling to load them first.');
+      showToast('No pages found — try scrolling to load them first');
       return;
     }
     setDlLabel(`${mangaTitle || activeSite?.name || 'Chapter'} — Ch. ${currentChapter}`);
@@ -2189,7 +2189,7 @@ export default function ReaderScreen({ route, navigation }) {
     if (saved > 0) {
       showToast(`${saved} of ${images.length} pages saved`);
     } else {
-      Alert.alert('Download failed', 'Pages could not be downloaded — the site may block external downloads.');
+      showToast('Download failed — the site may block external downloads');
     }
   }
 
@@ -2353,14 +2353,17 @@ export default function ReaderScreen({ route, navigation }) {
         pointerEvents={showUI ? 'auto' : 'none'}>
         <View style={[styles.topRow, { paddingTop: insets.top + 6 }]}>
           <View style={styles.topBarLeft}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close reader">
               <Ionicons name="home-outline" size={20} color={hudText} />
             </TouchableOpacity>
             {readerMode === 'webview' && (
               <TouchableOpacity
                 style={[styles.backBtn, !webCanGoBack && { opacity: 0.3 }]}
                 onPress={() => webviewRef.current?.goBack()}
-                disabled={!webCanGoBack}>
+                disabled={!webCanGoBack}
+                accessibilityRole="button"
+                accessibilityLabel="Go back in browser"
+                accessibilityState={{ disabled: !webCanGoBack }}>
                 <Ionicons name="arrow-back-outline" size={19} color={hudText} />
               </TouchableOpacity>
             )}
@@ -2368,7 +2371,10 @@ export default function ReaderScreen({ route, navigation }) {
               <TouchableOpacity
                 style={[styles.backBtn, !webCanGoForward && { opacity: 0.3 }]}
                 onPress={() => webviewRef.current?.goForward()}
-                disabled={!webCanGoForward}>
+                disabled={!webCanGoForward}
+                accessibilityRole="button"
+                accessibilityLabel="Go forward in browser"
+                accessibilityState={{ disabled: !webCanGoForward }}>
                 <Ionicons name="arrow-forward-outline" size={19} color={hudText} />
               </TouchableOpacity>
             )}
@@ -2380,7 +2386,7 @@ export default function ReaderScreen({ route, navigation }) {
                   <Ionicons name="cloud-offline-outline" size={13} color="#1D9E75" />
                 </View>
               ) : (
-                <TouchableOpacity onPress={() => setShowSitePicker(true)} style={styles.reloadBtn}>
+                <TouchableOpacity onPress={() => setShowSitePicker(true)} style={styles.reloadBtn} accessibilityRole="button" accessibilityLabel="Choose reading source">
                   <Ionicons name="globe-outline" size={15} color={readerMode === 'api' ? '#7B5CFF' : activeSite ? '#7B5CFF' : hudMuted} />
                 </TouchableOpacity>
               )}
@@ -2391,7 +2397,9 @@ export default function ReaderScreen({ route, navigation }) {
               {!isOffline && (
                 <TouchableOpacity
                   onPress={() => readerMode === 'api' ? loadApiChapter(currentChapterIdx) : webviewRef.current?.reload()}
-                  style={styles.reloadBtn}>
+                  style={styles.reloadBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reload chapter">
                   <Ionicons name="reload-outline" size={14} color={hudMuted} />
                 </TouchableOpacity>
               )}
@@ -2399,10 +2407,10 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
           </View>
           <View style={styles.topRightIcons}>
-            <TouchableOpacity onPress={() => setShowAmbience(true)} style={styles.topIconBtn}>
+            <TouchableOpacity onPress={() => setShowAmbience(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Ambience sounds">
               <Ionicons name="headset-outline" size={18} color={ambienceState.presetId ? '#7B5CFF' : hudMuted} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn}>
+            <TouchableOpacity onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Reader settings">
               <Ionicons name="settings-outline" size={18} color={hudMuted} />
             </TouchableOpacity>
           </View>

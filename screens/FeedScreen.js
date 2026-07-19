@@ -645,28 +645,52 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
 
       {/* ── Side actions ── */}
       <View style={styles.sideActions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleLikeTap} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleLikeTap}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={liked ? 'Unlike' : 'Like'}
+          accessibilityState={{ selected: liked }}
+          accessibilityHint={`${formatCount(likeCount)} likes`}>
           <Animated.View style={{ transform: [{ scale: likeScale }] }}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? '#E8527A' : cardText} />
           </Animated.View>
           <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(likeCount)}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={() => pulse(chatScale, () => onComment(item))} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => pulse(chatScale, () => onComment(item))}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Comments"
+          accessibilityHint={`${formatCount(item.commentCount || 0)} comments`}>
           <Animated.View style={{ transform: [{ scale: chatScale }] }}>
             <Ionicons name="chatbubble-ellipses-outline" size={28} color={cardText} />
           </Animated.View>
           <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(item.commentCount || 0)}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={() => { setShareCount((c) => c + 1); pulse(shareScale, () => onShare(item)); }} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => { setShareCount((c) => c + 1); pulse(shareScale, () => onShare(item)); }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Share">
           <Animated.View style={{ transform: [{ scale: shareScale }] }}>
             <Ionicons name="share-social-outline" size={28} color={cardText} />
           </Animated.View>
           <Text style={[styles.actionCount, { color: cardText }]}>{formatCount(shareCount)}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionBtn} onPress={handleBookmarkTap} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleBookmarkTap}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark'}
+          accessibilityState={{ selected: bookmarked }}>
           <Animated.View style={{ transform: [{ scale: saveScale }] }}>
             <Ionicons
               name={bookmarked ? 'bookmark' : 'bookmark-outline'}
@@ -1103,7 +1127,10 @@ export default function FeedScreen() {
   // ── Feed actions ──────────────────────────────────────────────────────────
 
   function handleOpenReader(item) {
-    if (item.comingSoon) return;
+    if (item.comingSoon) {
+      showAppToast(`${item.title} hasn't been released yet — check back soon`, 'info');
+      return;
+    }
     const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
     const mangaId = item.mangaId || (isMangaDexUuid ? item.id : undefined);
     const searchQuery = isMangaDexUuid ? item.title : (item.searchKey || item.title);

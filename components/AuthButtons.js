@@ -10,7 +10,14 @@ import GoogleLogo from './GoogleLogo';
 
 export function GoogleButton({ onPress, loading }) {
   return (
-    <TouchableOpacity style={styles.googleBtn} onPress={onPress} disabled={loading} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={styles.googleBtn}
+      onPress={onPress}
+      disabled={loading}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Continue with Google"
+      accessibilityState={{ disabled: loading, busy: loading }}>
       <View style={styles.iconSlot}>
         {loading ? <ActivityIndicator size="small" color="#fff" /> : <GoogleLogo size={18} />}
       </View>

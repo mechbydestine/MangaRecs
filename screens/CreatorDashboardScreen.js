@@ -1,6 +1,6 @@
 ﻿import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, ActivityIndicator, Image, Alert,
+  Modal, TextInput, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -13,6 +13,8 @@ import MobileHeader from '../components/MobileHeader';
 import PickerSheet from '../components/PickerSheet';
 import { GENRE_PICKER_OPTIONS as GENRES } from '../utils/genres';
 import { useResponsive } from '../utils/responsive';
+import { showAppToast } from '../utils/appToast';
+import { showAppAlert } from '../utils/appAlert';
 
 const STAT_META = [
   { icon: 'book',   label: 'Series Published', color: '#7B5CFF', key: 'count' },
@@ -171,6 +173,8 @@ export default function CreatorDashboardScreen() {
         setTitle(''); setGenre(''); setDescription('');
         loadMySeries(currentUserId);
       }, 1800);
+    } else {
+      showAppToast("Couldn't publish your series — try again");
     }
   }
 
@@ -192,7 +196,7 @@ export default function CreatorDashboardScreen() {
   async function pickPages() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to pick chapter pages.');
+      showAppToast('Allow photo library access to pick chapter pages');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -282,7 +286,7 @@ export default function CreatorDashboardScreen() {
         loadMySeries(currentUserId);
       }, 1800);
     } catch (err) {
-      Alert.alert('Upload failed', err.message || 'Something went wrong. Please try again.');
+      showAppToast(err.message || 'Upload failed — something went wrong, try again');
     }
     setUploadingChapter(false);
   }
@@ -400,7 +404,7 @@ export default function CreatorDashboardScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.seriesActionBtn}
-                    onPress={() => Alert.alert(
+                    onPress={() => showAppAlert(
                       `${s.title}`,
                       `Chapters: ${s.chapters || 0}\nTotal reads: ${(s.reads || 0).toLocaleString()}\nLast updated: ${s.updated || 'recently'}`,
                       [{ text: 'OK' }]
@@ -419,7 +423,7 @@ export default function CreatorDashboardScreen() {
           <TouchableOpacity
             style={styles.monetizationCard}
             activeOpacity={0.82}
-            onPress={() => Alert.alert(
+            onPress={() => showAppAlert(
               'Monetization',
               'Earn from your stories with Pro subscriptions and tips. This feature is coming soon — your series will be automatically enrolled when it launches.',
               [{ text: 'Got it' }]

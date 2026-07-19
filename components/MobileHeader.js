@@ -21,7 +21,9 @@ export default function MobileHeader({ title, right, leftContent, noBorder = fal
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Go back"
+            accessibilityRole="button">
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
         ) : (

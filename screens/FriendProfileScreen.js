@@ -1,6 +1,7 @@
-﻿import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image, Alert } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image } from 'react-native';
 import { getBlockedIds, blockUser, unblockUser } from '../utils/blocking';
 import { showAppToast } from '../utils/appToast';
+import { showAppAlert } from '../utils/appAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -178,7 +179,7 @@ export default function FriendProfileScreen({ route }) {
       });
       return;
     }
-    Alert.alert(
+    showAppAlert(
       `Block ${displayName || 'this user'}?`,
       "They won't be able to message you, and you won't see their comments. This also removes them as a friend.",
       [
