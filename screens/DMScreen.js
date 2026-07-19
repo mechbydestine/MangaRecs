@@ -1,10 +1,11 @@
 ﻿import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, Image, ActivityIndicator, Modal,
-  ScrollView,
+  ScrollView, Animated,
 } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useNotifications } from '../utils/NotificationsContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
@@ -24,6 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image as ExpoImage } from 'expo-image';
 import { searchGifs } from '../utils/tenor';
 import { sendDMPush } from '../utils/pushNotifications';
+import { light, medium } from '../utils/haptics';
 
 // Same key SocialScreen reads — records when this thread was last viewed so
 // its unread badge stays cleared even across app restarts
@@ -55,6 +57,34 @@ function timeLabel(ts) {
   yesterday.setDate(now.getDate() - 1);
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+const SWIPE_REPLY_THRESHOLD = 46;
+
+function TypingDots({ color }) {
+  const dots = useRef([0, 1, 2].map(() => new Animated.Value(0.3))).current;
+  useEffect(() => {
+    const loops = dots.map((v, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 120),
+          Animated.timing(v, { toValue: 1, duration: 320, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.3, duration: 320, useNativeDriver: true }),
+          Animated.delay((2 - i) * 120),
+        ])
+      )
+    );
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, []);
+  return (
+    <View style={styles.typingDotsRow}>
+      {dots.map((v, i) => (
+        <Animated.View key={i} style={[styles.typingDot, { backgroundColor: color, opacity: v }]} />
+      ))}
+    </View>
+  );
 }
 
 // Popular manga list for quick recommendation picker
@@ -211,6 +241,113 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
   );
 }
 
+function quotedPreviewText(quotedMsg) {
+  if (!quotedMsg) return '';
+  if (quotedMsg.message_type === 'recommendation') return `📚 ${quotedMsg.manga_data?.title || 'a manga'}`;
+  if (quotedMsg.message_type === 'image') return '📷 Photo';
+  if (quotedMsg.message_type === 'gif') return '🎬 GIF';
+  return quotedMsg.content || '';
+}
+
+// Wraps MessageBubble with the interactions Discord/iMessage have and this
+// app's DMs didn't: swipe-right(/left)-to-reply, long-press to react, and
+// small reaction pills under the bubble.
+function SwipeableMessageRow({ msg, isOwn, friendColor, colors, navigation, onRetry, quotedMsg, reactions, onToggleReaction, onSwipeReply }) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const accent = isOwn ? '#7B5CFF' : themeColor(friendColor);
+
+  const replyIconOpacity = translateX.interpolate({
+    inputRange: isOwn ? [-SWIPE_REPLY_THRESHOLD, 0] : [0, SWIPE_REPLY_THRESHOLD],
+    outputRange: isOwn ? [1, 0] : [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  function onGestureEvent(e) {
+    let tx = e.nativeEvent.translationX;
+    // Rubber-band: only swipeable toward the "reply" direction for this
+    // bubble's side, resistant past a small cap the other way.
+    tx = isOwn ? Math.max(-80, Math.min(0, tx)) : Math.min(80, Math.max(0, tx));
+    translateX.setValue(tx);
+  }
+  function onHandlerStateChange(e) {
+    if (e.nativeEvent.oldState === State.ACTIVE) {
+      if (Math.abs(e.nativeEvent.translationX) > SWIPE_REPLY_THRESHOLD) {
+        light();
+        onSwipeReply(msg);
+      }
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true, speed: 20, bounciness: 8 }).start();
+    }
+  }
+
+  const reactionEntries = Object.entries(reactions || {});
+
+  return (
+    <View>
+      <PanGestureHandler
+        activeOffsetX={[-12, 12]}
+        failOffsetY={[-10, 10]}
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}>
+        <Animated.View style={{ transform: [{ translateX }] }}>
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onLongPress={() => { medium(); setPickerOpen(true); }}
+            delayLongPress={280}>
+            {quotedMsg && (
+              <View style={[styles.quotedWrap, { alignSelf: isOwn ? 'flex-end' : 'flex-start' }]}>
+                <View style={[styles.quotedBar, { backgroundColor: accent }]} />
+                <Text style={[styles.quotedText, { color: colors.muted }]} numberOfLines={1}>
+                  {quotedPreviewText(quotedMsg)}
+                </Text>
+              </View>
+            )}
+            <MessageBubble msg={msg} isOwn={isOwn} friendColor={friendColor} colors={colors} navigation={navigation} onRetry={onRetry} />
+            {reactionEntries.length > 0 && (
+              <View style={[styles.reactionRow, { alignSelf: isOwn ? 'flex-end' : 'flex-start' }]}>
+                {reactionEntries.map(([emoji, info]) => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={[
+                      styles.reactionPill,
+                      { borderColor: info.mine ? accent : colors.border, backgroundColor: colors.card },
+                    ]}
+                    onPress={() => onToggleReaction(msg.id, emoji)}>
+                    <Text style={styles.reactionEmoji}>{emoji}</Text>
+                    {info.count > 1 && <Text style={[styles.reactionCount, { color: colors.muted }]}>{info.count}</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      </PanGestureHandler>
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.replyIconWrap,
+          isOwn ? { right: '100%', marginRight: 8 } : { left: '100%', marginLeft: 8 },
+          { opacity: replyIconOpacity },
+        ]}>
+        <Ionicons name="arrow-undo" size={18} color="#7B5CFF" />
+      </Animated.View>
+
+      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+        <TouchableOpacity style={styles.emojiOverlay} activeOpacity={1} onPress={() => setPickerOpen(false)}>
+          <View style={[styles.emojiPickerRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {REACTION_EMOJIS.map((e) => (
+              <TouchableOpacity key={e} style={styles.emojiBtn} onPress={() => { onToggleReaction(msg.id, e); setPickerOpen(false); }}>
+                <Text style={styles.emojiBtnText}>{e}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
 export default function DMScreen() {
   const { params } = useRoute();
   const { friendId, friendName, friendColor, friendAvatarUrl } = params || {};
@@ -234,8 +371,25 @@ export default function DMScreen() {
   const [gifResults, setGifResults] = useState([]);
   const [gifLoading, setGifLoading] = useState(false);
   const gifSearchTimer = useRef(null);
+  const [reactionsByMessage, setReactionsByMessage] = useState({}); // messageId -> { emoji: { count, mine } }
+  const [replyingTo, setReplyingTo] = useState(null); // msg | null
+  const [friendTyping, setFriendTyping] = useState(false);
 
   const listRef = useRef(null);
+  const typingChannelRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const lastTypingSentRef = useRef(0);
+
+  const messagesById = useMemo(() => {
+    const map = {};
+    messages.forEach((m) => { map[m.id] = m; });
+    return map;
+  }, [messages]);
+  // Realtime callbacks below are set up once per (myId, friendId) and would
+  // otherwise close over a stale, empty messagesById from before messages
+  // finished loading — read through this ref instead so they see the latest.
+  const messagesByIdRef = useRef(messagesById);
+  useEffect(() => { messagesByIdRef.current = messagesById; }, [messagesById]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -302,6 +456,65 @@ export default function DMScreen() {
     return () => { supabase.removeChannel(channel); };
   }, [myId, friendId]);
 
+  // Realtime: the friend's reactions on either side's messages, and their
+  // typing status. Reactions ride the same kind of unique-per-mount channel
+  // as the message INSERT listener above; typing needs a *shared* deterministic
+  // channel name instead, since broadcast (unlike postgres_changes) only
+  // reaches clients joined to the exact same channel topic.
+  useEffect(() => {
+    if (!myId || !friendId) return;
+    const reactionChannelKey = `dm-reactions-${[myId, friendId].sort().join('-')}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const reactionChannel = supabase
+      .channel(reactionChannelKey)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dm_message_reactions' },
+        (payload) => {
+          const row = payload.new;
+          if (row.user_id === myId || !messagesByIdRef.current[row.message_id]) return;
+          applyReactionDelta(row.message_id, row.emoji, row.user_id, true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'dm_message_reactions' },
+        (payload) => {
+          const row = payload.old;
+          if (!row || row.user_id === myId || !messagesByIdRef.current[row.message_id]) return;
+          applyReactionDelta(row.message_id, row.emoji, row.user_id, false);
+        }
+      )
+      .subscribe();
+
+    const typingChannelName = `dm-typing-${[myId, friendId].sort().join('-')}`;
+    const typingChannel = supabase
+      .channel(typingChannelName)
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload?.userId !== friendId) return;
+        setFriendTyping(true);
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setFriendTyping(false), 3000);
+      })
+      .subscribe();
+    typingChannelRef.current = typingChannel;
+
+    return () => {
+      supabase.removeChannel(reactionChannel);
+      supabase.removeChannel(typingChannel);
+      clearTimeout(typingTimeoutRef.current);
+      typingChannelRef.current = null;
+    };
+  }, [myId, friendId]);
+
+  function handleTextChange(t) {
+    setText(t);
+    const now = Date.now();
+    if (typingChannelRef.current && now - lastTypingSentRef.current > 1500) {
+      lastTypingSentRef.current = now;
+      typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { userId: myId } });
+    }
+  }
+
   useFocusEffect(useCallback(() => {
     recordThreadOpened(friendId);
     if (myId) {
@@ -332,6 +545,56 @@ export default function DMScreen() {
     setMessages(data || []);
     setLoading(false);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 80);
+    if (data?.length) loadReactions(data.map((m) => m.id), uid);
+  }
+
+  async function loadReactions(messageIds, uid) {
+    if (!messageIds.length) return;
+    const { data } = await supabase
+      .from('dm_message_reactions')
+      .select('message_id, user_id, emoji')
+      .in('message_id', messageIds);
+    if (!data) return;
+    const grouped = {};
+    data.forEach((row) => {
+      if (!grouped[row.message_id]) grouped[row.message_id] = {};
+      if (!grouped[row.message_id][row.emoji]) grouped[row.message_id][row.emoji] = { count: 0, mine: false };
+      grouped[row.message_id][row.emoji].count += 1;
+      if (row.user_id === uid) grouped[row.message_id][row.emoji].mine = true;
+    });
+    setReactionsByMessage(grouped);
+  }
+
+  function applyReactionDelta(messageId, emoji, userId, added) {
+    setReactionsByMessage((prev) => {
+      const forMsg = { ...(prev[messageId] || {}) };
+      const entry = forMsg[emoji] || { count: 0, mine: false };
+      const nextCount = Math.max(0, entry.count + (added ? 1 : -1));
+      const nextMine = userId === myId ? added : entry.mine;
+      if (nextCount === 0) {
+        delete forMsg[emoji];
+      } else {
+        forMsg[emoji] = { count: nextCount, mine: nextMine };
+      }
+      return { ...prev, [messageId]: forMsg };
+    });
+  }
+
+  async function toggleReaction(messageId, emoji) {
+    if (!myId) return;
+    const mine = reactionsByMessage[messageId]?.[emoji]?.mine;
+    applyReactionDelta(messageId, emoji, myId, !mine);
+    if (mine) {
+      await supabase.from('dm_message_reactions').delete()
+        .eq('message_id', messageId).eq('user_id', myId).eq('emoji', emoji);
+    } else {
+      medium();
+      await supabase.from('dm_message_reactions').insert({ message_id: messageId, user_id: myId, emoji });
+    }
+  }
+
+  function handleSwipeReply(msg) {
+    setReplyingTo(msg);
   }
 
   async function markRead(uid) {
@@ -350,7 +613,10 @@ export default function DMScreen() {
       showAppToast('That message contains language that isn\'t allowed here');
       return;
     }
+    light();
     setText('');
+    const replyToId = replyingTo?.id || null;
+    setReplyingTo(null);
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const optimistic = {
@@ -359,6 +625,7 @@ export default function DMScreen() {
       recipient_id: friendId,
       message_type: 'text',
       content,
+      reply_to_id: replyToId,
       created_at: new Date().toISOString(),
       _sending: true,
     };
@@ -367,7 +634,7 @@ export default function DMScreen() {
 
     const { data, error } = await supabase
       .from('direct_messages')
-      .insert({ sender_id: myId, recipient_id: friendId, message_type: 'text', content })
+      .insert({ sender_id: myId, recipient_id: friendId, message_type: 'text', content, reply_to_id: replyToId })
       .select()
       .maybeSingle();
 
@@ -401,7 +668,9 @@ export default function DMScreen() {
 
   async function sendRecommendation(manga) {
     if (!myId) return;
+    light();
     setShowPicker(false);
+    setReplyingTo(null);
 
     const mangaData = {
       title: manga.title,
@@ -449,7 +718,9 @@ export default function DMScreen() {
 
   async function sendGif(gifUrl) {
     if (!myId) return;
+    light();
     setShowPicker(false);
+    setReplyingTo(null);
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const optimistic = {
@@ -498,6 +769,8 @@ export default function DMScreen() {
 
   async function sendImage(localUri) {
     if (!myId) return;
+    light();
+    setReplyingTo(null);
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const optimistic = {
@@ -589,16 +862,42 @@ export default function DMScreen() {
             keyboardDismissMode="interactive"
             onContentSizeChange={null}
             renderItem={({ item }) => (
-              <MessageBubble
+              <SwipeableMessageRow
                 msg={item}
                 isOwn={item.sender_id === myId}
                 friendColor={friendColor}
                 colors={colors}
                 navigation={navigation}
                 onRetry={item._failed ? retryMessage : null}
+                quotedMsg={item.reply_to_id ? messagesById[item.reply_to_id] : null}
+                reactions={reactionsByMessage[item.id]}
+                onToggleReaction={toggleReaction}
+                onSwipeReply={handleSwipeReply}
               />
             )}
           />
+        )}
+
+        {friendTyping && (
+          <View style={[styles.typingRow, isTablet && styles.tabletWrap]}>
+            <View style={[styles.typingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TypingDots color={themeColor(friendColor)} />
+            </View>
+          </View>
+        )}
+
+        {replyingTo && (
+          <View style={[styles.replyingToBar, { backgroundColor: colors.card, borderTopColor: colors.border }, isTablet && styles.tabletWrap]}>
+            <Ionicons name="return-down-forward-outline" size={13} color="#7B5CFF" />
+            <Text style={[styles.replyingToText, { color: colors.muted }]} numberOfLines={1}>
+              Replying to <Text style={{ color: '#7B5CFF', fontWeight: '600' }}>
+                {replyingTo.sender_id === myId ? 'yourself' : friendName}
+              </Text>: {quotedPreviewText(replyingTo)}
+            </Text>
+            <TouchableOpacity onPress={() => setReplyingTo(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={15} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Input bar */}
@@ -618,7 +917,7 @@ export default function DMScreen() {
             placeholder="Message..."
             placeholderTextColor={colors.muted}
             value={text}
-            onChangeText={setText}
+            onChangeText={handleTextChange}
             multiline
             maxLength={1000}
             returnKeyType="default"
@@ -756,6 +1055,36 @@ const styles = StyleSheet.create({
   recMetaText: { fontSize: 11, marginLeft: 3 },
   recOpenBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
   recOpenText: { color: '#7B5CFF', fontSize: 11, fontWeight: '700' },
+
+  // Quoted reply preview (shown above a bubble that replied to another message)
+  quotedWrap: { flexDirection: 'row', alignItems: 'center', maxWidth: '80%', marginBottom: 3, gap: 6 },
+  quotedBar: { width: 3, height: 14, borderRadius: 2 },
+  quotedText: { fontSize: 11, flexShrink: 1 },
+
+  // Reaction pills
+  reactionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: -4, marginBottom: 8 },
+  reactionPill: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 12, paddingHorizontal: 7, paddingVertical: 2 },
+  reactionEmoji: { fontSize: 13 },
+  reactionCount: { fontSize: 11, fontWeight: '600' },
+
+  // Swipe-to-reply affordance icon
+  replyIconWrap: { position: 'absolute', top: '50%', marginTop: -10, width: 20, alignItems: 'center', justifyContent: 'center' },
+
+  // Long-press emoji picker
+  emojiOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
+  emojiPickerRow: { flexDirection: 'row', borderWidth: 1, borderRadius: 24, paddingHorizontal: 10, paddingVertical: 8, gap: 4 },
+  emojiBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  emojiBtnText: { fontSize: 22 },
+
+  // Typing indicator
+  typingRow: { paddingHorizontal: 16, paddingBottom: 4 },
+  typingBubble: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
+  typingDotsRow: { flexDirection: 'row', gap: 4 },
+  typingDot: { width: 6, height: 6, borderRadius: 3 },
+
+  // Reply-preview bar above the input
+  replyingToBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1, gap: 6 },
+  replyingToText: { fontSize: 12, flex: 1 },
 
   // Empty state
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
