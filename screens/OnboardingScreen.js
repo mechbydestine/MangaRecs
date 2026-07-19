@@ -45,6 +45,46 @@ const FEATURES = [
 ];
 
 
+function generateGuestUsername() {
+  // profiles.username is CHECK'd to ^[a-z0-9]{3,24}$ — base36 keeps this
+  // lowercase-alnum by construction, matching that constraint for free.
+  return `guest${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// A real signup (AuthScreen.js) explicitly creates the profiles row itself —
+// there's no DB trigger for it, and username is NOT NULL with no default. An
+// anonymous session skips that path entirely, so without this a guest would
+// reach GuidelinesScreen with no profiles row, its upsert would throw (caught
+// and swallowed), and they'd enter the app with a permanently missing profile.
+async function ensureGuestSession() {
+  const { data } = await supabase.auth.getUser();
+  if (data?.user) return data.user;
+
+  const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+  if (anonError || !anonData?.user) return null;
+  const user = anonData.user;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
+      username: generateGuestUsername(),
+      display_name: 'Guest',
+      streak_count: 0,
+      chapters_read: 0,
+      hours_read: 0,
+      night_reads: 0,
+      genres_count: 0,
+      shares_count: 0,
+      manga_count: 0,
+      ratings_count: 0,
+      accepted_guidelines: false,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+    if (!error) break; // username collision (astronomically unlikely) — retry with a new one
+  }
+  return user;
+}
+
 function SignUpGate({ onDone }) {
   const [mode, setMode] = useState('prompt');
   const [email, setEmail] = useState('');
@@ -415,6 +455,7 @@ export default function OnboardingScreen({ onComplete }) {
         GENRE_OPTIONS.forEach((g) => { initialWeights[g.label] = (initialWeights[g.label] || 0) + 2; });
       }
       await AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(initialWeights));
+      await ensureGuestSession();
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         if (username.trim()) {
@@ -437,7 +478,10 @@ export default function OnboardingScreen({ onComplete }) {
   }
 
   function handleSkipAll() {
-    AsyncStorage.setItem('onboarding_complete', 'true').finally(onComplete);
+    AsyncStorage.setItem('onboarding_complete', 'true').finally(async () => {
+      try { await ensureGuestSession(); } catch (_) {}
+      onComplete();
+    });
   }
 
   function handleNext() {

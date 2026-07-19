@@ -902,14 +902,23 @@ export default function DMScreen() {
 
         {/* Input bar */}
         <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }, isTablet && styles.tabletWrap]}>
-          <TouchableOpacity style={styles.recBtn} onPress={() => { setPickerTab('manga'); setShowPicker(true); }} activeOpacity={0.8}>
-            <Ionicons name="paper-plane-outline" size={22} color="#7B5CFF" />
+          <TouchableOpacity
+            style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
+            onPress={() => { light(); setPickerTab('manga'); setShowPicker(true); }}
+            activeOpacity={0.7}>
+            <Ionicons name="book" size={17} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.recBtn} onPress={pickAndSendImage} activeOpacity={0.8}>
-            <Ionicons name="image-outline" size={22} color="#7B5CFF" />
+          <TouchableOpacity
+            style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
+            onPress={() => { light(); pickAndSendImage(); }}
+            activeOpacity={0.7}>
+            <Ionicons name="image" size={17} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.recBtn} onPress={() => { setPickerTab('gif'); setShowPicker(true); }} activeOpacity={0.8}>
-            <Ionicons name="film-outline" size={22} color="#7B5CFF" />
+          <TouchableOpacity
+            style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
+            onPress={() => { light(); setPickerTab('gif'); setShowPicker(true); }}
+            activeOpacity={0.7}>
+            <Ionicons name="happy" size={17} color={colors.text} />
           </TouchableOpacity>
 
           <TextInput
@@ -1095,7 +1104,7 @@ const styles = StyleSheet.create({
 
   // Input bar
   inputBar: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingTop: 10, borderTopWidth: 1 },
-  recBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginRight: 6, marginBottom: 2 },
+  recBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginRight: 6, marginBottom: 2 },
   textInput: {
     flex: 1, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14,
     paddingTop: Platform.OS === 'ios' ? 10 : 8,

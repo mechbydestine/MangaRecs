@@ -2,6 +2,16 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.2.4',
+    date: 'July 19, 2026',
+    highlights: [
+      'Haptic feedback on likes, bookmarks, shares, and comments',
+      'Smoother feed swiping, with a cover animation into each series page',
+      'Message reactions, swipe-to-reply, and typing indicators in DMs',
+      'Skip sign-in and start reading right away — create an account anytime later from Settings',
+    ],
+  },
+  {
     version: '1.2.0',
     date: 'July 10, 2026',
     highlights: [

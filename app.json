@@ -3,7 +3,7 @@
     "name": "MangaRecs",
     "slug": "inklore",
     "scheme": "mangarecs",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
