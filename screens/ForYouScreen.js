@@ -302,6 +302,10 @@ function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey })
   ).current;
 
   function handlePress() {
+    if (series.comingSoon) {
+      showAppToast(`${series.title} hasn't been released yet — check back soon`, 'info');
+      return;
+    }
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 60, bounciness: 0 }),
       Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 8 }),
@@ -369,6 +373,10 @@ const HotCard = memo(function HotCard({ series, onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
+    if (series.comingSoon) {
+      showAppToast(`${series.title} hasn't been released yet — check back soon`, 'info');
+      return;
+    }
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 80, bounciness: 0 }),
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }),

@@ -343,7 +343,7 @@ export default function ProfileScreen() {
     return !t.minGrade || (highestGrade && gradeAtLeast(highestGrade, t.minGrade));
   }
 
-  function toggleShowcase(badge) {
+  async function toggleShowcase(badge) {
     if (!earnedIds.has(badge.id)) return;
     let next;
     if (showcaseIds.includes(badge.id)) {
@@ -354,7 +354,8 @@ export default function ProfileScreen() {
       next = [...showcaseIds, badge.id];
       showAppToast(`Pinned ${badge.name} to your profile`, 'success');
     }
-    updateProfile({ showcase_badges: next });
+    const { error } = await updateProfile({ showcase_badges: next });
+    if (error) showAppToast("Couldn't save showcase — try again");
   }
   const earnedBadges = useMemo(
     () => ALL_BADGES
@@ -749,7 +750,8 @@ export default function ProfileScreen() {
     setFaveSearch('');
     setShowAllFaves(true); // drop back into the favorites popup so the new pick is visible
     await AsyncStorage.setItem(FAVES_KEY, JSON.stringify(next));
-    updateProfile({ favorites: next });
+    const { error } = await updateProfile({ favorites: next });
+    if (error) showAppToast("Saved locally, but couldn't sync to your profile — try again");
   }
 
   function openFaveDetail(fave) {
@@ -769,7 +771,8 @@ export default function ProfileScreen() {
     const next = favorites.filter((f) => f.id !== titleOrId && f.title !== titleOrId);
     setFavorites(next);
     await AsyncStorage.setItem(FAVES_KEY, JSON.stringify(next));
-    updateProfile({ favorites: next });
+    const { error } = await updateProfile({ favorites: next });
+    if (error) showAppToast("Saved locally, but couldn't sync to your profile — try again");
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -914,7 +917,10 @@ export default function ProfileScreen() {
                           showAppToast(`Reach ${t.gradeLabel} tier to unlock ${t.label}`);
                           return;
                         }
-                        setThemeId(t.id); setShowThemes(false); updateProfile({ color: t.id });
+                        setThemeId(t.id); setShowThemes(false);
+                        updateProfile({ color: t.id }).then(({ error }) => {
+                          if (error) showAppToast("Couldn't save theme — try again");
+                        });
                       }}>
                       <View style={[styles.themeChipDot, { backgroundColor: t.gradient[0] }]} />
                       <Text style={[styles.themeChipText, { color: colors.muted }, themeId === t.id && { color: t.ring }]}>{t.label}</Text>

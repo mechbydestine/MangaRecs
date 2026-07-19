@@ -1,4 +1,4 @@
-﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, Alert, ActivityIndicator, Linking, Share } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, ActivityIndicator, Linking, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +17,8 @@ import * as Updates from 'expo-updates';
 import { CHANGELOG } from '../utils/changelog';
 import { useResponsive } from '../utils/responsive';
 import { fetchAnilistMangaList } from '../utils/anilist';
+import { showAppToast } from '../utils/appToast';
+import { showAppAlert } from '../utils/appAlert';
 
 const NOTIFS_KEY      = '@mangarecs/notifPrefs';
 const READER_MODE_KEY = '@mangarecs/readerMode';
@@ -405,7 +407,7 @@ export default function SettingsScreen({ navigation }) {
   }
 
   function handleClearCache() {
-    Alert.alert(
+    showAppAlert(
       'Clear cache?',
       'This frees up cached cover images. Your library, ratings, reading progress, and downloaded chapters are not affected.',
       [
@@ -435,7 +437,7 @@ export default function SettingsScreen({ navigation }) {
     const { error } = await supabase.rpc('delete_user');
     setDeleteLoading(false);
     if (error) {
-      Alert.alert('Error', 'Could not delete account. Please contact support.');
+      showAppToast('Could not delete account — please contact support');
       return;
     }
     try { await AsyncStorage.clear(); } catch (_) {}
@@ -1008,7 +1010,7 @@ export default function SettingsScreen({ navigation }) {
               style={[styles.ctaBtn, selectedPlan === 'pro' && styles.ctaBtnPro]}
               onPress={() => {
                 if (selectedPlan !== 'free') {
-                  Alert.alert('Coming Soon', 'Paid plans will be available after launch. Stay tuned!');
+                  showAppToast('Paid plans will be available after launch — stay tuned', 'info');
                 }
               }}>
               <Text style={[styles.ctaBtnText, selectedPlan === 'pro' && styles.ctaBtnTextPro]}>
