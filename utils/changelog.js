@@ -2,6 +2,22 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.3.0',
+    date: 'July 19, 2026',
+    highlights: [
+      'Manga detail pages got a full redesign — genres, a "You Might Also Like" shelf, character art, and real site logos under Read Available',
+      'Reader: resume picks up on the exact page (not just the chapter), plus a night-reading warm filter, double-page spread on tablets/landscape, and bigger batch downloads (5/10/25/whole series)',
+      'Library: tap the filter icon to browse by genre, and fixed several bugs — duplicate entries, wrong covers showing under the wrong title, and junk like "Recent Searches" appearing as if it were a manga you were reading',
+      'Signing out now fully clears your data — no more mixing up favorites or settings between accounts on the same device',
+      'Guest accounts can upgrade to a real account anytime from Settings without losing any progress',
+      'Comments can go two replies deep instead of flattening everything onto the top-level comment',
+      'Friend search now matches as you type instead of needing the exact username',
+      'Tapping a cover in the Feed opens its detail page (it used to jump straight into the reader)',
+      'Alerts and confirmations now match the app\'s look instead of a plain system popup',
+      'Fixed the splash screen and the app\'s intro animation on update',
+    ],
+  },
+  {
     version: '1.2.4',
     date: 'July 19, 2026',
     highlights: [
