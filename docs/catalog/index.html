@@ -434,20 +434,26 @@
 
   /* ── Reading Recap story ──────────────────────────────────────────── */
   .recap-overlay { position: fixed; inset: 0; z-index: 500; background: #000; display: flex; flex-direction: column; }
+  .recap-brandmark {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 25;
+    display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85);
+    font-weight: 800; font-size: 0.8rem; letter-spacing: 0.02em; pointer-events: none;
+  }
+  .recap-brandmark svg { width: 16px; height: 16px; }
   .recap-progress { display: flex; gap: 6px; padding: 14px 14px 0; position: relative; z-index: 20; }
   .recap-seg { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.25); overflow: hidden; }
   .recap-seg i { display: block; height: 100%; width: 0%; background: #fff; }
   .recap-close {
-    position: absolute; top: 14px; right: 14px; z-index: 20; width: 34px; height: 34px;
+    position: absolute; top: 14px; right: 14px; z-index: 25; width: 34px; height: 34px;
     border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: none; font-size: 1.3rem;
     cursor: pointer; line-height: 1;
   }
   .recap-stage {
     flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
-    padding: 40px 28px; cursor: pointer; user-select: none; position: relative; overflow: hidden;
+    padding: 48px 28px; cursor: pointer; user-select: none; position: relative; overflow: hidden;
     transition: background 0.5s ease;
   }
-  /* Manga screentone texture, always present regardless of slide content */
+  /* Manga screentone + film-grain texture, always present regardless of slide content */
   .recap-stage::before {
     content: ''; position: absolute; inset: -10%; z-index: 0; pointer-events: none;
     background-image: radial-gradient(rgba(255,255,255,0.16) 1.6px, transparent 1.6px);
@@ -456,13 +462,19 @@
   }
   .recap-stage::after {
     content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background: radial-gradient(ellipse at 50% 42%, transparent 35%, rgba(0,0,0,0.4) 100%);
+    background: radial-gradient(ellipse at 50% 42%, transparent 32%, rgba(0,0,0,0.42) 100%);
   }
-  .recap-slide { position: relative; z-index: 2; max-width: 420px; color: #fff; }
+  .recap-grain {
+    position: absolute; inset: -20%; z-index: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .recap-slide { position: relative; z-index: 2; max-width: 440px; color: #fff; }
   .recap-watermark {
     position: absolute; top: 48%; left: 50%; width: 66vh; height: 66vh; max-width: 520px; max-height: 520px;
     transform: translate(-50%, -50%) rotate(-9deg); opacity: 0.09; z-index: 1; pointer-events: none;
+    animation: recapDrift 14s ease-in-out infinite;
   }
+  @keyframes recapDrift { 0%, 100% { transform: translate(-50%, -50%) rotate(-9deg) scale(1); } 50% { transform: translate(-50%, -52%) rotate(-6deg) scale(1.04); } }
   .recap-watermark svg { width: 100%; height: 100%; fill: none; stroke: #fff; stroke-width: 0.8; }
   .recap-speedlines {
     position: absolute; top: 50%; left: 50%; width: 900px; height: 900px; z-index: 0; pointer-events: none;
@@ -474,21 +486,43 @@
   @keyframes recapSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
   .recap-reveal { opacity: 0; transform: translateY(14px); animation: recapFadeUp 0.55s ease forwards; }
   @keyframes recapFadeUp { to { opacity: 1; transform: none; } }
-  .recap-eyebrow { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 14px; }
-  .recap-title { font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; font-size: 2.2rem; line-height: 1.05; }
-  .recap-sub { margin-top: 16px; font-size: 1rem; color: rgba(255,255,255,0.85); line-height: 1.5; }
+  .recap-eyebrow { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.78); margin-bottom: 16px; }
+  .recap-title { font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; font-size: clamp(2rem, 7vw, 2.7rem); line-height: 1.02; }
+  .recap-sub { margin-top: 18px; font-size: 1.05rem; color: rgba(255,255,255,0.88); line-height: 1.5; }
   .recap-stat-big {
-    font-family: 'Panel Display', sans-serif; font-weight: 900; font-size: 5.4rem; line-height: 1;
-    text-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    font-family: 'Panel Display', sans-serif; font-weight: 900; line-height: 0.95;
+    font-size: clamp(4.6rem, 20vw, 9.5rem);
+    text-shadow: 0 0 60px var(--rc, rgba(255,255,255,0.5)), 0 10px 30px rgba(0,0,0,0.4);
     animation: recapPopIn 0.65s cubic-bezier(.2,1.6,.4,1) both;
   }
-  @keyframes recapPopIn { 0% { transform: scale(0.35); opacity: 0; } 65% { transform: scale(1.14); opacity: 1; } 100% { transform: scale(1); } }
-  .recap-stat-label { margin-top: 10px; font-size: 0.92rem; font-weight: 700; letter-spacing: 0.05em; color: rgba(255,255,255,0.9); }
-  .recap-tap-hint { margin-top: 30px; font-size: 0.86rem; color: rgba(255,255,255,0.65); }
+  @keyframes recapPopIn { 0% { transform: scale(0.3); opacity: 0; } 65% { transform: scale(1.16); opacity: 1; } 100% { transform: scale(1); } }
+  .recap-stat-label { margin-top: 12px; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; color: rgba(255,255,255,0.92); }
+  .recap-tap-hint { margin-top: 34px; font-size: 0.86rem; color: rgba(255,255,255,0.65); }
   .recap-tier-pill { display: inline-block; margin-top: 14px; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid var(--tier-c, #fff); color: #fff; font-weight: 800; font-size: 0.9rem; }
-  .recap-mascot { width: 92px; margin: 0 auto 18px; filter: drop-shadow(0 10px 24px rgba(0,0,0,0.4)); }
+  .recap-mascot { width: 100px; margin: 0 auto 20px; filter: drop-shadow(0 10px 24px rgba(0,0,0,0.4)); animation: recapPopIn 0.7s cubic-bezier(.2,1.6,.4,1) both; }
 
-  /* Real data visualizations instead of plain numbers */
+  /* Kinetic word-by-word title reveal */
+  .recap-kword { display: inline-block; opacity: 0; transform: translateY(24px) scale(0.85); animation: recapWordIn 0.55s cubic-bezier(.2,1.5,.4,1) forwards; }
+  @keyframes recapWordIn { to { opacity: 1; transform: none; } }
+
+  /* Real visual metaphors instead of plain numbers */
+  .recap-gauge { position: relative; width: 190px; height: 190px; margin: 6px auto 4px; }
+  .recap-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .recap-gauge circle { fill: none; stroke-width: 9; }
+  .recap-gauge .track { stroke: rgba(255,255,255,0.18); }
+  .recap-gauge .fill { stroke: #fff; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 10px var(--rc, #fff)); }
+  .recap-gauge-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .recap-gauge-center .recap-stat-big { font-size: clamp(2.4rem, 9vw, 3.4rem); }
+
+  .recap-flame-visual { width: 130px; height: 170px; margin: 4px auto 6px; position: relative; }
+  .recap-flame-visual svg { width: 100%; height: 100%; animation: recapFlicker 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+  @keyframes recapFlicker {
+    0%, 100% { transform: scale(1, 1) rotate(0deg); }
+    25% { transform: scale(0.97, 1.03) rotate(-1deg); }
+    50% { transform: scale(1.03, 0.98) rotate(1deg); }
+    75% { transform: scale(0.99, 1.02) rotate(-0.5deg); }
+  }
+
   .recap-barchart { display: flex; align-items: flex-end; justify-content: center; gap: 9px; height: 130px; margin: 26px 0 14px; }
   .recap-bar-col { display: flex; flex-direction: column; align-items: center; width: 30px; }
   .recap-bar { width: 100%; border-radius: 6px 6px 3px 3px; background: rgba(255,255,255,0.28); min-height: 6px; transition: height 0.8s cubic-bezier(.2,.8,.2,1); }
@@ -500,14 +534,15 @@
   .recap-progress-bar i { display: block; height: 100%; background: #fff; border-radius: 999px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
 
   .recap-shelf { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 110px; margin: 22px 0 4px; }
-  .recap-spine { border-radius: 3px 3px 0 0; opacity: 0.95; }
+  .recap-spine { border-radius: 3px 3px 0 0; opacity: 0.95; transition: height 0.7s cubic-bezier(.2,.8,.2,1); }
 
   .recap-archetype-badge {
-    display: inline-flex; align-items: center; justify-content: center; width: 96px; height: 96px;
-    border-radius: 50%; background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.55);
-    margin-bottom: 16px; animation: recapPopIn 0.7s cubic-bezier(.2,1.6,.4,1) both;
+    display: inline-flex; align-items: center; justify-content: center; width: 108px; height: 108px;
+    border-radius: 50%; background: rgba(255,255,255,0.14); border: 3px solid rgba(255,255,255,0.65);
+    margin-bottom: 18px; animation: recapStamp 0.5s cubic-bezier(.2,1.8,.4,1) both;
   }
-  .recap-archetype-badge svg { width: 44px; height: 44px; stroke: #fff; fill: none; stroke-width: 1.6; }
+  @keyframes recapStamp { 0% { transform: scale(2) rotate(-14deg); opacity: 0; } 60% { transform: scale(0.95) rotate(3deg); opacity: 1; } 100% { transform: scale(1) rotate(-4deg); } }
+  .recap-archetype-badge svg { width: 48px; height: 48px; stroke: #fff; fill: none; stroke-width: 1.6; }
 
   .recap-finale { max-width: 300px; }
   .recap-card-preview {
@@ -518,14 +553,26 @@
   .recap-confetti-piece { position: absolute; top: -10px; width: 8px; height: 14px; opacity: 0.9; animation: recapFall linear forwards; border-radius: 2px; pointer-events: none; z-index: 3; }
   @keyframes recapFall { to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
 
+  /* Directional swipe transition between slides — a "swipe cut" instead of a flat crossfade */
+  .recap-stage.recap-exit-l { animation: recapExitL 0.16s ease forwards; }
+  .recap-stage.recap-exit-r { animation: recapExitR 0.16s ease forwards; }
+  .recap-stage.recap-enter-l { animation: recapEnterL 0.38s cubic-bezier(.2,.8,.2,1); }
+  .recap-stage.recap-enter-r { animation: recapEnterR 0.38s cubic-bezier(.2,.8,.2,1); }
+  @keyframes recapExitL { to { transform: translateX(-7%) scale(0.94); opacity: 0.25; } }
+  @keyframes recapExitR { to { transform: translateX(7%) scale(0.94); opacity: 0.25; } }
+  @keyframes recapEnterL { from { transform: translateX(-7%) scale(0.94); opacity: 0.25; } to { transform: none; opacity: 1; } }
+  @keyframes recapEnterR { from { transform: translateX(7%) scale(0.94); opacity: 0.25; } to { transform: none; opacity: 1; } }
+
   @media (max-width: 480px) {
-    .recap-stat-big { font-size: 3.8rem; }
-    .recap-title { font-size: 1.8rem; }
+    .recap-title { font-size: clamp(1.6rem, 8vw, 2rem); }
     .recap-watermark { width: 80vw; height: 80vw; }
+    .recap-gauge { width: 150px; height: 150px; }
+    .recap-flame-visual { width: 104px; height: 136px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .recap-reveal, .recap-stat-big, .recap-archetype-badge { animation: none; opacity: 1; transform: none; }
-    .recap-speedlines { animation: none; }
+    .recap-reveal, .recap-stat-big, .recap-archetype-badge, .recap-kword, .recap-mascot { animation: none; opacity: 1; transform: none; }
+    .recap-speedlines, .recap-watermark, .recap-flame-visual svg { animation: none; }
+    .recap-stage.recap-exit-l, .recap-stage.recap-exit-r, .recap-stage.recap-enter-l, .recap-stage.recap-enter-r { animation: none; }
   }
 </style>
 <link rel="stylesheet" href="/assets/motion.css?v=1" />
@@ -1409,6 +1456,39 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   function recapWatermark(name) { return '<div class="recap-watermark">' + recapIcon(name) + '</div>'; }
   function recapReveal(html, delay) { return '<div class="recap-reveal" style="animation-delay:' + (delay || 0) + 's">' + html + '</div>'; }
+  // Word-by-word "movie title sequence" reveal instead of one flat fade-in.
+  function recapKineticTitle(tag, text, delay, extraStyle) {
+    var words = esc(text).split(' ');
+    var spans = words.map(function (w, i) {
+      return '<span class="recap-kword" style="animation-delay:' + ((delay || 0) + i * 0.09) + 's">' + w + '&nbsp;</span>';
+    }).join('');
+    return '<' + tag + ' class="recap-title"' + (extraStyle ? ' style="' + extraStyle + '"' : '') + '>' + spans + '</' + tag + '>';
+  }
+  // A circular gauge sweeping to `pct` (0-1), used to make "hours read" feel
+  // like a filling dial rather than a bare number — reads as a real gauge
+  // instead of decoration since the sweep amount is the real stat.
+  function recapGaugeHtml(pct, accent, innerHtml) {
+    var r = 82, c = 2 * Math.PI * r;
+    pct = Math.max(0.03, Math.min(1, pct));
+    return '<div class="recap-gauge" style="--rc:' + accent + '">' +
+      '<svg viewBox="0 0 190 190">' +
+        '<circle class="track" cx="95" cy="95" r="' + r + '"/>' +
+        '<circle class="fill" cx="95" cy="95" r="' + r + '" stroke="' + accent + '" ' +
+          'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + c.toFixed(1) + '" data-target-offset="' + (c * (1 - pct)).toFixed(1) + '"/>' +
+      '</svg>' +
+      '<div class="recap-gauge-center">' + innerHtml + '</div>' +
+    '</div>';
+  }
+  function recapFlameHtml(accent) {
+    return '<div class="recap-flame-visual">' +
+      '<svg viewBox="0 0 100 140">' +
+        '<defs><linearGradient id="recapFlameGrad" x1="0" y1="1" x2="0" y2="0">' +
+          '<stop offset="0%" stop-color="#7a1a0a"/><stop offset="55%" stop-color="' + accent + '"/><stop offset="100%" stop-color="#FFD34D"/>' +
+        '</linearGradient></defs>' +
+        '<path fill="url(#recapFlameGrad)" d="M50 6c9 28-23 38-23 68a23 23 0 0 0 46 0c0-15-10-19-10-34 0 9-6 13-10 13-8 0-9-11-7-20 1-8 4-16 4-27z"/>' +
+      '</svg>' +
+    '</div>';
+  }
 
   // Picks the single strongest real signal, always with a positive fallback
   // so a quiet half never produces a hollow or negative-feeling slide.
@@ -1433,9 +1513,9 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="recap-slide recap-intro">' +
           recapReveal('<div class="recap-mascot">' + MASCOT_SVG + '</div>', 0) +
           recapReveal('<div class="recap-eyebrow">' + esc(d.period.label) + '</div>', 0.14) +
-          recapReveal('<h1 class="recap-title">Your Reading Recap</h1>', 0.22) +
-          recapReveal('<p class="recap-sub">Let\'s see what kind of reader you were these past six months, @' + esc(d.username) + '.</p>', 0.34) +
-          recapReveal('<div class="recap-tap-hint">Tap to begin →</div>', 0.5) +
+          recapKineticTitle('h1', 'Your Reading Recap', 0.24) +
+          recapReveal('<p class="recap-sub">Let\'s see what kind of reader you were these past six months, @' + esc(d.username) + '.</p>', 0.52) +
+          recapReveal('<div class="recap-tap-hint">Tap to begin →</div>', 0.68) +
         '</div>',
     });
 
@@ -1455,10 +1535,9 @@ document.addEventListener('DOMContentLoaded', function () {
       gradient: RECAP_PALETTE.pink,
       html:
         recapWatermark('clock') +
-        '<div class="recap-speedlines"></div>' +
         '<div class="recap-slide">' +
           recapReveal('<div class="recap-eyebrow">Time well spent</div>') +
-          '<div class="recap-stat-big" data-countup="' + Math.round(d.hoursRead) + '">0</div>' +
+          recapGaugeHtml(d.hoursRead / 150, d.accentColor, '<div class="recap-stat-big" data-countup="' + Math.round(d.hoursRead) + '">0</div>') +
           recapReveal('<div class="recap-stat-label">HOURS READ</div>', 0.16) +
           recapReveal('<p class="recap-sub">' + (d.hoursRead >= 24
             ? 'That\'s about ' + Math.round(d.hoursRead / 24) + ' straight days of nonstop reading.'
@@ -1488,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', function () {
           recapReveal('<div class="recap-eyebrow">Showing up</div>') +
           '<div class="recap-stat-big" data-countup="' + d.readingDays + '">0</div>' +
           recapReveal('<div class="recap-stat-label">DAYS YOU OPENED A CHAPTER</div>', 0.16) +
-          recapReveal('<div class="recap-progress-bar"><i style="width:' + activePct + '%"></i></div><p class="recap-sub" style="margin-top:6px;">' + activePct + '% of the ' + d.totalDaysInPeriod + ' days this half.</p>', 0.3) +
+          recapReveal('<div class="recap-progress-bar"><i style="width:0%" data-target-width="' + activePct + '%"></i></div><p class="recap-sub" style="margin-top:6px;">' + activePct + '% of the ' + d.totalDaysInPeriod + ' days this half.</p>', 0.3) +
         '</div>',
     });
 
@@ -1497,10 +1576,9 @@ document.addEventListener('DOMContentLoaded', function () {
         gradient: RECAP_PALETTE.fire,
         confetti: true,
         html:
-          recapWatermark('flame') +
-          '<div class="recap-speedlines"></div>' +
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">On a roll</div>') +
+            recapFlameHtml(d.accentColor) +
             '<div class="recap-stat-big" data-countup="' + d.longestStreak + '">0</div>' +
             recapReveal('<div class="recap-stat-label">DAY STREAK — YOUR LONGEST THIS HALF</div>', 0.16) +
           '</div>',
@@ -1512,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var bars = d.weekday.totals.map(function (v, i) {
         var h = Math.max(6, Math.round((v / maxVal) * 110));
         var top = i === d.weekday.best;
-        return '<div class="recap-bar-col' + (top ? ' top' : '') + '"><div class="recap-bar' + (top ? ' top' : '') + '" style="height:' + h + 'px"></div><div class="recap-bar-label">' + d.weekday.labels[i] + '</div></div>';
+        return '<div class="recap-bar-col' + (top ? ' top' : '') + '"><div class="recap-bar' + (top ? ' top' : '') + '" style="height:0px" data-target-height="' + h + 'px"></div><div class="recap-bar-label">' + d.weekday.labels[i] + '</div></div>';
       }).join('');
       slides.push({
         gradient: RECAP_PALETTE.blue,
@@ -1530,7 +1608,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var spineCount = Math.min(d.seriesTouched, 10);
       var shelf = '';
       for (var i = 0; i < spineCount; i++) {
-        shelf += '<div class="recap-spine" style="height:' + (58 + ((i * 37) % 48)) + 'px;width:' + (14 + (i % 3) * 3) + 'px;background:' + spineColors[i % spineColors.length] + ';"></div>';
+        shelf += '<div class="recap-spine" style="height:0px;width:' + (14 + (i % 3) * 3) + 'px;background:' + spineColors[i % spineColors.length] + ';" data-target-height="' + (58 + ((i * 37) % 48)) + 'px"></div>';
       }
       slides.push({
         gradient: RECAP_PALETTE.purple,
@@ -1570,8 +1648,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="recap-slide">' +
           recapReveal('<div class="recap-eyebrow">Your reading personality</div>') +
           '<div class="recap-archetype-badge">' + recapIcon(archetype.icon) + '</div>' +
-          recapReveal('<h2 class="recap-title" style="font-size:2.3rem;">' + esc(archetype.title) + '</h2>', 0.18) +
-          recapReveal('<p class="recap-sub">' + esc(archetype.desc) + '</p>', 0.32) +
+          recapKineticTitle('h2', archetype.title, 0.2, 'font-size:2.3rem;') +
+          recapReveal('<p class="recap-sub">' + esc(archetype.desc) + '</p>', 0.44) +
         '</div>',
     });
 
@@ -1650,15 +1728,35 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 4200);
   }
 
+  function recapTriggerGrowth(container) {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        Array.prototype.forEach.call(container.querySelectorAll('[data-target-height]'), function (el) {
+          el.style.transition = reduced ? 'none' : '';
+          el.style.height = el.getAttribute('data-target-height');
+        });
+        Array.prototype.forEach.call(container.querySelectorAll('[data-target-width]'), function (el) {
+          el.style.transition = reduced ? 'none' : '';
+          el.style.width = el.getAttribute('data-target-width');
+        });
+        Array.prototype.forEach.call(container.querySelectorAll('[data-target-offset]'), function (el) {
+          el.style.transition = reduced ? 'none' : '';
+          el.setAttribute('stroke-dashoffset', el.getAttribute('data-target-offset'));
+        });
+      });
+    });
+  }
+
   function initRecapStory(slides, cardData) {
-    var overlay = document.getElementById('recapOverlay');
     var stage = document.getElementById('recapStage');
     var progressWrap = document.getElementById('recapProgress');
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var AUTO_MS = 5200;
+    var AUTO_MS = 5600;
     var idx = 0;
     var timer = null;
 
+    stage.style.setProperty('--rc', cardData.accentColor || '#7B5CFF');
     progressWrap.innerHTML = slides.map(function () { return '<div class="recap-seg"><i></i></div>'; }).join('');
     var segs = progressWrap.querySelectorAll('.recap-seg');
 
@@ -1684,7 +1782,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    function paint() {
+    function fillSlide() {
       var s = slides[idx];
       stage.style.background = s.gradient;
       stage.innerHTML = s.html;
@@ -1694,6 +1792,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bar.style.width = i < idx ? '100%' : '0%';
       });
       recapAnimateCountUps(stage);
+      recapTriggerGrowth(stage);
       if (s.confetti) recapSpawnConfetti(stage);
       if (s.isFinale) renderFinaleCard();
       requestAnimationFrame(function () {
@@ -1704,18 +1803,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
       clearTimeout(timer);
-      if (!s.isFinale) timer = setTimeout(next, AUTO_MS);
+      if (!s.isFinale) timer = setTimeout(function () { go(1); }, AUTO_MS);
     }
-    function next() { if (idx < slides.length - 1) { idx++; paint(); } }
-    function prev() { if (idx > 0) { idx--; paint(); } }
+
+    // direction: 0 = initial paint (no transition), 1 = forward, -1 = back
+    function paint(direction) {
+      if (!direction || reduced) { fillSlide(); return; }
+      stage.classList.add(direction > 0 ? 'recap-exit-l' : 'recap-exit-r');
+      setTimeout(function () {
+        stage.classList.remove('recap-exit-l', 'recap-exit-r');
+        fillSlide();
+        stage.classList.add(direction > 0 ? 'recap-enter-r' : 'recap-enter-l');
+        setTimeout(function () { stage.classList.remove('recap-enter-l', 'recap-enter-r'); }, 400);
+      }, 160);
+    }
+    function go(direction) {
+      var target = idx + direction;
+      if (target < 0 || target >= slides.length) return;
+      idx = target;
+      paint(direction);
+    }
     function close() {
       clearTimeout(timer);
       document.removeEventListener('keydown', keyHandler);
       location.hash = '#/profile';
     }
     function keyHandler(e) {
-      if (e.key === 'ArrowRight') next();
-      else if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') go(1);
+      else if (e.key === 'ArrowLeft') go(-1);
       else if (e.key === 'Escape') close();
     }
 
@@ -1723,7 +1838,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (e.target.closest('[data-recap-action]')) return;
       var r = stage.getBoundingClientRect();
       var x = e.clientX - r.left;
-      if (x < r.width * 0.3) prev(); else next();
+      if (x < r.width * 0.3) go(-1); else go(1);
     });
     document.getElementById('recapClose').addEventListener('click', close);
     document.addEventListener('keydown', keyHandler);
@@ -1737,7 +1852,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (dy > 80) close();
     }, { passive: true });
 
-    paint();
+    paint(0);
   }
 
   function renderRecap() {
@@ -1791,6 +1906,10 @@ document.addEventListener('DOMContentLoaded', function () {
         joinedDays: joinedDays,
         chaptersLifetime: badgeStats.chapters_read || 0,
       };
+      // Personalize the accent color to the reader's own real earned tier —
+      // the same "colors dictated by your own data" principle Spotify uses,
+      // rather than an arbitrary rotating palette.
+      data.accentColor = data.tierColor;
       data.stats = [
         { value: Math.round(data.hoursRead), label: 'HOURS READ' },
         { value: String(data.readingDays), label: 'DAYS ACTIVE' },
@@ -1802,8 +1921,10 @@ document.addEventListener('DOMContentLoaded', function () {
       app.innerHTML =
         '<div class="recap-overlay" id="recapOverlay">' +
           '<div class="recap-progress" id="recapProgress"></div>' +
+          '<div class="recap-brandmark"><svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"/></svg>MangaRecs</div>' +
           '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
           '<div class="recap-stage" id="recapStage"></div>' +
+          '<div class="recap-grain" aria-hidden="true"></div>' +
         '</div>';
       initRecapStory(buildRecapSlides(data), data);
     }).catch(function () {
