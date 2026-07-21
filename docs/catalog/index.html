@@ -434,39 +434,98 @@
 
   /* ── Reading Recap story ──────────────────────────────────────────── */
   .recap-overlay { position: fixed; inset: 0; z-index: 500; background: #000; display: flex; flex-direction: column; }
-  .recap-progress { display: flex; gap: 6px; padding: 14px 14px 0; }
+  .recap-progress { display: flex; gap: 6px; padding: 14px 14px 0; position: relative; z-index: 20; }
   .recap-seg { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.25); overflow: hidden; }
   .recap-seg i { display: block; height: 100%; width: 0%; background: #fff; }
   .recap-close {
-    position: absolute; top: 14px; right: 14px; z-index: 10; width: 34px; height: 34px;
+    position: absolute; top: 14px; right: 14px; z-index: 20; width: 34px; height: 34px;
     border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: none; font-size: 1.3rem;
     cursor: pointer; line-height: 1;
   }
   .recap-stage {
     flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
     padding: 40px 28px; cursor: pointer; user-select: none; position: relative; overflow: hidden;
-    transition: background 0.4s ease;
+    transition: background 0.5s ease;
   }
-  .recap-slide { max-width: 420px; color: #fff; animation: recapSlideIn 0.5s ease; }
-  @keyframes recapSlideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-  .recap-eyebrow { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 14px; }
+  /* Manga screentone texture, always present regardless of slide content */
+  .recap-stage::before {
+    content: ''; position: absolute; inset: -10%; z-index: 0; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,0.16) 1.6px, transparent 1.6px);
+    background-size: 16px 16px;
+    opacity: 0.5;
+  }
+  .recap-stage::after {
+    content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 42%, transparent 35%, rgba(0,0,0,0.4) 100%);
+  }
+  .recap-slide { position: relative; z-index: 2; max-width: 420px; color: #fff; }
+  .recap-watermark {
+    position: absolute; top: 48%; left: 50%; width: 66vh; height: 66vh; max-width: 520px; max-height: 520px;
+    transform: translate(-50%, -50%) rotate(-9deg); opacity: 0.09; z-index: 1; pointer-events: none;
+  }
+  .recap-watermark svg { width: 100%; height: 100%; fill: none; stroke: #fff; stroke-width: 0.8; }
+  .recap-speedlines {
+    position: absolute; top: 50%; left: 50%; width: 900px; height: 900px; z-index: 0; pointer-events: none;
+    transform: translate(-50%, -50%);
+    background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.12) 0deg 3deg, transparent 3deg 13deg);
+    border-radius: 50%;
+    animation: recapSpin 50s linear infinite;
+  }
+  @keyframes recapSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  .recap-reveal { opacity: 0; transform: translateY(14px); animation: recapFadeUp 0.55s ease forwards; }
+  @keyframes recapFadeUp { to { opacity: 1; transform: none; } }
+  .recap-eyebrow { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 14px; }
   .recap-title { font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; font-size: 2.2rem; line-height: 1.05; }
-  .recap-sub { margin-top: 16px; font-size: 1rem; color: rgba(255,255,255,0.8); line-height: 1.5; }
-  .recap-stat-big { font-family: 'Panel Display', sans-serif; font-weight: 900; font-size: 5rem; line-height: 1; }
-  .recap-stat-label { margin-top: 8px; font-size: 0.92rem; font-weight: 700; letter-spacing: 0.04em; color: rgba(255,255,255,0.85); }
-  .recap-tap-hint { margin-top: 30px; font-size: 0.86rem; color: rgba(255,255,255,0.6); }
+  .recap-sub { margin-top: 16px; font-size: 1rem; color: rgba(255,255,255,0.85); line-height: 1.5; }
+  .recap-stat-big {
+    font-family: 'Panel Display', sans-serif; font-weight: 900; font-size: 5.4rem; line-height: 1;
+    text-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    animation: recapPopIn 0.65s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  @keyframes recapPopIn { 0% { transform: scale(0.35); opacity: 0; } 65% { transform: scale(1.14); opacity: 1; } 100% { transform: scale(1); } }
+  .recap-stat-label { margin-top: 10px; font-size: 0.92rem; font-weight: 700; letter-spacing: 0.05em; color: rgba(255,255,255,0.9); }
+  .recap-tap-hint { margin-top: 30px; font-size: 0.86rem; color: rgba(255,255,255,0.65); }
   .recap-tier-pill { display: inline-block; margin-top: 14px; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid var(--tier-c, #fff); color: #fff; font-weight: 800; font-size: 0.9rem; }
+  .recap-mascot { width: 92px; margin: 0 auto 18px; filter: drop-shadow(0 10px 24px rgba(0,0,0,0.4)); }
+
+  /* Real data visualizations instead of plain numbers */
+  .recap-barchart { display: flex; align-items: flex-end; justify-content: center; gap: 9px; height: 130px; margin: 26px 0 14px; }
+  .recap-bar-col { display: flex; flex-direction: column; align-items: center; width: 30px; }
+  .recap-bar { width: 100%; border-radius: 6px 6px 3px 3px; background: rgba(255,255,255,0.28); min-height: 6px; transition: height 0.8s cubic-bezier(.2,.8,.2,1); }
+  .recap-bar.top { background: #fff; box-shadow: 0 0 16px rgba(255,255,255,0.6); }
+  .recap-bar-label { margin-top: 8px; font-size: 0.66rem; font-weight: 700; color: rgba(255,255,255,0.65); }
+  .recap-bar-col.top .recap-bar-label { color: #fff; }
+
+  .recap-progress-bar { width: 100%; max-width: 260px; height: 12px; border-radius: 999px; background: rgba(255,255,255,0.2); overflow: hidden; margin: 22px auto 8px; }
+  .recap-progress-bar i { display: block; height: 100%; background: #fff; border-radius: 999px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+
+  .recap-shelf { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 110px; margin: 22px 0 4px; }
+  .recap-spine { border-radius: 3px 3px 0 0; opacity: 0.95; }
+
+  .recap-archetype-badge {
+    display: inline-flex; align-items: center; justify-content: center; width: 96px; height: 96px;
+    border-radius: 50%; background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.55);
+    margin-bottom: 16px; animation: recapPopIn 0.7s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  .recap-archetype-badge svg { width: 44px; height: 44px; stroke: #fff; fill: none; stroke-width: 1.6; }
+
   .recap-finale { max-width: 300px; }
-  .recap-card-preview { width: 100%; min-height: 280px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); margin-bottom: 20px; background: rgba(255,255,255,0.05); }
+  .recap-card-preview {
+    width: 100%; min-height: 280px; border-radius: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.05);
+    border: 3px solid rgba(255,255,255,0.85); box-shadow: 0 0 0 6px rgba(0,0,0,0.35), 0 24px 60px rgba(0,0,0,0.55);
+  }
   .recap-finale-actions { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
-  .recap-confetti-piece { position: absolute; top: -10px; width: 8px; height: 14px; opacity: 0.9; animation: recapFall linear forwards; border-radius: 2px; pointer-events: none; }
+  .recap-confetti-piece { position: absolute; top: -10px; width: 8px; height: 14px; opacity: 0.9; animation: recapFall linear forwards; border-radius: 2px; pointer-events: none; z-index: 3; }
   @keyframes recapFall { to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+
   @media (max-width: 480px) {
-    .recap-stat-big { font-size: 3.6rem; }
+    .recap-stat-big { font-size: 3.8rem; }
     .recap-title { font-size: 1.8rem; }
+    .recap-watermark { width: 80vw; height: 80vw; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .recap-slide { animation: none; }
+    .recap-reveal, .recap-stat-big, .recap-archetype-badge { animation: none; opacity: 1; transform: none; }
+    .recap-speedlines { animation: none; }
   }
 </style>
 <link rel="stylesheet" href="/assets/motion.css?v=1" />
@@ -1230,8 +1289,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return longest;
   }
-  function recapTopWeekday(dailyLog, start, end) {
-    var WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function recapWeekdayBreakdown(dailyLog, start, end) {
+    var WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var WD_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     var totals = [0, 0, 0, 0, 0, 0, 0];
     var cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     var endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
@@ -1241,7 +1301,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     var best = 0;
     for (var i = 1; i < 7; i++) if (totals[i] > totals[best]) best = i;
-    return totals[best] > 0 ? WD[best] : null;
+    return { totals: totals, labels: WD, best: totals[best] > 0 ? best : -1, bestName: totals[best] > 0 ? WD_FULL[best] : null };
   }
 
   // Client-side "reading recap" image — real stats only, no server-side
@@ -1320,17 +1380,48 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── Recap story slides ──────────────────────────────────────────────
-  // Each slide only appears if its underlying stat is real and non-zero —
-  // no "0 comments, nice work!" filler. Hours-read and days-active are the
-  // two anchor slides and always show, even if small, with encouraging
-  // framing rather than being skipped.
+  // Conditional slides only appear if their underlying stat is real and
+  // non-zero — no "0 comments, nice work!" filler. Everything else (hours,
+  // days active, movie-equivalence, membership length, reading personality,
+  // lifetime chapters, finale) is guaranteed so the story is never thin,
+  // even for a brand-new or low-activity account — always 7+ slides.
   var RECAP_PALETTE = {
     purple: 'linear-gradient(160deg,#6B2FD9,#20123f)',
     pink:   'linear-gradient(160deg,#E85FA8,#4a1730)',
     teal:   'linear-gradient(160deg,#3FC9C0,#0c332f)',
     gold:   'linear-gradient(160deg,#E8A83C,#3a2a0c)',
     blue:   'linear-gradient(160deg,#5B8DEF,#101b3d)',
+    fire:   'linear-gradient(160deg,#E8544A,#3a0f0c)',
   };
+  var RECAP_ICONS = {
+    clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    flame: '<path d="M12 2.5c.6 4.2-3.8 5.7-3.8 10a3.8 3.8 0 0 0 7.6 0c0-2.3-1.4-2.9-1.4-5.1 0 1.4-.8 2-1.4 2-1.1 0-1.3-1.7-1-3 .2-1.1.4-2.2 0-3.9z"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    film: '<rect x="2" y="3" width="20" height="18" rx="2"/><path d="M7 3v18M17 3v18M2 8h5M2 16h5M17 8h5M17 16h5"/>',
+    books: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    chat: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+    star: '<path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/>',
+    medal: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+    heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+  };
+  function recapIcon(name) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + RECAP_ICONS[name] + '</svg>';
+  }
+  function recapWatermark(name) { return '<div class="recap-watermark">' + recapIcon(name) + '</div>'; }
+  function recapReveal(html, delay) { return '<div class="recap-reveal" style="animation-delay:' + (delay || 0) + 's">' + html + '</div>'; }
+
+  // Picks the single strongest real signal, always with a positive fallback
+  // so a quiet half never produces a hollow or negative-feeling slide.
+  function recapArchetype(d) {
+    var candidates = [];
+    if (d.longestStreak >= 14) candidates.push({ w: d.longestStreak, icon: 'flame', title: 'The Disciplined', desc: 'A streak that just doesn\'t quit.' });
+    if ((d.commentsCount + d.ratingsCount) >= 10) candidates.push({ w: d.commentsCount + d.ratingsCount, icon: 'chat', title: 'The Community Voice', desc: 'You don\'t just read — you talk about it.' });
+    if (d.seriesTouched >= 8) candidates.push({ w: d.seriesTouched, icon: 'books', title: 'The Collector', desc: 'Always juggling a few stories at once.' });
+    if (d.hoursRead >= 80) candidates.push({ w: d.hoursRead, icon: 'clock', title: 'The Devoted', desc: 'Reading is basically a lifestyle at this point.' });
+    if (!candidates.length) candidates.push({ w: 1, icon: 'star', title: 'The Steady Reader', desc: 'Slow and steady — every story starts somewhere.' });
+    candidates.sort(function (a, b) { return b.w - a.w; });
+    return candidates[0];
+  }
 
   function buildRecapSlides(d) {
     var slides = [];
@@ -1338,73 +1429,119 @@ document.addEventListener('DOMContentLoaded', function () {
     slides.push({
       gradient: RECAP_PALETTE.purple,
       html:
+        recapWatermark('star') +
         '<div class="recap-slide recap-intro">' +
-          '<div class="mascot-pop mascot-slot" style="width:100px;"></div>' +
-          '<div class="recap-eyebrow">' + esc(d.period.label) + '</div>' +
-          '<h1 class="recap-title">Your Reading Recap</h1>' +
-          '<p class="recap-sub">Let\'s see what kind of reader you were these past six months, @' + esc(d.username) + '.</p>' +
-          '<div class="recap-tap-hint">Tap to begin →</div>' +
+          recapReveal('<div class="recap-mascot">' + MASCOT_SVG + '</div>', 0) +
+          recapReveal('<div class="recap-eyebrow">' + esc(d.period.label) + '</div>', 0.14) +
+          recapReveal('<h1 class="recap-title">Your Reading Recap</h1>', 0.22) +
+          recapReveal('<p class="recap-sub">Let\'s see what kind of reader you were these past six months, @' + esc(d.username) + '.</p>', 0.34) +
+          recapReveal('<div class="recap-tap-hint">Tap to begin →</div>', 0.5) +
+        '</div>',
+    });
+
+    slides.push({
+      gradient: RECAP_PALETTE.blue,
+      html:
+        recapWatermark('heart') +
+        '<div class="recap-slide">' +
+          recapReveal('<div class="recap-eyebrow">Been here a while</div>') +
+          '<div class="recap-stat-big" data-countup="' + d.joinedDays + '">0</div>' +
+          recapReveal('<div class="recap-stat-label">DAYS WITH MANGARECS</div>', 0.16) +
+          recapReveal('<p class="recap-sub">Thanks for sticking around.</p>', 0.3) +
         '</div>',
     });
 
     slides.push({
       gradient: RECAP_PALETTE.pink,
       html:
+        recapWatermark('clock') +
+        '<div class="recap-speedlines"></div>' +
         '<div class="recap-slide">' +
-          '<div class="recap-eyebrow">Time well spent</div>' +
+          recapReveal('<div class="recap-eyebrow">Time well spent</div>') +
           '<div class="recap-stat-big" data-countup="' + Math.round(d.hoursRead) + '">0</div>' +
-          '<div class="recap-stat-label">HOURS READ</div>' +
-          '<p class="recap-sub">' + (d.hoursRead >= 24
+          recapReveal('<div class="recap-stat-label">HOURS READ</div>', 0.16) +
+          recapReveal('<p class="recap-sub">' + (d.hoursRead >= 24
             ? 'That\'s about ' + Math.round(d.hoursRead / 24) + ' straight days of nonstop reading.'
-            : 'Every hour counts — here\'s to the next six months.') + '</p>' +
+            : 'Every hour counts — here\'s to the next six months.') + '</p>', 0.3) +
         '</div>',
     });
 
+    var movieCount = Math.max(0, Math.round(d.hoursRead / 2));
     slides.push({
       gradient: RECAP_PALETTE.teal,
       html:
+        recapWatermark('film') +
         '<div class="recap-slide">' +
-          '<div class="recap-eyebrow">Showing up</div>' +
+          recapReveal('<div class="recap-eyebrow">Put in movie terms</div>') +
+          '<div class="recap-stat-big" data-countup="' + movieCount + '">0</div>' +
+          recapReveal('<div class="recap-stat-label">MOVIE-LENGTH MARATHONS</div>', 0.16) +
+          recapReveal('<p class="recap-sub">' + (movieCount > 0 ? 'Based on a ~2-hour runtime. That\'s a lot of popcorn.' : 'Every marathon starts with a single chapter.') + '</p>', 0.3) +
+        '</div>',
+    });
+
+    var activePct = Math.round((d.readingDays / Math.max(1, d.totalDaysInPeriod)) * 100);
+    slides.push({
+      gradient: RECAP_PALETTE.gold,
+      html:
+        recapWatermark('calendar') +
+        '<div class="recap-slide">' +
+          recapReveal('<div class="recap-eyebrow">Showing up</div>') +
           '<div class="recap-stat-big" data-countup="' + d.readingDays + '">0</div>' +
-          '<div class="recap-stat-label">DAYS YOU OPENED A CHAPTER</div>' +
-          '<p class="recap-sub">Out of ' + d.totalDaysInPeriod + ' days this half.</p>' +
+          recapReveal('<div class="recap-stat-label">DAYS YOU OPENED A CHAPTER</div>', 0.16) +
+          recapReveal('<div class="recap-progress-bar"><i style="width:' + activePct + '%"></i></div><p class="recap-sub" style="margin-top:6px;">' + activePct + '% of the ' + d.totalDaysInPeriod + ' days this half.</p>', 0.3) +
         '</div>',
     });
 
     if (d.longestStreak >= 2) {
       slides.push({
-        gradient: RECAP_PALETTE.gold,
+        gradient: RECAP_PALETTE.fire,
         confetti: true,
         html:
+          recapWatermark('flame') +
+          '<div class="recap-speedlines"></div>' +
           '<div class="recap-slide">' +
-            '<div class="recap-eyebrow">On a roll</div>' +
+            recapReveal('<div class="recap-eyebrow">On a roll</div>') +
             '<div class="recap-stat-big" data-countup="' + d.longestStreak + '">0</div>' +
-            '<div class="recap-stat-label">DAY STREAK — YOUR LONGEST THIS HALF</div>' +
+            recapReveal('<div class="recap-stat-label">DAY STREAK — YOUR LONGEST THIS HALF</div>', 0.16) +
           '</div>',
       });
     }
 
-    if (d.topWeekday) {
+    if (d.weekday.best >= 0) {
+      var maxVal = Math.max.apply(null, d.weekday.totals.concat([0.1]));
+      var bars = d.weekday.totals.map(function (v, i) {
+        var h = Math.max(6, Math.round((v / maxVal) * 110));
+        var top = i === d.weekday.best;
+        return '<div class="recap-bar-col' + (top ? ' top' : '') + '"><div class="recap-bar' + (top ? ' top' : '') + '" style="height:' + h + 'px"></div><div class="recap-bar-label">' + d.weekday.labels[i] + '</div></div>';
+      }).join('');
       slides.push({
         gradient: RECAP_PALETTE.blue,
         html:
           '<div class="recap-slide">' +
-            '<div class="recap-eyebrow">Your rhythm</div>' +
-            '<h2 class="recap-title" style="font-size:2.6rem;">' + esc(d.topWeekday) + 's</h2>' +
-            '<p class="recap-sub">were your biggest reading days this half.</p>' +
+            recapReveal('<div class="recap-eyebrow">Your rhythm</div>') +
+            recapReveal('<h2 class="recap-title" style="font-size:2rem;">' + esc(d.weekday.bestName) + 's</h2><p class="recap-sub" style="margin-top:6px;">were your biggest reading days.</p>', 0.14) +
+            '<div class="recap-barchart">' + bars + '</div>' +
           '</div>',
       });
     }
 
     if (d.seriesTouched > 0) {
+      var spineColors = ['#B18CFF', '#F17FC0', '#6BDCD4', '#F0BE66', '#7BA6F5', '#7B5CFF'];
+      var spineCount = Math.min(d.seriesTouched, 10);
+      var shelf = '';
+      for (var i = 0; i < spineCount; i++) {
+        shelf += '<div class="recap-spine" style="height:' + (58 + ((i * 37) % 48)) + 'px;width:' + (14 + (i % 3) * 3) + 'px;background:' + spineColors[i % spineColors.length] + ';"></div>';
+      }
       slides.push({
         gradient: RECAP_PALETTE.purple,
         html:
+          recapWatermark('books') +
           '<div class="recap-slide">' +
-            '<div class="recap-eyebrow">Your lineup</div>' +
+            recapReveal('<div class="recap-eyebrow">Your lineup</div>') +
             '<div class="recap-stat-big" data-countup="' + d.seriesTouched + '">0</div>' +
-            '<div class="recap-stat-label">SERIES YOU KEPT UP WITH</div>' +
-            (d.seriesCompleted > 0 ? '<p class="recap-sub">You finished ' + d.seriesCompleted + ' of them start to finish. No loose ends.</p>' : '') +
+            recapReveal('<div class="recap-stat-label">SERIES YOU KEPT UP WITH</div>', 0.16) +
+            '<div class="recap-shelf">' + shelf + '</div>' +
+            (d.seriesCompleted > 0 ? recapReveal('<p class="recap-sub">You finished ' + d.seriesCompleted + ' of them start to finish. No loose ends.</p>', 0.32) : '') +
           '</div>',
       });
     }
@@ -1416,22 +1553,50 @@ document.addEventListener('DOMContentLoaded', function () {
       slides.push({
         gradient: RECAP_PALETTE.pink,
         html:
+          recapWatermark('chat') +
           '<div class="recap-slide">' +
-            '<div class="recap-eyebrow">Not a silent reader</div>' +
-            '<h2 class="recap-title" style="font-size:2.1rem;">' + esc(bits.join(' & ')) + '</h2>' +
-            '<p class="recap-sub">shared with the community this half.</p>' +
+            recapReveal('<div class="recap-eyebrow">Not a silent reader</div>') +
+            recapReveal('<h2 class="recap-title" style="font-size:2.1rem;">' + esc(bits.join(' & ')) + '</h2>', 0.14) +
+            recapReveal('<p class="recap-sub">shared with the community this half.</p>', 0.28) +
           '</div>',
       });
     }
 
+    var archetype = recapArchetype(d);
+    slides.push({
+      gradient: RECAP_PALETTE.gold,
+      html:
+        recapWatermark(archetype.icon) +
+        '<div class="recap-slide">' +
+          recapReveal('<div class="recap-eyebrow">Your reading personality</div>') +
+          '<div class="recap-archetype-badge">' + recapIcon(archetype.icon) + '</div>' +
+          recapReveal('<h2 class="recap-title" style="font-size:2.3rem;">' + esc(archetype.title) + '</h2>', 0.18) +
+          recapReveal('<p class="recap-sub">' + esc(archetype.desc) + '</p>', 0.32) +
+        '</div>',
+    });
+
+    slides.push({
+      gradient: RECAP_PALETTE.teal,
+      html:
+        recapWatermark('books') +
+        '<div class="recap-speedlines"></div>' +
+        '<div class="recap-slide">' +
+          recapReveal('<div class="recap-eyebrow">Since you joined</div>') +
+          '<div class="recap-stat-big" data-countup="' + d.chaptersLifetime + '">0</div>' +
+          recapReveal('<div class="recap-stat-label">CHAPTERS READ, ALL-TIME</div>', 0.16) +
+          recapReveal('<p class="recap-sub">Every story starts with page one.</p>', 0.3) +
+        '</div>',
+    });
+
     if (d.favoriteGenre || d.tierLabel) {
       slides.push({
-        gradient: RECAP_PALETTE.teal,
+        gradient: RECAP_PALETTE.blue,
         html:
+          recapWatermark('medal') +
           '<div class="recap-slide">' +
-            '<div class="recap-eyebrow">Right now</div>' +
-            (d.favoriteGenre ? '<h2 class="recap-title" style="font-size:2.1rem;">' + esc(d.favoriteGenre) + '</h2><p class="recap-sub">is your favorite genre.</p>' : '') +
-            (d.tierLabel ? '<div class="recap-tier-pill" style="--tier-c:' + d.tierColor + ';">' + esc(d.tierLabel) + ' Tier</div>' : '') +
+            recapReveal('<div class="recap-eyebrow">Right now</div>') +
+            (d.favoriteGenre ? recapReveal('<h2 class="recap-title" style="font-size:2.1rem;">' + esc(d.favoriteGenre) + '</h2><p class="recap-sub" style="margin-top:6px;">is your favorite genre.</p>', 0.14) : '') +
+            (d.tierLabel ? recapReveal('<div class="recap-tier-pill" style="--tier-c:' + d.tierColor + ';">' + esc(d.tierLabel) + ' Tier</div>', 0.28) : '') +
           '</div>',
       });
     }
@@ -1603,9 +1768,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var keysInRange = recapKeysInRange(dailyLog, period.start, period.end);
       var hoursRead = keysInRange.reduce(function (s, k) { return s + (dailyLog[k] || 0); }, 0);
-      var stats = profileToBadgeStats(profile);
-      var earnedIds = computeEarnedBadgeIds(stats);
+      var badgeStats = profileToBadgeStats(profile);
+      var earnedIds = computeEarnedBadgeIds(badgeStats);
       var topGrade = highestGradeEarned(earnedIds);
+      var joinedDays = profile.created_at ? Math.max(0, Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000)) : 0;
 
       var data = {
         username: profile.username || 'Reader',
@@ -1614,7 +1780,7 @@ document.addEventListener('DOMContentLoaded', function () {
         hoursRead: hoursRead,
         readingDays: keysInRange.length,
         longestStreak: recapLongestStreak(dailyLog, period.start, period.end),
-        topWeekday: recapTopWeekday(dailyLog, period.start, period.end),
+        weekday: recapWeekdayBreakdown(dailyLog, period.start, period.end),
         seriesTouched: progressRows.length,
         seriesCompleted: progressRows.filter(function (r) { return r.status === 'completed'; }).length,
         commentsCount: commentsCount,
@@ -1622,6 +1788,8 @@ document.addEventListener('DOMContentLoaded', function () {
         favoriteGenre: profile.favorite_genre || null,
         tierLabel: topGrade ? BADGE_GRADES[topGrade].label : null,
         tierColor: topGrade ? BADGE_GRADES[topGrade].color : '#7B5CFF',
+        joinedDays: joinedDays,
+        chaptersLifetime: badgeStats.chapters_read || 0,
       };
       data.stats = [
         { value: Math.round(data.hoursRead), label: 'HOURS READ' },
