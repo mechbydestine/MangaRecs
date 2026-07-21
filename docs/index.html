@@ -523,6 +523,7 @@
   .notify-msg.error { color: #E0554F; }
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
+<link rel="stylesheet" href="/assets/motion.css?v=1" />
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
 
@@ -561,6 +562,7 @@
 
   <section class="hero">
     <div>
+      <div class="hero-mark-wrap">
       <svg class="hero-mark" viewBox="0 0 1024 1024" aria-hidden="true">
         <defs>
           <radialGradient id="heroStar" cx="50%" cy="32%" r="62%">
@@ -578,6 +580,7 @@
         <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="url(#heroStar)" />
         <circle cx="512" cy="512" r="46" fill="#0E0820" /><circle cx="512" cy="512" r="46" fill="none" stroke="#5B2FD6" stroke-width="2.5" opacity="0.6" />
       </svg>
+      </div>
       <h1 class="display">Manga<span class="accent">Recs</span></h1>
       <p class="hero-tag">Your manga & manhwa library, but social. Track what you're reading, Rec it to friends, and talk chapters as a community instead of scattered across a dozen group chats.</p>
       <div class="hero-actions">
@@ -605,9 +608,9 @@
       <a class="qn-tile" href="#read" style="--tile-c:#3FC9C0;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span>Read</span></a>
     </div>
     <div class="stat-band">
-      <div class="stat-pill"><b>250</b><span>Badges to earn</span></div>
+      <div class="stat-pill"><b data-countup="250">0</b><span>Badges to earn</span></div>
       <div class="stat-pill"><b>Bronze → Mythic</b><span>7 Medal Tiers</span></div>
-      <div class="stat-pill"><b>5</b><span>Formats Tracked</span></div>
+      <div class="stat-pill"><b data-countup="5">0</b><span>Formats Tracked</span></div>
     </div>
   </section>
 
@@ -616,10 +619,11 @@
     <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Trending Right Now</h2>
     <div class="format-pills" id="formatPills"></div>
     <div class="grid" id="trendingGrid"></div>
+    <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
     <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/">See the full catalog</a></div>
   </section>
 
-  <section class="chapter" id="collect">
+  <section class="chapter" id="collect" data-reveal="stagger">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 1</p>
       <h2 class="chapter-title display">Collect</h2>
@@ -637,7 +641,7 @@
     </div>
   </section>
 
-  <section class="chapter flip" id="connect">
+  <section class="chapter flip" id="connect" data-reveal="stagger">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 2</p>
       <h2 class="chapter-title display">Connect</h2>
@@ -649,13 +653,13 @@
       </ul>
     </div>
     <div class="chapter-visual">
-      <div class="thread"><div class="who">momo</div><div class="msg">okay the ch 94 cliffhanger is unforgivable</div></div>
-      <div class="thread"><div class="who">sinomatic</div><div class="msg">📚 sent a recommendation — Dandadan</div></div>
+      <div class="thread"><div class="who"><span class="presence-dot"></span>momo</div><div class="msg">okay the ch 94 cliffhanger is unforgivable</div></div>
+      <div class="thread"><div class="who"><span class="presence-dot"></span>sinomatic</div><div class="msg"><span class="ping-badge">📚</span> sent a recommendation — Dandadan</div></div>
       <div class="thread"><div class="who">yaboish</div><div class="msg">[spoiler tagged] no because—</div></div>
     </div>
   </section>
 
-  <section class="chapter" id="progress">
+  <section class="chapter" id="progress" data-reveal="stagger">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 3</p>
       <h2 class="chapter-title display">Progress</h2>
@@ -680,7 +684,7 @@
     </div>
   </section>
 
-  <section class="chapter flip" id="discover">
+  <section class="chapter flip" id="discover" data-reveal="stagger">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 4</p>
       <h2 class="chapter-title display">Discover</h2>
@@ -701,7 +705,7 @@
     </div>
   </section>
 
-  <section class="chapter" id="read">
+  <section class="chapter" id="read" data-reveal="stagger">
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 5</p>
       <h2 class="chapter-title display">Read</h2>
@@ -726,27 +730,27 @@
       <p>No mockups — this is what's actually on your phone.</p>
     </div>
     <div class="showcase-strip">
-      <div class="shot">
+      <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="360" height="780" /></div>
         <p class="shot-label">Library</p>
       </div>
-      <div class="shot">
+      <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="360" height="780" /></div>
         <p class="shot-label">Community</p>
       </div>
-      <div class="shot">
+      <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="360" height="780" /></div>
         <p class="shot-label">Discussions</p>
       </div>
-      <div class="shot">
+      <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="360" height="780" /></div>
         <p class="shot-label">Profile</p>
       </div>
-      <div class="shot">
+      <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="360" height="780" /></div>
         <p class="shot-label">Home</p>
       </div>
-      <div class="shot">
+      <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="360" height="780" /></div>
         <p class="shot-label">For You</p>
       </div>
@@ -754,6 +758,7 @@
   </section>
 
   <section class="download" id="download">
+    <div class="mascot-pop mascot-slot"></div>
     <p class="eyebrow">Launching soon</p>
     <h2>Coming to the App Store and Google Play</h2>
     <p>MangaRecs is in final testing before submission. Check back here for the store links the moment it's live.</p>
@@ -828,6 +833,7 @@
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=2" defer></script>
 <script src="/assets/anilist.js?v=2" defer></script>
+<script src="/assets/motion.js?v=1" defer></script>
 <script>
 (function () {
   var railFill = document.getElementById('railFill');
@@ -957,6 +963,27 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<button class="format-pill' + (c.id === 'all' ? ' active' : '') + '" data-cat="' + c.id + '" type="button">' + c.label + '</button>';
   }).join('');
 
+  // Real AniList favourites counts, not a fabricated "X people just saved this" — cycles
+  // through the top few of whatever's currently loaded so it stays true to the data.
+  var liveStatEl = document.getElementById('liveStat');
+  var liveStatTimer = null;
+  function updateLiveStat(mediaList) {
+    if (!liveStatEl) return;
+    clearInterval(liveStatTimer);
+    var pool = mediaList.filter(function (m) { return m.favourites; })
+      .sort(function (a, b) { return b.favourites - a.favourites; })
+      .slice(0, 5);
+    if (!pool.length) { liveStatEl.textContent = ''; return; }
+    var i = 0;
+    function paint() {
+      var m = pool[i % pool.length];
+      liveStatEl.textContent = '🔥 ' + titleOf(m) + ' — ' + m.favourites.toLocaleString() + ' AniList favorites and counting';
+      i++;
+    }
+    paint();
+    liveStatTimer = setInterval(paint, 5000);
+  }
+
   function loadTrending(catId) {
     Array.prototype.forEach.call(pillsEl.children, function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-cat') === catId);
@@ -965,6 +992,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0];
     trendingMedia(catId === 'all' ? null : cat, 1).then(function (d) {
       gridEl.innerHTML = d.Page.media.slice(0, 10).map(posterCard).join('');
+      updateLiveStat(d.Page.media.slice(0, 10));
     }).catch(function () {
       gridEl.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">Couldn\'t load trending titles right now.</p>';
     });

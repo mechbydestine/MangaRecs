@@ -25,9 +25,13 @@ function initThemeToggle(btnId) {
   paint();
   btn.addEventListener('click', function () {
     var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
-    localStorage.setItem(THEME_KEY, next);
-    applyTheme(next);
-    paint();
+    icon.classList.add('icon-flip');
+    setTimeout(function () {
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+      paint();
+    }, 140);
+    setTimeout(function () { icon.classList.remove('icon-flip'); }, 320);
   });
 }
 

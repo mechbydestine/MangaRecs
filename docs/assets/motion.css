@@ -1,0 +1,330 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Shared motion/interaction layer — loaded on every page, AFTER each
+   page's own inline <style> block, so equal-specificity rules here win
+   the cascade without touching the per-page styles directly.
+   Everything here is additive: it targets class names that already exist
+   across index/catalog/features/about/privacy/terms/404, so one file
+   upgrades all of them at once. See /assets/motion.js for the JS half.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Native page-navigation transition (Chromium; no-op elsewhere) ──── */
+@view-transition {
+  navigation: auto;
+}
+
+/* ── Ambient background layers (blobs + grain) ───────────────────────
+   Injected by motion.js as position:fixed, z-index:-1 elements — they
+   paint above the canvas background but below every normal-flow section,
+   so opaque panels (.bg-panel, .chapter-visual, .download, etc.) still
+   occlude them and only the gaps between sections show color. */
+.fx-blobs {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fx-blobs span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.28;
+  will-change: transform;
+}
+.fx-blobs span:nth-child(1) {
+  width: 420px; height: 420px; left: -80px; top: -60px;
+  background: var(--accent-soft, #8A63FF);
+  animation: blobFloat 24s ease-in-out infinite;
+}
+.fx-blobs span:nth-child(2) {
+  width: 360px; height: 360px; right: -100px; top: 30%;
+  background: #FF7ED4;
+  animation: blobFloat 30s ease-in-out infinite reverse;
+}
+.fx-blobs span:nth-child(3) {
+  width: 320px; height: 320px; left: 20%; bottom: -120px;
+  background: #3FC9C0;
+  animation: blobFloat 26s ease-in-out infinite;
+  animation-delay: -8s;
+}
+@keyframes blobFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -34px) scale(1.12); }
+  66% { transform: translate(-30px, 24px) scale(0.94); }
+}
+
+.fx-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Cursor spotlight (hero only) ────────────────────────────────────── */
+.hero { position: relative; }
+.fx-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(240px circle at var(--sx, 50%) var(--sy, 50%), var(--accent-wash), transparent 70%);
+}
+.hero > *:not(.fx-spotlight) { position: relative; z-index: 1; }
+
+/* ── Press / tactile feedback on interactive controls ────────────────── */
+.btn-primary, .btn-ghost, .btn-primary-sm, .btn-ghost-sm, .nav-cta,
+.icon-btn, .qn-tile, .format-pill, .poster-save, .faq-item summary {
+  transition: transform 0.12s ease, filter 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-primary:active, .btn-ghost:active, .btn-primary-sm:active, .btn-ghost-sm:active,
+.nav-cta:active, .icon-btn:active, .format-pill:active {
+  transform: scale(0.94);
+}
+.qn-tile:active { transform: translateY(-1px) scale(0.97); }
+
+/* ── Nav-link underline that grows from center ───────────────────────── */
+.nav-link { position: relative; }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%; right: 50%; bottom: -4px;
+  height: 2px; border-radius: 2px;
+  background: var(--accent);
+  transition: left 0.2s ease, right 0.2s ease;
+}
+.nav-link:hover::after, .nav-link.current::after { left: 0; right: 0; }
+
+/* ── Theme toggle icon crossfade+rotate (paired with nav-widgets.js) ─── */
+.icon-btn svg { transition: transform 0.2s ease; }
+.icon-btn .icon-flip {
+  animation: iconFlip 0.32s ease;
+}
+@keyframes iconFlip {
+  0% { transform: rotate(0deg) scale(1); opacity: 1; }
+  45% { transform: rotate(90deg) scale(0.55); opacity: 0.15; }
+  55% { transform: rotate(90deg) scale(0.55); opacity: 0.15; }
+  100% { transform: rotate(180deg) scale(1); opacity: 1; }
+}
+
+/* ── Account panel: animate instead of display:none/block snap ──────── */
+.account-panel {
+  display: block;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+}
+.account-panel.open {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.2,.8,.2,1);
+}
+.account-panel:empty::before {
+  content: '';
+  display: block;
+  height: 130px;
+  border-radius: 8px;
+  background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+/* ── Sliding tab underline (nav tabs / library tabs / format pills) ──── */
+.tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: left 0.25s cubic-bezier(.2,.8,.2,1), width 0.25s cubic-bezier(.2,.8,.2,1), opacity 0.2s ease;
+  z-index: 0;
+}
+#navTabs, #libTabs, #formatPills { position: relative; }
+
+/* ── Poster hover: 3D tilt (driven by --tiltX/--tiltY set in JS) + pop ── */
+.poster-img-wrap {
+  --tiltX: 0deg; --tiltY: 0deg;
+  transition: box-shadow 0.2s ease, transform 0.08s linear;
+}
+.poster:hover .poster-img-wrap {
+  transform: perspective(700px) rotateX(var(--tiltX)) rotateY(var(--tiltY)) translateY(-2px);
+  box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -10px var(--accent);
+}
+@keyframes savePop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.poster-save.active { animation: savePop 0.4s cubic-bezier(.34,1.56,.64,1); }
+
+/* ── Medal shine sweep + tier glow ────────────────────────────────────── */
+.medal {
+  position: relative;
+  overflow: hidden;
+  animation: medalGlow 2.8s ease-in-out infinite;
+}
+.medal::after {
+  content: '';
+  position: absolute; top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+.medal:hover::after { left: 140%; }
+@keyframes medalGlow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 12px -2px var(--medal-c, var(--accent)); }
+}
+
+/* ── Quicknav icon wiggle ─────────────────────────────────────────────── */
+.qn-tile:hover .qn-icon { animation: iconWiggle 0.5s ease; }
+@keyframes iconWiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-9deg) scale(1.08); }
+  75% { transform: rotate(9deg) scale(1.08); }
+}
+
+/* ── Per-chapter accent hues (reuses the quicknav tile colors) ───────── */
+#collect  { --accent: #5B8DEF; --accent-soft: #7BA6F5; --accent-wash: rgba(91,141,239,0.10); }
+#connect  { --accent: #E85FA8; --accent-soft: #F17FC0; --accent-wash: rgba(232,95,168,0.10); }
+#progress { --accent: #E8A83C; --accent-soft: #F0BE66; --accent-wash: rgba(232,168,60,0.10); }
+#discover { --accent: #9B70FF; --accent-soft: #B18CFF; --accent-wash: rgba(155,112,255,0.10); }
+#read     { --accent: #3FC9C0; --accent-soft: #6BDCD4; --accent-wash: rgba(63,201,192,0.10); }
+
+/* ── Hero mark idle breathing + accent-text color shimmer ────────────── */
+.hero-mark-wrap { display: block; }
+.hero-mark {
+  animation: heroBreathe 4.5s ease-in-out infinite;
+}
+@keyframes heroBreathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 22px var(--accent-wash)); }
+  50% { transform: scale(1.035); filter: drop-shadow(0 0 34px var(--accent-wash)); }
+}
+.hero h1 .accent {
+  background-size: 200% auto;
+  animation: accentShift 6s ease-in-out infinite;
+}
+@keyframes accentShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── Aurora hue-drift behind the quicknav / trending sections ────────── */
+.glance::before, .trending-home::before {
+  animation: auroraShift 14s ease-in-out infinite;
+}
+@keyframes auroraShift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(22deg); }
+}
+
+/* ── Scroll reveal ────────────────────────────────────────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(.2,.8,.2,1);
+}
+[data-reveal].is-visible { opacity: 1; transform: none; }
+[data-reveal="stagger"] > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+[data-reveal="stagger"].is-visible > * { opacity: 1; transform: none; }
+[data-reveal="stagger"].is-visible > *:nth-child(2) { transition-delay: 0.1s; }
+[data-reveal="stagger"].is-visible > *:nth-child(3) { transition-delay: 0.2s; }
+
+/* ── Chapter scrollspy dots (auto-built by motion.js when .chapter[id] exist) */
+.chapterdots {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 40;
+}
+.chapterdots a { display: block; padding: 4px; }
+.chapterdots a span {
+  display: block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line-strong);
+  transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.chapterdots a:hover span, .chapterdots a.active span {
+  background: var(--accent);
+  transform: scale(1.35);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+@media (max-width: 1100px) { .chapterdots { display: none; } }
+
+/* ── Presence dot + one-shot ping badge (Connect chapter mockups) ────── */
+.presence-dot {
+  display: inline-block;
+  width: 7px; height: 7px; margin-right: 6px;
+  border-radius: 50%;
+  background: #3FBF8F;
+  box-shadow: 0 0 0 0 rgba(63,191,143,0.6);
+  animation: presencePulse 2s infinite;
+}
+@keyframes presencePulse {
+  0% { box-shadow: 0 0 0 0 rgba(63,191,143,0.55); }
+  100% { box-shadow: 0 0 0 6px rgba(63,191,143,0); }
+}
+.ping-badge { display: inline-block; animation: pingOnce 2.4s ease-in-out infinite; }
+@keyframes pingOnce {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  10% { transform: scale(1.25) rotate(-8deg); }
+  20% { transform: scale(1) rotate(0deg); }
+}
+
+/* ── Notify form feedback ─────────────────────────────────────────────── */
+.notify-msg {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.notify-msg.ok, .notify-msg.error { opacity: 1; transform: none; }
+.notify-check { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+
+/* ── Showcase screenshot loading shimmer ──────────────────────────────── */
+.shot-frame.img-loading {
+  background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ── Mascot (injected into empty/error/404 states) ───────────────────── */
+.mascot-pop {
+  width: 92px;
+  margin: 0 auto 14px;
+  animation: mascotBob 3.2s ease-in-out infinite;
+}
+@keyframes mascotBob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(-2deg); }
+}
+
+/* ── Respect reduced motion, always the last word ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .fx-blobs, .fx-grain, .fx-spotlight, .chapterdots { display: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
