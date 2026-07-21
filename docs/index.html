@@ -38,6 +38,11 @@
     --line-strong: rgba(22,18,31,0.12);
     --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
     --rail-track: rgba(107,70,240,0.14);
+    /* Fixed brand purple — used by decorative mockup fills (.meter, .rail-visual)
+       so per-chapter accent overrides can't clash them against the static
+       --bg-sunken track color they're built against. */
+    --brand-accent: #6B46F0;
+    --brand-accent-soft: #8A63FF;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
@@ -55,6 +60,8 @@
       --line-strong: rgba(255,255,255,0.10);
       --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
       --rail-track: rgba(123,92,255,0.16);
+      --brand-accent: #7B5CFF;
+      --brand-accent-soft: #B18CFF;
       color-scheme: dark;
     }
   }
@@ -64,6 +71,7 @@
     --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
     --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
     --shadow: 0 24px 48px -28px rgba(46,26,110,0.35); --rail-track: rgba(107,70,240,0.14);
+    --brand-accent: #6B46F0; --brand-accent-soft: #8A63FF;
     color-scheme: light;
   }
   :root[data-theme="dark"] {
@@ -72,6 +80,7 @@
     --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
     --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
     --shadow: 0 24px 60px -24px rgba(0,0,0,0.6); --rail-track: rgba(123,92,255,0.16);
+    --brand-accent: #7B5CFF; --brand-accent-soft: #B18CFF;
     color-scheme: dark;
   }
 
@@ -277,9 +286,14 @@
     position: relative; overflow: hidden;
     border: 1px solid var(--line);
   }
-  .swatch::after { content: attr(data-label); position: absolute; left: 8px; bottom: 8px; font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,0.92); letter-spacing: 0.02em; }
+  .swatch::after { content: attr(data-label); position: absolute; left: 8px; bottom: 8px; font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,0.92); letter-spacing: 0.02em; z-index: 2; }
+  .swatch::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.05) 45%, transparent 70%); z-index: 1; }
+  .swatch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.5s ease; }
+  .swatch img.loaded { opacity: 1; }
+  .swatch-score { position: absolute; top: 6px; right: 6px; z-index: 2; display: flex; align-items: center; gap: 3px; font-size: 0.62rem; font-weight: 800; padding: 3px 6px; border-radius: 999px; background: rgba(0,0,0,0.55); color: #FFD34D; }
+  .swatch-score svg { width: 8px; height: 8px; }
   .meter { height: 8px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; }
-  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-soft)); border-radius: 999px; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-soft)); border-radius: 999px; }
   .stat-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--ink-muted); }
   .badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
   .medal { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; }
@@ -289,8 +303,25 @@
   .thread .who { font-weight: 700; font-size: 0.88rem; }
   .thread .msg { font-size: 0.86rem; color: var(--ink-muted); margin-top: 2px; }
   .rail-visual { position: relative; height: 210px; margin: 0 auto; width: 60%; background: var(--bg-sunken); border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
-  .rail-visual .fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, var(--accent-soft), var(--accent)); }
-  .rail-visual .dim { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.35)); }
+  .rail-visual .fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, var(--brand-accent-soft), var(--brand-accent)); transition: height 0.6s cubic-bezier(.2,.8,.2,1); }
+  .rail-visual .dim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, transparent 22%, transparent 78%, rgba(0,0,0,0.28) 100%); }
+  .rail-panels { position: absolute; inset: 9% 9%; z-index: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+  .rail-panels span { display: block; height: 1px; background: var(--line-strong); }
+  .rail-thumb {
+    position: absolute; left: 50%; width: 26px; height: 26px; z-index: 2;
+    border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--brand-accent);
+    transform: translate(-50%, 50%); box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    transition: bottom 0.6s cubic-bezier(.2,.8,.2,1);
+  }
+  .rail-thumb svg { width: 13px; height: 13px; color: var(--brand-accent); }
+  .rail-dimmer-tag {
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
+    padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,0.45); color: #fff;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .rail-dimmer-tag svg { width: 9px; height: 9px; }
 
   /* ── Screenshots ────────────────────────────────────────────────────── */
   .showcase { padding: clamp(48px, 8vw, 80px) 0; border-top: 1px solid var(--line); }
@@ -653,9 +684,9 @@
       </ul>
     </div>
     <div class="chapter-visual">
-      <div class="thread"><div class="who"><span class="presence-dot"></span>momo</div><div class="msg">okay the ch 94 cliffhanger is unforgivable</div></div>
+      <div class="thread"><div class="who"><span class="presence-dot"></span>momo</div><div class="msg">okay the ch 94 cliffhanger is unforgivable</div><div class="reactions"><span class="reaction">😭 12</span><span class="reaction">🔥 8</span></div></div>
       <div class="thread"><div class="who"><span class="presence-dot"></span>sinomatic</div><div class="msg"><span class="ping-badge">📚</span> sent a recommendation — Dandadan</div></div>
-      <div class="thread"><div class="who">yaboish</div><div class="msg">[spoiler tagged] no because—</div></div>
+      <div class="thread thread-reply"><div class="who"><span class="presence-dot" data-presence="idle"></span>yaboish</div><div class="msg">[spoiler tagged] no because—</div></div>
     </div>
   </section>
 
@@ -716,8 +747,11 @@
     </div>
     <div class="chapter-visual">
       <div class="rail-visual">
-        <div class="dim"></div>
+        <div class="rail-panels" aria-hidden="true"><span></span><span></span><span></span></div>
         <div class="fill" style="height:58%"></div>
+        <div class="dim"></div>
+        <div class="rail-thumb" style="bottom:58%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+        <span class="rail-dimmer-tag"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dimmer on</span>
       </div>
       <div class="stat-row"><span>Ch. 94 of 112</span><span>58%</span></div>
     </div>
@@ -1004,6 +1038,29 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   loadTrending('all');
+
+  // Discover chapter-visual: real trending covers per genre instead of flat
+  // color swatches — the gradient stays as the loading-state background
+  // until each cover image loads in.
+  Array.prototype.forEach.call(document.querySelectorAll('.panel-row .swatch'), function (swatch) {
+    var genre = swatch.getAttribute('data-label');
+    trendingMedia(null, 1, 'TRENDING_DESC', genre).then(function (d) {
+      var m = (d.Page.media || []).filter(function (x) { return x.coverImage && x.coverImage.large; })[0];
+      if (!m) return;
+      var img = document.createElement('img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.src = m.coverImage.large;
+      img.addEventListener('load', function () { img.classList.add('loaded'); });
+      swatch.appendChild(img);
+      if (m.averageScore) {
+        var score = document.createElement('span');
+        score.className = 'swatch-score';
+        score.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + (m.averageScore / 10).toFixed(1);
+        swatch.appendChild(score);
+      }
+    }).catch(function () {});
+  });
 });
 </script>
 

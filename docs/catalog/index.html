@@ -202,6 +202,13 @@
   .profile-bio-actions { display: flex; gap: 8px; margin-top: 8px; }
   .profile-bio-actions .btn-primary, .profile-bio-actions .btn-ghost { padding: 8px 14px; font-size: 0.8rem; }
 
+  .profile-reading-strip {
+    display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 12px 16px;
+    border-radius: 12px; background: var(--accent-wash); border: 1px solid var(--line);
+    font-size: 0.86rem; color: var(--ink-muted);
+  }
+  .profile-reading-strip svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
+  .profile-reading-strip b { color: var(--ink); }
   .profile-favorites { margin: 0 0 22px; }
   .profile-favorites-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
   .profile-favorites-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
@@ -445,6 +452,13 @@
     <a class="nav-link" href="/features/">Features</a>
     <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
     <a class="nav-link" id="libraryNavLink" href="#/library" style="display:none;">Library</a>
+    <div class="account-wrap" id="notifWrap" style="display:none;">
+      <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button" style="position:relative;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot" id="notifDot" style="display:none;"></span>
+      </button>
+      <div class="notif-panel" id="notifPanel"></div>
+    </div>
     <div class="account-wrap">
       <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -498,6 +512,94 @@ document.addEventListener('DOMContentLoaded', function () {
   initThemeToggle('themeToggle');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
+
+  // ── Real notification bell — reads the same `notifications` table and
+  // RLS (auth.uid() = user_id) the app itself uses, just a lighter-weight
+  // port of NotificationsContext.js's buildNotification()/text mapping.
+  // Badge-unlock notifications stay hidden here too, matching the app
+  // (comment there: "hidden until the badge system rework ships").
+  function notifTypeText(row) {
+    var d = row.data || {};
+    var name = row.actor ? (row.actor.display_name || row.actor.username || 'Someone') : 'Someone';
+    var text;
+    if (row.type === 'friend_request') text = name + ' sent you a friend request';
+    else if (row.type === 'friend_accepted') text = name + ' accepted your friend request';
+    else if (row.type === 'follow') text = name + ' started following you';
+    else if (row.type === 'comment') text = name + ' commented on ' + (d.series_title || 'a series');
+    else if (row.type === 'reply') text = name + ' replied to your comment on ' + (d.series_title || 'a series');
+    else if (row.type === 'like') text = name + ' liked ' + (d.series_title || 'your series');
+    else if (row.type === 'direct_message') text = d.message_type === 'recommendation' ? (name + ' sent a Rec: ' + (d.manga_title || 'a manga')) : (name + ' sent you a message');
+    else text = d.message || (name + ' sent you a notification');
+    return { name: name, text: text };
+  }
+  function notifRelTime(iso) {
+    var ms = Date.now() - new Date(iso).getTime();
+    var m = Math.floor(ms / 60000), h = Math.floor(m / 60), dd = Math.floor(h / 24);
+    return dd > 0 ? dd + 'd ago' : h > 0 ? h + 'h ago' : m > 0 ? m + 'm ago' : 'just now';
+  }
+  function initNotifications() {
+    var wrap = document.getElementById('notifWrap');
+    var btn = document.getElementById('notifBtn');
+    var dot = document.getElementById('notifDot');
+    var panel = document.getElementById('notifPanel');
+    if (!wrap || !btn || !panel) return;
+    var uid = null;
+    var firstLoad = true;
+
+    function paint(rows) {
+      var unread = rows.filter(function (r) { return !r.read; }).length;
+      dot.style.display = unread ? 'block' : 'none';
+      if (!rows.length) {
+        panel.innerHTML = '<div class="notif-head"><b>Notifications</b></div><div class="notif-empty">Nothing yet — friend requests, comments, and Recs will show up here.</div>';
+        return;
+      }
+      panel.innerHTML = '<div class="notif-head"><b>Notifications</b>' + (unread ? '<button id="notifMarkRead" type="button">Mark all read</button>' : '') + '</div>' +
+        rows.map(function (r) {
+          var t = notifTypeText(r);
+          return '<div class="notif-row' + (r.read ? '' : ' unread') + '">' +
+            '<div class="notif-row-avatar">' + esc(t.name.charAt(0).toUpperCase()) + '</div>' +
+            '<div><div class="notif-row-text">' + esc(t.text) + '</div><div class="notif-row-time">' + notifRelTime(r.created_at) + '</div></div>' +
+          '</div>';
+        }).join('');
+      var markBtn = document.getElementById('notifMarkRead');
+      if (markBtn) markBtn.addEventListener('click', function () {
+        sb.from('notifications').update({ read: true }).eq('user_id', uid).eq('read', false).then(function () { load(); });
+      });
+    }
+
+    function load() {
+      if (!uid) return;
+      sb.from('notifications')
+        .select('id,type,actor_id,data,read,created_at,actor:actor_id(username,display_name,avatar_url)')
+        .eq('user_id', uid).neq('type', 'badge')
+        .order('created_at', { ascending: false }).limit(20)
+        .then(function (res) {
+          var rows = res.data || [];
+          paint(rows);
+          var unread = rows.filter(function (r) { return !r.read; }).length;
+          if (firstLoad && unread > 0) {
+            showToast(unread + ' new notification' + (unread === 1 ? '' : 's') + ' waiting for you', { icon: '🔔 ' });
+          }
+          firstLoad = false;
+        }).catch(function () {});
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) load();
+    });
+    document.addEventListener('click', function (e) {
+      if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('open');
+    });
+
+    onAuthChange(function (user) {
+      uid = user ? user.id : null;
+      wrap.style.display = user ? 'block' : 'none';
+      if (user) load(); else { dot.style.display = 'none'; panel.innerHTML = ''; }
+    });
+  }
+  initNotifications();
 
   var SORT_OPTIONS = [
     { id: 'TRENDING_DESC', label: 'Trending' },
@@ -1033,6 +1135,97 @@ document.addEventListener('DOMContentLoaded', function () {
     '</div>';
   }
 
+  // 12 real weekly totals from the same daily_log the streak grid already
+  // reads — returns '' (no card) rather than drawing an empty sparkline
+  // when there's no logged history at all.
+  function profilePaceSparklineHtml(dailyLog) {
+    var log = dailyLog || {};
+    if (!Object.keys(log).length) return '';
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var weeks = [];
+    for (var w = 11; w >= 0; w--) {
+      var total = 0;
+      for (var d = 0; d < 7; d++) {
+        var day = new Date(today);
+        day.setDate(day.getDate() - (w * 7 + d));
+        total += log[profileDateKey(day)] || 0;
+      }
+      weeks.push(total);
+    }
+    var max = Math.max.apply(null, weeks.concat([0.5]));
+    var W = 280, H = 60, step = W / (weeks.length - 1);
+    var points = weeks.map(function (v, i) { return (i * step).toFixed(1) + ',' + (H - (v / max) * (H - 6) - 3).toFixed(1); }).join(' ');
+    var areaPoints = points + ' ' + W + ',' + H + ' 0,' + H;
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:60px;display:block;">' +
+      '<polygon points="' + areaPoints + '" fill="var(--accent-wash)"></polygon>' +
+      '<polyline points="' + points + '" fill="none" stroke="var(--accent-soft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>' +
+    '</svg>';
+  }
+
+  // Client-side "reading recap" image — real stats only, no server-side
+  // rendering needed (unlike the per-title OG cards, which do need the
+  // Cloudflare worker since those must work for logged-out crawlers).
+  function drawRecapCard(data) {
+    var W = 1080, H = 1080;
+    var canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext('2d');
+
+    var grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#3a2a6b');
+    grad.addColorStop(1, '#1c1330');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    var glow = ctx.createRadialGradient(W * 0.5, H * 0.22, 40, W * 0.5, H * 0.22, 460);
+    glow.addColorStop(0, 'rgba(123,92,255,0.35)');
+    glow.addColorStop(1, 'rgba(123,92,255,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#B18CFF';
+    ctx.font = '700 30px sans-serif';
+    ctx.fillText('MANGARECS RECAP', W / 2, 110);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '900 52px sans-serif';
+    ctx.fillText('@' + data.username, W / 2, 185);
+
+    function stat(y, value, label) {
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 92px sans-serif';
+      ctx.fillText(value, W / 2, y);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.font = '600 26px sans-serif';
+      ctx.fillText(label, W / 2, y + 40);
+    }
+    stat(420, String(data.chaptersRead), 'CHAPTERS READ');
+    stat(620, data.streak + (data.streak === 1 ? ' DAY' : ' DAYS'), 'CURRENT STREAK');
+    stat(820, data.favoriteGenre || '—', 'FAVORITE GENRE');
+
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '600 24px sans-serif';
+    ctx.fillText('mangarecs.net', W / 2, 1010);
+
+    return canvas;
+  }
+
+  function downloadRecapCard(data) {
+    var canvas = drawRecapCard(data);
+    canvas.toBlob(function (blob) {
+      if (!blob) return;
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'mangarecs-recap.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    });
+  }
+
   function profileStatCardHtml(key, label, value, color) {
     return '<button class="profile-stat-card" type="button" data-stat="' + key + '" style="--stat-c:' + color + ';">' +
       '<div class="profile-stat-value">' + esc(value) + '</div>' +
@@ -1083,11 +1276,12 @@ document.addEventListener('DOMContentLoaded', function () {
     Promise.all([
       sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
       sb.auth.getUser(),
-      sb.from('reading_progress').select('series_title,current_chapter,total_chapters,status').eq('user_id', uid),
+      sb.from('reading_progress').select('series_title,current_chapter,total_chapters,status,updated_at').eq('user_id', uid).order('updated_at', { ascending: false }),
     ]).then(function (results) {
       var profile = (results[0] && results[0].data) || {};
       var authUser = results[1] && results[1].data && results[1].data.user;
       var progressRows = (results[2] && results[2].data) || [];
+      var currentlyReading = progressRows.filter(function (r) { return r.status === 'reading'; })[0];
 
       var entriesRead = 0;
       var seen = {};
@@ -1113,11 +1307,29 @@ document.addEventListener('DOMContentLoaded', function () {
         ? Object.values(dailyLog).reduce(function (s, h) { return s + h; }, 0)
         : (stats.hours_read || 0);
 
+      // Real earned tier + real streak length drive the avatar ring — no
+      // separate fake "unlock" system, just a read-only reflection of
+      // computeEarnedBadgeIds()/stats already on this page.
+      var topGrade = highestGradeEarned(earnedIds);
+      var tierColor = topGrade ? BADGE_GRADES[topGrade].color : theme.ring;
+      var ringWidth = Math.min(6, 2 + Math.floor((stats.streak_count || 0) / 10));
+
+      var readingStripHtml = currentlyReading
+        ? '<div class="profile-reading-strip">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>' +
+            '<span>Currently reading <b>' + esc(currentlyReading.series_title) + '</b>' +
+            (currentlyReading.total_chapters ? ' · Ch. ' + currentlyReading.current_chapter + ' of ' + currentlyReading.total_chapters : ' · Ch. ' + currentlyReading.current_chapter) +
+            '</span>' +
+          '</div>'
+        : '';
+
+      var paceSparklineHtml = profilePaceSparklineHtml(dailyLog);
+
       app.innerHTML =
         '<div class="profile-hero-card">' +
           '<div class="profile-banner" style="' + (profile.banner_url ? 'background-image:url(' + esc(profile.banner_url) + ');' : 'background:linear-gradient(120deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');') + '"></div>' +
           '<div class="profile-hero-body">' +
-            '<div class="profile-avatar" style="background:linear-gradient(135deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');border-color:' + theme.ring + ';">' +
+            '<div class="profile-avatar" title="' + (topGrade ? BADGE_GRADES[topGrade].label + ' tier' : '') + '" style="background:linear-gradient(135deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');border-color:' + theme.ring + ';box-shadow:0 0 0 4px var(--bg-panel), 0 0 0 ' + (4 + ringWidth) + 'px ' + tierColor + ';">' +
               (profile.avatar_url ? '<img src="' + esc(profile.avatar_url) + '" alt="" />' : '<span>' + esc(initials) + '</span>') +
             '</div>' +
             '<div class="profile-namewrap">' +
@@ -1138,6 +1350,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>' +
         '</div>' +
 
+        readingStripHtml +
+
         (faves.length
           ? '<div class="profile-favorites">' +
               '<div class="profile-favorites-title">Favorites</div>' +
@@ -1155,7 +1369,13 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="card profile-streak-card">' +
           '<div class="card-title">Reading Streak' + (stats.streak_count ? ' · ' + stats.streak_count + 'd' : '') + '</div>' +
           profileStreakGridHtml(dailyLog) +
-        '</div>';
+        '</div>' +
+
+        (paceSparklineHtml
+          ? '<div class="card"><div class="card-title">Reading Pace · last 12 weeks</div>' + paceSparklineHtml + '</div>'
+          : '') +
+
+        '<button class="btn-ghost" id="recapBtn" type="button" style="margin:4px 0 30px;">Download my reading recap</button>';
 
       document.getElementById('profileBioEditBtn').addEventListener('click', function () {
         document.getElementById('profileBioView').style.display = 'none';
@@ -1176,6 +1396,18 @@ document.addEventListener('DOMContentLoaded', function () {
           renderProfile();
         });
       });
+
+      var recapBtn = document.getElementById('recapBtn');
+      if (recapBtn) {
+        recapBtn.addEventListener('click', function () {
+          downloadRecapCard({
+            username: username,
+            chaptersRead: stats.chapters_read || 0,
+            streak: stats.streak_count || 0,
+            favoriteGenre: profile.favorite_genre || '',
+          });
+        });
+      }
 
       var statDetailEl = document.getElementById('profileStatDetail');
       var statSections = {
@@ -1225,7 +1457,26 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── Router ────────────────────────────────────────────────────────────
+  function pulseLoadingBar() {
+    var bar = document.getElementById('toploader');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'toploader';
+      bar.className = 'toploader';
+      document.body.insertBefore(bar, document.body.firstChild);
+    }
+    bar.classList.remove('done');
+    bar.style.width = '0%';
+    requestAnimationFrame(function () { bar.style.width = '75%'; });
+    clearTimeout(bar._doneTimer);
+    bar._doneTimer = setTimeout(function () {
+      bar.style.width = '100%';
+      setTimeout(function () { bar.classList.add('done'); }, 200);
+    }, 380);
+  }
+
   function router() {
+    pulseLoadingBar();
     navTabsEl.classList.remove('lib-hide');
     catRailMobile.classList.remove('lib-hide');
     var hash = location.hash.replace(/^#/, '') || '/';
