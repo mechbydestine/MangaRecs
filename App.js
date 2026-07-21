@@ -668,7 +668,13 @@ export default function App() {
   }, []);
 
   const contentReady = !loading && showIntro !== null && fontsLoaded;
-  const readyToLeaveSplash = contentReady && minSplashElapsed && (updateCheckDone || updateReadyToReload);
+  const updateSettled = updateCheckDone || updateReadyToReload;
+  // The Marvel-style intro doesn't need the plain splash's minimum-hold floor
+  // behind it — that floor exists so the static logo doesn't flicker on fast
+  // launches, but the intro is its own multi-second reveal. Waiting out the
+  // floor here just meant the intro was already a couple seconds into its
+  // animation by the time the splash faded away and showed it.
+  const readyToLeaveSplash = contentReady && updateSettled && (showIntro || minSplashElapsed);
 
   useEffect(() => {
     if (!readyToLeaveSplash) return;
@@ -681,10 +687,10 @@ export default function App() {
     }
     Animated.timing(splashOpacity, {
       toValue: 0,
-      duration: 400,
+      duration: showIntro ? 150 : 400,
       useNativeDriver: true,
     }).start(() => setSplashMounted(false));
-  }, [readyToLeaveSplash, updateReadyToReload]);
+  }, [readyToLeaveSplash, updateReadyToReload, showIntro]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
@@ -730,7 +736,7 @@ export default function App() {
           style={{ ...StyleSheet.absoluteFillObject, opacity: splashOpacity, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}
         >
           <View style={{ marginBottom: 18 }}>
-            <StarLogo size={112} continuous />
+            <StarLogo size={112} />
           </View>
           {fontsLoaded && (
             <>
