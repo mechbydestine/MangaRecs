@@ -45,7 +45,7 @@ function alFetch(query, variables) {
 }
 
 var MEDIA_FIELDS = 'id title { romaji english native } description(asHtml: false) genres format status ' +
-  'countryOfOrigin chapters volumes averageScore startDate { year } endDate { year } ' +
+  'countryOfOrigin chapters volumes averageScore popularity favourites startDate { year } endDate { year } ' +
   'coverImage { extraLarge large color } bannerImage isAdult ' +
   'staff(perPage: 6) { edges { role node { name { full } } } } ' +
   'characters(perPage: 8, sort: ROLE) { edges { role node { id name { full } image { medium } } } } ' +
