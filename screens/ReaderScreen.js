@@ -23,6 +23,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../utils/ThemeContext';
 import { useResponsive } from '../utils/responsive';
+import { isJunkTitle } from '../utils/titleValidation';
 
 const SAVED_SITES_KEY  = '@mangarecs/savedSites';
 const LAST_SITE_KEY    = '@mangarecs/lastSite';
@@ -786,10 +787,15 @@ function parseMangaInfo(rawTitle, heading) {
     const m3 = t.match(/[Cc]h(?:apter)?\.?\s*([\d.]+)\s*[-–|]\s*(.+)/);
     if (m3) { manga = m3[2].trim(); chapter = `Chapter ${m3[1]}`; }
   }
-  if (!manga && heading) manga = heading;
+  // Heading fallback trusts whatever h1/.title/.series-title the page has —
+  // on a site's homepage, search page, or login wall that's generic chrome
+  // text ("Homepage", "Recent Searches"), not a manga title. Reject it rather
+  // than saving it as if it were the series being read.
+  if (!manga && heading && !isJunkTitle(heading)) manga = heading;
   manga = manga
     .replace(/\s*[-–|]\s*(mangadex|mangafire|webtoon|mangaplus|read.*manga|online|free).*$/i, '')
     .trim();
+  if (isJunkTitle(manga)) manga = '';
   return { manga, chapter };
 }
 

@@ -924,9 +924,13 @@ export default function ProfileScreen() {
                           showAppToast(`Reach ${t.gradeLabel} tier to unlock ${t.label}`);
                           return;
                         }
+                        const prevThemeId = themeId;
                         setThemeId(t.id); setShowThemes(false);
                         updateProfile({ color: t.id }).then(({ error }) => {
-                          if (error) showAppToast("Couldn't save theme — try again");
+                          if (error) {
+                            showAppToast("Couldn't save theme — try again");
+                            setThemeId(prevThemeId); // roll back — otherwise the shown theme silently diverges from what's actually saved
+                          }
                         });
                       }}>
                       <View style={[styles.themeChipDot, { backgroundColor: t.gradient[0] }]} />

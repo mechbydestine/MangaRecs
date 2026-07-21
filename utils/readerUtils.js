@@ -1,5 +1,6 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
+import { isJunkTitle } from './titleValidation';
 
 const _openedThisSession = new Set();
 const GENRE_PREFS_KEY = '@mangarecs_genre_prefs';
@@ -85,21 +86,12 @@ export function incrementSharesCount(userId) {
 /**
  * Save the most recently opened series so Library can show accurate "Continue Reading".
  */
-const INVALID_TITLES = new Set([
-  'reader', 'browser', 'mangarecs',
-  'mangadex', 'mangafire', 'webtoon', 'asura scans', 'weeb central',
-  'manga plus', 'mangahub', 'cubari proxy', 'dynasty reader', 'scans.gg',
-  'likemanga', 'mangago', 'mangakatana', 'mangapill', 'manhuaplus',
-  'manhuabuddy', 'mangakawaii', 'manganato', 'vymanga', 'zinmanga',
-  'aqua manga', 'mangaball', 'mangafreak', 'mangafox', 'readmanga',
-]);
-
 export async function setLastRead(entry) {
   if (!entry?.title) return;
   const titleLower = entry.title.toLowerCase().trim();
-  // Reject generic/invalid titles — site names, URLs, the default "Reader" screen title
-  if (!titleLower || INVALID_TITLES.has(titleLower)) return;
-  if (titleLower.startsWith('http')) return;
+  // Reject generic/invalid titles — site names, URLs, homepages/search pages,
+  // the default "Reader" screen title
+  if (isJunkTitle(entry.title)) return;
   if (/\.(com|to|net|io|org|me|pro|xyz|app|moe|gg)\b/.test(titleLower)) return;
   const data = {
     title: entry.title,

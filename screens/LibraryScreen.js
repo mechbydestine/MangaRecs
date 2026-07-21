@@ -16,6 +16,7 @@ import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRe
 import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
+import { isJunkTitle } from '../utils/titleValidation';
 import { maybeAskForReview } from '../utils/reviewPrompt';
 import { CoverGridSkeleton } from '../components/Skeleton';
 import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
@@ -357,7 +358,7 @@ export default function LibraryScreen() {
                 const localTitles = new Set(localItems.map((s) => s.title));
                 const serverBookmarks = data
                   .filter((r) => r.status === 'bookmarked' && !localTitles.has(r.series_title))
-                  .filter((r) => r.series_title && !INVALID_HIST_TITLE.test(r.series_title.trim()) && !r.series_title.startsWith('http'))
+                  .filter((r) => r.series_title && !isJunkTitle(r.series_title))
                   .map((r) => {
                     const pool = findPoolEntry(r.series_title);
                     return {
@@ -550,8 +551,6 @@ export default function LibraryScreen() {
     };
   })();
 
-  const INVALID_HIST_TITLE = /^(reader|browser|mangarecs|mangadex|mangafire|webtoon|asura scans|weeb central|manga plus|mangahub|cubari proxy|dynasty reader|likemanga|mangago|mangakatana|mangapill|manhuaplus|manhuabuddy|vymanga|zinmanga|readmanga|mangaball|mangafreak|search results?|results?|search|home|untitled|loading\.*|new tab|google search|just a moment\.*|404.*|error.*|not found|access denied|blocked|please wait\.*|redirecting\.*|sign in|log in|login)$/i;
-
   const baseReadingSeries = staticPool
     .filter((s) => s.progress < 1 && !deletedIds.has(s.id) && !completedIds.has(s.id))
     .map((s) => {
@@ -570,7 +569,7 @@ export default function LibraryScreen() {
   const progressReading = progressRows
     .filter((r) => r.status === 'reading' && !deletedIds.has(r.series_title))
     .filter((r) => !baseReadingSeries.some((s) => s.title === r.series_title))
-    .filter((r) => r.series_title && !INVALID_HIST_TITLE.test(r.series_title.trim()) && !r.series_title.startsWith('http'))
+    .filter((r) => r.series_title && !isJunkTitle(r.series_title))
     .map((r) => {
       const pool = findPoolEntry(r.series_title);
       const total = r.total_chapters || pool?.chapters || 0;
@@ -589,7 +588,7 @@ export default function LibraryScreen() {
 
   // Note: raw reading history (historyItems, from getReadingHistory) is deliberately
   // NOT surfaced in the Reading tab grid — it's scraped webview page titles and often
-  // picks up junk (cookie banners, site taglines) that INVALID_HIST_TITLE can't fully
+  // picks up junk (cookie banners, site taglines) that isJunkTitle can't fully
   // filter. It only feeds checkUpdatesInBackground; "Continue Reading" is the sole
   // place recent history is shown, sourced from the single most-recent lastReadEntry.
 
@@ -597,7 +596,7 @@ export default function LibraryScreen() {
     && !deletedIds.has('live')
     && !deletedIds.has(liveReading.title)
     && !deletedIds.has(liveReading.searchKey)
-    && !INVALID_HIST_TITLE.test((liveReading.title || '').trim())
+    && !isJunkTitle(liveReading.title)
     && !liveReading.title?.startsWith('http')
     // profile.currently_reading is a standalone "last opened" pointer that
     // never gets cleared when that series' real reading_progress row moves to
@@ -608,16 +607,38 @@ export default function LibraryScreen() {
     // to reading_progress whenever it already has ANY row for this title.
     && !progressRows.some((r) => r.series_title === liveReading.title);
 
-  const readingSeries = [
+  // Same series can end up saved under slightly different scraped title
+  // spellings ("Sword God From..." vs "The Sword God From...") across
+  // separate reading_progress rows — the exact-string dedup above misses
+  // those. Collapse by a normalized key so the grid never shows the same
+  // series as 2-3 separate tiles.
+  function normalizeTitleKey(title) {
+    return (title || '')
+      .toLowerCase()
+      .replace(/^(the|a|an)\s+/, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+  function dedupeByNormalizedTitle(list) {
+    const seen = new Set();
+    return list.filter((s) => {
+      const key = normalizeTitleKey(s.title);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  const readingSeries = dedupeByNormalizedTitle([
     ...(liveReadingValid && !baseReadingSeries.some((s) => s.title === liveReading.title) && !progressReading.some((s) => s.title === liveReading.title) ? [liveReading] : []),
     ...progressReading,
     ...baseReadingSeries,
-  ];
+  ]);
 
-  const completedSeries = [
+  const completedSeries = dedupeByNormalizedTitle([
     ...progressRows
       .filter((r) => (r.status === 'completed' || completedIds.has(r.series_title)) && !deletedIds.has(r.series_title))
-      .filter((r) => r.series_title && !INVALID_HIST_TITLE.test(r.series_title.trim()) && !r.series_title.startsWith('http'))
+      .filter((r) => r.series_title && !isJunkTitle(r.series_title))
       .map((r) => {
         const pool = findPoolEntry(r.series_title);
         return {
@@ -633,7 +654,7 @@ export default function LibraryScreen() {
         };
       }),
     ...staticPool.filter((s) => (s.progress >= 1 || completedIds.has(s.id)) && !deletedIds.has(s.id)),
-  ];
+  ]);
 
   const continueReading = lastReadEntry
     ? {
