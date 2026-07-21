@@ -22,6 +22,7 @@ import { PRESETS as AMBIENCE_PRESETS, play as ambiencePlay, stop as ambienceStop
 import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../utils/ThemeContext';
+import { useResponsive } from '../utils/responsive';
 
 const SAVED_SITES_KEY  = '@mangarecs/savedSites';
 const LAST_SITE_KEY    = '@mangarecs/lastSite';
@@ -29,6 +30,8 @@ const LIBRARY_KEY      = '@mangarecs_saved';
 const RESUME_KEY_PFX   = '@mangarecs/resume/';
 const FORCE_DARK_KEY   = '@mangarecs/forceDark';
 const DIMMER_KEY       = '@mangarecs/dimmer';
+const NIGHT_FILTER_KEY = '@mangarecs/nightFilter';
+const DOUBLE_PAGE_KEY  = '@mangarecs/doublePage';
 const SCROLL_SPEED_KEY = '@mangarecs/autoScrollSpeed';
 const LANDSCAPE_KEY    = '@mangarecs/allowLandscape';
 const READER_MODE_KEY  = '@mangarecs/readerMode'; // must match SettingsScreen
@@ -365,6 +368,11 @@ const AD_BLOCK_JS = `
         var tag = el.tagName;
         var role = (el.getAttribute && el.getAttribute('role')) || '';
         if (tag === 'HEADER' || tag === 'NAV' || role === 'banner' || role === 'navigation') return;
+        // Real settings panels / account menus / chapter-list drawers use these
+        // semantic ARIA roles for a11y — ad interstitials never bother, so a
+        // dialog/menu with real interactive content inside is never an ad.
+        if ((role === 'dialog' || role === 'alertdialog' || role === 'menu') &&
+            el.querySelectorAll('a,button,input,select').length >= 2) return;
         // Full-screen dimmer / backdrop / interstitial (covers >55% of viewport).
         // A real chapter-list / settings drawer built as a full-screen fixed panel
         // matches this same shape, so spare anything with enough interactive
@@ -817,8 +825,9 @@ function searchSites(query) {
 
 // ── PageImage — auto aspect ratio via Image.getSize ───────────────────────
 
-function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
-  const { width: winW } = useWindowDimensions();
+function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth }) {
+  const { width: fullW } = useWindowDimensions();
+  const winW = renderWidth || fullW; // half-width in double-page spread mode
   const [height, setHeight] = useState(winW * 1.5);
   const lastTapRef = useRef(0);
   const singleTimerRef = useRef(null);
@@ -863,6 +872,58 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap }) {
         fadeDuration={0}
       />
     </Pressable>
+  );
+}
+
+// ── Double-page spread — two pages side by side, scaled to a shared row
+// height (contain, not cover) so neither image gets cropped or distorted ──
+function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
+  const [sizes, setSizes] = useState({});
+  const lastTapRef = useRef(0);
+  const singleTimerRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    pair.forEach((uri) => {
+      Image.getSize(uri, (w, h) => {
+        if (!cancelled && w > 0) setSizes((prev) => ({ ...prev, [uri]: h / w }));
+      }, () => {});
+    });
+    return () => { cancelled = true; };
+  }, [pair]);
+  useEffect(() => () => { if (singleTimerRef.current) clearTimeout(singleTimerRef.current); }, []);
+
+  const ratios = pair.map((uri) => sizes[uri]).filter(Boolean);
+  const rowHeight = ratios.length > 0 ? Math.max(...ratios) * renderWidth : renderWidth * 1.5;
+
+  function handlePress(uri) {
+    const now = Date.now();
+    if (now - lastTapRef.current < 280) {
+      lastTapRef.current = 0;
+      if (singleTimerRef.current) { clearTimeout(singleTimerRef.current); singleTimerRef.current = null; }
+      onDoubleTap?.(uri);
+    } else {
+      lastTapRef.current = now;
+      singleTimerRef.current = setTimeout(() => {
+        singleTimerRef.current = null;
+        onSingleTap?.();
+      }, 285);
+    }
+  }
+
+  return (
+    <View style={{ flexDirection: 'row', width: renderWidth * pair.length, height: rowHeight }}>
+      {pair.map((uri) => (
+        <Pressable key={uri} onPress={() => handlePress(uri)} style={{ width: renderWidth, height: rowHeight }}>
+          <Image
+            source={{ uri, cache: 'force-cache' }}
+            style={{ width: renderWidth, height: rowHeight }}
+            resizeMode="contain"
+            fadeDuration={0}
+          />
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -1054,6 +1115,9 @@ export default function ReaderScreen({ route, navigation }) {
   const { profile, userId, updateProfile, refreshProfile } = useProfile();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const isWideLayout = isTablet || screenW > screenH; // tablet, or phone rotated to landscape
   useKeepAwake(); // screen must not sleep mid-chapter
 
   // HUD palette — switches with the app theme
@@ -1093,6 +1157,7 @@ export default function ReaderScreen({ route, navigation }) {
   const [currentChapterIdx,  setCurrentChapterIdx]  = useState(0);
   const flatListRef    = useRef(null);
   const chapterListRef = useRef(null);
+  const pendingResumePageRef = useRef(null); // set by enterApiMode(...startPage), consumed once pages render
 
   // ── WebView "Reader Mode" — extracts the page's images (same pipeline that
   // already powers offline downloads) and shows them through the app's own
@@ -1116,6 +1181,8 @@ export default function ReaderScreen({ route, navigation }) {
   // reader comfort settings
   const [forceDarkSites,     setForceDarkSites]     = useState(false);
   const [dimmer,             setDimmer]             = useState(0); // 0–0.7 black overlay opacity
+  const [nightFilter,        setNightFilter]        = useState(0); // 0–0.5 warm amber overlay opacity
+  const [doublePageMode,     setDoublePageMode]      = useState(false); // side-by-side spread — only actually applied when isWideLayout
   const [autoScrollSpeed,    setAutoScrollSpeed]    = useState('normal');
   const [allowLandscape,     setAllowLandscape]     = useState(false);
   const [showChapterSelect,  setShowChapterSelect]  = useState(false);
@@ -1199,7 +1266,7 @@ export default function ReaderScreen({ route, navigation }) {
 
   // Enters the native API reader with a fresh chapter list. Loads the start
   // chapter's pages directly (state isn't committed yet inside boot).
-  async function enterApiMode(mdId, chapterList, startIdx, title) {
+  async function enterApiMode(mdId, chapterList, startIdx, title, startPage) {
     const idx = Math.max(0, Math.min(startIdx || 0, chapterList.length - 1));
     const ch = chapterList[idx];
     setMangaId(mdId);
@@ -1211,10 +1278,26 @@ export default function ReaderScreen({ route, navigation }) {
     setResolving(false);
     setPagesLoading(true);
     const urls = (Array.isArray(ch.pages) && ch.pages.length > 0) ? ch.pages : await getChapterPages(ch.id);
+    pendingResumePageRef.current = (startPage && startPage > 1 && startPage <= urls.length) ? startPage : null;
     setPages(urls);
     setPagesLoading(false);
     return urls.length > 0;
   }
+
+  // Scroll to a saved page once its chapter's pages have actually rendered —
+  // scrollToIndex on a variable-height FlatList can't jump straight to a far
+  // index reliably, so retry via onScrollToIndexFailed's estimated offset too.
+  useEffect(() => {
+    const page = pendingResumePageRef.current;
+    if (!page || pages.length === 0) return;
+    pendingResumePageRef.current = null;
+    const t = setTimeout(() => {
+      try {
+        flatListRef.current?.scrollToIndex({ index: page - 1, animated: false });
+      } catch (_) {}
+    }, 120);
+    return () => clearTimeout(t);
+  }, [pages]);
 
   // ── Boot ────────────────────────────────────────────────────────────────
 
@@ -1308,7 +1391,7 @@ export default function ReaderScreen({ route, navigation }) {
                   // Chapter list may have grown/shifted since save — re-find by id
                   const byId = chapterList.findIndex((c) => c.id === resume.chapterId);
                   if (byId >= 0) idx = byId;
-                  const ok = await enterApiMode(resume.mangaId, chapterList, idx, resume.mangaTitle || routeTitle);
+                  const ok = await enterApiMode(resume.mangaId, chapterList, idx, resume.mangaTitle || routeTitle, resume.page);
                   if (ok) return;
                 }
                 // MangaDex unreachable/empty — fall through to WebView paths
@@ -1497,16 +1580,29 @@ export default function ReaderScreen({ route, navigation }) {
 
   // Load reader comfort prefs; force-dark defaults to following the app theme
   useEffect(() => {
-    AsyncStorage.multiGet([FORCE_DARK_KEY, DIMMER_KEY, SCROLL_SPEED_KEY, LANDSCAPE_KEY]).then(([[, fdRaw], [, dimRaw], [, spdRaw], [, lsRaw]]) => {
+    AsyncStorage.multiGet([FORCE_DARK_KEY, DIMMER_KEY, SCROLL_SPEED_KEY, LANDSCAPE_KEY, NIGHT_FILTER_KEY, DOUBLE_PAGE_KEY]).then(([[, fdRaw], [, dimRaw], [, spdRaw], [, lsRaw], [, nfRaw], [, dpRaw]]) => {
       setForceDarkSites(fdRaw === null ? isDark : fdRaw === 'true');
       if (dimRaw !== null) {
         const v = parseFloat(dimRaw);
         if (!Number.isNaN(v)) setDimmer(Math.min(0.7, Math.max(0, v)));
       }
+      if (nfRaw !== null) {
+        const v = parseFloat(nfRaw);
+        if (!Number.isNaN(v)) setNightFilter(Math.min(0.5, Math.max(0, v)));
+      }
       if (spdRaw && AUTO_SCROLL_SPEEDS.some((s) => s.id === spdRaw)) setAutoScrollSpeed(spdRaw);
       setAllowLandscape(lsRaw === 'true');
+      setDoublePageMode(dpRaw === 'true');
     }).catch(() => {});
   }, []);
+
+  function toggleDoublePage() {
+    setDoublePageMode((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(DOUBLE_PAGE_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }
 
   // Re-apply force-dark to the live page whenever the toggle changes
   useEffect(() => {
@@ -1527,6 +1623,14 @@ export default function ReaderScreen({ route, navigation }) {
     setDimmer((prev) => {
       const next = Math.min(0.7, Math.max(0, Math.round((prev + delta) * 100) / 100));
       AsyncStorage.setItem(DIMMER_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }
+
+  function adjustNightFilter(delta) {
+    setNightFilter((prev) => {
+      const next = Math.min(0.5, Math.max(0, Math.round((prev + delta) * 100) / 100));
+      AsyncStorage.setItem(NIGHT_FILTER_KEY, String(next)).catch(() => {});
       return next;
     });
   }
@@ -1652,6 +1756,24 @@ export default function ReaderScreen({ route, navigation }) {
       }, { onConflict: 'user_id,manga_id' }).then(() => {});
     }
   }, [currentChapterIdx, readerMode]);
+
+  // ── Resume save — exact page within the chapter (API mode) ────────────────
+  // Debounced merge into the same resume blob above so a return visit lands
+  // back on the actual page, not just chapter 1 — previously the chapter was
+  // the finest resume granularity.
+  useEffect(() => {
+    if (readerMode !== 'api' || !resumeKey || !apiChapters.length) return;
+    const t = setTimeout(async () => {
+      try {
+        const raw = await AsyncStorage.getItem(resumeKey);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (saved?.mode !== 'api') return;
+        await AsyncStorage.setItem(resumeKey, JSON.stringify({ ...saved, page: currentPage }));
+      } catch (_) {}
+    }, 800);
+    return () => clearTimeout(t);
+  }, [currentPage, readerMode, resumeKey, apiChapters.length]);
 
   // ── Resume save — WebView mode ────────────────────────────────────────────
 
@@ -2337,6 +2459,16 @@ export default function ReaderScreen({ route, navigation }) {
     [chapterListForPicker]
   );
 
+  // Double-page spread only actually applies on a wide layout (tablet, or a
+  // phone rotated to landscape) even if the user has it toggled on — pairing
+  // pages side by side on a narrow portrait phone would just shrink everything.
+  // Deliberately keeps `data={pages}` and every index-based viewability/resume
+  // calculation untouched — only renderItem changes, pairing index N with N+1
+  // and skipping N+1's own cell, rather than restructuring the list's data
+  // shape (which the page-counter/resume-position code above depends on).
+  const spreadActive = doublePageMode && isWideLayout && readerMode === 'api';
+  const pageRenderWidth = spreadActive ? screenW / 2 : screenW;
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -2436,13 +2568,27 @@ export default function ReaderScreen({ route, navigation }) {
                 ref={flatListRef}
                 data={pages}
                 keyExtractor={(uri) => uri}
-                renderItem={({ item }) => (
-                  <PageImage
-                    uri={item}
-                    onSingleTap={() => setShowUI((v) => !v)}
-                    onDoubleTap={(u) => setZoomUri(u)}
-                  />
-                )}
+                renderItem={({ item, index }) => {
+                  if (spreadActive && index % 2 === 1) return null; // consumed by the previous (even) index's pair
+                  if (spreadActive) {
+                    const pair = [item, pages[index + 1]].filter(Boolean);
+                    return (
+                      <PagePairRow
+                        pair={pair}
+                        renderWidth={pageRenderWidth}
+                        onSingleTap={() => setShowUI((v) => !v)}
+                        onDoubleTap={(u) => setZoomUri(u)}
+                      />
+                    );
+                  }
+                  return (
+                    <PageImage
+                      uri={item}
+                      onSingleTap={() => setShowUI((v) => !v)}
+                      onDoubleTap={(u) => setZoomUri(u)}
+                    />
+                  );
+                }}
                 onScroll={handleScrollProgress}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -2453,6 +2599,11 @@ export default function ReaderScreen({ route, navigation }) {
                 updateCellsBatchingPeriod={50}
                 onViewableItemsChanged={onViewableItemsChanged.current}
                 viewabilityConfig={viewabilityConfig.current}
+                onScrollToIndexFailed={(info) => {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+                  }, 100);
+                }}
                 ListEmptyComponent={() => (
                   <View style={styles.noPages}>
                     <Ionicons name="book-outline" size={40} color="#5C5B63" />
@@ -2723,6 +2874,14 @@ export default function ReaderScreen({ route, navigation }) {
         <View
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0,0,0,${dimmer})` }]}
+        />
+      )}
+
+      {/* ── Night reading filter — warm amber tint, cuts blue light for late reading ── */}
+      {nightFilter > 0 && (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(255,138,61,${nightFilter})` }]}
         />
       )}
 
@@ -3136,6 +3295,20 @@ export default function ReaderScreen({ route, navigation }) {
                 <View style={[styles.settingsToggleDot, allowLandscape && styles.settingsToggleDotOn]} />
               </View>
             </TouchableOpacity>
+            {readerMode === 'api' && (
+              <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleDoublePage}>
+                <Ionicons name="book-outline" size={18} color={doublePageMode ? '#7B5CFF' : '#9B9AA3'} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Double-page spread</Text>
+                  <Text style={styles.settingsRowSub}>
+                    {isWideLayout ? 'Two pages side by side' : 'Needs a tablet or landscape orientation'}
+                  </Text>
+                </View>
+                <View style={[styles.settingsToggle, doublePageMode && styles.settingsToggleOn]}>
+                  <View style={[styles.settingsToggleDot, doublePageMode && styles.settingsToggleDotOn]} />
+                </View>
+              </TouchableOpacity>
+            )}
             <View style={[styles.settingsRow, sheetC.rowBorder]}>
               <Ionicons name="sunny-outline" size={18} color="#EF9F27" />
               <View style={{ flex: 1, marginLeft: 12 }}>
@@ -3152,6 +3325,22 @@ export default function ReaderScreen({ route, navigation }) {
                 <Ionicons name="add" size={16} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
+            <View style={[styles.settingsRow, sheetC.rowBorder]}>
+              <Ionicons name="flame-outline" size={18} color="#EF9F27" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>Night reading filter</Text>
+                <Text style={styles.settingsRowSub}>{nightFilter === 0 ? 'Off' : `${Math.round(nightFilter / 0.5 * 100)}% warm`}</Text>
+              </View>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                <Ionicons name="remove" size={16} color="#9B9AA3" />
+              </TouchableOpacity>
+              <View style={styles.dimmerTrack}>
+                <View style={[styles.dimmerFill, { width: `${Math.round(nightFilter / 0.5 * 100)}%`, backgroundColor: '#FF8A3D' }]} />
+              </View>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                <Ionicons name="add" size={16} color="#9B9AA3" />
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={requestChapterDownload}>
               <Ionicons name="cloud-download-outline" size={18} color="#1D9E75" />
               <View style={{ flex: 1, marginLeft: 12 }}>
@@ -3161,14 +3350,28 @@ export default function ReaderScreen({ route, navigation }) {
               <Ionicons name="chevron-forward" size={14} color="#9B9AA3" />
             </TouchableOpacity>
             {readerMode === 'api' && apiChapters.length > currentChapterIdx + 1 && (
-              <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={() => downloadNextChapters(5)}>
-                <Ionicons name="albums-outline" size={18} color="#1D9E75" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Download next 5 chapters</Text>
-                  <Text style={styles.settingsRowSub}>Batch-save from here for offline reading</Text>
+              <View style={[styles.settingsRow, sheetC.rowBorder, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <Ionicons name="albums-outline" size={18} color="#1D9E75" />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={[styles.settingsRowText, sheetC.rowText]}>Batch download</Text>
+                    <Text style={styles.settingsRowSub}>Save several chapters at once, starting here</Text>
+                  </View>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color="#9B9AA3" />
-              </TouchableOpacity>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {[5, 10, 25].filter((n) => n < apiChapters.length - currentChapterIdx).map((n) => (
+                    <TouchableOpacity key={n} style={styles.batchDlChip} onPress={() => downloadNextChapters(n)} disabled={downloading}>
+                      <Text style={styles.batchDlChipText}>{n}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.batchDlChip}
+                    onPress={() => downloadNextChapters(apiChapters.length - currentChapterIdx)}
+                    disabled={downloading}>
+                    <Text style={styles.batchDlChipText}>Rest of series</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
             <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleReaderHidden}>
               <Ionicons name={readerHidden ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9B9AA3" />
@@ -3382,6 +3585,8 @@ const styles = StyleSheet.create({
   dimmerBtn:              { padding: 4 },
   dimmerTrack:            { width: 72, height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden', marginHorizontal: 2 },
   dimmerFill:             { height: 4, backgroundColor: '#EF9F27', borderRadius: 2 },
+  batchDlChip:            { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(29,158,117,0.14)' },
+  batchDlChipText:        { color: '#1D9E75', fontSize: 12.5, fontWeight: '700' },
   sharePreview:           { backgroundColor: '#2D1B69', borderRadius: 16, padding: 20, height: 200, marginBottom: 16 },
   sharePreviewLogo:       { color: '#fff', fontSize: 14, fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   sharePreviewLabel:      { color: 'rgba(255,255,255,0.7)', fontSize: 12 },

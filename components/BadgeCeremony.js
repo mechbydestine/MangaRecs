@@ -4,6 +4,7 @@ import BadgeIcon from './BadgeIcon';
 import { BADGE_GRADES, GRADE_ORDER, ensureBadgeRarity, formatRarity } from '../utils/badges';
 import { useProfile } from '../utils/ProfileContext';
 import { medium as hapticMedium, heavy as hapticHeavy, success as hapticSuccess } from '../utils/haptics';
+import { maybeAskForReview } from '../utils/reviewPrompt';
 
 // Full-screen unlock ceremony. The spectacle scales with the tier: Bronze gets
 // a clean pop, Diamond+ adds a particle burst, Mythic gets the full show.
@@ -46,7 +47,7 @@ function ParticleBurst({ color, count, radius }) {
 }
 
 export default function BadgeCeremony() {
-  const { newBadges, clearNewBadges } = useProfile();
+  const { newBadges, clearNewBadges, setCeremonyActive } = useProfile();
   const [queue, setQueue] = useState([]);
   const [index, setIndex] = useState(0);
   const [, setRarityReady] = useState(false);
@@ -66,6 +67,7 @@ export default function BadgeCeremony() {
       return [...prev, ...newBadges.filter((b) => !seen.has(b.id))];
     });
     clearNewBadges();
+    setCeremonyActive(true);
   }, [newBadges]);
 
   const badge = queue[index];
@@ -117,8 +119,12 @@ export default function BadgeCeremony() {
 
   function advance() {
     if (isLast) {
+      // Diamond+ is a genuine milestone worth asking after — anything lower
+      // unlocks too often and would turn the review prompt into a nag.
+      if (rank >= 4) setTimeout(maybeAskForReview, 900);
       setQueue([]);
       setIndex(0);
+      setCeremonyActive(false);
     } else {
       setIndex((i) => i + 1);
     }

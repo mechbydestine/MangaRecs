@@ -1,4 +1,4 @@
-﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, ActivityIndicator, Linking, Share } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, ActivityIndicator, Linking, Share, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -251,6 +251,46 @@ export default function SettingsScreen({ navigation }) {
   const [genrePrefsLoading, setGenrePrefsLoading] = useState(false);
   const [allowNsfw, setAllowNsfwState] = useState(false);
   const [ageVerified, setAgeVerified] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeEmail, setUpgradeEmail] = useState('');
+  const [upgradePassword, setUpgradePassword] = useState('');
+  const [upgradeError, setUpgradeError] = useState('');
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAnonymous(!!session?.user?.is_anonymous);
+    });
+  }, []);
+
+  async function handleUpgradeAccount() {
+    const email = upgradeEmail.trim();
+    if (!email || !upgradePassword) {
+      setUpgradeError('Enter an email and password');
+      return;
+    }
+    if (upgradePassword.length < 6) {
+      setUpgradeError('Password must be at least 6 characters');
+      return;
+    }
+    setUpgradeLoading(true);
+    setUpgradeError('');
+    // Sets real credentials on the SAME anonymous user (same auth.uid()), so
+    // every bit of guest data — reading progress, badges, friends — carries
+    // over automatically. No migration, no new row, no data loss.
+    const { error } = await supabase.auth.updateUser({ email, password: upgradePassword });
+    setUpgradeLoading(false);
+    if (error) {
+      setUpgradeError(error.message || 'Could not create your account — try again');
+      return;
+    }
+    setIsAnonymous(false);
+    setShowUpgradeModal(false);
+    setUpgradeEmail('');
+    setUpgradePassword('');
+    showAppToast('Account created — check your email to confirm, your progress is already saved', 'success');
+  }
   const [showAgeGate, setShowAgeGate] = useState(false);
 
   const [cacheCleared, setCacheCleared] = useState(false);
@@ -464,6 +504,21 @@ export default function SettingsScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
         <View style={isTablet ? styles.tabletWrap : null}>
+
+        {/* ── Guest upgrade ───────────────────────────────────────────── */}
+        {isAnonymous && (
+          <SectionCard title="You're browsing as a guest" icon="person-add-outline">
+            <Text style={[styles.cardSub, { color: colors.muted }]}>
+              Create a real account to keep your reading progress, badges, and friends safe if you switch devices or reinstall.
+            </Text>
+            <TouchableOpacity
+              style={[styles.smallCta, { alignSelf: 'flex-start', marginTop: 10 }]}
+              onPress={() => setShowUpgradeModal(true)}>
+              <Ionicons name="person-add" size={13} color="#fff" />
+              <Text style={styles.smallCtaText}>Create Account</Text>
+            </TouchableOpacity>
+          </SectionCard>
+        )}
 
         {/* ── Account ─────────────────────────────────────────────────── */}
         <SectionCard title="Display name" icon="person-outline">
@@ -929,7 +984,7 @@ export default function SettingsScreen({ navigation }) {
                 <Text style={[styles.modalTitle, { color: colors.text }]}>Choose Your Plan</Text>
                 <Text style={[styles.modalSub, { color: colors.muted }]}>Upgrade anytime, cancel anytime</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowPlans(false)}>
+              <TouchableOpacity onPress={() => setShowPlans(false)} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1014,12 +1069,13 @@ export default function SettingsScreen({ navigation }) {
                 }
               }}>
               <Text style={[styles.ctaBtnText, selectedPlan === 'pro' && styles.ctaBtnTextPro]}>
-                {selectedPlan === 'free' ? "You're on the Free plan" :
-                 `Subscribe — ${proBilling === 'yearly' ? '$29.99/yr' : '$3.99/mo'}`}
+                {selectedPlan === 'free' ? "You're on the Free plan" : 'Notify Me When Pro Launches'}
               </Text>
             </TouchableOpacity>
             {selectedPlan !== 'free' && (
-              <Text style={[styles.cancelText, { color: colors.muted }]}>Cancel anytime · No commitment</Text>
+              <Text style={[styles.cancelText, { color: colors.muted }]}>
+                Pricing shown is planned, not final · You won't be charged today
+              </Text>
             )}
           </View>
         </View>
@@ -1036,7 +1092,7 @@ export default function SettingsScreen({ navigation }) {
                   These weights come from series you've rated, liked, and swiped on — higher weight means Recs shows you more of that genre. Nudge any genre up or down.
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setShowTasteModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <TouchableOpacity onPress={() => setShowTasteModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1055,13 +1111,17 @@ export default function SettingsScreen({ navigation }) {
                       <TouchableOpacity
                         style={[styles.tasteStepBtn, { borderColor: colors.border }]}
                         onPress={() => adjustGenreWeight(g.genre, -1)}
-                        disabled={g.weight <= 0}>
+                        disabled={g.weight <= 0}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Decrease ${g.genre} weight`}>
                         <Ionicons name="remove" size={16} color={g.weight <= 0 ? colors.border : colors.text} />
                       </TouchableOpacity>
                       <Text style={[styles.tasteWeight, { color: colors.text }]}>{g.weight}</Text>
                       <TouchableOpacity
                         style={[styles.tasteStepBtn, { borderColor: colors.border }]}
-                        onPress={() => adjustGenreWeight(g.genre, 1)}>
+                        onPress={() => adjustGenreWeight(g.genre, 1)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Increase ${g.genre} weight`}>
                         <Ionicons name="add" size={16} color={colors.text} />
                       </TouchableOpacity>
                     </View>
@@ -1084,7 +1144,7 @@ export default function SettingsScreen({ navigation }) {
                   <Text style={styles.changelogVersionPillText}>v{currentChangelog.version}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setShowChangelog(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <TouchableOpacity onPress={() => setShowChangelog(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1099,6 +1159,59 @@ export default function SettingsScreen({ navigation }) {
               ))}
             </ScrollView>
           </View>
+        </View>
+      </Modal>
+
+      {/* ── Guest upgrade modal ── */}
+      <Modal visible={showUpgradeModal} animationType="slide" transparent onRequestClose={() => setShowUpgradeModal(false)}>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
+            <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
+              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Create Account</Text>
+                <TouchableOpacity onPress={() => setShowUpgradeModal(false)} accessibilityRole="button" accessibilityLabel="Close">
+                  <Ionicons name="close" size={22} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.modalSub, { color: colors.muted }]}>
+                Your reading progress, badges, and friends stay exactly as they are — this just adds a way to sign back in.
+              </Text>
+
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, marginTop: 14 }]}
+                value={upgradeEmail}
+                onChangeText={(t) => { setUpgradeEmail(t); setUpgradeError(''); }}
+                placeholder="Email"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+              />
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, marginTop: 10 }]}
+                value={upgradePassword}
+                onChangeText={(t) => { setUpgradePassword(t); setUpgradeError(''); }}
+                placeholder="Password (min 6 characters)"
+                placeholderTextColor={colors.muted}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              {!!upgradeError && (
+                <View style={[styles.warningRow, { marginTop: 8 }]}>
+                  <Ionicons name="alert-circle-outline" size={12} color="#E24B4A" />
+                  <Text style={styles.warningTextDanger}>{upgradeError}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.smallCta, { justifyContent: 'center', marginTop: 16, opacity: upgradeLoading ? 0.6 : 1 }]}
+                onPress={handleUpgradeAccount}
+                disabled={upgradeLoading}>
+                {upgradeLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.smallCtaText}>Create Account</Text>}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>

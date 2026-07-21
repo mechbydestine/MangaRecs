@@ -150,7 +150,9 @@ export default function DiscussionScreen() {
       return;
     }
 
-    // 2. Fetch replies for all top-level comments
+    // 2. Fetch replies for all top-level comments (tier 2), then replies of
+    // those replies (tier 3) — real two-level nesting instead of flattening
+    // every reply-to-a-reply onto the top-level comment.
     let replyRows = [];
     if (data.length > 0) {
       const { data: replies } = await supabase
@@ -160,12 +162,21 @@ export default function DiscussionScreen() {
         .order('created_at', { ascending: true });
       if (replies) replyRows = replies;
     }
+    let subReplyRows = [];
+    if (replyRows.length > 0) {
+      const { data: subReplies } = await supabase
+        .from('comments')
+        .select('id, user_id, text, likes, spoiler, created_at, parent_id, author:user_id(username, display_name, avatar_url, color)')
+        .in('parent_id', replyRows.map((r) => r.id))
+        .order('created_at', { ascending: true });
+      if (subReplies) subReplyRows = subReplies;
+    }
 
     // 3. Fetch which comments + replies the current user has liked
     const uid = currentUserId || (await supabase.auth.getSession()).data.session?.user?.id;
     let likedSet = new Set();
     if (uid) {
-      const allIds = [...data.map((c) => c.id), ...replyRows.map((r) => r.id)];
+      const allIds = [...data.map((c) => c.id), ...replyRows.map((r) => r.id), ...subReplyRows.map((r) => r.id)];
       if (allIds.length > 0) {
         const { data: liked } = await supabase
           .from('comment_likes')
@@ -176,12 +187,9 @@ export default function DiscussionScreen() {
       }
     }
 
-    // 4. Group replies by parent_id
-    const replyMap = {};
-    replyRows.forEach((r) => {
-      if (!replyMap[r.parent_id]) replyMap[r.parent_id] = [];
+    function mapRow(r) {
       const rName = r.author?.display_name || r.author?.username || 'Reader';
-      replyMap[r.parent_id].push({
+      return {
         id: r.id,
         userId: r.user_id,
         name: rName,
@@ -192,7 +200,21 @@ export default function DiscussionScreen() {
         text: r.text,
         likes: r.likes || 0,
         liked: likedSet.has(r.id),
-      });
+      };
+    }
+
+    // Tier 3 grouped under their direct reply parent
+    const subReplyMap = {};
+    subReplyRows.forEach((r) => {
+      if (!subReplyMap[r.parent_id]) subReplyMap[r.parent_id] = [];
+      subReplyMap[r.parent_id].push(mapRow(r));
+    });
+
+    // Tier 2 grouped under their top-level comment, each carrying its own replies
+    const replyMap = {};
+    replyRows.forEach((r) => {
+      if (!replyMap[r.parent_id]) replyMap[r.parent_id] = [];
+      replyMap[r.parent_id].push({ ...mapRow(r), replies: subReplyMap[r.id] || [] });
     });
 
     setFetchingComments(false);
@@ -259,24 +281,34 @@ export default function DiscussionScreen() {
             data: { series_title: title, chapter: latestChapter, text_preview: text.slice(0, 80), comment_id: replyingTo.commentId },
           }).then(() => {});
         }
+        const newReply = {
+          id: data.id,
+          name: 'You',
+          avatar: 'Y',
+          avatarUrl: profile?.avatar_url || null,
+          color: profile?.color || null,
+          time: 'just now',
+          text: data.text,
+          likes: 0,
+          liked: false,
+        };
         setComments((prev) => prev.map((c) => {
-          if (c.id !== replyingTo.commentId) return c;
-          return {
-            ...c,
-            replies: [...c.replies, {
-              id: data.id,
-              name: 'You',
-              avatar: 'Y',
-              avatarUrl: profile?.avatar_url || null,
-              color: profile?.color || null,
-              time: 'just now',
-              text: data.text,
-              likes: 0,
-              liked: false,
-            }],
-          };
+          if (c.id === replyingTo.commentId) {
+            return { ...c, replies: [...c.replies, newReply] };
+          }
+          // Target might be a tier-2 reply (replying to a reply) rather than
+          // the top-level comment — find it among this comment's replies too.
+          if (c.replies.some((r) => r.id === replyingTo.commentId)) {
+            return {
+              ...c,
+              replies: c.replies.map((r) => r.id === replyingTo.commentId
+                ? { ...r, replies: [...(r.replies || []), newReply] }
+                : r),
+            };
+          }
+          return c;
         }));
-        setExpandedReplies((prev) => ({ ...prev, [replyingTo.commentId]: true }));
+        setExpandedReplies((prev) => ({ ...prev, [replyingTo.topLevelId || replyingTo.commentId]: true }));
         setReplyingTo(null);
       } else {
         setComments((prev) => [{
@@ -312,26 +344,45 @@ export default function DiscussionScreen() {
     }
   }
 
-  function handleReplyLike(commentId, replyId) {
+  // subReplyId is set when liking a tier-3 reply-to-a-reply; replyId is then
+  // its tier-2 parent (so we know which .replies array to search within).
+  function handleReplyLike(commentId, replyId, subReplyId) {
     light();
+    const targetId = subReplyId || replyId;
     setComments((prev) => prev.map((c) => {
       if (c.id !== commentId) return c;
+      if (!subReplyId) {
+        return {
+          ...c,
+          replies: c.replies.map((r) =>
+            r.id === replyId
+              ? { ...r, liked: !r.liked, likes: r.liked ? r.likes - 1 : r.likes + 1 }
+              : r
+          ),
+        };
+      }
       return {
         ...c,
-        replies: c.replies.map((r) =>
-          r.id === replyId
-            ? { ...r, liked: !r.liked, likes: r.liked ? r.likes - 1 : r.likes + 1 }
-            : r
-        ),
+        replies: c.replies.map((r) => {
+          if (r.id !== replyId) return r;
+          return {
+            ...r,
+            replies: (r.replies || []).map((sr) =>
+              sr.id === subReplyId
+                ? { ...sr, liked: !sr.liked, likes: sr.liked ? sr.likes - 1 : sr.likes + 1 }
+                : sr
+            ),
+          };
+        }),
       };
     }));
     if (currentUserId) {
-      supabase.rpc('toggle_comment_like', { p_comment_id: replyId }).then(() => {});
+      supabase.rpc('toggle_comment_like', { p_comment_id: targetId }).then(() => {});
     }
   }
 
-  function handleReply(name, commentId, userId) {
-    setReplyingTo({ commentId, name, userId });
+  function handleReply(name, commentId, userId, topLevelId) {
+    setReplyingTo({ commentId, name, userId, topLevelId: topLevelId || commentId });
     setCommentText(`@${name} `);
     setTimeout(() => inputRef.current?.focus(), 80);
   }
@@ -608,7 +659,7 @@ export default function DiscussionScreen() {
                               {reply.likes}
                             </Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={styles.actionBtn} onPress={() => handleReply(reply.name, comment.id, reply.userId)}>
+                          <TouchableOpacity style={styles.actionBtn} onPress={() => handleReply(reply.name, reply.id, reply.userId, comment.id)}>
                             <Ionicons name="chatbubble-outline" size={13} color={colors.muted} />
                             <Text style={[styles.actionText, { color: colors.muted }]}>Reply</Text>
                           </TouchableOpacity>
@@ -623,6 +674,57 @@ export default function DiscussionScreen() {
                     </View>
                   );
                 })}
+
+                {/* Tier-3 replies-to-replies — nested one step further; further
+                    replies on these flatten back onto their tier-2 parent
+                    (same bounded pattern the tier-2 level uses for tier-1). */}
+                {repliesOpen && comment.replies?.map((reply) =>
+                  reply.replies?.map((subReply, sri) => {
+                    const isLastSub = sri === reply.replies.length - 1;
+                    return (
+                      <View
+                        key={subReply.id}
+                        style={[styles.subReplyRow, { borderBottomColor: isLastSub ? colors.border : 'transparent' }]}>
+                        <View style={[styles.subReplyAvatar, { backgroundColor: themeColor(subReply.color) }]}>
+                          {subReply.avatarUrl
+                            ? <Image source={{ uri: subReply.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                            : <Text style={styles.replyAvatarText}>{subReply.avatar}</Text>}
+                        </View>
+                        <View style={styles.replyBody}>
+                          <View style={styles.metaRow}>
+                            <Text style={[styles.commenterName, { color: colors.text }]}>{subReply.name}</Text>
+                            <Text style={[styles.commenterTime, { color: colors.muted }]}>{subReply.time}</Text>
+                          </View>
+                          <Text style={[styles.bodyText, { color: colors.text }]}>{subReply.text}</Text>
+                          <View style={styles.actionsRow}>
+                            <TouchableOpacity
+                              style={styles.actionBtn}
+                              onPress={() => handleReplyLike(comment.id, reply.id, subReply.id)}>
+                              <Ionicons
+                                name={subReply.liked ? 'heart' : 'heart-outline'}
+                                size={14}
+                                color={subReply.liked ? '#E8527A' : colors.muted}
+                              />
+                              <Text style={[styles.actionText, { color: subReply.liked ? '#E8527A' : colors.muted }]}>
+                                {subReply.likes}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => handleReply(subReply.name, reply.id, subReply.userId, comment.id)}>
+                              <Ionicons name="chatbubble-outline" size={13} color={colors.muted} />
+                              <Text style={[styles.actionText, { color: colors.muted }]}>Reply</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.actionBtn, { marginLeft: 'auto' }]}
+                              onPress={() => setReportItem(subReply)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                              <Ionicons name="flag-outline" size={13} color={colors.muted} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
               </View>
             );
           })}
@@ -709,7 +811,7 @@ export default function DiscussionScreen() {
             <View style={[styles.reportSheet, { backgroundColor: colors.card, alignItems: 'center' }]} onStartShouldSetResponder={() => true}>
               <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
               <Text style={[styles.reportTitle, { color: colors.text }]} numberOfLines={1}>{title}</Text>
-              <StarRatingDisplay avg={seriesRating.avg} count={seriesRating.count} size={14} />
+              <StarRatingDisplay avg={seriesRating.avg} count={seriesRating.count} size={14} showLabel />
               <Text style={[styles.reportSub, { color: colors.muted, marginBottom: 4 }]}>
                 {seriesRating.yourRating ? 'Tap to change your rating' : 'Tap to rate'}
               </Text>
@@ -781,6 +883,8 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 12, fontWeight: '500' },
   // Replies
   replyRow: { flexDirection: 'row', paddingLeft: 16, paddingRight: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
+  subReplyRow: { flexDirection: 'row', paddingLeft: 56, paddingRight: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
+  subReplyAvatar: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 10, marginTop: 2, flexShrink: 0, overflow: 'hidden' },
   threadPad: { width: 36, marginRight: 12, alignItems: 'center' },
   replyAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 10, marginTop: 2, flexShrink: 0, overflow: 'hidden' },
   replyAvatarText: { color: '#fff', fontSize: 11, fontWeight: '700' },

@@ -15,6 +15,7 @@ import { GENRE_PICKER_OPTIONS as GENRES } from '../utils/genres';
 import { useResponsive } from '../utils/responsive';
 import { showAppToast } from '../utils/appToast';
 import { showAppAlert } from '../utils/appAlert';
+import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 
 const STAT_META = [
   { icon: 'book',   label: 'Series Published', color: '#7B5CFF', key: 'count' },
@@ -194,11 +195,7 @@ export default function CreatorDashboardScreen() {
   }
 
   async function pickPages() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      showAppToast('Allow photo library access to pick chapter pages');
-      return;
-    }
+    if (!(await ensureMediaLibraryPermission())) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
@@ -448,7 +445,7 @@ export default function CreatorDashboardScreen() {
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: colors.text }]}>New Series</Text>
-              <TouchableOpacity onPress={() => setShowUpload(false)}>
+              <TouchableOpacity onPress={() => setShowUpload(false)} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -525,7 +522,7 @@ export default function CreatorDashboardScreen() {
                   {addChapterSeries?.title}
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeChapterSheet} disabled={uploadingChapter}>
+              <TouchableOpacity onPress={closeChapterSheet} disabled={uploadingChapter} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>

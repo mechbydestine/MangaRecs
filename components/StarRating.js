@@ -42,7 +42,12 @@ export function StarRatingInput({ value = 0, onRate, size = 20, color = GOLD, di
 // Read-only average display. `avg` is on the same 1-10 point scale as the
 // input above; rendered as 5 (half-)stars, labeled as "x.x/10" so the shown
 // number always matches what rating the user actually submitted.
-export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD, mutedColor = '#8A8894', showCount = true }) {
+// This is MangaRecs' own in-app reader rating — a separate number from the
+// canon/curated rating shown on MangaDetailScreen (AniList-sourced). Both
+// numbers can legitimately differ, so every place this renders gets an
+// explicit "MangaRecs Readers" caption rather than looking like a mismatch
+// or a duplicate of the canon score.
+export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD, mutedColor = '#8A8894', showCount = true, showLabel = false }) {
   const starsEquiv = avg / 2;
   const rounded = Math.round(starsEquiv * 2) / 2;
   const stars = [1, 2, 3, 4, 5].map((n) => {
@@ -51,15 +56,20 @@ export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD,
     return 'star-outline';
   });
   return (
-    <View style={styles.row}>
-      {stars.map((name, i) => (
-        <Ionicons key={i} name={name} size={size} color={name === 'star-outline' ? mutedColor : color} style={{ marginRight: 1 }} />
-      ))}
-      {showCount && (
-        <Text style={[styles.countText, { color: mutedColor, fontSize: size * 0.75 }]}>
-          {count > 0 ? ` ${avg.toFixed(1)}/10 (${count})` : ' Not rated'}
-        </Text>
+    <View>
+      {showLabel && (
+        <Text style={[styles.label, { color: mutedColor, fontSize: size * 0.7 }]}>MANGARECS READERS</Text>
       )}
+      <View style={styles.row}>
+        {stars.map((name, i) => (
+          <Ionicons key={i} name={name} size={size} color={name === 'star-outline' ? mutedColor : color} style={{ marginRight: 1 }} />
+        ))}
+        {showCount && (
+          <Text style={[styles.countText, { color: mutedColor, fontSize: size * 0.75 }]}>
+            {count > 0 ? ` ${avg.toFixed(1)}/10 (${count})` : ' Not rated'}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -67,4 +77,5 @@ export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD,
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   countText: { marginLeft: 4, fontWeight: '600' },
+  label: { fontWeight: '700', letterSpacing: 0.6, marginBottom: 2 },
 });

@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../utils/ThemeContext';
 
 export const AGE_VERIFIED_KEY = '@mangarecs/age_verified';
 
@@ -25,6 +26,7 @@ function validate(mm, dd, yyyy) {
 }
 
 export default function AgeGateModal({ visible, onVerified, onDismiss }) {
+  const { colors } = useTheme();
   const [mm, setMm] = useState('');
   const [dd, setDd] = useState('');
   const [yyyy, setYyyy] = useState('');
@@ -66,22 +68,22 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={handleClose}>
       <View style={s.overlay}>
-        <Animated.View style={[s.sheet, { transform: [{ translateX: shakeAnim }] }]}>
-          <View style={s.iconWrap}>
-            <Ionicons name="shield-checkmark" size={32} color="#7B5CFF" />
+        <Animated.View style={[s.sheet, { backgroundColor: colors.card, borderColor: colors.border, transform: [{ translateX: shakeAnim }] }]}>
+          <View style={[s.iconWrap, { backgroundColor: 'rgba(123,92,255,0.15)' }]}>
+            <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
           </View>
-          <Text style={s.title}>Age Verification</Text>
-          <Text style={s.sub}>
+          <Text style={[s.title, { color: colors.text }]}>Age Verification</Text>
+          <Text style={[s.sub, { color: colors.muted }]}>
             Adult content is restricted to users 18 and older.{'\n'}Enter your date of birth to continue.
           </Text>
 
           <View style={s.dobRow}>
             <View style={s.fieldWrap}>
-              <Text style={s.fieldLabel}>MM</Text>
+              <Text style={[s.fieldLabel, { color: colors.muted }]}>MM</Text>
               <TextInput
-                style={s.input}
+                style={[s.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                 placeholder="01"
-                placeholderTextColor="#5C5B63"
+                placeholderTextColor={colors.muted}
                 keyboardType="number-pad"
                 maxLength={2}
                 value={mm}
@@ -93,14 +95,14 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
                 onSubmitEditing={() => ddRef.current?.focus()}
               />
             </View>
-            <Text style={s.dobSep}>/</Text>
+            <Text style={[s.dobSep, { color: colors.muted }]}>/</Text>
             <View style={s.fieldWrap}>
-              <Text style={s.fieldLabel}>DD</Text>
+              <Text style={[s.fieldLabel, { color: colors.muted }]}>DD</Text>
               <TextInput
                 ref={ddRef}
-                style={s.input}
+                style={[s.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                 placeholder="15"
-                placeholderTextColor="#5C5B63"
+                placeholderTextColor={colors.muted}
                 keyboardType="number-pad"
                 maxLength={2}
                 value={dd}
@@ -112,14 +114,14 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
                 onSubmitEditing={() => yyyyRef.current?.focus()}
               />
             </View>
-            <Text style={s.dobSep}>/</Text>
+            <Text style={[s.dobSep, { color: colors.muted }]}>/</Text>
             <View style={[s.fieldWrap, { flex: 2 }]}>
-              <Text style={s.fieldLabel}>YYYY</Text>
+              <Text style={[s.fieldLabel, { color: colors.muted }]}>YYYY</Text>
               <TextInput
                 ref={yyyyRef}
-                style={s.input}
+                style={[s.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
                 placeholder="1995"
-                placeholderTextColor="#5C5B63"
+                placeholderTextColor={colors.muted}
                 keyboardType="number-pad"
                 maxLength={4}
                 value={yyyy}
@@ -130,15 +132,15 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
             </View>
           </View>
 
-          {!!error && <Text style={s.error}>{error}</Text>}
+          {!!error && <Text style={[s.error, { color: colors.error }]}>{error}</Text>}
 
-          <TouchableOpacity style={s.confirmBtn} onPress={handleConfirm} activeOpacity={0.85}>
+          <TouchableOpacity style={[s.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
             <Text style={s.confirmBtnText}>Confirm Age</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.cancelBtn} onPress={handleClose} activeOpacity={0.7}>
-            <Text style={s.cancelBtnText}>Cancel</Text>
+            <Text style={[s.cancelBtnText, { color: colors.muted }]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={s.disclaimer}>
+          <Text style={[s.disclaimer, { color: colors.muted, opacity: 0.7 }]}>
             Your date of birth is used only for age verification and is not stored on our servers.
           </Text>
         </Animated.View>
@@ -149,19 +151,19 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
 
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  sheet: { backgroundColor: '#13131A', borderRadius: 24, padding: 28, width: '100%', borderWidth: 1, borderColor: '#2A2A2F', alignItems: 'center' },
-  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(123,92,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8, textAlign: 'center' },
-  sub: { fontSize: 13, color: '#9B9AA3', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  sheet: { borderRadius: 24, padding: 28, width: '100%', borderWidth: 1, alignItems: 'center' },
+  iconWrap: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  sub: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   dobRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginBottom: 8, width: '100%' },
   fieldWrap: { flex: 1, alignItems: 'center' },
-  fieldLabel: { fontSize: 10, color: '#5C5B63', fontWeight: '700', letterSpacing: 1, marginBottom: 4, textTransform: 'uppercase' },
-  input: { width: '100%', backgroundColor: '#1A1A1F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
-  dobSep: { color: '#5C5B63', fontSize: 22, fontWeight: '300', paddingBottom: 10, paddingHorizontal: 2 },
-  error: { color: '#FF6B6B', fontSize: 12, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  confirmBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, paddingVertical: 14, width: '100%', alignItems: 'center', marginTop: 8, marginBottom: 8 },
+  fieldLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 4, textTransform: 'uppercase' },
+  input: { width: '100%', borderRadius: 12, borderWidth: 1, fontSize: 18, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
+  dobSep: { fontSize: 22, fontWeight: '300', paddingBottom: 10, paddingHorizontal: 2 },
+  error: { fontSize: 12, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
+  confirmBtn: { borderRadius: 14, paddingVertical: 14, width: '100%', alignItems: 'center', marginTop: 8, marginBottom: 8 },
   confirmBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   cancelBtn: { paddingVertical: 10, width: '100%', alignItems: 'center' },
-  cancelBtnText: { color: '#9B9AA3', fontSize: 14 },
-  disclaimer: { fontSize: 10, color: '#3C3C44', textAlign: 'center', lineHeight: 15, marginTop: 12 },
+  cancelBtnText: { fontSize: 14 },
+  disclaimer: { fontSize: 10, textAlign: 'center', lineHeight: 15, marginTop: 12 },
 });

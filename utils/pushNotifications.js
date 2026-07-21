@@ -1,7 +1,27 @@
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
+
+// registerPushToken used to swallow every failure in a single catch-all, so a
+// broken token registration (bad projectId, expired session, network drop)
+// left zero trace anywhere — no way to notice a chunk of users silently
+// stopped getting push at all. This keeps a lightweight breadcrumb of the
+// last failure (no backend table needed) and always logs with context.
+const LAST_ERROR_KEY = '@mangarecs/last_push_registration_error';
+
+async function recordPushError(stage, err) {
+  console.warn('[push] registration failed at', stage, err?.message || err);
+  try {
+    await AsyncStorage.setItem(LAST_ERROR_KEY, JSON.stringify({
+      stage,
+      message: err?.message || String(err),
+      at: new Date().toISOString(),
+      platform: Platform.OS,
+    }));
+  } catch (_) {}
+}
 
 // expo-notifications cannot even be imported in Expo Go (SDK 53+) — dynamic require only in real builds
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -28,35 +48,57 @@ export async function syncBadgeCount(count) {
 
 export async function registerPushToken(userId) {
   if (isExpoGo || !Notifications || !Device.isDevice) return;
+
+  let finalStatus;
   try {
     const { status: existing } = await Notifications.getPermissionsAsync();
-    let finalStatus = existing;
+    finalStatus = existing;
     if (existing !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    if (finalStatus !== 'granted') return;
+  } catch (err) {
+    recordPushError('permissions', err);
+    return;
+  }
+  if (finalStatus !== 'granted') return; // user declined — expected, not an error
 
-    if (Platform.OS === 'android') {
+  if (Platform.OS === 'android') {
+    try {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         sound: 'notification',
       });
+    } catch (err) {
+      recordPushError('android_channel', err);
+      // Not fatal — token registration can still proceed without a channel.
     }
+  }
 
+  let token;
+  try {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     const tokenData = projectId
       ? await Notifications.getExpoPushTokenAsync({ projectId })
       : await Notifications.getExpoPushTokenAsync();
+    token = tokenData?.data;
+  } catch (err) {
+    recordPushError('get_token', err);
+    return;
+  }
+  if (!token) {
+    recordPushError('get_token', new Error('getExpoPushTokenAsync returned no token'));
+    return;
+  }
 
-    const token = tokenData?.data;
-    if (token) {
-      await supabase.from('profiles').update({ push_token: token }).eq('id', userId);
-    }
-    return token;
-  } catch (_) {}
+  const { error } = await supabase.from('profiles').update({ push_token: token }).eq('id', userId);
+  if (error) {
+    recordPushError('save_token', error);
+    return;
+  }
+  return token;
 }
 
 async function sendPush(token, payload) {

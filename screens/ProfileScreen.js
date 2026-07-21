@@ -24,6 +24,7 @@ import { getMergedDailyLog, calculateStreak, localDateKey } from '../utils/reade
 import { showAppToast } from '../utils/appToast';
 import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
+import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -694,6 +695,7 @@ export default function ProfileScreen() {
   // ── Handlers ────────────────────────────────────────────────────────────
 
   async function pickAvatar() {
+    if (!(await ensureMediaLibraryPermission())) return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
     if (!result.canceled) {
       const uri = result.assets[0].uri;
@@ -702,11 +704,14 @@ export default function ProfileScreen() {
       if (url) {
         await AsyncStorage.setItem('@mangarecs_avatar', url);
         setAvatarUri(url);
+      } else {
+        showAppToast("Couldn't upload your photo — try again");
       }
     }
   }
 
   async function pickBanner() {
+    if (!(await ensureMediaLibraryPermission())) return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [16, 9], quality: 0.8 });
     if (!result.canceled) {
       const uri = result.assets[0].uri;
@@ -715,6 +720,8 @@ export default function ProfileScreen() {
       if (url) {
         await AsyncStorage.setItem('@mangarecs_banner', url);
         setBannerUri(url);
+      } else {
+        showAppToast("Couldn't upload your photo — try again");
       }
     }
   }
