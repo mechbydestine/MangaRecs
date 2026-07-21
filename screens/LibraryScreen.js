@@ -16,6 +16,7 @@ import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRe
 import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
+import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { isJunkTitle } from '../utils/titleValidation';
 import { maybeAskForReview } from '../utils/reviewPrompt';
 import { CoverGridSkeleton } from '../components/Skeleton';
@@ -299,6 +300,7 @@ export default function LibraryScreen() {
   const ratingsFetchedRef = useRef(new Set());
   const [sortMode, setSortMode] = useState('recent');
   const [genreFilter, setGenreFilter] = useState(null);
+  const [showGenreFilter, setShowGenreFilter] = useState(false);
   const [customOrder, setCustomOrder] = useState([]);
   const [arranging, setArranging] = useState(false);
   const [scrollLocked, setScrollLocked] = useState(false);
@@ -608,10 +610,14 @@ export default function LibraryScreen() {
     && !progressRows.some((r) => r.series_title === liveReading.title);
 
   // Same series can end up saved under slightly different scraped title
-  // spellings ("Sword God From..." vs "The Sword God From...") across
-  // separate reading_progress rows — the exact-string dedup above misses
-  // those. Collapse by a normalized key so the grid never shows the same
-  // series as 2-3 separate tiles.
+  // spellings ("Sword God From..." vs "The Sword God From The Ruined
+  // World...") across separate reading_progress rows — an exact-match-after-
+  // normalizing dedup still misses these since the strings genuinely differ
+  // beyond just a leading article. Fall back to substring containment (either
+  // direction) so near-duplicates still collapse, and when two rows do
+  // collapse, keep whichever one actually resolves a real pool cover instead
+  // of whichever came first — otherwise the tile that survives can be the
+  // placeholder-letter one instead of the one with real art/rating.
   function normalizeTitleKey(title) {
     return (title || '')
       .toLowerCase()
@@ -620,13 +626,25 @@ export default function LibraryScreen() {
       .trim();
   }
   function dedupeByNormalizedTitle(list) {
-    const seen = new Set();
-    return list.filter((s) => {
+    const keys = [];
+    const bestBySlot = new Map();
+    for (const s of list) {
       const key = normalizeTitleKey(s.title);
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+      if (!key) continue;
+      let slot = keys.find((k) => k === key || (k.length >= 6 && key.length >= 6 && (k.includes(key) || key.includes(k))));
+      if (!slot) { slot = key; keys.push(key); }
+      const current = bestBySlot.get(slot);
+      if (!current) {
+        bestBySlot.set(slot, s);
+      } else {
+        const poolCoverResolved = (item) => {
+          const pool = findPoolEntry(item.title, item.searchKey);
+          return !!(pool && (POOL_COVER_URLS[pool.id] || item.coverUrl));
+        };
+        if (poolCoverResolved(s) && !poolCoverResolved(current)) bestBySlot.set(slot, s);
+      }
+    }
+    return keys.map((k) => bestBySlot.get(k));
   }
 
   const readingSeries = dedupeByNormalizedTitle([
@@ -656,13 +674,21 @@ export default function LibraryScreen() {
     ...staticPool.filter((s) => (s.progress >= 1 || completedIds.has(s.id)) && !deletedIds.has(s.id)),
   ]);
 
+  // The resume cache's own searchKey can drift out of sync with its title
+  // (e.g. a webview session navigating to a different manga mid-read updates
+  // one but not the other) — MangaCover resolves the shown cover from
+  // searchKey, so a stale one silently shows a completely different series'
+  // cover under the correct title. Always re-derive searchKey fresh from the
+  // pool using the title actually being displayed, rather than trusting
+  // whatever was cached alongside it.
+  const continueReadingPool = lastReadEntry ? findPoolEntry(lastReadEntry.title, lastReadEntry.searchKey) : null;
   const continueReading = lastReadEntry
     ? {
         id: 'last-read',
         title: lastReadEntry.title,
-        searchKey: lastReadEntry.searchKey || lastReadEntry.title,
-        lang: lastReadEntry.lang || 'ja',
-        color: lastReadEntry.color || '#1A1A2E',
+        searchKey: continueReadingPool?.searchKey || lastReadEntry.title,
+        lang: continueReadingPool?.lang || lastReadEntry.lang || 'ja',
+        color: continueReadingPool?.color || lastReadEntry.color || '#1A1A2E',
         currentChapter: lastReadEntry.chapter || 1,
         chapterLabel: lastReadEntry.chapterLabel || `Chapter ${lastReadEntry.chapter || 1}`,
         chapters: lastReadEntry.chapters || 999,
@@ -1257,9 +1283,19 @@ export default function LibraryScreen() {
               <Text style={[styles.arrangeBtnText, arranging && { color: '#fff' }]}>{arranging ? 'Done' : 'Move'}</Text>
             </TouchableOpacity>
           )}
+          {tabGenres.length > 1 && (
+            <TouchableOpacity
+              style={[styles.genreFilterToggle, { backgroundColor: colors.border }, showGenreFilter && styles.sortChipActive]}
+              onPress={() => { light(); setShowGenreFilter((v) => !v); }}
+              accessibilityRole="button"
+              accessibilityLabel="Filter by genre">
+              <Ionicons name="filter" size={13} color={genreFilter ? '#7B5CFF' : colors.muted} />
+              {!!genreFilter && <View style={styles.genreFilterDot} />}
+            </TouchableOpacity>
+          )}
         </View>
 
-        {tabGenres.length > 1 && (
+        {showGenreFilter && tabGenres.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.genreRow} contentContainerStyle={styles.genreRowContent}>
             <TouchableOpacity
               style={[styles.sortChip, { backgroundColor: colors.border }, !genreFilter && styles.sortChipActive]}
@@ -1555,6 +1591,8 @@ const styles = StyleSheet.create({
   arrangeBtn: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(123,92,255,0.14)' },
   arrangeBtnActive: { backgroundColor: '#7B5CFF' },
   arrangeBtnText: { fontSize: 10.5, fontWeight: '700', color: '#7B5CFF', marginLeft: 4 },
+  genreFilterToggle: { marginLeft: 'auto', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  genreFilterDot: { position: 'absolute', top: 3, right: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: '#7B5CFF' },
   tab: { flex: 1, borderRadius: 9, overflow: 'hidden' },
   tabInner: { paddingVertical: 8, paddingHorizontal: 2, alignItems: 'center' },
   tabActive: {},
