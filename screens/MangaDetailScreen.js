@@ -142,7 +142,9 @@ export default function MangaDetailScreen() {
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={[styles.backBtn, { top: insets.top + 10 }]}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Go back">
               <Ionicons name="chevron-back" size={22} color="#fff" />
             </TouchableOpacity>
             <MangaCover

@@ -392,7 +392,7 @@ export default function SocialScreen() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportToast, setReportToast] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState(null);
+  const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [requestSentTo, setRequestSentTo] = useState({});
@@ -875,24 +875,34 @@ export default function SocialScreen() {
     const q = searchQuery.trim().replace(/^@/, '');
     if (!q) return;
     setSearchLoading(true);
-    setSearchResult(null);
     setSearchError('');
 
+    // Substring match (not just exact) so "des" finds "destinekene" — matching
+    // usernames were previously only found by typing the complete username.
     const { data, error } = await supabase
       .from('profiles')
       .select('id, username, display_name, bio, chapters_read, favorite_genre, color, avatar_url, banner_url')
-      .ilike('username', q)
+      .ilike('username', `%${q}%`)
       .not('username', 'is', null)
       .neq('username', '')
-      .limit(1)
-      .maybeSingle();
+      .limit(8);
 
     setSearchLoading(false);
-    if (error) { setSearchError('Search failed. Please try again.'); return; }
-    if (!data) { setSearchError(`No user found for "@${q}"`); return; }
-    if (data.id === currentUserId) { setSearchError("That's your own account!"); return; }
-    setSearchResult(data);
+    if (error) { setSearchError('Search failed. Please try again.'); setSearchResults([]); return; }
+    const results = (data || []).filter((u) => u.id !== currentUserId);
+    if (results.length === 0) { setSearchError(`No users found for "@${q}"`); setSearchResults([]); return; }
+    setSearchResults(results);
   }
+
+  // Live, debounced search as the user types — the explicit search button
+  // still works too (e.g. after a paste), this just removes the need to tap
+  // it for the common case of typing a few letters and seeing matches.
+  useEffect(() => {
+    const q = searchQuery.trim().replace(/^@/, '');
+    if (q.length < 2) { setSearchResults([]); setSearchError(''); return; }
+    const timer = setTimeout(handleSearch, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   async function handleAddFriend(userId) {
     if (!currentUserId || !userId) return;
@@ -979,7 +989,7 @@ export default function SocialScreen() {
   function closeAddFriend() {
     setShowAddFriend(false);
     setSearchQuery('');
-    setSearchResult(null);
+    setSearchResults([]);
     setSearchError('');
   }
 
@@ -1078,7 +1088,9 @@ export default function SocialScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.declineBtn, { borderColor: colors.border }]}
-                  onPress={() => handleDeclineRequest(req.friendshipId)}>
+                  onPress={() => handleDeclineRequest(req.friendshipId)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decline friend request">
                   <Ionicons name="close" size={14} color={colors.muted} />
                 </TouchableOpacity>
               </View>
@@ -1097,7 +1109,7 @@ export default function SocialScreen() {
         )}
 
         {/* ── Friends ── compact avatar strip, replaces the old always-expanded list */}
-        {friends.length > 0 && (
+        {friends.length > 0 ? (
           <>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Friends</Text>
             <ScrollView
@@ -1115,7 +1127,17 @@ export default function SocialScreen() {
               ))}
             </ScrollView>
           </>
-        )}
+        ) : (!friendsError && (
+          <TouchableOpacity
+            style={[styles.noFriendsHint, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => setShowAddFriend(true)}
+            activeOpacity={0.8}>
+            <Ionicons name="people-outline" size={18} color={colors.muted} />
+            <Text style={[styles.noFriendsHintText, { color: colors.muted }]}>
+              No friends yet — tap to find readers to follow
+            </Text>
+          </TouchableOpacity>
+        ))}
 
         {/* ── Messages ── single entry point instead of an always-open list */}
         <TouchableOpacity
@@ -1228,7 +1250,7 @@ export default function SocialScreen() {
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Messages</Text>
-              <TouchableOpacity onPress={() => setShowMessages(false)}>
+              <TouchableOpacity onPress={() => setShowMessages(false)} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1251,7 +1273,9 @@ export default function SocialScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.declineBtn, { borderColor: colors.border }]}
-                        onPress={() => handleDeclineRequest(req.friendshipId)}>
+                        onPress={() => handleDeclineRequest(req.friendshipId)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Decline friend request">
                         <Ionicons name="close" size={14} color={colors.muted} />
                       </TouchableOpacity>
                     </View>
@@ -1344,7 +1368,7 @@ export default function SocialScreen() {
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Add a Friend</Text>
-              <TouchableOpacity onPress={closeAddFriend}>
+              <TouchableOpacity onPress={closeAddFriend} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1356,7 +1380,7 @@ export default function SocialScreen() {
                 placeholder="@username"
                 placeholderTextColor={colors.muted}
                 value={searchQuery}
-                onChangeText={(t) => { setSearchQuery(t); setSearchResult(null); setSearchError(''); }}
+                onChangeText={(t) => { setSearchQuery(t); setSearchError(''); }}
                 autoCapitalize="none"
                 returnKeyType="search"
                 onSubmitEditing={handleSearch}
@@ -1370,34 +1394,34 @@ export default function SocialScreen() {
 
             {!!searchError && <Text style={styles.searchError}>{searchError}</Text>}
 
-            {searchResult && (
-              <View style={[styles.resultCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <AvatarCircle username={searchResult.display_name || searchResult.username} avatarUrl={searchResult.avatar_url} color={searchResult.color} size={38} style={{ marginRight: 10 }} />
+            {searchResults.map((result) => (
+              <View key={result.id} style={[styles.resultCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <AvatarCircle username={result.display_name || result.username} avatarUrl={result.avatar_url} color={result.color} size={38} style={{ marginRight: 10 }} />
                 <View style={styles.resultInfo}>
-                  <Text style={[styles.resultName, { color: colors.text }]}>{searchResult.display_name || searchResult.username}</Text>
+                  <Text style={[styles.resultName, { color: colors.text }]}>{result.display_name || result.username}</Text>
                   <Text style={[styles.resultSub, { color: colors.muted }]} numberOfLines={1}>
-                    @{searchResult.username} · {searchResult.chapters_read || 0} chapters · {searchResult.favorite_genre || 'Reader'}
+                    @{result.username} · {result.chapters_read || 0} chapters · {result.favorite_genre || 'Reader'}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.viewBtn}
-                  onPress={() => { closeAddFriend(); navigation.navigate('FriendProfile', { id: searchResult.id }); }}>
+                  onPress={() => { closeAddFriend(); navigation.navigate('FriendProfile', { id: result.id }); }}>
                   <Text style={styles.viewBtnText}>Profile</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.addBtn, requestSentTo[searchResult.id] && styles.addBtnSent]}
-                  onPress={() => handleAddFriend(searchResult.id)}>
+                  style={[styles.addBtn, requestSentTo[result.id] && styles.addBtnSent]}
+                  onPress={() => handleAddFriend(result.id)}>
                   <Ionicons
-                    name={requestSentTo[searchResult.id] ? 'checkmark' : 'person-add'}
+                    name={requestSentTo[result.id] ? 'checkmark' : 'person-add'}
                     size={14}
-                    color={requestSentTo[searchResult.id] ? '#1D9E75' : '#7B5CFF'}
+                    color={requestSentTo[result.id] ? '#1D9E75' : '#7B5CFF'}
                   />
-                  <Text style={[styles.addBtnText, requestSentTo[searchResult.id] && styles.addBtnTextSent]}>
-                    {getAddLabel(searchResult.id)}
+                  <Text style={[styles.addBtnText, requestSentTo[result.id] && styles.addBtnTextSent]}>
+                    {getAddLabel(result.id)}
                   </Text>
                 </TouchableOpacity>
               </View>
-            )}
+            ))}
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
@@ -1474,7 +1498,7 @@ export default function SocialScreen() {
                   <Text style={styles.liveText}>LIVE</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setShowLeaderboard(false)} style={styles.lbCloseBtn}>
+              <TouchableOpacity onPress={() => setShowLeaderboard(false)} style={styles.lbCloseBtn} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={16} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1588,6 +1612,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   errorBanner: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 10, padding: 10, borderRadius: 10, borderWidth: 1, gap: 8 },
+  noFriendsHint: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 14, padding: 12, borderRadius: 12, borderWidth: 1, gap: 8 },
+  noFriendsHintText: { fontSize: 12.5, flexShrink: 1 },
   errorBannerText: { flex: 1, fontSize: 11 },
   errorBannerRetry: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
 

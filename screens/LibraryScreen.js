@@ -16,6 +16,7 @@ import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRe
 import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
+import { maybeAskForReview } from '../utils/reviewPrompt';
 import { CoverGridSkeleton } from '../components/Skeleton';
 import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
 import { rateSeries, getSeriesRating } from '../utils/ratings';
@@ -296,6 +297,7 @@ export default function LibraryScreen() {
   const [ratingsMap, setRatingsMap] = useState({});
   const ratingsFetchedRef = useRef(new Set());
   const [sortMode, setSortMode] = useState('recent');
+  const [genreFilter, setGenreFilter] = useState(null);
   const [customOrder, setCustomOrder] = useState([]);
   const [arranging, setArranging] = useState(false);
   const [scrollLocked, setScrollLocked] = useState(false);
@@ -686,7 +688,18 @@ export default function LibraryScreen() {
     }
     return sorted;
   }
-  const filtered = applySort(getFilteredSeries());
+  const sortedForTab = applySort(getFilteredSeries());
+
+  // Genre chips: derived from whatever's actually in the current tab (via the
+  // pool entry, since progress/bookmark rows don't carry genres themselves),
+  // so the chip row only ever shows genres a user could actually narrow down to.
+  function genresFor(series) {
+    return findPoolEntry(series.title, series.searchKey)?.genres || [];
+  }
+  const tabGenres = [...new Set(sortedForTab.flatMap(genresFor))].sort();
+  const filtered = genreFilter
+    ? sortedForTab.filter((s) => genresFor(s).includes(genreFilter))
+    : sortedForTab;
   const pinnedCount = activeTab === 'Reading'
     ? filtered.filter((s) => updatesSet.has(keyOf(s))).length
     : 0;
@@ -1034,6 +1047,9 @@ export default function LibraryScreen() {
       // Server-side capped increment (completed_count is no longer client-writable)
       supabase.rpc('increment_completed_count').then(() => refreshProfile?.());
     }
+    // Small delay so the review prompt doesn't collide with the context
+    // menu's own close animation
+    setTimeout(maybeAskForReview, 900);
   }
 
   async function handleOpenRateModal() {
@@ -1198,7 +1214,7 @@ export default function LibraryScreen() {
 
         <View style={[styles.tabsRow, { backgroundColor: colors.border }]}>
           {TABS.map((tab) => (
-            <TabButton key={tab} tab={tab} active={activeTab === tab} onPress={(t) => { setArranging(false); setScrollLocked(false); setActiveTab(t); }} />
+            <TabButton key={tab} tab={tab} active={activeTab === tab} onPress={(t) => { setArranging(false); setScrollLocked(false); setGenreFilter(null); setActiveTab(t); }} />
           ))}
         </View>
 
@@ -1221,6 +1237,24 @@ export default function LibraryScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {tabGenres.length > 1 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.genreRow} contentContainerStyle={styles.genreRowContent}>
+            <TouchableOpacity
+              style={[styles.sortChip, { backgroundColor: colors.border }, !genreFilter && styles.sortChipActive]}
+              onPress={() => { light(); setGenreFilter(null); }}>
+              <Text style={[styles.sortChipText, { color: !genreFilter ? '#7B5CFF' : colors.muted }]}>All</Text>
+            </TouchableOpacity>
+            {tabGenres.map((g) => (
+              <TouchableOpacity
+                key={g}
+                style={[styles.sortChip, { backgroundColor: colors.border }, genreFilter === g && styles.sortChipActive]}
+                onPress={() => { light(); setGenreFilter(genreFilter === g ? null : g); }}>
+                <Text style={[styles.sortChipText, { color: genreFilter === g ? '#7B5CFF' : colors.muted }]}>{g}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {activeTab === 'Downloaded' && filtered.length > 0 && (
           <Text style={[styles.storageLine, { color: colors.muted }]}>
@@ -1349,7 +1383,7 @@ export default function LibraryScreen() {
               <ActivityIndicator size="small" color="#7B5CFF" style={{ marginVertical: 20 }} />
             ) : (
               <>
-                <StarRatingDisplay avg={rateModal.avg} count={rateModal.count} size={14} />
+                <StarRatingDisplay avg={rateModal.avg} count={rateModal.count} size={14} showLabel />
                 <Text style={[styles.rateSub, { color: colors.muted }]}>
                   {rateModal.yourRating ? 'Tap to change your rating' : 'Tap to rate'}
                 </Text>
@@ -1377,7 +1411,7 @@ export default function LibraryScreen() {
                 placeholderTextColor={colors.muted}
               />
               {query ? (
-                <TouchableOpacity onPress={() => setQuery('')}>
+                <TouchableOpacity onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
                   <Ionicons name="close" size={16} color={colors.muted} />
                 </TouchableOpacity>
               ) : (
@@ -1436,7 +1470,7 @@ export default function LibraryScreen() {
                           <TouchableOpacity style={styles.recentTermBtn} onPress={() => submitSearch(term)}>
                             <Text style={[styles.recentTermText, { color: colors.text }]}>{term}</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => removeRecent(term)} style={{ padding: 6 }}>
+                          <TouchableOpacity onPress={() => removeRecent(term)} style={{ padding: 6 }} accessibilityRole="button" accessibilityLabel={`Remove "${term}" from recent searches`}>
                             <Ionicons name="close" size={13} color={colors.muted} />
                           </TouchableOpacity>
                         </View>
@@ -1492,6 +1526,8 @@ const styles = StyleSheet.create({
   continueProgressFill: { height: 3, backgroundColor: '#7B5CFF', borderRadius: 2 },
   tabsRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 20, marginBottom: 10 },
   sortRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
+  genreRow: { marginBottom: 14 },
+  genreRowContent: { paddingHorizontal: 20 },
   sortChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, marginLeft: 6 },
   sortChipActive: { backgroundColor: 'rgba(123,92,255,0.18)' },
   sortChipText: { fontSize: 10.5, fontWeight: '600' },

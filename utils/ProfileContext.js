@@ -50,6 +50,10 @@ export function ProfileProvider({ children }) {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newBadges, setNewBadges] = useState([]); // newly unlocked, awaiting ceremony
+  // True from the moment a badge unlock is queued until BadgeCeremony's whole
+  // queue finishes — lets other one-shot popups (WhatsNewModal) defer instead
+  // of stacking a second full-screen Modal on top of the ceremony.
+  const [ceremonyActive, setCeremonyActive] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -156,6 +160,8 @@ export function ProfileProvider({ children }) {
       refreshProfile: () => userId && fetchProfile(userId),
       newBadges,
       clearNewBadges: () => setNewBadges([]),
+      ceremonyActive,
+      setCeremonyActive,
     }}>
       {children}
     </ProfileContext.Provider>

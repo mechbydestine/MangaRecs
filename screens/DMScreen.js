@@ -22,6 +22,7 @@ import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
 import { useProfile, uploadMediaFile } from '../utils/ProfileContext';
 import * as ImagePicker from 'expo-image-picker';
+import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 import { Image as ExpoImage } from 'expo-image';
 import { searchGifs } from '../utils/tenor';
 import { sendDMPush } from '../utils/pushNotifications';
@@ -758,6 +759,7 @@ export default function DMScreen() {
   }
 
   async function pickAndSendImage() {
+    if (!(await ensureMediaLibraryPermission())) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,

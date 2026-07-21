@@ -1770,3 +1770,27 @@ CREATE POLICY "Own DM reaction delete" ON dm_message_reactions FOR DELETE
 -- client to know which thread/emoji a removed reaction belonged to).
 ALTER TABLE dm_message_reactions REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE dm_message_reactions;
+
+-- ── 56. Reading-streak reminder push ──────────────────────────────────────
+-- Tracks the last calendar day a streak-reminder push was sent per user, so
+-- the daily cron below never double-sends the same day.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_streak_reminder_sent DATE;
+
+-- NOT YET RUN / NOT YET SCHEDULED. Requires:
+--   1. `supabase functions deploy streak-reminder` (code lives in
+--      supabase/functions/streak-reminder/index.ts, written but undeployed).
+--   2. pg_net + pg_cron extensions enabled on this project (chapter-push's
+--      existing schedule implies they already are, but verify before running).
+--   3. Replace SERVICE_ROLE_KEY below with the real key, then run this
+--      uncommented in the SQL editor. Pick a cron hour that's evening in your
+--      userbase's dominant timezone — 23:00 UTC is a placeholder guess.
+-- SELECT cron.schedule(
+--   'streak-reminder-daily',
+--   '0 23 * * *',
+--   $$
+--   SELECT net.http_post(
+--     url := 'https://jlzsnmwyyjefjekscvgs.supabase.co/functions/v1/streak-reminder',
+--     headers := jsonb_build_object('Authorization', 'Bearer SERVICE_ROLE_KEY', 'Content-Type', 'application/json')
+--   );
+--   $$
+-- );

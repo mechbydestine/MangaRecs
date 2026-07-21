@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { useTheme } from '../utils/ThemeContext';
+import { useProfile } from '../utils/ProfileContext';
 import { CHANGELOG } from '../utils/changelog';
 
 const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
@@ -15,19 +16,29 @@ const SEEN_KEY = '@mangarecs/whatsnew_auto_shown_version';
 // once, only once the user is actually inside the app (past onboarding/auth).
 export default function WhatsNewModal() {
   const { colors } = useTheme();
+  const { ceremonyActive } = useProfile();
+  const [pendingEntry, setPendingEntry] = useState(null);
   const [entry, setEntry] = useState(null);
 
   useEffect(() => {
     const current = CHANGELOG.find((e) => e.version === APP_VERSION);
     if (!current) return;
     AsyncStorage.getItem(SEEN_KEY).then((lastShown) => {
-      if (lastShown !== APP_VERSION) setEntry(current);
+      if (lastShown !== APP_VERSION) setPendingEntry(current);
     });
   }, []);
+
+  // A badge unlock ceremony can fire on the exact same launch (every fresh
+  // profile fetch is a badge-check point) — never stack two full-screen
+  // Modals; let the ceremony finish first, then reveal this one.
+  useEffect(() => {
+    if (pendingEntry && !ceremonyActive) setEntry(pendingEntry);
+  }, [pendingEntry, ceremonyActive]);
 
   function dismiss() {
     AsyncStorage.setItem(SEEN_KEY, APP_VERSION).catch(() => {});
     setEntry(null);
+    setPendingEntry(null);
   }
 
   if (!entry) return null;

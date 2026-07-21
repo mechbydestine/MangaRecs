@@ -409,6 +409,11 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   // users who onboarded before this feature shipped never pass through here,
   // since needsOnboarding is already false for them on load.
   const [showTutorial, setShowTutorial] = useState(false);
+  // Sticks true for the rest of the session once a brand-new user finishes
+  // onboarding — used to skip WhatsNewModal below. A "here's what's new"
+  // changelog popup is meaningless to someone who has never used any prior
+  // version, and onboarding/the tutorial already cover what the app does.
+  const [justOnboarded, setJustOnboarded] = useState(false);
 
   const baseTheme = isDark ? DarkTheme : DefaultTheme;
   const navTheme = {
@@ -425,7 +430,15 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   };
 
   if (needsOnboarding) {
-    return <OnboardingScreen onComplete={() => { setShowTutorial(true); onOnboardingComplete(); }} />;
+    return <OnboardingScreen onComplete={() => {
+      setShowTutorial(true);
+      setJustOnboarded(true);
+      // A new install starts on the current version — there's no "before" for
+      // a changelog to describe, so mark it seen now rather than surfacing it
+      // confusingly on their very next (still brand-new) open.
+      AsyncStorage.setItem('@mangarecs/whatsnew_auto_shown_version', CURRENT_APP_VERSION).catch(() => {});
+      onOnboardingComplete();
+    }} />;
   }
 
   if (session && needsGuidelines) {
@@ -442,7 +455,7 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
       {session ? (
         <>
           <AppNavigator />
-          <WhatsNewModal />
+          {!justOnboarded && <WhatsNewModal />}
         </>
       ) : <AuthScreen />}
     </NavigationContainer>
