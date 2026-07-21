@@ -9,7 +9,10 @@ import { MangaCover } from '../utils/mangaCovers';
 import { findPoolEntry } from '../utils/mangaPool';
 import { searchMangaDex, getMangaFullDetails } from '../utils/mangaDexApi';
 import { syncReadOpen, updateGenreWeights, syncLibraryWrite } from '../utils/readerUtils';
+import { TOP_SITES, buildSearchUrl } from '../utils/mangaSearch';
 import { supabase } from '../supabase';
+
+const READ_AVAILABLE_SITES = TOP_SITES.slice(0, 5);
 
 function InfoRow({ icon, label, value, colors }) {
   if (!value) return null;
@@ -92,6 +95,26 @@ export default function MangaDetailScreen() {
       chapters: details?.lastChapter || routeChapters || 1,
       mangaId: details?.id || routeMangaId,
       lang: details?.lang || lang || 'ja',
+    });
+    if (userId) {
+      updateProfile({ currently_reading: title });
+      syncReadOpen(userId, title);
+      if (details?.genres?.length) updateGenreWeights(details.genres);
+    }
+  }
+
+  // "Read Available" row tap — jumps straight to that site's search results
+  // for this title (resumeUrl/resumeSite is the reader's existing "open this
+  // exact URL, skip auto-resolve" path, reused here for a fresh open rather
+  // than a true resume).
+  function openReaderWithSite(site) {
+    navigation.navigate('Reader', {
+      searchQuery: searchKey || title,
+      title,
+      chapters: details?.lastChapter || routeChapters || 1,
+      lang: details?.lang || lang || 'ja',
+      resumeUrl: buildSearchUrl(site.url, searchKey || title),
+      resumeSite: site.name,
     });
     if (userId) {
       updateProfile({ currently_reading: title });
@@ -214,6 +237,24 @@ export default function MangaDetailScreen() {
               )}
             </Animated.View>
 
+            <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Read Available</Text>
+              <Text style={[styles.readAvailableSub, { color: colors.muted }]}>
+                Pick a source to read this series in the app.
+              </Text>
+              {READ_AVAILABLE_SITES.map((site) => (
+                <TouchableOpacity
+                  key={site.name}
+                  style={[styles.siteRow, { borderColor: colors.border, backgroundColor: colors.background }]}
+                  onPress={() => openReaderWithSite(site)}
+                  activeOpacity={0.75}>
+                  <Text style={styles.siteRowEmoji}>{site.emoji}</Text>
+                  <Text style={[styles.siteRowText, { color: colors.text }]}>{site.name}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+
             {(details || poolEntry) && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Details</Text>
@@ -289,6 +330,10 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   synopsis: { fontSize: 14, lineHeight: 21 },
   showMore: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', marginTop: 8 },
+  readAvailableSub: { fontSize: 12, lineHeight: 17, marginBottom: 12, marginTop: -4 },
+  siteRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 8 },
+  siteRowEmoji: { fontSize: 16 },
+  siteRowText: { flex: 1, fontSize: 14, fontWeight: '600' },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 7 },
   infoIcon: { marginTop: 2 },
   infoLabel: { fontSize: 13, paddingTop: 1 },

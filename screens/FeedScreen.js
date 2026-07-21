@@ -559,7 +559,11 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
 
         {/* Centered manga cover with curved border */}
         <View style={styles.coverSection}>
-          <View ref={coverCardRef} style={[styles.coverCard, { width: COVER_W, height: COVER_H }]}>
+          <TouchableOpacity
+            ref={coverCardRef}
+            onPress={openDetail}
+            activeOpacity={0.85}
+            style={[styles.coverCard, { width: COVER_W, height: COVER_H }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: item.color || '#0D1A2D' }]} />
             {coverUrl && !coverError ? (
               <AnimatedExpoImage
@@ -590,7 +594,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
                 <Text style={styles.feedComingSoonText}>Coming Soon</Text>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Info below cover */}
