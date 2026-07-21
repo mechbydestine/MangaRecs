@@ -10,6 +10,7 @@ import MobileHeader from '../components/MobileHeader';
 import { AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsfwCache } from '../utils/mangaCovers';
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
 import { clearBadgeCache } from '../utils/badgeEngine';
+import { clearAllLocalDataAndSignOut } from '../utils/accountSession';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
@@ -480,9 +481,8 @@ export default function SettingsScreen({ navigation }) {
       showAppToast('Could not delete account — please contact support');
       return;
     }
-    try { await AsyncStorage.clear(); } catch (_) {}
     await clearBadgeCache();
-    await supabase.auth.signOut();
+    await clearAllLocalDataAndSignOut();
   }
 
   async function handleExportLibrary() {
@@ -939,7 +939,7 @@ export default function SettingsScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.signOutBtn}
-          onPress={async () => { await clearBadgeCache(); supabase.auth.signOut(); }}
+          onPress={async () => { await clearBadgeCache(); await clearAllLocalDataAndSignOut(); }}
           activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
         </TouchableOpacity>
