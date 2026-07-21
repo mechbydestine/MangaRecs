@@ -1041,26 +1041,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Discover chapter-visual: real trending covers per genre instead of flat
   // color swatches — the gradient stays as the loading-state background
-  // until each cover image loads in.
-  Array.prototype.forEach.call(document.querySelectorAll('.panel-row .swatch'), function (swatch) {
-    var genre = swatch.getAttribute('data-label');
-    trendingMedia(null, 1, 'TRENDING_DESC', genre).then(function (d) {
-      var m = (d.Page.media || []).filter(function (x) { return x.coverImage && x.coverImage.large; })[0];
-      if (!m) return;
-      var img = document.createElement('img');
-      img.alt = '';
-      img.loading = 'lazy';
-      img.src = m.coverImage.large;
-      img.addEventListener('load', function () { img.classList.add('loaded'); });
-      swatch.appendChild(img);
-      if (m.averageScore) {
-        var score = document.createElement('span');
-        score.className = 'swatch-score';
-        score.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + (m.averageScore / 10).toFixed(1);
-        swatch.appendChild(score);
-      }
-    }).catch(function () {});
-  });
+  // until each cover image loads in. A title tagged with more than one of
+  // these genres (very common — an isekai action/fantasy series ranks #1
+  // trending under both independently) would otherwise show the exact same
+  // cover twice, so results are de-duped across swatches: each swatch takes
+  // the highest-ranked candidate from its own genre query that an earlier
+  // swatch hasn't already claimed.
+  (function () {
+    var swatchEls = Array.prototype.slice.call(document.querySelectorAll('.panel-row .swatch'));
+    if (!swatchEls.length) return;
+    Promise.all(swatchEls.map(function (swatch) {
+      var genre = swatch.getAttribute('data-label');
+      return trendingMedia(null, 1, 'TRENDING_DESC', genre)
+        .then(function (d) { return (d.Page.media || []).filter(function (x) { return x.coverImage && x.coverImage.large; }); })
+        .catch(function () { return []; });
+    })).then(function (candidatesPerSwatch) {
+      var usedIds = {};
+      swatchEls.forEach(function (swatch, i) {
+        var m = candidatesPerSwatch[i].filter(function (x) { return !usedIds[x.id]; })[0];
+        if (!m) return;
+        usedIds[m.id] = true;
+        var img = document.createElement('img');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.src = m.coverImage.large;
+        img.addEventListener('load', function () { img.classList.add('loaded'); });
+        swatch.appendChild(img);
+        if (m.averageScore) {
+          var score = document.createElement('span');
+          score.className = 'swatch-score';
+          score.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + (m.averageScore / 10).toFixed(1);
+          swatch.appendChild(score);
+        }
+      });
+    });
+  })();
 });
 </script>
 
