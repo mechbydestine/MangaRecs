@@ -468,6 +468,14 @@
     position: absolute; inset: -20%; z-index: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
+  /* Manga panel-corner brackets — a real comic-panel framing cue, unlike a
+     mismatched full border around the whole screen. */
+  .recap-panel-corners { position: absolute; inset: 16px; z-index: 15; pointer-events: none; }
+  .recap-panel-corners span { position: absolute; width: 22px; height: 22px; border-color: rgba(255,255,255,0.6); }
+  .recap-panel-corners span:nth-child(1) { top: 0; left: 0; border-top: 3px solid; border-left: 3px solid; }
+  .recap-panel-corners span:nth-child(2) { top: 0; right: 0; border-top: 3px solid; border-right: 3px solid; }
+  .recap-panel-corners span:nth-child(3) { bottom: 0; left: 0; border-bottom: 3px solid; border-left: 3px solid; }
+  .recap-panel-corners span:nth-child(4) { bottom: 0; right: 0; border-bottom: 3px solid; border-right: 3px solid; }
   .recap-slide { position: relative; z-index: 2; max-width: 440px; color: #fff; }
   .recap-watermark {
     position: absolute; top: 48%; left: 50%; width: 66vh; height: 66vh; max-width: 520px; max-height: 520px;
@@ -499,20 +507,34 @@
   .recap-stat-label { margin-top: 12px; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; color: rgba(255,255,255,0.92); }
   .recap-tap-hint { margin-top: 34px; font-size: 0.86rem; color: rgba(255,255,255,0.65); }
   .recap-tier-pill { display: inline-block; margin-top: 14px; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid var(--tier-c, #fff); color: #fff; font-weight: 800; font-size: 0.9rem; }
-  .recap-mascot { width: 100px; margin: 0 auto 20px; filter: drop-shadow(0 10px 24px rgba(0,0,0,0.4)); animation: recapPopIn 0.7s cubic-bezier(.2,1.6,.4,1) both; }
+  .recap-mascot-glow {
+    position: relative; width: 190px; height: 190px; margin: 0 auto 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .recap-mascot-glow::before {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.35), transparent 70%);
+    filter: blur(4px); animation: recapGlowPulse 3s ease-in-out infinite;
+  }
+  @keyframes recapGlowPulse { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.08); opacity: 1; } }
+  .recap-mascot { position: relative; width: 168px; filter: drop-shadow(0 10px 24px rgba(0,0,0,0.4)); animation: recapPopIn 0.7s cubic-bezier(.2,1.6,.4,1) both; }
 
   /* Kinetic word-by-word title reveal */
   .recap-kword { display: inline-block; opacity: 0; transform: translateY(24px) scale(0.85); animation: recapWordIn 0.55s cubic-bezier(.2,1.5,.4,1) forwards; }
   @keyframes recapWordIn { to { opacity: 1; transform: none; } }
 
-  /* Real visual metaphors instead of plain numbers */
-  .recap-gauge { position: relative; width: 190px; height: 190px; margin: 6px auto 4px; }
-  .recap-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .recap-gauge circle { fill: none; stroke-width: 9; }
-  .recap-gauge .track { stroke: rgba(255,255,255,0.18); }
-  .recap-gauge .fill { stroke: #fff; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 10px var(--rc, #fff)); }
-  .recap-gauge-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .recap-gauge-center .recap-stat-big { font-size: clamp(2.4rem, 9vw, 3.4rem); }
+  /* Real visual metaphors instead of plain numbers — manga impact-burst
+     (a jagged energy-burst panel, not a thin progress ring) and a circular
+     day-dial, both styled like ink/halftone artwork instead of flat UI. */
+  .recap-burst { position: relative; width: 220px; height: 220px; margin: 6px auto 10px; }
+  .recap-burst svg { width: 100%; height: 100%; filter: drop-shadow(0 12px 28px rgba(0,0,0,0.4)); animation: recapBurstPulse 2.6s ease-in-out infinite; }
+  @keyframes recapBurstPulse { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.035) rotate(1.2deg); } }
+  .recap-burst-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .recap-burst-center .recap-stat-big { font-size: clamp(2.1rem, 7.5vw, 2.9rem); }
+
+  .recap-dial { width: 220px; height: 220px; margin: 8px auto 4px; }
+  .recap-dial svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
+  .recap-dial line { transition: stroke-width 0.3s ease; }
 
   .recap-flame-visual { width: 130px; height: 170px; margin: 4px auto 6px; position: relative; }
   .recap-flame-visual svg { width: 100%; height: 100%; animation: recapFlicker 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
@@ -522,13 +544,6 @@
     50% { transform: scale(1.03, 0.98) rotate(1deg); }
     75% { transform: scale(0.99, 1.02) rotate(-0.5deg); }
   }
-
-  .recap-barchart { display: flex; align-items: flex-end; justify-content: center; gap: 9px; height: 130px; margin: 26px 0 14px; }
-  .recap-bar-col { display: flex; flex-direction: column; align-items: center; width: 30px; }
-  .recap-bar { width: 100%; border-radius: 6px 6px 3px 3px; background: rgba(255,255,255,0.28); min-height: 6px; transition: height 0.8s cubic-bezier(.2,.8,.2,1); }
-  .recap-bar.top { background: #fff; box-shadow: 0 0 16px rgba(255,255,255,0.6); }
-  .recap-bar-label { margin-top: 8px; font-size: 0.66rem; font-weight: 700; color: rgba(255,255,255,0.65); }
-  .recap-bar-col.top .recap-bar-label { color: #fff; }
 
   .recap-progress-bar { width: 100%; max-width: 260px; height: 12px; border-radius: 999px; background: rgba(255,255,255,0.2); overflow: hidden; margin: 22px auto 8px; }
   .recap-progress-bar i { display: block; height: 100%; background: #fff; border-radius: 999px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
@@ -566,7 +581,7 @@
   @media (max-width: 480px) {
     .recap-title { font-size: clamp(1.6rem, 8vw, 2rem); }
     .recap-watermark { width: 80vw; height: 80vw; }
-    .recap-gauge { width: 150px; height: 150px; }
+    .recap-burst, .recap-dial { width: 170px; height: 170px; }
     .recap-flame-visual { width: 104px; height: 136px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -1464,20 +1479,56 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('');
     return '<' + tag + ' class="recap-title"' + (extraStyle ? ' style="' + extraStyle + '"' : '') + '>' + spans + '</' + tag + '>';
   }
-  // A circular gauge sweeping to `pct` (0-1), used to make "hours read" feel
-  // like a filling dial rather than a bare number — reads as a real gauge
-  // instead of decoration since the sweep amount is the real stat.
-  function recapGaugeHtml(pct, accent, innerHtml) {
-    var r = 82, c = 2 * Math.PI * r;
-    pct = Math.max(0.03, Math.min(1, pct));
-    return '<div class="recap-gauge" style="--rc:' + accent + '">' +
-      '<svg viewBox="0 0 190 190">' +
-        '<circle class="track" cx="95" cy="95" r="' + r + '"/>' +
-        '<circle class="fill" cx="95" cy="95" r="' + r + '" stroke="' + accent + '" ' +
-          'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + c.toFixed(1) + '" data-target-offset="' + (c * (1 - pct)).toFixed(1) + '"/>' +
+  // A jagged manga "impact burst" — like an energy-panel effect — that grows
+  // spikier with `pct` (0-1), used so "hours read" reads as a real burst of
+  // energy rather than a bare number. The dark inset disc in the middle
+  // reads like an inset manga panel holding the actual stat.
+  function recapBurstPoints(spikes, outerR, innerR, cx, cy) {
+    var pts = [], step = Math.PI / spikes;
+    for (var i = 0; i < spikes * 2; i++) {
+      var r = (i % 2 === 0) ? outerR : innerR;
+      var a = i * step - Math.PI / 2;
+      pts.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
+    }
+    return pts.join(' ');
+  }
+  function recapBurstHtml(pct, accent, innerHtml) {
+    pct = Math.max(0.08, Math.min(1, pct));
+    var pts = recapBurstPoints(14, 78 + 24 * pct, 68, 100, 100);
+    return '<div class="recap-burst">' +
+      '<svg viewBox="0 0 200 200">' +
+        '<defs><radialGradient id="recapBurstGrad" cx="50%" cy="45%" r="65%">' +
+          '<stop offset="0%" stop-color="' + accent + '" stop-opacity="0.95"/><stop offset="100%" stop-color="' + accent + '" stop-opacity="0.3"/>' +
+        '</radialGradient></defs>' +
+        '<polygon points="' + pts + '" fill="url(#recapBurstGrad)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<circle cx="100" cy="100" r="56" fill="rgba(0,0,0,0.32)" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>' +
       '</svg>' +
-      '<div class="recap-gauge-center">' + innerHtml + '</div>' +
+      '<div class="recap-burst-center">' + innerHtml + '</div>' +
     '</div>';
+  }
+  // Direct translation of a "peak period" wheel: one spoke per weekday, spoke
+  // length maps to real hours that day-of-week, the longest/brightest spoke
+  // is the real peak day. Day labels ring the rim like clock numerals.
+  function recapDialHtml(weekday) {
+    var n = 7, cx = 100, cy = 100, outerR = 78, innerR = 26, labelR = 94;
+    var maxV = Math.max.apply(null, weekday.totals.concat([0.1]));
+    var spokes = '', labels = '';
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      var v = weekday.totals[i] / maxV;
+      var isBest = i === weekday.best;
+      var pointR = innerR + (outerR - innerR) * Math.max(0.14, v);
+      var x2 = (cx + pointR * Math.cos(a)).toFixed(1), y2 = (cy + pointR * Math.sin(a)).toFixed(1);
+      spokes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (isBest ? '#fff' : 'rgba(255,255,255,0.4)') + '" stroke-width="' + (isBest ? 8 : 5) + '" stroke-linecap="round"/>';
+      var lx = (cx + labelR * Math.cos(a)).toFixed(1), ly = (cy + labelR * Math.sin(a)).toFixed(1);
+      labels += '<text x="' + lx + '" y="' + ly + '" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="800" fill="' + (isBest ? '#fff' : 'rgba(255,255,255,0.55)') + '">' + weekday.labels[i] + '</text>';
+    }
+    return '<div class="recap-dial"><svg viewBox="0 0 200 200">' +
+      '<circle cx="100" cy="100" r="' + outerR + '" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 6"/>' +
+      spokes +
+      '<circle cx="100" cy="100" r="' + innerR + '" fill="rgba(0,0,0,0.32)" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>' +
+      labels +
+    '</svg></div>';
   }
   function recapFlameHtml(accent) {
     return '<div class="recap-flame-visual">' +
@@ -1509,9 +1560,8 @@ document.addEventListener('DOMContentLoaded', function () {
     slides.push({
       gradient: RECAP_PALETTE.purple,
       html:
-        recapWatermark('star') +
         '<div class="recap-slide recap-intro">' +
-          recapReveal('<div class="recap-mascot">' + MASCOT_SVG + '</div>', 0) +
+          recapReveal('<div class="recap-mascot-glow"><div class="recap-mascot">' + MASCOT_SVG + '</div></div>', 0) +
           recapReveal('<div class="recap-eyebrow">' + esc(d.period.label) + '</div>', 0.14) +
           recapKineticTitle('h1', 'Your Reading Recap', 0.24) +
           recapReveal('<p class="recap-sub">Let\'s see what kind of reader you were these past six months, @' + esc(d.username) + '.</p>', 0.52) +
@@ -1534,10 +1584,9 @@ document.addEventListener('DOMContentLoaded', function () {
     slides.push({
       gradient: RECAP_PALETTE.pink,
       html:
-        recapWatermark('clock') +
         '<div class="recap-slide">' +
           recapReveal('<div class="recap-eyebrow">Time well spent</div>') +
-          recapGaugeHtml(d.hoursRead / 150, d.accentColor, '<div class="recap-stat-big" data-countup="' + Math.round(d.hoursRead) + '">0</div>') +
+          recapBurstHtml(Math.sqrt(d.hoursRead / 40), d.accentColor, '<div class="recap-stat-big" data-countup="' + Math.round(d.hoursRead) + '">0</div>') +
           recapReveal('<div class="recap-stat-label">HOURS READ</div>', 0.16) +
           recapReveal('<p class="recap-sub">' + (d.hoursRead >= 24
             ? 'That\'s about ' + Math.round(d.hoursRead / 24) + ' straight days of nonstop reading.'
@@ -1586,19 +1635,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (d.weekday.best >= 0) {
-      var maxVal = Math.max.apply(null, d.weekday.totals.concat([0.1]));
-      var bars = d.weekday.totals.map(function (v, i) {
-        var h = Math.max(6, Math.round((v / maxVal) * 110));
-        var top = i === d.weekday.best;
-        return '<div class="recap-bar-col' + (top ? ' top' : '') + '"><div class="recap-bar' + (top ? ' top' : '') + '" style="height:0px" data-target-height="' + h + 'px"></div><div class="recap-bar-label">' + d.weekday.labels[i] + '</div></div>';
-      }).join('');
       slides.push({
         gradient: RECAP_PALETTE.blue,
         html:
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Your rhythm</div>') +
-            recapReveal('<h2 class="recap-title" style="font-size:2rem;">' + esc(d.weekday.bestName) + 's</h2><p class="recap-sub" style="margin-top:6px;">were your biggest reading days.</p>', 0.14) +
-            '<div class="recap-barchart">' + bars + '</div>' +
+            recapReveal('<h2 class="recap-title" style="font-size:2rem;">' + esc(d.weekday.bestName) + 's</h2>', 0.14) +
+            recapDialHtml(d.weekday) +
+            recapReveal('<p class="recap-sub">were your biggest reading days.</p>', 0.3) +
           '</div>',
       });
     }
@@ -1925,6 +1969,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
           '<div class="recap-stage" id="recapStage"></div>' +
           '<div class="recap-grain" aria-hidden="true"></div>' +
+          '<div class="recap-panel-corners" aria-hidden="true"><span></span><span></span><span></span><span></span></div>' +
         '</div>';
       initRecapStory(buildRecapSlides(data), data);
     }).catch(function () {
