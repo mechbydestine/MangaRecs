@@ -292,6 +292,56 @@ function initNotifyCheckmark() {
   }).observe(msg, { attributes: true, attributeFilter: ['class'], childList: true });
 }
 
+// ── Stacking toast utility — used by the catalog's real notification bell,
+// separate from index.html's inline notify-msg (which is a single fixed
+// element, not a stack).
+function showToast(message, opts) {
+  opts = opts || {};
+  var stack = document.querySelector('.toast-stack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.className = 'toast-stack';
+    stack.setAttribute('aria-live', 'polite');
+    document.body.appendChild(stack);
+  }
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = (opts.icon || '') + '<span>' + message + '</span>';
+  stack.appendChild(toast);
+  requestAnimationFrame(function () { toast.classList.add('show'); });
+  var dur = opts.duration || 4200;
+  setTimeout(function () {
+    toast.classList.remove('show');
+    setTimeout(function () { toast.remove(); }, 300);
+  }, dur);
+  return toast;
+}
+
+// ── Skip-to-content link (inserted as the true first child, after the
+// ambient blobs, so it's still the first *focusable* element on the page)
+function initSkipLink() {
+  if (document.querySelector('.skip-link')) return;
+  var target = document.querySelector('main') || document.getElementById('app');
+  if (!target) return;
+  if (!target.id) target.id = 'main-content';
+  var link = document.createElement('a');
+  link.className = 'skip-link';
+  link.href = '#' + target.id;
+  link.textContent = 'Skip to content';
+  document.body.insertBefore(link, document.body.firstChild);
+}
+
+// ── Hidden 2-5am easter egg, referencing the real "Sunrise Reader"/"Can't
+// Sleep" hidden badges in badges.js rather than inventing a new mechanic
+function initLateNightEasterEgg() {
+  var hour = new Date().getHours();
+  if (hour < 2 || hour >= 5) return;
+  if (sessionStorage.getItem('mr_latenight_shown')) return;
+  sessionStorage.setItem('mr_latenight_shown', '1');
+  if (typeof showToast !== 'function') return;
+  showToast('Burning the midnight oil? There’s a badge for that.', { icon: '🌙 ' });
+}
+
 // ── Static mascot slots (download section, 404 page) ─────────────────────
 function initMascotSlots() {
   document.querySelectorAll('.mascot-slot').forEach(function (el) {
@@ -322,6 +372,8 @@ function initMascotEmptyStates() {
 
 document.addEventListener('DOMContentLoaded', function () {
   initAmbientFX();
+  initSkipLink();
+  initLateNightEasterEgg();
   initHeroFX();
   initPosterTilt();
   initSlidingIndicators();

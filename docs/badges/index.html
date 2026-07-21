@@ -1,0 +1,346 @@
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Badges — MangaRecs</title>
+<meta name="description" content="All 250 MangaRecs badges, Bronze through Mythic — what each one takes, and which ones are still secret." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="/assets/icon-180.png" />
+<link rel="manifest" href="/assets/manifest.json" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://mangarecs.net/badges/" />
+<meta property="og:title" content="Badges — MangaRecs" />
+<meta property="og:description" content="All 250 MangaRecs badges, Bronze through Mythic — what each one takes, and which ones are still secret." />
+<meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta name="theme-color" content="#6B46F0" />
+<link rel="canonical" href="https://mangarecs.net/badges/" />
+<link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
+<style>
+  :root {
+    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
+    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
+    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
+    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
+    --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
+      --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
+      --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
+      --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
+      --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
+    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
+    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
+    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
+    --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
+    --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
+    --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
+    --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
+    --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Strip Text', -apple-system, system-ui, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; }
+  h1, h2 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  .display { font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900; letter-spacing: -0.01em; line-height: 0.98; text-transform: uppercase; }
+  .eyebrow { font-family: 'Strip Text', sans-serif; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); text-align: center; }
+
+  .topnav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+  .topnav-inner { max-width: 1320px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px clamp(20px, 5vw, 56px); }
+  @media (min-width: 1440px) { .topnav-inner { max-width: 1480px; } }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+  .brand svg { width: 26px; height: 26px; }
+  .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
+  .brand-word b { color: var(--accent); font-weight: 800; }
+  .nav-link { color: var(--ink-muted); text-decoration: none; font-weight: 700; font-size: 0.86rem; }
+  .nav-link:hover { color: var(--accent); }
+  .nav-link.current { color: var(--accent); }
+  .nav-actions { display: flex; align-items: center; gap: 14px; }
+  @media (max-width: 560px) { .nav-actions { gap: 8px; } .nav-actions .nav-link { display: none; } }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+
+  .badges-hero { padding: clamp(48px, 8vw, 88px) 0 clamp(20px, 4vw, 32px); text-align: center; }
+  .badges-hero h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); margin-top: 10px; }
+  .badges-hero p { color: var(--ink-muted); max-width: 56ch; margin: 14px auto 0; font-size: 1.02rem; }
+  .badges-stat-band { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 26px 0 8px; }
+  .badges-stat-pill { padding: 12px 18px; border-radius: 14px; background: var(--accent-wash); border: 1px solid var(--line); text-align: center; min-width: 130px; }
+  .badges-stat-pill b { display: block; font-family: 'Panel Display', sans-serif; font-size: 1.1rem; color: var(--accent-soft); }
+  .badges-stat-pill span { font-size: 0.72rem; color: var(--ink-muted); font-weight: 600; }
+
+  .season-banner { display: none; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 22px; border-radius: 16px; background: var(--accent-wash); border: 1px solid var(--line); margin: 0 0 26px; flex-wrap: wrap; }
+
+  .tier-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 26px; }
+  .tier-pill {
+    padding: 8px 16px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;
+    border: 1px solid var(--line); background: var(--bg-panel); color: var(--ink-muted);
+  }
+  .tier-pill:hover { border-color: var(--tier-c, var(--accent)); color: var(--tier-c, var(--accent)); }
+  .tier-pill.active { color: #fff; border-color: transparent; background: var(--tier-c, var(--accent)); }
+
+  .section-eyebrow { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin: 30px 0 12px; }
+
+  .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .badge-card {
+    position: relative; padding: 20px 16px; border-radius: 14px;
+    background: var(--bg-panel); border: 1px solid var(--line); text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .badge-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px -14px var(--tier-c, var(--accent)); }
+  .badge-card.earned { border-color: var(--tier-c, var(--accent)); box-shadow: 0 0 0 1px var(--tier-c, var(--accent)); }
+  .badge-card.earned::after { content: '✓'; position: absolute; top: 8px; right: 11px; color: var(--tier-c, var(--accent)); font-weight: 900; }
+  .badge-icon { font-size: 1.9rem; margin-bottom: 8px; }
+  .badge-tier-label { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tier-c, var(--accent)); margin-bottom: 6px; }
+  .badge-name { font-weight: 800; font-size: 0.9rem; margin-bottom: 4px; }
+  .badge-desc { font-size: 0.76rem; color: var(--ink-muted); line-height: 1.4; min-height: 2.6em; }
+  .badge-progress { height: 4px; border-radius: 999px; background: var(--bg-sunken); margin-top: 10px; overflow: hidden; }
+  .badge-progress i { display: block; height: 100%; background: var(--tier-c, var(--accent)); }
+
+  .hidden-note { text-align: center; font-size: 0.84rem; color: var(--ink-faint); margin: 8px 0 56px; }
+
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; flex: none; background: var(--bg-panel); border: 1px solid var(--line-strong); color: var(--ink-muted); cursor: pointer; padding: 0; }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  .account-wrap { position: relative; flex: none; }
+  .account-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 260px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; display: none; z-index: 60; text-align: left; }
+  .account-panel.open { display: block; }
+  .account-tabtitle { font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
+  .account-panel input { width: 100%; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; color: var(--ink); font-size: 0.86rem; font-family: inherit; margin-bottom: 8px; box-sizing: border-box; }
+  .account-panel input:focus { outline: none; border-color: var(--accent); }
+  .account-error { color: #E0554F; font-size: 0.78rem; min-height: 1em; margin-bottom: 4px; }
+  .account-hint { font-size: 0.78rem; color: var(--ink-muted); margin: -4px 0 10px; line-height: 1.4; }
+  .btn-primary-sm, .btn-ghost-sm { width: 100%; text-align: center; font-size: 0.86rem; font-weight: 700; padding: 9px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .btn-primary-sm { background: var(--accent); color: #fff; border: none; }
+  .btn-primary-sm:disabled { opacity: 0.6; }
+  .btn-ghost-sm { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .account-switch { display: block; width: 100%; background: none; border: none; color: var(--ink-muted); font-size: 0.78rem; text-align: center; padding: 10px 0 2px; cursor: pointer; font-family: inherit; }
+  .account-switch:hover { color: var(--accent); }
+  .account-divider { text-align: center; font-size: 0.72rem; color: var(--ink-faint); margin: 8px 0; }
+  .account-email { font-size: 0.86rem; font-weight: 600; margin-bottom: 12px; word-break: break-all; }
+
+  .footer-main { border-top: 1px solid var(--line); padding: clamp(36px, 6vw, 56px) clamp(20px, 5vw, 56px) 28px; }
+  .footer-grid { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 32px; }
+  .footer-brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; }
+  .footer-brand-word b { color: var(--accent); }
+  .footer-tagline { font-size: 0.84rem; color: var(--ink-muted); margin-top: 8px; max-width: 320px; line-height: 1.5; }
+  .footer-col-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
+  .footer-col a { display: block; font-size: 0.86rem; color: var(--ink-muted); text-decoration: none; padding: 5px 0; }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-bottom { max-width: 1320px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 0.76rem; color: var(--ink-faint); }
+  .footer-bottom a { color: var(--ink-muted); text-decoration: none; }
+  .footer-bottom a:hover { color: var(--accent); }
+  @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
+  @media (min-width: 1440px) { .footer-grid, .footer-bottom { max-width: 1480px; } }
+</style>
+<link rel="stylesheet" href="/assets/motion.css?v=1" />
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true">
+        <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" />
+        <circle cx="512" cy="512" r="46" fill="#0E0820" />
+      </svg>
+      <span class="brand-word">Manga<b>Recs</b></span>
+    </a>
+    <div class="nav-actions">
+      <a class="nav-link" href="/catalog/">Browse Catalog</a>
+      <a class="nav-link" href="/features/">Features</a>
+      <a class="nav-link current" href="/badges/">Badges</a>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+      <a class="nav-link" id="libraryNavLink" href="/catalog/#/library" style="display:none;">Library</a>
+      <div class="account-wrap">
+        <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <div class="account-panel" id="accountPanel"></div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <section class="badges-hero">
+    <div class="eyebrow">Bronze → Mythic</div>
+    <h1 class="display">Every Badge in MangaRecs</h1>
+    <p>250 real badges, seven tiers, and a handful that stay secret until you earn them. Sign in to see your own progress on every one below.</p>
+    <div class="badges-stat-band" id="statBand"></div>
+  </section>
+
+  <div class="season-banner" id="seasonalBanner"></div>
+
+  <div class="tier-filters" id="tierFilters"></div>
+  <div class="badge-grid" id="nextupGrid" style="display:none;"></div>
+  <div class="badge-grid" id="badgeGrid"></div>
+  <p class="hidden-note" id="hiddenNote"></p>
+</main>
+
+<footer class="footer-main">
+  <div class="footer-grid">
+    <div>
+      <span class="footer-brand-word">Manga<b>Recs</b></span>
+      <p class="footer-tagline">A free social manga &amp; manhwa reader that swipes like your feed, remembers what you love, and reads with your friends. Built solo, updated constantly.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Browse</div>
+      <a href="/catalog/#/browse/manga">Manga</a>
+      <a href="/catalog/#/browse/manhwa">Manhwa</a>
+      <a href="/catalog/#/browse/manhua">Manhua</a>
+      <a href="/catalog/#/browse/webcomic">Webcomics</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Site</div>
+      <a href="/features/">Features</a>
+      <a href="/badges/">Badges</a>
+      <a href="/about/">About</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 MangaRecs. Built solo. Catalog data via <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.</span>
+    <span><a href="/">Home</a> · <a href="/catalog/">Catalog</a> · <a href="mailto:hello@mangarecs.net">Contact</a></span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="/assets/auth.js?v=2" defer></script>
+<script src="/assets/nav-widgets.js?v=2" defer></script>
+<script src="/assets/anilist.js?v=2" defer></script>
+<script src="/assets/badges.js?v=2" defer></script>
+<script src="/assets/motion.js?v=1" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  initThemeToggle('themeToggle');
+  initAccountPanel('accountBtn', 'accountPanel');
+
+  var visibleBadges = ALL_BADGES.filter(function (b) { return !b.hidden; });
+  var hiddenCount = ALL_BADGES.length - visibleBadges.length;
+
+  document.getElementById('statBand').innerHTML =
+    '<div class="badges-stat-pill"><b>' + ALL_BADGES.length + '</b><span>Total badges</span></div>' +
+    '<div class="badges-stat-pill"><b>7</b><span>Tiers, Bronze to Mythic</span></div>' +
+    '<div class="badges-stat-pill"><b>' + hiddenCount + '</b><span>Still secret</span></div>';
+
+  document.getElementById('hiddenNote').textContent =
+    hiddenCount + ' more badges are hidden — they only show up once you\'ve actually earned them in the app.';
+
+  var TIER_ORDER = ['grey', 'green', 'blue', 'indigo', 'purple', 'gold', 'mythic'];
+  var filtersEl = document.getElementById('tierFilters');
+  filtersEl.innerHTML = '<button class="tier-pill active" data-tier="all" type="button">All</button>' +
+    TIER_ORDER.map(function (t) {
+      var g = BADGE_GRADES[t];
+      return '<button class="tier-pill" data-tier="' + t + '" type="button" style="--tier-c:' + g.color + ';">' + g.label + '</button>';
+    }).join('');
+
+  var gridEl = document.getElementById('badgeGrid');
+  var earnedIds = new Set();
+  var stats = {};
+
+  function badgeCardHtml(b) {
+    var g = BADGE_GRADES[b.grade];
+    var earned = earnedIds.has(b.id);
+    var prog = !earned ? badgeProgress(b, stats) : null;
+    return '<div class="badge-card' + (earned ? ' earned' : '') + '" style="--tier-c:' + g.color + ';">' +
+      '<div class="badge-icon">' + b.icon + '</div>' +
+      '<div class="badge-tier-label">' + g.label + '</div>' +
+      '<div class="badge-name">' + esc(b.name) + '</div>' +
+      '<div class="badge-desc">' + esc(b.desc) + '</div>' +
+      (prog && prog.target ? '<div class="badge-progress"><i style="width:' + (prog.pct * 100) + '%"></i></div>' : '') +
+    '</div>';
+  }
+
+  function paintGrid(tier) {
+    var list = visibleBadges.filter(function (b) { return tier === 'all' || b.grade === tier; });
+    gridEl.innerHTML = list.map(badgeCardHtml).join('');
+  }
+  paintGrid('all');
+
+  filtersEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.tier-pill');
+    if (!btn) return;
+    Array.prototype.forEach.call(filtersEl.children, function (b) { b.classList.toggle('active', b === btn); });
+    paintGrid(btn.getAttribute('data-tier'));
+  });
+
+  // Seasonal banner — only the real, dated events already defined in badges.js.
+  var seasonal = ALL_BADGES.filter(function (b) { return b.season; });
+  var banner = document.getElementById('seasonalBanner');
+  var candidate = seasonal.filter(function (b) {
+    var end = new Date(b.season.end).getTime();
+    var start = new Date(b.season.start).getTime();
+    return Date.now() < end && (seasonActive(b) || start - Date.now() < 30 * 86400000);
+  })[0];
+  if (candidate) {
+    var active = seasonActive(candidate);
+    var daysLeft = Math.ceil((new Date(candidate.season.end).getTime() - Date.now()) / 86400000);
+    var daysUntil = Math.ceil((new Date(candidate.season.start).getTime() - Date.now()) / 86400000);
+    banner.style.display = 'flex';
+    banner.innerHTML =
+      '<div><div style="font-weight:800;">' + candidate.icon + ' ' + esc(candidate.name) + '</div>' +
+      '<div style="font-size:0.84rem;color:var(--ink-muted);margin-top:4px;">' + esc(candidate.desc) + '</div></div>' +
+      '<div style="font-weight:800;color:var(--accent);white-space:nowrap;">' +
+      (active ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left' : 'starts in ' + daysUntil + ' day' + (daysUntil === 1 ? '' : 's')) +
+      '</div>';
+  }
+
+  // Signed-in only: real earned/progress state and "almost there" teasers.
+  onAuthChange(function (user) {
+    var nextupEl = document.getElementById('nextupGrid');
+    if (!user) {
+      earnedIds = new Set(); stats = {};
+      paintGrid(filtersEl.querySelector('.tier-pill.active').getAttribute('data-tier'));
+      nextupEl.style.display = 'none';
+      return;
+    }
+    sb.from('profiles')
+      .select('chapters_read,hours_read,streak_count,series_count,friends_count,comments_count,likes_given,completed_count,night_reads,genres_count,shares_count,manga_count,ratings_count,created_at,avatar_url')
+      .eq('id', user.id).maybeSingle()
+      .then(function (res) {
+        if (!res.data) return;
+        stats = profileToBadgeStats(res.data);
+        earnedIds = computeEarnedBadgeIds(stats);
+        paintGrid(filtersEl.querySelector('.tier-pill.active').getAttribute('data-tier'));
+
+        var nextUp = nextUpBadges(stats, earnedIds, 3);
+        if (nextUp.length) {
+          nextupEl.style.display = 'grid';
+          nextupEl.innerHTML = nextUp.map(function (n) {
+            var g = BADGE_GRADES[n.badge.grade];
+            return '<div class="badge-card" style="--tier-c:' + g.color + ';">' +
+              '<div class="badge-icon">' + n.badge.icon + '</div>' +
+              '<div class="badge-tier-label">Almost there</div>' +
+              '<div class="badge-name">' + esc(n.badge.name) + '</div>' +
+              '<div class="badge-desc">' + n.current + ' / ' + n.target + '</div>' +
+              '<div class="badge-progress"><i style="width:' + (n.pct * 100) + '%"></i></div>' +
+            '</div>';
+          }).join('');
+        } else {
+          nextupEl.style.display = 'none';
+        }
+      });
+  });
+});
+</script>
