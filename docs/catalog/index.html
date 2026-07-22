@@ -625,6 +625,24 @@
   .recap-star-filled svg { fill: #FFD34D; stroke: #FFD34D; filter: drop-shadow(0 0 6px rgba(255,211,77,0.5)); }
   .recap-star-empty svg { fill: none; stroke: rgba(255,255,255,0.3); }
 
+  /* Reading Journey timeline — a real chronological run of dated events
+     instead of disconnected stats. Scrolls internally if a very active
+     half produced more milestones than fit on screen. */
+  .recap-timeline { display: flex; flex-direction: column; margin-top: 22px; text-align: left; max-width: 320px; width: 100%; max-height: 46vh; overflow-y: auto; }
+  .recap-timeline-row { display: flex; gap: 14px; position: relative; padding-bottom: 22px; }
+  .recap-timeline-row:last-child { padding-bottom: 0; }
+  .recap-timeline-row:not(:last-child)::before {
+    content: ''; position: absolute; left: 17px; top: 36px; bottom: 0; width: 2px; background: rgba(255,255,255,0.22);
+  }
+  .recap-timeline-dot {
+    flex: none; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.14);
+    border: 2px solid rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; z-index: 1;
+  }
+  .recap-timeline-dot svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; }
+  .recap-timeline-date { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+  .recap-timeline-title { font-weight: 800; font-size: 0.98rem; margin-top: 2px; }
+  .recap-timeline-sub { font-size: 0.82rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
   .recap-archetype-badge {
     display: inline-flex; align-items: center; justify-content: center; width: 108px; height: 108px;
     border-radius: 50%; background: rgba(255,255,255,0.14); border: 3px solid rgba(255,255,255,0.65);
@@ -1445,6 +1463,41 @@ document.addEventListener('DOMContentLoaded', function () {
     for (var i = 1; i < 7; i++) if (totals[i] > totals[best]) best = i;
     return { totals: totals, labels: WD, best: totals[best] > 0 ? best : -1, bestName: totals[best] > 0 ? WD_FULL[best] : null };
   }
+  // Real single busiest day, by actual logged hours — used by the Reading
+  // Journey timeline as a dated milestone, not just an aggregate stat.
+  function recapPeakDay(dailyLog, start, end) {
+    var cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    var endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    var bestKey = null, bestHours = 0;
+    while (cur <= endDay) {
+      var hours = dailyLog[profileDateKey(cur)] || 0;
+      if (hours > bestHours) { bestHours = hours; bestKey = profileDateKey(cur); }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return bestKey ? { dateKey: bestKey, hours: bestHours } : null;
+  }
+  // Same scan as recapLongestStreak, but also returns the real start/end
+  // dates of the winning run — kept as a separate function rather than
+  // changing recapLongestStreak's return shape, since that one's already
+  // used as a plain number in several places (archetype scoring, the streak
+  // slide's count-up, etc.).
+  function recapLongestStreakRange(dailyLog, start, end) {
+    var cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    var endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    var longest = 0, running = 0, runStart = null, bestStart = null, bestEnd = null;
+    while (cur <= endDay) {
+      var has = (dailyLog[profileDateKey(cur)] || 0) > 0;
+      if (has) {
+        if (running === 0) runStart = new Date(cur);
+        running++;
+        if (running > longest) { longest = running; bestStart = runStart; bestEnd = new Date(cur); }
+      } else {
+        running = 0;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return longest >= 2 ? { length: longest, start: bestStart, end: bestEnd } : null;
+  }
 
   // Client-side "reading recap" image — real stats only, no server-side
   // rendering needed (unlike the per-title OG cards, which do need the
@@ -1728,6 +1781,22 @@ document.addEventListener('DOMContentLoaded', function () {
       out += '<span class="' + (i < filled ? 'recap-star-filled' : 'recap-star-empty') + '">' + recapIcon('star') + '</span>';
     }
     return '<div class="recap-stars">' + out + '</div>';
+  }
+
+  // Renders one dated, real event in the Reading Journey timeline — every
+  // entry traces back to an actual timestamp (daily_log date, a
+  // reading_progress row's updated_at, or a series_ratings created_at),
+  // never an invented "moment" the data can't back up.
+  function recapTimelineRowHtml(ev) {
+    var dateLabel = ev.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return '<div class="recap-timeline-row">' +
+      '<div class="recap-timeline-dot">' + recapIcon(ev.icon) + '</div>' +
+      '<div class="recap-timeline-body">' +
+        '<div class="recap-timeline-date">' + dateLabel + '</div>' +
+        '<div class="recap-timeline-title">' + esc(ev.title) + '</div>' +
+        (ev.sub ? '<div class="recap-timeline-sub">' + esc(ev.sub) + '</div>' : '') +
+      '</div>' +
+    '</div>';
   }
 
   // Dependency-free Canvas2D particle system — embers/petals/sparkles/rain/
@@ -2023,6 +2092,23 @@ document.addEventListener('DOMContentLoaded', function () {
             recapReveal('<h2 class="recap-title" style="font-size:1.9rem;">' + esc(d.topRated.title) + '</h2>', 0.16) +
             recapReveal(recapStarsHtml(d.topRated.stars5), 0.3) +
             recapReveal('<p class="recap-sub">Your highest-rated read this half.</p>', 0.42) +
+          '</div>',
+      });
+    }
+
+    // Gated on 2+ real dated events so a quiet half never renders a lonely
+    // single-dot "timeline" — every row here traces back to an actual
+    // timestamp, never an invented story beat.
+    if (d.timeline && d.timeline.length >= 2) {
+      var timelineRows = d.timeline.map(function (ev, i) {
+        return recapReveal(recapTimelineRowHtml(ev), 0.1 + i * 0.12);
+      }).join('');
+      slides.push({
+        gradient: RECAP_PALETTE.purple,
+        html:
+          '<div class="recap-slide">' +
+            recapReveal('<div class="recap-eyebrow">Your reading journey</div>') +
+            '<div class="recap-timeline">' + timelineRows + '</div>' +
           '</div>',
       });
     }
@@ -2344,7 +2430,7 @@ document.addEventListener('DOMContentLoaded', function () {
       sb.from('reading_progress').select('series_title,status,current_chapter,updated_at').eq('user_id', uid).gte('updated_at', startIso).lte('updated_at', endIso),
       sb.from('comments').select('id', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso),
       sb.from('series_ratings').select('series_title', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso),
-      sb.from('series_ratings').select('series_title,stars').eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso).order('stars', { ascending: false }).limit(1),
+      sb.from('series_ratings').select('series_title,stars,created_at').eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso).order('stars', { ascending: false }).limit(1),
     ]).then(function (results) {
       var profile = (results[0] && results[0].data) || {};
       var progressRows = (results[1] && results[1].data) || [];
@@ -2387,11 +2473,51 @@ document.addEventListener('DOMContentLoaded', function () {
       // Real "favorite moment" analog — the reader's own actual highest-
       // rated series this half (1-10 scale, converted to 5 stars), not a
       // fabricated emotional moment there's no data to back.
-      data.topRated = topRatedRow ? { title: topRatedRow.series_title, stars5: topRatedRow.stars / 2 } : null;
-      var sortedKeys = keysInRange.slice().sort();
-      data.firstActiveDate = sortedKeys.length
-        ? new Date(sortedKeys[0] + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+      data.topRated = topRatedRow
+        ? { title: topRatedRow.series_title, stars5: topRatedRow.stars / 2, date: topRatedRow.created_at ? new Date(topRatedRow.created_at) : null }
         : null;
+      var sortedKeys = keysInRange.slice().sort();
+      var firstActiveDateObj = sortedKeys.length ? new Date(sortedKeys[0] + 'T00:00:00') : null;
+      data.firstActiveDate = firstActiveDateObj
+        ? firstActiveDateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+        : null;
+
+      // Reading Journey timeline — a real chronological run of dated
+      // milestones (never invented "moments"): the first logged day, the
+      // single busiest day, the longest streak's real end date, every
+      // series actually marked completed (dated by its own updated_at,
+      // which is the same write that flips its status), and the reader's
+      // real top-rated series (dated by series_ratings.created_at, which
+      // is set once and never touched again by later edits). Deliberately
+      // excludes anything the schema can't actually prove — e.g. reading_
+      // progress has no created_at distinct from updated_at, so a "you
+      // started X on this date" event isn't derivable, and night_reads is
+      // a running total with no per-event timestamp, so "your first all-
+      // nighter, 4:17 AM" isn't either.
+      var peakDay = recapPeakDay(dailyLog, period.start, period.end);
+      var streakRange = recapLongestStreakRange(dailyLog, period.start, period.end);
+      var timelineRaw = [];
+      if (firstActiveDateObj) {
+        timelineRaw.push({ date: firstActiveDateObj, icon: 'books', title: 'Your half began', sub: 'First chapter opened this half.' });
+      }
+      if (peakDay) {
+        timelineRaw.push({
+          date: new Date(peakDay.dateKey + 'T00:00:00'), icon: 'flame', title: 'Your biggest reading day',
+          sub: (Math.round(peakDay.hours * 10) / 10) + ' hours in a single day.',
+        });
+      }
+      if (streakRange) {
+        timelineRaw.push({ date: streakRange.end, icon: 'flame', title: streakRange.length + '-day streak', sub: 'Your longest run this half.' });
+      }
+      if (data.topRated && data.topRated.date) {
+        timelineRaw.push({ date: data.topRated.date, icon: 'star', title: 'Rated ' + data.topRated.title, sub: null });
+      }
+      progressRows.filter(function (r) { return r.status === 'completed' && r.updated_at; }).forEach(function (r) {
+        timelineRaw.push({ date: new Date(r.updated_at), icon: 'medal', title: 'Finished ' + r.series_title, sub: null });
+      });
+      timelineRaw.sort(function (a, b) { return a.date - b.date; });
+      data.timeline = timelineRaw.slice(0, 8);
+
       data.stats = [
         { value: Math.round(data.hoursRead), label: 'HOURS READ' },
         { value: String(data.readingDays), label: 'DAYS ACTIVE' },
