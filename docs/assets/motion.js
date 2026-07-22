@@ -8,29 +8,22 @@
 
 var REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Character mascot removed (wasn't landing) — a plain book stands in for
+// now until a real one gets designed.
 var MASCOT_SVG =
   '<svg viewBox="0 0 120 120" aria-hidden="true" style="width:100%;height:100%;">' +
     '<defs>' +
-      '<radialGradient id="mascotBody" cx="35%" cy="30%" r="80%">' +
-        '<stop offset="0%" stop-color="#B18CFF"/><stop offset="100%" stop-color="#6B46F0"/>' +
-      '</radialGradient>' +
+      '<linearGradient id="mascotPageL" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#EDE5FF"/><stop offset="100%" stop-color="#F6F3FB"/></linearGradient>' +
+      '<linearGradient id="mascotPageR" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#F6F3FB"/><stop offset="100%" stop-color="#EDE5FF"/></linearGradient>' +
     '</defs>' +
-    '<ellipse cx="60" cy="100" rx="30" ry="6" fill="#000" opacity="0.12"/>' +
-    '<path d="M60 14c22 0 36 16 36 38 0 20-10 34-14 40-2 3-6 4-9 2-4-3-8-3-13-3s-9 0-13 3c-3 2-7 1-9-2-4-6-14-20-14-40 0-22 14-38 36-38z" fill="url(#mascotBody)"/>' +
-    '<circle cx="46" cy="52" r="5.5" fill="#16121F"/><circle cx="74" cy="52" r="5.5" fill="#16121F"/>' +
-    '<circle cx="44" cy="50" r="1.8" fill="#fff"/><circle cx="72" cy="50" r="1.8" fill="#fff"/>' +
-    '<path d="M50 66c3 4 17 4 20 0" stroke="#16121F" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-    '<ellipse cx="38" cy="62" rx="6" ry="4" fill="#FF7ED4" opacity="0.55"/>' +
-    '<ellipse cx="82" cy="62" rx="6" ry="4" fill="#FF7ED4" opacity="0.55"/>' +
-    '<g transform="translate(60 92) rotate(-8)">' +
-      '<rect x="-20" y="-7" width="40" height="14" rx="2" fill="#F6F3FB" stroke="#5B2FD6" stroke-width="1.5"/>' +
-      '<line x1="0" y1="-7" x2="0" y2="7" stroke="#5B2FD6" stroke-width="1.5"/>' +
-      '<line x1="-13" y1="-3" x2="-4" y2="-3" stroke="#C4A8FF" stroke-width="1.5"/>' +
-      '<line x1="-13" y1="1" x2="-4" y2="1" stroke="#C4A8FF" stroke-width="1.5"/>' +
-      '<line x1="4" y1="-3" x2="13" y2="-3" stroke="#C4A8FF" stroke-width="1.5"/>' +
-      '<line x1="4" y1="1" x2="13" y2="1" stroke="#C4A8FF" stroke-width="1.5"/>' +
-    '</g>' +
-    '<path d="M96 30l2.4 6.4L104 39l-5.6 2.6L96 48l-2.4-6.4L88 39l5.6-2.6z" fill="#FFD34D"/>' +
+    '<ellipse cx="60" cy="98" rx="34" ry="6" fill="#000" opacity="0.12"/>' +
+    '<path d="M60 34c-14-8-32-9-42-4v54c10-5 28-4 42 4z" fill="url(#mascotPageL)" stroke="#5B2FD6" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M60 34c14-8 32-9 42-4v54c-10-5-28-4-42 4z" fill="url(#mascotPageR)" stroke="#5B2FD6" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M60 34v54" stroke="#5B2FD6" stroke-width="2.5" stroke-linecap="round"/>' +
+    '<path d="M26 46l22 4M25 56l23 4M27 66l20 4" stroke="#B18CFF" stroke-width="2" stroke-linecap="round" opacity="0.8"/>' +
+    '<path d="M94 46l-22 4M95 56l-23 4M93 66l-20 4" stroke="#B18CFF" stroke-width="2" stroke-linecap="round" opacity="0.8"/>' +
+    '<path d="M60 34l3-20 5 3-6 19z" fill="#FF7ED4"/>' +
+    '<path d="M96 26l1.6 4.6L102 32l-4.4 1.6L96 38l-1.6-4.4L90 32l4.4-1.4z" fill="#FFD34D"/>' +
   '</svg>';
 
 // ── Ambient background (blobs + grain) — skipped on dense legal-text pages
