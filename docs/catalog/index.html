@@ -478,6 +478,42 @@
   /* Genre-themed ambient particles — the real per-user "this recap looks
      different for you" signal, driven by the reader's actual favorite genre. */
   .recap-particle-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
+
+  /* Per-genre "alive background" motif — a generic manga-genre visual
+     language (magic circles, speed-lines, stadium lights, neon grid, fog,
+     bokeh, rain-streaks, wind rays), never a specific series' artwork.
+     Continuously animated so the background is never a frozen gradient. */
+  .recap-motif { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+  .recap-motif-svg { position: absolute; top: 50%; left: 50%; width: 82vh; height: 82vh; max-width: 620px; max-height: 620px; transform: translate(-50%, -50%); opacity: 0.4; }
+  .recap-motif-spin-slow { animation: recapMotifSpin 90s linear infinite; }
+  .recap-motif-spin-slow-rev { animation: recapMotifSpinRev 70s linear infinite; }
+  @keyframes recapMotifSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  @keyframes recapMotifSpinRev { to { transform: translate(-50%, -50%) rotate(-360deg); } }
+  .recap-motif-speedlines {
+    position: absolute; top: 50%; left: 50%; width: 900px; height: 900px;
+    transform: translate(-50%, -50%); border-radius: 50%; opacity: 0.32;
+    animation: recapMotifSpin 46s linear infinite;
+  }
+  .recap-motif-beam { position: absolute; top: -20%; width: 60%; height: 140%; opacity: 0.28; animation: recapMotifSweep 12s ease-in-out infinite; }
+  .recap-motif-beam-a { left: -10%; }
+  .recap-motif-beam-b { right: -10%; animation-delay: 3s; animation-direction: reverse; }
+  @keyframes recapMotifSweep { 0%, 100% { transform: rotate(0deg); opacity: 0.18; } 50% { transform: rotate(4deg); opacity: 0.36; } }
+  .recap-motif-grid {
+    position: absolute; left: -20%; right: -20%; bottom: -10%; height: 70%; opacity: 0.3;
+    transform: perspective(400px) rotateX(62deg); transform-origin: bottom;
+    animation: recapMotifScroll 6s linear infinite;
+  }
+  @keyframes recapMotifScroll { from { background-position: 0 0, 0 0; } to { background-position: 0 40px, 40px 0; } }
+  .recap-motif-fog { position: absolute; width: 70%; height: 70%; border-radius: 50%; filter: blur(30px); opacity: 0.32; }
+  .recap-motif-fog-a { top: 5%; left: -15%; animation: recapMotifDriftX 18s ease-in-out infinite; }
+  .recap-motif-fog-b { bottom: 0%; right: -15%; animation: recapMotifDriftX 22s ease-in-out infinite reverse; }
+  @keyframes recapMotifDriftX { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(8%); } }
+  .recap-motif-dot { position: absolute; width: 60px; height: 60px; border-radius: 50%; filter: blur(6px); opacity: 0; animation: recapMotifBokeh 7s ease-in-out infinite; }
+  @keyframes recapMotifBokeh { 0% { opacity: 0; transform: translateY(0) scale(0.8); } 30%, 60% { opacity: 0.5; } 100% { opacity: 0; transform: translateY(-14%) scale(1.1); } }
+  .recap-motif-streaks { position: absolute; inset: -20%; opacity: 0.16; animation: recapMotifFade 8s ease-in-out infinite; }
+  @keyframes recapMotifFade { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.22; } }
+  .recap-motif-ray { position: absolute; inset: -30%; opacity: 0.22; animation: recapMotifFade 10s ease-in-out infinite; }
+  .recap-motif-ray-b { animation-delay: 4s; }
   /* Manga panel-corner brackets — a real comic-panel framing cue, unlike a
      mismatched full border around the whole screen. */
   .recap-panel-corners { position: absolute; inset: 16px; z-index: 15; pointer-events: none; }
@@ -514,6 +550,20 @@
     animation: recapPopIn 0.65s cubic-bezier(.2,1.6,.4,1) both;
   }
   @keyframes recapPopIn { 0% { transform: scale(0.3); opacity: 0; } 65% { transform: scale(1.16); opacity: 1; } 100% { transform: scale(1); } }
+  /* Every big number gets a real "hero moment" on landing — a scale-punch +
+     glow flash, not just a count-up that quietly stops. Paired with a
+     confined particle burst and a haptic tap (recapCountUpImpact). */
+  .recap-countup-punch { animation: recapCountUpPunch 0.5s cubic-bezier(.2,1.8,.4,1); }
+  @keyframes recapCountUpPunch {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.12); text-shadow: 0 0 90px var(--rc, #fff), 0 0 40px #fff, 0 10px 30px rgba(0,0,0,0.4); }
+    100% { transform: scale(1); }
+  }
+  .recap-impact-spark {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%; z-index: 4; pointer-events: none;
+    transform: translate(-50%, -50%); animation: recapImpactSpark 0.7s ease-out forwards;
+  }
+  @keyframes recapImpactSpark { to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))); opacity: 0; } }
   .recap-stat-label { margin-top: 12px; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; color: rgba(255,255,255,0.92); }
   .recap-tap-hint { margin-top: 34px; font-size: 0.86rem; color: rgba(255,255,255,0.65); }
   .recap-tier-pill { display: inline-block; margin-top: 14px; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid var(--tier-c, #fff); color: #fff; font-weight: 800; font-size: 0.9rem; }
@@ -615,6 +665,9 @@
     .recap-reveal, .recap-stat-big, .recap-archetype-badge, .recap-kword, .recap-mascot { animation: none; opacity: 1; transform: none; }
     .recap-speedlines, .recap-watermark, .recap-flame-visual svg { animation: none; }
     .recap-stage.recap-exit-l, .recap-stage.recap-exit-r, .recap-stage.recap-enter-l, .recap-stage.recap-enter-r { animation: none; }
+    .recap-motif-svg, .recap-motif-speedlines, .recap-motif-beam, .recap-motif-grid,
+    .recap-motif-fog, .recap-motif-dot, .recap-motif-streaks, .recap-motif-ray,
+    .recap-countup-punch, .recap-impact-spark { animation: none; }
   }
 </style>
 <link rel="stylesheet" href="/assets/motion.css?v=2" />
@@ -1513,6 +1566,78 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   var RECAP_DEFAULT_THEME = { particle: 'sparkles', colors: ['#B18CFF', '#7B5CFF'] };
   function recapThemeFor(genre) { return RECAP_GENRE_THEMES[genre] || RECAP_DEFAULT_THEME; }
+
+  // Per-genre background "motif family" — a generic manga-genre visual
+  // language (magic circles, speed-lines, stadium lights, neon grid, fog,
+  // bokeh, rain-streaks, wind rays) rather than a per-series bespoke asset
+  // library, which would be unbounded scope across a catalog of thousands
+  // of titles and would risk drifting into a specific series' actual art.
+  var RECAP_MOTIF_FAMILY = {
+    'Action': 'speedlines', 'Adventure': 'map-compass', 'Comedy': 'bokeh',
+    'Cyberpunk': 'neon-grid', 'Drama': 'rain-window', 'Fantasy': 'magic-circle',
+    'Horror': 'fog', 'Isekai': 'magic-circle', 'Martial Arts': 'speedlines',
+    'Murim': 'magic-circle', 'Mystery': 'fog', 'Regression/Reincarnation': 'magic-circle',
+    'Romance': 'bokeh', 'Sci-Fi': 'neon-grid', 'Slice of Life': 'wind-leaves',
+    'Sports': 'stadium-lights', 'Thriller': 'fog',
+  };
+  var RECAP_DEFAULT_MOTIF = 'magic-circle';
+  function recapMotifFamilyFor(genre) { return RECAP_MOTIF_FAMILY[genre] || RECAP_DEFAULT_MOTIF; }
+  function recapRadialTicks(n, cx, cy, rInner, rOuter) {
+    var out = '', step = Math.PI * 2 / n;
+    for (var i = 0; i < n; i++) {
+      var a = i * step;
+      var x1 = (cx + rInner * Math.cos(a)).toFixed(1), y1 = (cy + rInner * Math.sin(a)).toFixed(1);
+      var x2 = (cx + rOuter * Math.cos(a)).toFixed(1), y2 = (cy + rOuter * Math.sin(a)).toFixed(1);
+      out += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"/>';
+    }
+    return out;
+  }
+  function recapMotifHtml(family, color) {
+    var inner = '';
+    if (family === 'magic-circle') {
+      inner =
+        '<svg viewBox="0 0 400 400" class="recap-motif-svg recap-motif-spin-slow">' +
+          '<circle cx="200" cy="200" r="172" fill="none" stroke="' + color + '" stroke-width="1.4" stroke-dasharray="3 9"/>' +
+          '<circle cx="200" cy="200" r="132" fill="none" stroke="' + color + '" stroke-width="1"/>' +
+          '<g stroke="' + color + '" stroke-width="2">' + recapRadialTicks(16, 200, 200, 132, 148) + '</g>' +
+        '</svg>' +
+        '<svg viewBox="0 0 400 400" class="recap-motif-svg recap-motif-spin-slow-rev">' +
+          '<circle cx="200" cy="200" r="98" fill="none" stroke="' + color + '" stroke-width="1" stroke-dasharray="1 5"/>' +
+        '</svg>';
+    } else if (family === 'speedlines') {
+      inner = '<div class="recap-motif-speedlines" style="background:repeating-conic-gradient(from 0deg, ' + color + ' 0deg 2deg, transparent 2deg 12deg);"></div>';
+    } else if (family === 'map-compass') {
+      inner =
+        '<svg viewBox="0 0 400 400" class="recap-motif-svg recap-motif-spin-slow">' +
+          '<circle cx="200" cy="200" r="150" fill="none" stroke="' + color + '" stroke-width="1.2"/>' +
+          '<g stroke="' + color + '" stroke-width="1.5">' + recapRadialTicks(8, 200, 200, 150, 168) + '</g>' +
+          '<path d="M200 60l16 140-16 140-16-140z" fill="' + color + '" opacity="0.55"/>' +
+        '</svg>';
+    } else if (family === 'stadium-lights') {
+      inner =
+        '<div class="recap-motif-beam recap-motif-beam-a" style="background:linear-gradient(200deg, ' + color + ' 0%, transparent 60%);"></div>' +
+        '<div class="recap-motif-beam recap-motif-beam-b" style="background:linear-gradient(160deg, ' + color + ' 0%, transparent 60%);"></div>';
+    } else if (family === 'neon-grid') {
+      inner = '<div class="recap-motif-grid" style="background-image:repeating-linear-gradient(0deg, ' + color + ' 0 2px, transparent 2px 40px), repeating-linear-gradient(90deg, ' + color + ' 0 2px, transparent 2px 40px);"></div>';
+    } else if (family === 'fog') {
+      inner =
+        '<div class="recap-motif-fog recap-motif-fog-a" style="background:radial-gradient(circle, ' + color + ' 0%, transparent 70%);"></div>' +
+        '<div class="recap-motif-fog recap-motif-fog-b" style="background:radial-gradient(circle, ' + color + ' 0%, transparent 70%);"></div>';
+    } else if (family === 'bokeh') {
+      var dots = '';
+      for (var i = 0; i < 6; i++) {
+        dots += '<span class="recap-motif-dot" style="left:' + (10 + i * 15) + '%; top:' + (15 + (i % 3) * 28) + '%; background:radial-gradient(circle, ' + color + ' 0%, transparent 70%); animation-delay:' + (i * 0.9) + 's;"></span>';
+      }
+      inner = dots;
+    } else if (family === 'rain-window') {
+      inner = '<div class="recap-motif-streaks" style="background:repeating-linear-gradient(100deg, ' + color + ' 0 1px, transparent 1px 26px);"></div>';
+    } else if (family === 'wind-leaves') {
+      inner =
+        '<div class="recap-motif-ray recap-motif-ray-a" style="background:linear-gradient(115deg, ' + color + ' 0%, transparent 45%);"></div>' +
+        '<div class="recap-motif-ray recap-motif-ray-b" style="background:linear-gradient(70deg, ' + color + ' 0%, transparent 45%);"></div>';
+    }
+    return '<div class="recap-motif" data-motif="' + family + '">' + inner + '</div>';
+  }
   var RECAP_ICONS = {
     clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
     flame: '<path d="M12 2.5c.6 4.2-3.8 5.7-3.8 10a3.8 3.8 0 0 0 7.6 0c0-2.3-1.4-2.9-1.4-5.1 0 1.4-.8 2-1.4 2-1.1 0-1.3-1.7-1-3 .2-1.1.4-2.2 0-3.9z"/>',
@@ -1969,8 +2094,38 @@ document.addEventListener('DOMContentLoaded', function () {
         var p = Math.min(1, (now - start) / dur);
         el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
         if (p < 1) requestAnimationFrame(step);
+        else recapCountUpImpact(el, container);
       })(performance.now());
     });
+  }
+
+  // A real "hero moment" for every big number landing: a scale-punch + glow
+  // flash, a handful of particles bursting from the number itself, and a
+  // light haptic tap where supported — instead of the count-up quietly
+  // stopping. Skipped entirely under reduced-motion (recapAnimateCountUps
+  // never calls this in that case, since it sets the value immediately).
+  function recapCountUpImpact(el, container) {
+    el.classList.add('recap-countup-punch');
+    setTimeout(function () { el.classList.remove('recap-countup-punch'); }, 500);
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+    var stageRect = container.getBoundingClientRect();
+    var elRect = el.getBoundingClientRect();
+    var cx = elRect.left + elRect.width / 2 - stageRect.left;
+    var cy = elRect.top + elRect.height / 2 - stageRect.top;
+    var colors = ['#fff', 'rgba(255,255,255,0.7)'];
+    for (var i = 0; i < 10; i++) {
+      var p = document.createElement('span');
+      p.className = 'recap-impact-spark';
+      var a = (i / 10) * Math.PI * 2;
+      var dist = 60 + Math.random() * 40;
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      p.style.setProperty('--dx', (Math.cos(a) * dist).toFixed(0) + 'px');
+      p.style.setProperty('--dy', (Math.sin(a) * dist).toFixed(0) + 'px');
+      p.style.background = colors[i % colors.length];
+      container.appendChild(p);
+      (function (spark) { setTimeout(function () { spark.remove(); }, 700); })(p);
+    }
   }
 
   function recapSpawnConfetti(container) {
@@ -2256,14 +2411,21 @@ document.addEventListener('DOMContentLoaded', function () {
         return searchMedia(row.series_title, null, 1)
           .then(function (res) {
             var m = (res.Page.media || [])[0];
-            return { title: row.series_title, chapters: row.current_chapter || 0, cover: (m && m.coverImage && m.coverImage.large) || null };
+            // AniList precomputes a real dominant color per cover — reuse it
+            // to personalize the recap's motif/particle color instead of
+            // guessing or sampling pixels ourselves.
+            return {
+              title: row.series_title, chapters: row.current_chapter || 0,
+              cover: (m && m.coverImage && m.coverImage.large) || null,
+              color: (m && m.coverImage && m.coverImage.color) || null,
+            };
           })
-          .catch(function () { return { title: row.series_title, chapters: row.current_chapter || 0, cover: null }; });
+          .catch(function () { return { title: row.series_title, chapters: row.current_chapter || 0, cover: null, color: null }; });
       });
       // Hard timeout so a slow/unreachable AniList can never block the whole
       // Recap from rendering — falls back to text-only titles past 2.5s.
       var coverFallback = topSeriesRaw.map(function (row) {
-        return { title: row.series_title, chapters: row.current_chapter || 0, cover: null };
+        return { title: row.series_title, chapters: row.current_chapter || 0, cover: null, color: null };
       });
       var coverLookupsWithTimeout = new Promise(function (resolve) {
         var settled = false;
@@ -2275,6 +2437,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
       coverLookupsWithTimeout.then(function (topSeries) {
         data.topSeries = topSeries;
+        data.motifFamily = recapMotifFamilyFor(data.favoriteGenre);
+
+        // Personalize the theme/motif color beyond genre alone using
+        // AniList's own real precomputed color for the reader's most-read
+        // cover — falls back to the genre palette if there's no top cover
+        // or AniList hasn't computed one for that title (never fabricated).
+        var topColor = (topSeries[0] && topSeries[0].color) || null;
+        if (topColor) {
+          data.theme = { particle: data.theme.particle, colors: [topColor, data.theme.colors[1] || data.theme.colors[0]] };
+        }
+        data.motifColor = topColor || data.theme.colors[0];
 
         app.innerHTML =
           '<div class="recap-overlay" id="recapOverlay">' +
@@ -2285,6 +2458,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
               '<button class="recap-ctrl-btn" id="recapReplayBtn" type="button" aria-label="Replay from start">' + RECAP_CTRL_ICONS.replay + '</button>' +
             '</div>' +
+            recapMotifHtml(data.motifFamily, data.motifColor) +
             '<div class="recap-stage" id="recapStage"></div>' +
             '<canvas class="recap-particle-canvas" id="recapParticles" aria-hidden="true"></canvas>' +
             '<div class="recap-grain" aria-hidden="true"></div>' +
