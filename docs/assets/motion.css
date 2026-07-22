@@ -390,9 +390,11 @@
 /* ── Mascot (injected into empty/error/404 states) ───────────────────── */
 .mascot-pop {
   width: 92px;
+  height: 92px;
   margin: 0 auto 14px;
   animation: mascotBob 3.2s ease-in-out infinite;
 }
+.mascot-pop svg { width: 100%; height: 100%; display: block; }
 @keyframes mascotBob {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-6px) rotate(-2deg); }
