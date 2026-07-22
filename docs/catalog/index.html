@@ -448,6 +448,13 @@
     border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: none; font-size: 1.3rem;
     cursor: pointer; line-height: 1;
   }
+  .recap-controls { position: absolute; top: 14px; right: 58px; z-index: 25; display: flex; gap: 8px; }
+  .recap-ctrl-btn {
+    width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff;
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .recap-ctrl-btn svg { width: 16px; height: 16px; }
+  .recap-ctrl-btn:active { transform: scale(0.9); }
   .recap-stage {
     flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
     padding: 48px 28px; cursor: pointer; user-select: none; position: relative; overflow: hidden;
@@ -468,6 +475,9 @@
     position: absolute; inset: -20%; z-index: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
+  /* Genre-themed ambient particles — the real per-user "this recap looks
+     different for you" signal, driven by the reader's actual favorite genre. */
+  .recap-particle-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
   /* Manga panel-corner brackets — a real comic-panel framing cue, unlike a
      mismatched full border around the whole screen. */
   .recap-panel-corners { position: absolute; inset: 16px; z-index: 15; pointer-events: none; }
@@ -492,7 +502,7 @@
     animation: recapSpin 50s linear infinite;
   }
   @keyframes recapSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-  .recap-reveal { opacity: 0; transform: translateY(14px); animation: recapFadeUp 0.55s ease forwards; }
+  .recap-reveal { opacity: 0; transform: translateY(14px); animation: recapFadeUp 0.6s cubic-bezier(.22,1.3,.36,1) forwards; }
   @keyframes recapFadeUp { to { opacity: 1; transform: none; } }
   .recap-eyebrow { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.78); margin-bottom: 16px; }
   .recap-title { font-family: 'Panel Display', sans-serif; font-weight: 900; text-transform: uppercase; font-size: clamp(2rem, 7vw, 2.7rem); line-height: 1.02; }
@@ -545,11 +555,12 @@
     75% { transform: scale(0.99, 1.02) rotate(-0.5deg); }
   }
 
-  .recap-progress-bar { width: 100%; max-width: 260px; height: 12px; border-radius: 999px; background: rgba(255,255,255,0.2); overflow: hidden; margin: 22px auto 8px; }
-  .recap-progress-bar i { display: block; height: 100%; background: #fff; border-radius: 999px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+  .recap-heatmap { display: flex; gap: 2px; margin: 20px auto 4px; max-width: 100%; overflow-x: auto; justify-content: center; padding-bottom: 4px; }
+  .recap-heat-col { display: flex; flex-direction: column; gap: 2px; }
+  .recap-heat-cell { display: block; width: 7px; height: 7px; border-radius: 2px; }
 
   .recap-shelf { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 110px; margin: 22px 0 4px; }
-  .recap-spine { border-radius: 3px 3px 0 0; opacity: 0.95; transition: height 0.7s cubic-bezier(.2,.8,.2,1); }
+  .recap-spine { border-radius: 3px 3px 0 0; opacity: 0.95; transition: height 0.7s cubic-bezier(.22,1.3,.36,1); }
 
   .recap-archetype-badge {
     display: inline-flex; align-items: center; justify-content: center; width: 108px; height: 108px;
@@ -568,11 +579,14 @@
   .recap-confetti-piece { position: absolute; top: -10px; width: 8px; height: 14px; opacity: 0.9; animation: recapFall linear forwards; border-radius: 2px; pointer-events: none; z-index: 3; }
   @keyframes recapFall { to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
 
-  /* Directional swipe transition between slides — a "swipe cut" instead of a flat crossfade */
-  .recap-stage.recap-exit-l { animation: recapExitL 0.16s ease forwards; }
-  .recap-stage.recap-exit-r { animation: recapExitR 0.16s ease forwards; }
-  .recap-stage.recap-enter-l { animation: recapEnterL 0.38s cubic-bezier(.2,.8,.2,1); }
-  .recap-stage.recap-enter-r { animation: recapEnterR 0.38s cubic-bezier(.2,.8,.2,1); }
+  /* Directional swipe transition between slides — spring/overshoot easing
+     throughout so nothing feels linear: exits ease in, entrances overshoot
+     slightly past their resting position before settling, like real
+     spring physics rather than a flat crossfade. */
+  .recap-stage.recap-exit-l { animation: recapExitL 0.16s ease-in forwards; }
+  .recap-stage.recap-exit-r { animation: recapExitR 0.16s ease-in forwards; }
+  .recap-stage.recap-enter-l { animation: recapEnterL 0.5s cubic-bezier(.22,1.4,.36,1); }
+  .recap-stage.recap-enter-r { animation: recapEnterR 0.5s cubic-bezier(.22,1.4,.36,1); }
   @keyframes recapExitL { to { transform: translateX(-7%) scale(0.94); opacity: 0.25; } }
   @keyframes recapExitR { to { transform: translateX(7%) scale(0.94); opacity: 0.25; } }
   @keyframes recapEnterL { from { transform: translateX(-7%) scale(0.94); opacity: 0.25; } to { transform: none; opacity: 1; } }
@@ -1455,6 +1469,37 @@ document.addEventListener('DOMContentLoaded', function () {
     blue:   'linear-gradient(160deg,#5B8DEF,#101b3d)',
     fire:   'linear-gradient(160deg,#E8544A,#3a0f0c)',
   };
+  // Real per-user visual identity: driven by the reader's actual favorite
+  // genre (already fetched, real data), not a per-title AI-generated theme
+  // (which would need art/generation infra this static site doesn't have).
+  // Each genre gets a curated particle system + color family so two
+  // readers with different tastes genuinely see a different recap.
+  // Keyed to match utils/genres.js exactly (the app's real taxonomy, not
+  // AniList's coarser one) — Isekai/Murim/Martial Arts/Regression are
+  // hugely common favorites in this exact genre and were missing from an
+  // earlier AniList-based draft of this mapping, which would have silently
+  // fallen back to the default theme for a large share of real users.
+  var RECAP_GENRE_THEMES = {
+    'Action':                   { particle: 'embers',   colors: ['#FF8A3D', '#E8544A'] },
+    'Adventure':                { particle: 'sparkles', colors: ['#F0BE66', '#3FC9C0'] },
+    'Comedy':                   { particle: 'petals',   colors: ['#FFD34D', '#FF7ED4'] },
+    'Cyberpunk':                { particle: 'sparkles', colors: ['#3FE8E0', '#E85FC2'] },
+    'Drama':                    { particle: 'rain',     colors: ['#7BA6F5', '#3a5ea8'] },
+    'Fantasy':                  { particle: 'sparkles', colors: ['#B18CFF', '#7B5CFF'] },
+    'Horror':                   { particle: 'embers',   colors: ['#8A1414', '#3a0f0c'] },
+    'Isekai':                   { particle: 'sparkles', colors: ['#7BA6F5', '#B18CFF'] },
+    'Martial Arts':             { particle: 'embers',   colors: ['#E8A83C', '#8A1414'] },
+    'Murim':                    { particle: 'embers',   colors: ['#C24747', '#1a1010'] },
+    'Mystery':                  { particle: 'rain',     colors: ['#8F7CE0', '#2d1f5c'] },
+    'Regression/Reincarnation': { particle: 'sparkles', colors: ['#3FC9C0', '#7B5CFF'] },
+    'Romance':                  { particle: 'petals',   colors: ['#F17FC0', '#E85FA8'] },
+    'Sci-Fi':                   { particle: 'sparkles', colors: ['#6BDCD4', '#3FC9C0'] },
+    'Slice of Life':            { particle: 'leaves',   colors: ['#8FCB8F', '#F0BE66'] },
+    'Sports':                   { particle: 'sparkles', colors: ['#F0BE66', '#5B8DEF'] },
+    'Thriller':                 { particle: 'rain',     colors: ['#C24747', '#2a0f0f'] },
+  };
+  var RECAP_DEFAULT_THEME = { particle: 'sparkles', colors: ['#B18CFF', '#7B5CFF'] };
+  function recapThemeFor(genre) { return RECAP_GENRE_THEMES[genre] || RECAP_DEFAULT_THEME; }
   var RECAP_ICONS = {
     clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
     flame: '<path d="M12 2.5c.6 4.2-3.8 5.7-3.8 10a3.8 3.8 0 0 0 7.6 0c0-2.3-1.4-2.9-1.4-5.1 0 1.4-.8 2-1.4 2-1.1 0-1.3-1.7-1-3 .2-1.1.4-2.2 0-3.9z"/>',
@@ -1469,6 +1514,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function recapIcon(name) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + RECAP_ICONS[name] + '</svg>';
   }
+  var RECAP_CTRL_ICONS = {
+    pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+    replay: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>',
+  };
   function recapWatermark(name) { return '<div class="recap-watermark">' + recapIcon(name) + '</div>'; }
   function recapReveal(html, delay) { return '<div class="recap-reveal" style="animation-delay:' + (delay || 0) + 's">' + html + '</div>'; }
   // Word-by-word "movie title sequence" reveal instead of one flat fade-in.
@@ -1530,6 +1580,102 @@ document.addEventListener('DOMContentLoaded', function () {
       labels +
     '</svg></div>';
   }
+
+  // Dependency-free Canvas2D particle system — embers/petals/sparkles/rain/
+  // leaves depending on genre theme. Runs continuously behind the slide
+  // text for the life of the story; caller must invoke the returned stop()
+  // when the recap closes so the rAF loop doesn't leak.
+  function initRecapParticles(canvas, theme) {
+    var ctx = canvas.getContext('2d');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var count = reduced ? 0 : 46;
+    var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var particles = [], rafId = null, stopped = false;
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function resize() {
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      canvas.width = Math.max(1, W * dpr); canvas.height = Math.max(1, H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function spawn() {
+      var c = theme.colors[Math.floor(Math.random() * theme.colors.length)];
+      if (theme.particle === 'rain') return { x: rand(0, W), y: rand(-H, 0), vy: rand(6, 11), len: rand(14, 26), color: c, alpha: rand(0.2, 0.5) };
+      if (theme.particle === 'embers') return { x: rand(0, W), y: rand(0, H), vy: -rand(0.4, 1.2), vx: rand(-0.3, 0.3), r: rand(1.4, 3.2), color: c, alpha: rand(0.3, 0.85), tw: rand(0, 6.28) };
+      if (theme.particle === 'sparkles') return { x: rand(0, W), y: rand(0, H), r: rand(1, 2.6), color: c, alpha: rand(0.2, 0.9), tw: rand(0, 6.28), speed: rand(0.02, 0.05) };
+      return { x: rand(0, W), y: rand(-H, 0), vy: rand(0.6, 1.6), r: rand(4, 8), rot: rand(0, 6.28), vr: rand(-0.02, 0.02), sway: rand(0, 6.28), color: c, alpha: rand(0.5, 0.9) };
+    }
+    for (var i = 0; i < count; i++) particles.push(spawn());
+
+    function step() {
+      if (stopped) return;
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach(function (p) {
+        ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.strokeStyle = p.color;
+        if (theme.particle === 'rain') {
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + p.len); ctx.lineWidth = 1.4; ctx.stroke();
+          p.y += p.vy;
+          if (p.y > H) { p.y = -p.len; p.x = rand(0, W); }
+        } else if (theme.particle === 'embers') {
+          p.tw += 0.05;
+          ctx.globalAlpha = p.alpha * (0.6 + 0.4 * Math.sin(p.tw));
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill();
+          p.y += p.vy; p.x += p.vx;
+          if (p.y < -10) { p.y = H + 10; p.x = rand(0, W); }
+        } else if (theme.particle === 'sparkles') {
+          p.tw += p.speed;
+          ctx.globalAlpha = p.alpha * (0.3 + 0.7 * Math.abs(Math.sin(p.tw)));
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.28); ctx.fill();
+        } else {
+          p.sway += 0.02; p.rot += p.vr;
+          var sx = p.x + Math.sin(p.sway) * 12;
+          ctx.save(); ctx.translate(sx, p.y); ctx.rotate(p.rot);
+          ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * 0.55, 0, 0, 6.28); ctx.fill();
+          ctx.restore();
+          p.y += p.vy;
+          if (p.y > H + 10) { p.y = -10; p.x = rand(0, W); }
+        }
+      });
+      ctx.globalAlpha = 1;
+      rafId = requestAnimationFrame(step);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    if (count > 0) step();
+    return function stop() {
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', resize);
+    };
+  }
+
+  // GitHub-style contribution heatmap for the recap's own 6-month window —
+  // reuses the exact color-by-hours logic from the profile page's streak
+  // grid (profileStreakColor/profileDateKey), just over a custom range
+  // instead of the profile page's hardcoded "last month to today".
+  function recapHeatmapHtml(dailyLog, start, end) {
+    var log = dailyLog || {};
+    var startSunday = new Date(start);
+    startSunday.setDate(startSunday.getDate() - startSunday.getDay());
+    var endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    var days = [];
+    var cursor = new Date(startSunday);
+    while (cursor <= endDay) { days.push(new Date(cursor)); cursor.setDate(cursor.getDate() + 1); }
+    while (days.length % 7 !== 0) days.push(null);
+    var weeks = [];
+    for (var i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+    var cols = weeks.map(function (week) {
+      var cells = week.map(function (day) {
+        if (!day || day < start || day > end) return '<i class="recap-heat-cell" style="background:rgba(255,255,255,0.05)"></i>';
+        var hours = log[profileDateKey(day)] || 0;
+        var color = profileStreakColor(hours) || 'rgba(255,255,255,0.12)';
+        return '<i class="recap-heat-cell" style="background:' + color + '"></i>';
+      }).join('');
+      return '<div class="recap-heat-col">' + cells + '</div>';
+    }).join('');
+    return '<div class="recap-heatmap">' + cols + '</div>';
+  }
   function recapFlameHtml(accent) {
     return '<div class="recap-flame-visual">' +
       '<svg viewBox="0 0 100 140">' +
@@ -1568,6 +1714,19 @@ document.addEventListener('DOMContentLoaded', function () {
           recapReveal('<div class="recap-tap-hint">Tap to begin →</div>', 0.68) +
         '</div>',
     });
+
+    if (d.firstActiveDate) {
+      slides.push({
+        gradient: RECAP_PALETTE.teal,
+        html:
+          recapWatermark('books') +
+          '<div class="recap-slide">' +
+            recapReveal('<div class="recap-eyebrow">Your journey begins</div>') +
+            recapKineticTitle('h2', d.firstActiveDate, 0.16, 'font-size:2.3rem;') +
+            recapReveal('<p class="recap-sub">That\'s the first day you opened a chapter this half.</p>', 0.42) +
+          '</div>',
+      });
+    }
 
     slides.push({
       gradient: RECAP_PALETTE.blue,
@@ -1611,12 +1770,11 @@ document.addEventListener('DOMContentLoaded', function () {
     slides.push({
       gradient: RECAP_PALETTE.gold,
       html:
-        recapWatermark('calendar') +
         '<div class="recap-slide">' +
           recapReveal('<div class="recap-eyebrow">Showing up</div>') +
           '<div class="recap-stat-big" data-countup="' + d.readingDays + '">0</div>' +
-          recapReveal('<div class="recap-stat-label">DAYS YOU OPENED A CHAPTER</div>', 0.16) +
-          recapReveal('<div class="recap-progress-bar"><i style="width:0%" data-target-width="' + activePct + '%"></i></div><p class="recap-sub" style="margin-top:6px;">' + activePct + '% of the ' + d.totalDaysInPeriod + ' days this half.</p>', 0.3) +
+          recapReveal('<div class="recap-stat-label">DAYS YOU OPENED A CHAPTER · ' + activePct + '%</div>', 0.16) +
+          recapReveal(recapHeatmapHtml(d.dailyLog, d.period.start, d.period.end), 0.3) +
         '</div>',
     });
 
@@ -1772,6 +1930,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 4200);
   }
 
+  // Grows bookshelf spines from 0 to their real height — kept generic
+  // (any [data-target-height] element) in case a future slide reuses it.
   function recapTriggerGrowth(container) {
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     requestAnimationFrame(function () {
@@ -1779,14 +1939,6 @@ document.addEventListener('DOMContentLoaded', function () {
         Array.prototype.forEach.call(container.querySelectorAll('[data-target-height]'), function (el) {
           el.style.transition = reduced ? 'none' : '';
           el.style.height = el.getAttribute('data-target-height');
-        });
-        Array.prototype.forEach.call(container.querySelectorAll('[data-target-width]'), function (el) {
-          el.style.transition = reduced ? 'none' : '';
-          el.style.width = el.getAttribute('data-target-width');
-        });
-        Array.prototype.forEach.call(container.querySelectorAll('[data-target-offset]'), function (el) {
-          el.style.transition = reduced ? 'none' : '';
-          el.setAttribute('stroke-dashoffset', el.getAttribute('data-target-offset'));
         });
       });
     });
@@ -1803,6 +1955,9 @@ document.addEventListener('DOMContentLoaded', function () {
     stage.style.setProperty('--rc', cardData.accentColor || '#7B5CFF');
     progressWrap.innerHTML = slides.map(function () { return '<div class="recap-seg"><i></i></div>'; }).join('');
     var segs = progressWrap.querySelectorAll('.recap-seg');
+
+    var particleCanvas = document.getElementById('recapParticles');
+    var stopParticles = particleCanvas ? initRecapParticles(particleCanvas, cardData.theme || RECAP_DEFAULT_THEME) : function () {};
 
     function renderFinaleCard() {
       var canvas = drawRecapCard(cardData);
@@ -1826,6 +1981,46 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
+    var paused = false, segStartTime = 0, segRemainingMs = AUTO_MS;
+
+    function startSegTimer() {
+      segRemainingMs = AUTO_MS;
+      segStartTime = Date.now();
+      var s = slides[idx];
+      if (s.isFinale) return;
+      var bar = segs[idx].querySelector('i');
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          bar.style.transition = reduced ? 'none' : 'width ' + AUTO_MS + 'ms linear';
+          bar.style.width = '100%';
+        });
+      });
+      clearTimeout(timer);
+      timer = setTimeout(function () { go(1); }, AUTO_MS);
+    }
+    function pauseSegTimer() {
+      var bar = segs[idx] && segs[idx].querySelector('i');
+      if (!bar) return;
+      segRemainingMs = Math.max(0, AUTO_MS - (Date.now() - segStartTime));
+      bar.style.width = getComputedStyle(bar).width;
+      bar.style.transition = 'none';
+      clearTimeout(timer);
+    }
+    function resumeSegTimer() {
+      var s = slides[idx];
+      if (s.isFinale) return;
+      var bar = segs[idx] && segs[idx].querySelector('i');
+      segStartTime = Date.now() - (AUTO_MS - segRemainingMs);
+      if (bar) {
+        requestAnimationFrame(function () {
+          bar.style.transition = reduced ? 'none' : 'width ' + segRemainingMs + 'ms linear';
+          bar.style.width = '100%';
+        });
+      }
+      clearTimeout(timer);
+      timer = setTimeout(function () { go(1); }, segRemainingMs);
+    }
+
     function fillSlide() {
       var s = slides[idx];
       stage.style.background = s.gradient;
@@ -1839,15 +2034,12 @@ document.addEventListener('DOMContentLoaded', function () {
       recapTriggerGrowth(stage);
       if (s.confetti) recapSpawnConfetti(stage);
       if (s.isFinale) renderFinaleCard();
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          var bar = segs[idx].querySelector('i');
-          bar.style.transition = reduced ? 'none' : 'width ' + AUTO_MS + 'ms linear';
-          bar.style.width = '100%';
-        });
-      });
-      clearTimeout(timer);
-      if (!s.isFinale) timer = setTimeout(function () { go(1); }, AUTO_MS);
+      // Always start fresh for the newly-shown slide (correct full duration
+      // regardless of prior slide's remaining time), then immediately
+      // freeze it if the story is currently paused — avoids computing a
+      // stale remaining-time from the previous slide's segStartTime.
+      startSegTimer();
+      if (paused) pauseSegTimer();
     }
 
     // direction: 0 = initial paint (no transition), 1 = forward, -1 = back
@@ -1858,7 +2050,7 @@ document.addEventListener('DOMContentLoaded', function () {
         stage.classList.remove('recap-exit-l', 'recap-exit-r');
         fillSlide();
         stage.classList.add(direction > 0 ? 'recap-enter-r' : 'recap-enter-l');
-        setTimeout(function () { stage.classList.remove('recap-enter-l', 'recap-enter-r'); }, 400);
+        setTimeout(function () { stage.classList.remove('recap-enter-l', 'recap-enter-r'); }, 500);
       }, 160);
     }
     function go(direction) {
@@ -1867,8 +2059,22 @@ document.addEventListener('DOMContentLoaded', function () {
       idx = target;
       paint(direction);
     }
+    function togglePause() {
+      paused = !paused;
+      var btn = document.getElementById('recapPauseBtn');
+      if (btn) btn.innerHTML = paused ? RECAP_CTRL_ICONS.play : RECAP_CTRL_ICONS.pause;
+      if (paused) pauseSegTimer(); else resumeSegTimer();
+    }
+    function replay() {
+      paused = false;
+      var btn = document.getElementById('recapPauseBtn');
+      if (btn) btn.innerHTML = RECAP_CTRL_ICONS.pause;
+      idx = 0;
+      paint(0);
+    }
     function close() {
       clearTimeout(timer);
+      stopParticles();
       document.removeEventListener('keydown', keyHandler);
       location.hash = '#/profile';
     }
@@ -1876,6 +2082,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (e.key === 'ArrowRight') go(1);
       else if (e.key === 'ArrowLeft') go(-1);
       else if (e.key === 'Escape') close();
+      else if (e.key === ' ') { e.preventDefault(); togglePause(); }
     }
 
     stage.addEventListener('click', function (e) {
@@ -1885,6 +2092,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (x < r.width * 0.3) go(-1); else go(1);
     });
     document.getElementById('recapClose').addEventListener('click', close);
+    var pauseBtnEl = document.getElementById('recapPauseBtn');
+    if (pauseBtnEl) pauseBtnEl.addEventListener('click', function (e) { e.stopPropagation(); togglePause(); });
+    var replayBtnEl = document.getElementById('recapReplayBtn');
+    if (replayBtnEl) replayBtnEl.addEventListener('click', function (e) { e.stopPropagation(); replay(); });
     document.addEventListener('keydown', keyHandler);
 
     var touchStartY = null;
@@ -1954,6 +2165,12 @@ document.addEventListener('DOMContentLoaded', function () {
       // the same "colors dictated by your own data" principle Spotify uses,
       // rather than an arbitrary rotating palette.
       data.accentColor = data.tierColor;
+      data.theme = recapThemeFor(data.favoriteGenre);
+      data.dailyLog = dailyLog;
+      var sortedKeys = keysInRange.slice().sort();
+      data.firstActiveDate = sortedKeys.length
+        ? new Date(sortedKeys[0] + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+        : null;
       data.stats = [
         { value: Math.round(data.hoursRead), label: 'HOURS READ' },
         { value: String(data.readingDays), label: 'DAYS ACTIVE' },
@@ -1967,7 +2184,12 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="recap-progress" id="recapProgress"></div>' +
           '<div class="recap-brandmark"><svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"/></svg>MangaRecs</div>' +
           '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
+          '<div class="recap-controls">' +
+            '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
+            '<button class="recap-ctrl-btn" id="recapReplayBtn" type="button" aria-label="Replay from start">' + RECAP_CTRL_ICONS.replay + '</button>' +
+          '</div>' +
           '<div class="recap-stage" id="recapStage"></div>' +
+          '<canvas class="recap-particle-canvas" id="recapParticles" aria-hidden="true"></canvas>' +
           '<div class="recap-grain" aria-hidden="true"></div>' +
           '<div class="recap-panel-corners" aria-hidden="true"><span></span><span></span><span></span><span></span></div>' +
         '</div>';
