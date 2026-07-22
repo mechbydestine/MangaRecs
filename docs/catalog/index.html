@@ -570,6 +570,11 @@
   .recap-topseries-title { font-weight: 800; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .recap-topseries-chapters { font-size: 0.74rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
 
+  .recap-stars { display: flex; gap: 8px; justify-content: center; margin: 20px 0 6px; }
+  .recap-stars svg { width: 30px; height: 30px; }
+  .recap-star-filled svg { fill: #FFD34D; stroke: #FFD34D; filter: drop-shadow(0 0 6px rgba(255,211,77,0.5)); }
+  .recap-star-empty svg { fill: none; stroke: rgba(255,255,255,0.3); }
+
   .recap-archetype-badge {
     display: inline-flex; align-items: center; justify-content: center; width: 108px; height: 108px;
     border-radius: 50%; background: rgba(255,255,255,0.14); border: 3px solid rgba(255,255,255,0.65);
@@ -1589,6 +1594,17 @@ document.addEventListener('DOMContentLoaded', function () {
     '</svg></div>';
   }
 
+  // Real star rating (1-10 scale halved to 5 stars, rounded) — no half-star
+  // rendering, keeps the SVG reuse simple for a small decorative visual.
+  function recapStarsHtml(stars5) {
+    var filled = Math.round(stars5);
+    var out = '';
+    for (var i = 0; i < 5; i++) {
+      out += '<span class="' + (i < filled ? 'recap-star-filled' : 'recap-star-empty') + '">' + recapIcon('star') + '</span>';
+    }
+    return '<div class="recap-stars">' + out + '</div>';
+  }
+
   // Dependency-free Canvas2D particle system — embers/petals/sparkles/rain/
   // leaves depending on genre theme. Runs continuously behind the slide
   // text for the life of the story; caller must invoke the returned stop()
@@ -1868,6 +1884,20 @@ document.addEventListener('DOMContentLoaded', function () {
             recapReveal('<div class="recap-eyebrow">Not a silent reader</div>') +
             recapReveal('<h2 class="recap-title" style="font-size:2.1rem;">' + esc(bits.join(' & ')) + '</h2>', 0.14) +
             recapReveal('<p class="recap-sub">shared with the community this half.</p>', 0.28) +
+          '</div>',
+      });
+    }
+
+    if (d.topRated) {
+      slides.push({
+        gradient: RECAP_PALETTE.gold,
+        html:
+          recapWatermark('star') +
+          '<div class="recap-slide">' +
+            recapReveal('<div class="recap-eyebrow">Your favorite moment</div>') +
+            recapReveal('<h2 class="recap-title" style="font-size:1.9rem;">' + esc(d.topRated.title) + '</h2>', 0.16) +
+            recapReveal(recapStarsHtml(d.topRated.stars5), 0.3) +
+            recapReveal('<p class="recap-sub">Your highest-rated read this half.</p>', 0.42) +
           '</div>',
       });
     }
@@ -2159,11 +2189,13 @@ document.addEventListener('DOMContentLoaded', function () {
       sb.from('reading_progress').select('series_title,status,current_chapter,updated_at').eq('user_id', uid).gte('updated_at', startIso).lte('updated_at', endIso),
       sb.from('comments').select('id', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso),
       sb.from('series_ratings').select('series_title', { count: 'exact', head: true }).eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso),
+      sb.from('series_ratings').select('series_title,stars').eq('user_id', uid).gte('created_at', startIso).lte('created_at', endIso).order('stars', { ascending: false }).limit(1),
     ]).then(function (results) {
       var profile = (results[0] && results[0].data) || {};
       var progressRows = (results[1] && results[1].data) || [];
       var commentsCount = (results[2] && results[2].count) || 0;
       var ratingsCount = (results[3] && results[3].count) || 0;
+      var topRatedRow = (results[4] && results[4].data && results[4].data[0]) || null;
       var dailyLog = profile.daily_log || {};
 
       var keysInRange = recapKeysInRange(dailyLog, period.start, period.end);
@@ -2197,6 +2229,10 @@ document.addEventListener('DOMContentLoaded', function () {
       data.accentColor = data.tierColor;
       data.theme = recapThemeFor(data.favoriteGenre);
       data.dailyLog = dailyLog;
+      // Real "favorite moment" analog — the reader's own actual highest-
+      // rated series this half (1-10 scale, converted to 5 stars), not a
+      // fabricated emotional moment there's no data to back.
+      data.topRated = topRatedRow ? { title: topRatedRow.series_title, stars5: topRatedRow.stars / 2 } : null;
       var sortedKeys = keysInRange.slice().sort();
       data.firstActiveDate = sortedKeys.length
         ? new Date(sortedKeys[0] + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
