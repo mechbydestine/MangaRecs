@@ -2224,8 +2224,20 @@ document.addEventListener('DOMContentLoaded', function () {
           })
           .catch(function () { return { title: row.series_title, chapters: row.current_chapter || 0, cover: null }; });
       });
+      // Hard timeout so a slow/unreachable AniList can never block the whole
+      // Recap from rendering — falls back to text-only titles past 2.5s.
+      var coverFallback = topSeriesRaw.map(function (row) {
+        return { title: row.series_title, chapters: row.current_chapter || 0, cover: null };
+      });
+      var coverLookupsWithTimeout = new Promise(function (resolve) {
+        var settled = false;
+        var timer = setTimeout(function () { if (!settled) { settled = true; resolve(coverFallback); } }, 2500);
+        Promise.all(coverLookups).then(function (v) {
+          if (!settled) { settled = true; clearTimeout(timer); resolve(v); }
+        });
+      });
 
-      Promise.all(coverLookups).then(function (topSeries) {
+      coverLookupsWithTimeout.then(function (topSeries) {
         data.topSeries = topSeries;
 
         app.innerHTML =
