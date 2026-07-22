@@ -346,17 +346,21 @@ export default function ProfileScreen() {
 
   async function toggleShowcase(badge) {
     if (!earnedIds.has(badge.id)) return;
-    let next;
+    let next, successText, successType;
     if (showcaseIds.includes(badge.id)) {
       next = showcaseIds.filter((id) => id !== badge.id);
-      showAppToast(`Unpinned ${badge.name}`);
+      successText = `Unpinned ${badge.name}`;
     } else {
       if (showcaseIds.length >= 3) { showAppToast('Showcase is full — unpin one first'); return; }
       next = [...showcaseIds, badge.id];
-      showAppToast(`Pinned ${badge.name} to your profile`, 'success');
+      successText = `Pinned ${badge.name} to your profile`;
+      successType = 'success';
     }
+    // Wait for confirmation before celebrating — showing "Pinned!" and then a
+    // failure toast a beat later (the old behavior) reads as a bug, not a fix.
     const { error } = await updateProfile({ showcase_badges: next });
     if (error) showAppToast("Couldn't save showcase — try again");
+    else showAppToast(successText, successType);
   }
   const earnedBadges = useMemo(
     () => ALL_BADGES
