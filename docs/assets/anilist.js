@@ -60,6 +60,26 @@ function searchMedia(query, category, page) {
   return alFetch(gql, { search: query || undefined, page: page || 1 });
 }
 
+// Batched genre lookup for up to a handful of titles in a single GraphQL
+// round trip (aliased Media fields), instead of one request per title —
+// used by the website's Reading Recap to build a real per-user genre
+// breakdown. Callers are responsible for catching failures.
+function genresForTitles(titles) {
+  if (!titles || !titles.length) return Promise.resolve([]);
+  var capped = titles.slice(0, 12);
+  var params = capped.map(function (_, i) { return '$s' + i + ': String'; }).join(', ');
+  var fields = capped.map(function (_, i) { return 'm' + i + ': Media(search: $s' + i + ', type: MANGA, isAdult: false) { genres }'; }).join(' ');
+  var gql = 'query(' + params + ') { ' + fields + ' }';
+  var vars = {};
+  capped.forEach(function (t, i) { vars['s' + i] = t; });
+  return alFetch(gql, vars).then(function (data) {
+    return capped.map(function (t, i) {
+      var m = data['m' + i];
+      return { title: t, genres: (m && m.genres) || [] };
+    });
+  });
+}
+
 function trendingMedia(category, page, sort, genre) {
   var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA, isAdult: false';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
