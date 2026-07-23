@@ -41,6 +41,7 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import GuidelinesScreen from './screens/GuidelinesScreen';
 import IntroScreen from './screens/IntroScreen';
 import CreatorDashboardScreen from './screens/CreatorDashboardScreen';
+import RecapScreen from './screens/RecapScreen';
 import ModerationScreen from './screens/ModerationScreen';
 import FeatureTutorialScreen from './screens/FeatureTutorialScreen';
 import DMScreen from './screens/DMScreen';
@@ -236,6 +237,16 @@ function ProfileStack() {
       <Stack.Screen
         name="Creator"
         component={CreatorDashboardScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          animationDuration: 280,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="Recap"
+        component={RecapScreen}
         options={{
           presentation: 'modal',
           animation: 'slide_from_bottom',
