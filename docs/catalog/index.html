@@ -477,14 +477,16 @@
   }
   /* Real hero cover art — the reader's own actual most-read series cover
      (fetched from AniList, same source used everywhere else on the site),
-     used as a dimmed, blurred backdrop on the intro/finale slides. This is
-     showing the real cover of a real title the reader actually read, the
-     same way any catalog page on this site already displays covers — not
-     a generated or generic character collage. */
-  .recap-hero-bg { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center 20%; filter: blur(3px) saturate(1.15); }
+     shown behind every slide of the story, not just intro/finale. This is
+     the real cover of a title the reader actually read, the same way any
+     catalog page on this site already displays covers — not a generated
+     or generic character collage. Kept fairly crisp (light blur) so it
+     reads as real art rather than a mushy smear; the scrim is there for
+     text legibility, not to hide the art. */
+  .recap-hero-bg { position: absolute; inset: -2%; z-index: 0; background-size: cover; background-position: center 18%; filter: blur(1px) saturate(1.25) contrast(1.05); }
   .recap-hero-bg::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(8,6,18,0.55) 0%, rgba(8,6,18,0.35) 45%, rgba(8,6,18,0.85) 100%);
+    background: linear-gradient(180deg, rgba(8,6,18,0.4) 0%, rgba(8,6,18,0.2) 40%, rgba(8,6,18,0.5) 70%, rgba(8,6,18,0.88) 100%);
   }
   /* Genre-themed ambient particles — the real per-user "this recap looks
      different for you" signal, driven by the reader's actual favorite genre. */
@@ -603,6 +605,14 @@
   .recap-burst-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
   .recap-burst-center .recap-stat-big { font-size: clamp(2.1rem, 7.5vw, 2.9rem); }
 
+  .recap-donut { width: 180px; height: 180px; margin: 10px auto 6px; }
+  .recap-donut svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
+  .recap-donut circle { transition: stroke-dasharray 0.3s ease; }
+  .recap-genre-legend { display: flex; flex-direction: column; gap: 8px; margin: 18px auto 0; max-width: 260px; width: 100%; text-align: left; }
+  .recap-genre-legend-row { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; }
+  .recap-genre-dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .recap-genre-legend-label { flex: 1; font-weight: 700; }
+  .recap-genre-legend-pct { font-weight: 800; color: rgba(255,255,255,0.85); }
   .recap-bars { display: flex; align-items: flex-end; justify-content: center; gap: 10px; height: 140px; margin: 20px 0 4px; }
   .recap-bar-col { display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
   .recap-bar-track { width: 22px; height: 100%; display: flex; align-items: flex-end; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
@@ -774,7 +784,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
-<script src="/assets/anilist.js?v=3" defer></script>
+<script src="/assets/anilist.js?v=4" defer></script>
 <script src="/assets/badges.js?v=2" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
 <script>
@@ -1707,6 +1717,41 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return '<div class="recap-motif" data-motif="' + family + '">' + inner + '</div>';
   }
+
+  // Colors for the "Genres you explored" donut — keyed to AniList's own
+  // genre vocabulary (the source of the real per-title tags this chart is
+  // built from), which is coarser than and distinct from the app's own
+  // favorite_genre taxonomy used for RECAP_GENRE_THEMES above.
+  var RECAP_ANILIST_GENRE_COLORS = {
+    'Action': '#E8544A', 'Adventure': '#F0BE66', 'Comedy': '#FFD34D', 'Drama': '#7BA6F5',
+    'Fantasy': '#B18CFF', 'Horror': '#8A1414', 'Mystery': '#8F7CE0', 'Romance': '#F17FC0',
+    'Sci-Fi': '#3FC9C0', 'Slice of Life': '#8FCB8F', 'Sports': '#5B8DEF', 'Supernatural': '#7B5CFF',
+    'Thriller': '#C24747', 'Psychological': '#5B5570', 'Ecchi': '#E85FC2', 'Mecha': '#6BDCD4',
+    'Music': '#F0BE66', 'Other': 'rgba(255,255,255,0.35)',
+  };
+  // Real donut chart — stacked stroke-dasharray arcs on concentric circles,
+  // no chart library needed. Rotated -90deg so the first (largest) slice
+  // starts at 12 o'clock and proceeds clockwise.
+  function recapDonutHtml(slices) {
+    var r = 70, cx = 90, cy = 90, circ = 2 * Math.PI * r, offset = 0;
+    var arcs = slices.map(function (s) {
+      var len = (s.pct / 100) * circ;
+      var arc = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="22" ' +
+        'stroke-dasharray="' + len.toFixed(1) + ' ' + (circ - len).toFixed(1) + '" stroke-dashoffset="' + (-offset).toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
+      offset += len;
+      return arc;
+    }).join('');
+    return '<div class="recap-donut"><svg viewBox="0 0 180 180">' + arcs + '</svg></div>';
+  }
+  function recapGenreLegendHtml(slices) {
+    return '<div class="recap-genre-legend">' + slices.map(function (s) {
+      return '<div class="recap-genre-legend-row">' +
+        '<span class="recap-genre-dot" style="background:' + s.color + '"></span>' +
+        '<span class="recap-genre-legend-label">' + esc(s.label) + '</span>' +
+        '<span class="recap-genre-legend-pct">' + s.pct + '%</span>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
   var RECAP_ICONS = {
     clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
     flame: '<path d="M12 2.5c.6 4.2-3.8 5.7-3.8 10a3.8 3.8 0 0 0 7.6 0c0-2.3-1.4-2.9-1.4-5.1 0 1.4-.8 2-1.4 2-1.1 0-1.3-1.7-1-3 .2-1.1.4-2.2 0-3.9z"/>',
@@ -1930,11 +1975,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function buildRecapSlides(d) {
     var slides = [];
 
-    var heroCover = (d.topSeries && d.topSeries[0] && d.topSeries[0].cover) || null;
     slides.push({
       gradient: RECAP_PALETTE.purple,
       html:
-        (heroCover ? '<div class="recap-hero-bg" style="background-image:url(' + heroCover + ')"></div>' : '') +
         '<div class="recap-slide recap-intro">' +
           recapReveal('<div class="recap-mascot-glow"><div class="recap-mascot">' + MASCOT_SVG + '</div></div>', 0) +
           recapReveal('<div class="recap-eyebrow">' + esc(d.period.label) + '</div>', 0.14) +
@@ -2030,6 +2073,22 @@ document.addEventListener('DOMContentLoaded', function () {
             recapReveal('<h2 class="recap-title" style="font-size:2rem;">' + esc(d.weekday.bestName) + 's</h2>', 0.14) +
             recapBarsHtml(d.weekday) +
             recapReveal('<p class="recap-sub">were your biggest reading days.</p>', 0.3) +
+          '</div>',
+      });
+    }
+
+    // Gated on 2+ real genre slices — built from a batched AniList lookup
+    // across the reader's own most chapters-invested series this half
+    // (see renderRecap), weighted by chapters read. Never shown as a
+    // single hollow 100% slice.
+    if (d.genreBreakdown && d.genreBreakdown.length >= 2) {
+      slides.push({
+        gradient: RECAP_PALETTE.blue,
+        html:
+          '<div class="recap-slide">' +
+            recapReveal('<div class="recap-eyebrow">Genres you explored</div>') +
+            recapReveal(recapDonutHtml(d.genreBreakdown), 0.16) +
+            recapReveal(recapGenreLegendHtml(d.genreBreakdown), 0.3) +
           '</div>',
       });
     }
@@ -2167,7 +2226,6 @@ document.addEventListener('DOMContentLoaded', function () {
       gradient: RECAP_PALETTE.gold,
       isFinale: true,
       html:
-        (heroCover ? '<div class="recap-hero-bg" style="background-image:url(' + heroCover + ')"></div>' : '') +
         '<div class="recap-slide recap-finale">' +
           '<div class="recap-eyebrow">' + esc(d.period.label) + ', wrapped</div>' +
           '<img id="recapCardPreview" class="recap-card-preview" alt="Your MangaRecs Recap card" />' +
@@ -2573,9 +2631,55 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
 
-      coverLookupsWithTimeout.then(function (topSeries) {
+      // Real "Genres you explored" breakdown — a single batched AniList
+      // request (not one call per series) fetches genre tags for the
+      // reader's most chapters-invested series this half, weighted by
+      // chapters read so a 2-chapter dabble doesn't count the same as an
+      // 80-chapter binge. Same hard-timeout-with-fallback shape as the
+      // cover lookups above, so a slow/unreachable AniList never blocks
+      // the Recap from rendering.
+      var genreLookupRows = progressRows.slice()
+        .sort(function (a, b) { return (b.current_chapter || 0) - (a.current_chapter || 0); })
+        .slice(0, 12);
+      var genreLookupWithTimeout = new Promise(function (resolve) {
+        var settled = false;
+        var timer = setTimeout(function () { if (!settled) { settled = true; resolve([]); } }, 2500);
+        genresForTitles(genreLookupRows.map(function (r) { return r.series_title; }))
+          .catch(function () { return []; })
+          .then(function (v) { if (!settled) { settled = true; clearTimeout(timer); resolve(v); } });
+      });
+
+      Promise.all([coverLookupsWithTimeout, genreLookupWithTimeout]).then(function (combined) {
+        var topSeries = combined[0];
+        var genreResults = combined[1];
         data.topSeries = topSeries;
         data.motifFamily = recapMotifFamilyFor(data.favoriteGenre);
+
+        // Weight each title's genre tags by its own chapters read, split
+        // evenly across a title's own multiple genres so one heavily-
+        // tagged series doesn't inflate the total beyond real reading time.
+        var genreWeights = {}, totalWeight = 0;
+        genreResults.forEach(function (gr) {
+          var row = genreLookupRows.filter(function (r) { return r.series_title === gr.title; })[0];
+          var chapters = (row && row.current_chapter) || 1;
+          var genres = (gr.genres && gr.genres.length) ? gr.genres : ['Other'];
+          var share = chapters / genres.length;
+          genres.forEach(function (g) {
+            genreWeights[g] = (genreWeights[g] || 0) + share;
+            totalWeight += share;
+          });
+        });
+        var breakdown = Object.keys(genreWeights)
+          .map(function (g) { return { label: g, weight: genreWeights[g] }; })
+          .sort(function (a, b) { return b.weight - a.weight; });
+        var topGenres = breakdown.slice(0, 6);
+        var restWeight = breakdown.slice(6).reduce(function (s, b) { return s + b.weight; }, 0);
+        if (restWeight > 0) topGenres.push({ label: 'Other', weight: restWeight });
+        data.genreBreakdown = totalWeight > 0
+          ? topGenres.map(function (b) {
+              return { label: b.label, pct: Math.round((b.weight / totalWeight) * 100), color: RECAP_ANILIST_GENRE_COLORS[b.label] || RECAP_ANILIST_GENRE_COLORS.Other };
+            }).filter(function (b) { return b.pct > 0; })
+          : [];
 
         // Personalize the theme/motif color beyond genre alone using
         // AniList's own real precomputed color for the reader's most-read
@@ -2586,6 +2690,11 @@ document.addEventListener('DOMContentLoaded', function () {
           data.theme = { particle: data.theme.particle, colors: [topColor, data.theme.colors[1] || data.theme.colors[0]] };
         }
         data.motifColor = topColor || data.theme.colors[0];
+        // Real cover art of the reader's own most-read series, shown as a
+        // persistent background behind every slide (not just intro/finale)
+        // — this is the actual cover of a title they actually read, same
+        // source as every other cover on the site.
+        data.heroCover = (topSeries[0] && topSeries[0].cover) || null;
 
         app.innerHTML =
           '<div class="recap-overlay" id="recapOverlay">' +
@@ -2596,6 +2705,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
               '<button class="recap-ctrl-btn" id="recapReplayBtn" type="button" aria-label="Replay from start">' + RECAP_CTRL_ICONS.replay + '</button>' +
             '</div>' +
+            (data.heroCover ? '<div class="recap-hero-bg" style="background-image:url(' + data.heroCover + ')"></div>' : '') +
             recapMotifHtml(data.motifFamily, data.motifColor) +
             '<div class="recap-stage" id="recapStage"></div>' +
             '<canvas class="recap-particle-canvas" id="recapParticles" aria-hidden="true"></canvas>' +
