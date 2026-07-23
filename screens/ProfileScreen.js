@@ -1211,15 +1211,15 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Creator card */}
+        {/* Reading Recap card */}
         <Animated.View style={[styles.section, { opacity: creatorAnim, transform: [{ translateY: creatorSlideY }, { scale: creatorScale }] }]}>
-          <TouchableOpacity style={styles.creatorCard} onPress={() => navigation.navigate('Creator')} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.creatorCard} onPress={() => navigation.navigate('Recap')} activeOpacity={0.85}>
             <View style={styles.creatorIconWrap}>
-              <Ionicons name="create-outline" size={18} color="#7B5CFF" />
+              <Ionicons name="sparkles" size={18} color="#7B5CFF" />
             </View>
             <View style={styles.creatorInfo}>
-              <Text style={[styles.creatorTitle, { color: colors.text }]}>Creator Dashboard</Text>
-              <Text style={[styles.creatorSub, { color: colors.muted }]}>Upload manga · Manage series · View stats</Text>
+              <Text style={[styles.creatorTitle, { color: colors.text }]}>Reading Recap</Text>
+              <Text style={[styles.creatorSub, { color: colors.muted }]}>Your first-half wrap-up, out now</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </TouchableOpacity>

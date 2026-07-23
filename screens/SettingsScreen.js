@@ -862,6 +862,10 @@ export default function SettingsScreen({ navigation }) {
           <Ionicons name="open-outline" size={18} color={colors.muted} />
         </TouchableOpacity>
 
+        <SectionCard title="Creator" icon="create-outline">
+          <SettingsRow icon="create-outline" label="Creator Dashboard" desc="Upload manga · Manage series · View stats" onPress={() => navigation.navigate('Creator')} />
+        </SectionCard>
+
         {/* ── Storage & About ──────────────────────────────────────────── */}
         <SectionCard title="Storage & Data" icon="trash-outline">
           <View style={styles.cacheRow}>
