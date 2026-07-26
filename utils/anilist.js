@@ -72,11 +72,18 @@ export async function fetchAnilistMangaList(username) {
 // API + query shape mangarecs.net's catalog page already uses (search by
 // title, then characters(perPage, sort: ROLE)). This app is keyed by
 // MangaDex UUIDs, not AniList's numeric ids, so there's no stored mapping —
-// a title search is the only option, and a wrong match just means an empty
-// or slightly-off character card for an obscure title, nothing persisted.
+// a title search is the only option. AniList's search is fuzzy, so it will
+// happily return a *different* series (a same-named light novel, an unrelated
+// adaptation, etc.) with its own unrelated cast — same failure mode
+// scripts/reconcileWithAniList.mjs's isExactMatch guard was built to catch.
+// We apply the same guard here: only trust the characters if the returned
+// media's own titles/synonyms actually match what we searched for, otherwise
+// return no characters rather than a confidently wrong cast.
 const CHARACTERS_QUERY = `
 query ($search: String) {
   Media(search: $search, type: MANGA) {
+    title { romaji english native }
+    synonyms
     characters(perPage: 8, sort: ROLE) {
       edges {
         role
@@ -86,8 +93,21 @@ query ($search: String) {
   }
 }`;
 
-export async function fetchAnilistCharacters(title) {
-  const search = (title || '').trim();
+function norm(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function titlesMatch(media, ...candidates) {
+  const known = [
+    media?.title?.romaji, media?.title?.english, media?.title?.native,
+    ...(media?.synonyms || []),
+  ].filter(Boolean).map(norm);
+  const ours = candidates.filter(Boolean).map(norm);
+  return ours.some((o) => known.includes(o));
+}
+
+export async function fetchAnilistCharacters(title, searchKey) {
+  const search = (searchKey || title || '').trim();
   if (!search) return [];
   try {
     const resp = await fetch(ANILIST_API, {
@@ -97,7 +117,9 @@ export async function fetchAnilistCharacters(title) {
     });
     if (!resp.ok) return [];
     const json = await resp.json();
-    const edges = json?.data?.Media?.characters?.edges || [];
+    const media = json?.data?.Media;
+    if (!media || !titlesMatch(media, title, searchKey)) return [];
+    const edges = media.characters?.edges || [];
     return edges
       .filter((e) => e.node?.image?.medium && e.node?.name?.full)
       .map((e) => ({ name: e.node.name.full, image: e.node.image.medium, main: e.role === 'MAIN' }));

@@ -28,7 +28,7 @@ export default function MobileHeader({ title, right, leftContent, noBorder = fal
           </TouchableOpacity>
         ) : (
           <View style={styles.logoWrap}>
-            <View style={styles.logoMark}>
+            <View style={[styles.logoMark, { backgroundColor: colors.primary }]}>
               <Ionicons name="book" size={13} color="#fff" />
             </View>
             <Text style={[styles.logoText, { color: colors.text }]}>MangaRecs</Text>
@@ -68,7 +68,6 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: '#7B5CFF',
     alignItems: 'center',
     justifyContent: 'center',
   },

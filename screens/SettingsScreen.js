@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
 import { useProfile } from '../utils/ProfileContext';
 import { useTheme } from '../utils/ThemeContext';
+import { useCoachmarkRegistry } from '../utils/CoachmarkContext';
 import MobileHeader from '../components/MobileHeader';
 import { AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsfwCache } from '../utils/mangaCovers';
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
@@ -169,9 +170,9 @@ function PlanGlowIcon({ icon, color }) {
 }
 
 const THEMES = [
-  { id: 'light', label: 'Light', icon: 'sunny' },
+  { id: 'default', label: 'Default', icon: 'sparkles' },
   { id: 'dark', label: 'Dark', icon: 'moon' },
-  { id: 'system', label: 'System', icon: 'desktop' },
+  { id: 'light', label: 'Light', icon: 'sunny' },
 ];
 
 const READER_MODES = [
@@ -217,6 +218,15 @@ export default function SettingsScreen({ navigation }) {
   const { userId, profile, updateProfile } = useProfile();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
+  const coachmarks = useCoachmarkRegistry();
+
+  function replayAppTour() {
+    // The tour's targets (tab bar, Feed's search button) only exist while
+    // Feed is mounted — jump there first so every hint has something real to
+    // point at, same as a first-time viewing.
+    navigation.navigate('Feed');
+    setTimeout(() => coachmarks?.showTour(), 400);
+  }
 
   const [displayName, setDisplayName] = useState('');
   const [displayNameDraft, setDisplayNameDraft] = useState('');
@@ -550,7 +560,7 @@ export default function SettingsScreen({ navigation }) {
           </View>
           {!!displayNameError && (
             <View style={styles.warningRow}>
-              <Ionicons name="alert-circle-outline" size={12} color="#E24B4A" />
+              <Ionicons name="alert-circle-outline" size={12} color={colors.error} />
               <Text style={styles.warningTextDanger}>{displayNameError}</Text>
             </View>
           )}
@@ -611,7 +621,7 @@ export default function SettingsScreen({ navigation }) {
             </View>
           )}
           {!anilistSync.loading && anilistSync.error && (
-            <Text style={[styles.anilistSyncText, { color: '#E24B4A', marginTop: 8 }]}>
+            <Text style={[styles.anilistSyncText, { color: colors.error, marginTop: 8 }]}>
               Couldn't find that AniList username, or their list is private.
             </Text>
           )}
@@ -739,7 +749,7 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={allowNsfw}
                 onValueChange={toggleNsfw}
-                trackColor={{ false: colors.border, true: '#f03f3f' }}
+                trackColor={{ false: colors.border, true: colors.error }}
                 thumbColor="#fff"
               />
             ) : (
@@ -780,7 +790,7 @@ export default function SettingsScreen({ navigation }) {
             <Switch
               value={isBusy}
               onValueChange={toggleBusy}
-              trackColor={{ false: colors.border, true: '#E5534B' }}
+              trackColor={{ false: colors.border, true: colors.error }}
               thumbColor="#fff"
               disabled={!showActivity}
             />
@@ -791,17 +801,24 @@ export default function SettingsScreen({ navigation }) {
         <SectionCard title="Appearance" icon="color-palette-outline">
           <Text style={[styles.cardTitle, { color: colors.text }]}>App Theme</Text>
           <View style={styles.themeRow}>
-            {THEMES.map((t) => (
-              <TouchableOpacity
-                key={t.id}
-                style={[styles.themeBtn, { borderColor: colors.border }, theme === t.id && styles.themeBtnActive]}
-                onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
-                activeOpacity={0.8}>
-                <Ionicons name={t.icon} size={20} color={theme === t.id ? '#7B5CFF' : colors.muted} />
-                <Text style={[styles.themeBtnText, { color: colors.muted }, theme === t.id && styles.themeBtnTextActive]}>{t.label}</Text>
-                {theme === t.id && <View style={styles.activeDot} />}
-              </TouchableOpacity>
-            ))}
+            {THEMES.map((t) => {
+              const active = theme === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[
+                    styles.themeBtn,
+                    { borderColor: colors.border },
+                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
+                  ]}
+                  onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
+                  activeOpacity={0.8}>
+                  <Ionicons name={t.icon} size={20} color={active ? colors.primary : colors.muted} />
+                  <Text style={[styles.themeBtnText, { color: active ? colors.primary : colors.muted }]}>{t.label}</Text>
+                  {active && <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </SectionCard>
 
@@ -850,6 +867,10 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
+        <SectionCard title="Creator" icon="create-outline">
+          <SettingsRow icon="create-outline" label="Creator Dashboard" desc="Upload manga · Manage series · View stats" onPress={() => navigation.navigate('Creator')} />
+        </SectionCard>
+
         {/* ── Subscription ─────────────────────────────────────────────── */}
         <TouchableOpacity style={styles.upgradeCard} onPress={() => setShowPlans(true)} activeOpacity={0.85}>
           <View style={styles.upgradeLeft}>
@@ -861,10 +882,6 @@ export default function SettingsScreen({ navigation }) {
           </View>
           <Ionicons name="open-outline" size={18} color={colors.muted} />
         </TouchableOpacity>
-
-        <SectionCard title="Creator" icon="create-outline">
-          <SettingsRow icon="create-outline" label="Creator Dashboard" desc="Upload manga · Manage series · View stats" onPress={() => navigation.navigate('Creator')} />
-        </SectionCard>
 
         {/* ── Storage & About ──────────────────────────────────────────── */}
         <SectionCard title="Storage & Data" icon="trash-outline">
@@ -885,6 +902,7 @@ export default function SettingsScreen({ navigation }) {
 
         <SectionCard title="About" icon="information-circle-outline">
           <SettingsRow icon="help-circle-outline" label="Help & Support" desc="FAQs, contact us, report a bug" onPress={() => Linking.openURL('mailto:support@mangarecs.net?subject=Help%20%26%20Support')} />
+          <SettingsRow icon="sparkles-outline" label="Replay App Tour" desc="Re-run the quick tour of Home, Search, Library & more" onPress={replayAppTour} />
           <SettingsRow icon="people-outline" label="Community Guidelines" desc="Read our community standards" onPress={() => navigation.navigate('Guidelines')} />
           <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
           <SettingsRow icon="document-text-outline" label="Terms of Use" onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
@@ -934,9 +952,9 @@ export default function SettingsScreen({ navigation }) {
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Permanently remove your account and all data</Text>
             </View>
             <TouchableOpacity
-              style={[styles.clearBtn, { backgroundColor: 'rgba(139,32,32,0.12)' }]}
+              style={[styles.clearBtn, { backgroundColor: 'rgba(255,59,48,0.12)' }]}
               onPress={() => setShowDeleteConfirm(true)}>
-              <Text style={[styles.clearBtnText, { color: '#C0392B' }]}>Delete</Text>
+              <Text style={[styles.clearBtnText, { color: colors.error }]}>Delete</Text>
             </TouchableOpacity>
           </View>
         </SectionCard>
@@ -945,7 +963,7 @@ export default function SettingsScreen({ navigation }) {
           style={styles.signOutBtn}
           onPress={async () => { await clearBadgeCache(); await clearAllLocalDataAndSignOut(); }}
           activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+          <Ionicons name="log-out-outline" size={20} color={colors.error} />
         </TouchableOpacity>
 
         </View>
@@ -955,8 +973,8 @@ export default function SettingsScreen({ navigation }) {
       <Modal visible={showDeleteConfirm} animationType="fade" transparent onRequestClose={() => setShowDeleteConfirm(false)}>
         <View style={styles.deleteOverlay}>
           <View style={[styles.deleteSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.deleteIconWrap, { backgroundColor: 'rgba(139,32,32,0.15)' }]}>
-              <Ionicons name="warning-outline" size={28} color="#8B2020" />
+            <View style={[styles.deleteIconWrap, { backgroundColor: 'rgba(255,59,48,0.15)' }]}>
+              <Ionicons name="warning-outline" size={28} color={colors.error} />
             </View>
             <Text style={[styles.deleteTitle, { color: colors.text }]}>Delete your account?</Text>
             <Text style={[styles.deleteSub, { color: colors.muted }]}>
@@ -1203,7 +1221,7 @@ export default function SettingsScreen({ navigation }) {
               />
               {!!upgradeError && (
                 <View style={[styles.warningRow, { marginTop: 8 }]}>
-                  <Ionicons name="alert-circle-outline" size={12} color="#E24B4A" />
+                  <Ionicons name="alert-circle-outline" size={12} color={colors.error} />
                   <Text style={styles.warningTextDanger}>{upgradeError}</Text>
                 </View>
               )}
@@ -1262,13 +1280,11 @@ const styles = StyleSheet.create({
   tasteStepBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   tasteWeight: { fontSize: 14, fontWeight: '700', minWidth: 20, textAlign: 'center' },
   warningRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  warningTextDanger: { color: '#E24B4A', fontSize: 11, marginLeft: 5 },
+  warningTextDanger: { color: '#FF3B30', fontSize: 11, marginLeft: 5 },
   themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   themeBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
-  themeBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
   themeBtnText: { fontSize: 12, fontWeight: '500', marginTop: 8 },
-  themeBtnTextActive: { color: '#7B5CFF' },
-  activeDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, backgroundColor: '#7B5CFF' },
+  activeDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   borderTop: { borderTopWidth: 1 },
   settingsRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },

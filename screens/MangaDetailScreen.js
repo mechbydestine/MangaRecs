@@ -112,9 +112,9 @@ export default function MangaDetailScreen() {
       stagger(synopsisAnim, 0),
       stagger(detailsAnim, 70),
       stagger(genresAnim, 130),
-      stagger(warningsAnim, 190),
-      stagger(recsAnim, 100),
       stagger(charactersAnim, 160),
+      stagger(warningsAnim, 190),
+      stagger(recsAnim, 220),
     ]).start();
   }, [routeMangaId, searchKey, title, lang]);
 
@@ -125,11 +125,11 @@ export default function MangaDetailScreen() {
   useEffect(() => {
     let cancelled = false;
     setCharacters([]);
-    fetchAnilistCharacters(title).then((list) => {
+    fetchAnilistCharacters(title, searchKey).then((list) => {
       if (!cancelled) setCharacters(list);
     });
     return () => { cancelled = true; };
-  }, [title]);
+  }, [title, searchKey]);
 
   useEffect(() => {
     supabase.from('reading_progress')
@@ -331,32 +331,6 @@ export default function MangaDetailScreen() {
               })}
             </Animated.View>
 
-            {recommendations.length > 0 && (
-              <Animated.View style={cardStyle(recsAnim)}>
-                <Text style={[styles.sectionHeading, { color: colors.text }]}>You Might Also Like</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recsRow}>
-                  {recommendations.map((m) => (
-                    <TouchableOpacity
-                      key={m.id}
-                      style={styles.recCard}
-                      activeOpacity={0.85}
-                      onPress={() => navigation.push('MangaDetail', {
-                        title: m.title, searchKey: m.searchKey || m.title, lang: m.lang, color: m.color, chapters: m.chapters,
-                      })}>
-                      <MangaCover title={m.title} searchKey={m.searchKey} lang={m.lang} color={m.color} style={styles.recCover} />
-                      {!!m.rating && (
-                        <View style={styles.recRatingPill}>
-                          <Ionicons name="star" size={9} color="#FFD700" />
-                          <Text style={styles.recRatingText}>{m.rating.toFixed(1)}</Text>
-                        </View>
-                      )}
-                      <Text style={[styles.recTitle, { color: colors.text }]} numberOfLines={2}>{m.title}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </Animated.View>
-            )}
-
             {genres.length > 0 && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(genresAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Genres</Text>
@@ -413,6 +387,32 @@ export default function MangaDetailScreen() {
                 {details.contentWarnings.map((w) => (
                   <Text key={w} style={styles.warningItem}>• {w}</Text>
                 ))}
+              </Animated.View>
+            )}
+
+            {recommendations.length > 0 && (
+              <Animated.View style={cardStyle(recsAnim)}>
+                <Text style={[styles.sectionHeading, { color: colors.text }]}>You Might Also Like</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recsRow}>
+                  {recommendations.map((m) => (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={styles.recCard}
+                      activeOpacity={0.85}
+                      onPress={() => navigation.push('MangaDetail', {
+                        title: m.title, searchKey: m.searchKey || m.title, lang: m.lang, color: m.color, chapters: m.chapters,
+                      })}>
+                      <MangaCover title={m.title} searchKey={m.searchKey} lang={m.lang} color={m.color} style={styles.recCover} />
+                      {!!m.rating && (
+                        <View style={styles.recRatingPill}>
+                          <Ionicons name="star" size={9} color="#FFD700" />
+                          <Text style={styles.recRatingText}>{m.rating.toFixed(1)}</Text>
+                        </View>
+                      )}
+                      <Text style={[styles.recTitle, { color: colors.text }]} numberOfLines={2}>{m.title}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </Animated.View>
             )}
           </View>

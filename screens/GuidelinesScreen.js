@@ -1,4 +1,4 @@
-﻿import {
+import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Linking, ActivityIndicator,
 } from 'react-native';
@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
+import { useTheme } from '../utils/ThemeContext';
 import StarLogo from '../components/StarLogo';
 
 const GUIDELINES = [
@@ -57,6 +58,7 @@ const GUIDELINES = [
 // - Info mode (navigation prop): navigated to from Settings, top Close button
 export default function GuidelinesScreen({ onComplete, navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const isInfoMode = !onComplete && !!navigation;
 
@@ -78,11 +80,11 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {isInfoMode && (
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={22} color="#fff" />
+          <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.card }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="close" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
       )}
@@ -95,24 +97,24 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
         <View style={styles.logoWrap}>
           <StarLogo size={52} />
           <View style={styles.logoTextRow}>
-            <Text style={styles.logoTextWhite}>Manga</Text>
-            <Text style={styles.logoTextPurple}>Recs</Text>
+            <Text style={[styles.logoTextWhite, { color: colors.text }]}>Manga</Text>
+            <Text style={[styles.logoTextPurple, { color: colors.primary, textShadowColor: colors.primary }]}>Recs</Text>
           </View>
         </View>
 
-        <Text style={styles.title}>Community Guidelines</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.text }]}>Community Guidelines</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {isInfoMode
             ? 'Our community standards keep MangaRecs a great place for every reader.'
             : 'Before you enter, please read and agree to our community standards. These rules keep MangaRecs a great place for every reader.'}
         </Text>
 
         {GUIDELINES.map((g) => (
-          <View key={g.title} style={styles.card}>
+          <View key={g.title} style={[styles.card, { backgroundColor: colors.card }]}>
             <Text style={styles.cardEmoji}>{g.emoji}</Text>
             <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>{g.title}</Text>
-              <Text style={styles.cardDesc}>{g.desc}</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{g.title}</Text>
+              <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{g.desc}</Text>
             </View>
           </View>
         ))}
@@ -120,11 +122,11 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
         {isInfoMode && (
           <View style={styles.linksRow}>
             <TouchableOpacity onPress={() => navigation.navigate('Legal', { tab: 'privacy' })}>
-              <Text style={styles.linkText}>Privacy Policy</Text>
+              <Text style={[styles.linkText, { color: colors.primary }]}>Privacy Policy</Text>
             </TouchableOpacity>
-            <Text style={styles.linkSep}>·</Text>
+            <Text style={[styles.linkSep, { color: colors.textSecondary }]}>·</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Legal', { tab: 'terms' })}>
-              <Text style={styles.linkText}>Terms of Service</Text>
+              <Text style={[styles.linkText, { color: colors.primary }]}>Terms of Service</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -133,9 +135,9 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
       </ScrollView>
 
       {!isInfoMode && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+        <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: insets.bottom + 12 }]}>
           <TouchableOpacity
-            style={[styles.agreeBtn, loading && styles.agreeBtnLoading]}
+            style={[styles.agreeBtn, { backgroundColor: colors.primary }, loading && styles.agreeBtnLoading]}
             onPress={handleAgree}
             disabled={loading}
             activeOpacity={0.85}>
@@ -150,7 +152,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0D0D0F' },
+  root: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
 
   topBar: {
@@ -161,38 +163,36 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#1A1A1F',
     alignItems: 'center', justifyContent: 'center',
   },
 
   logoWrap: { alignItems: 'center', marginBottom: 32 },
   logoTextRow: { flexDirection: 'row', marginTop: 12 },
-  logoTextWhite: { color: '#fff', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
+  logoTextWhite: { fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
   logoTextPurple: {
-    color: '#B18CFF', fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5,
-    textShadowColor: '#9B6BFF', textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 },
+    fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5,
+    textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 },
   },
 
-  title: { color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
-  subtitle: { color: '#9B9AA3', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
+  subtitle: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
 
-  card: { flexDirection: 'row', backgroundColor: '#1A1A1F', borderRadius: 14, padding: 16, marginBottom: 10 },
+  card: { flexDirection: 'row', borderRadius: 14, padding: 16, marginBottom: 10 },
   cardEmoji: { fontSize: 22, marginRight: 14, marginTop: 1 },
   cardBody: { flex: 1 },
-  cardTitle: { color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  cardDesc: { color: '#9B9AA3', fontSize: 12, lineHeight: 18 },
+  cardTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  cardDesc: { fontSize: 12, lineHeight: 18 },
 
   linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
-  linkText: { color: '#7B5CFF', fontSize: 12, fontWeight: '500' },
-  linkSep: { color: '#9B9AA3', marginHorizontal: 10, fontSize: 12 },
+  linkText: { fontSize: 12, fontWeight: '500' },
+  linkSep: { marginHorizontal: 10, fontSize: 12 },
 
   bottomBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#0D0D0F',
-    borderTopWidth: 1, borderTopColor: '#1A1A1F',
+    borderTopWidth: 1,
     paddingTop: 16, paddingHorizontal: 24,
   },
-  agreeBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  agreeBtn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   agreeBtnLoading: { opacity: 0.7 },
   agreeBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

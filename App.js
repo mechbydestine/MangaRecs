@@ -43,7 +43,6 @@ import IntroScreen from './screens/IntroScreen';
 import CreatorDashboardScreen from './screens/CreatorDashboardScreen';
 import RecapScreen from './screens/RecapScreen';
 import ModerationScreen from './screens/ModerationScreen';
-import FeatureTutorialScreen from './screens/FeatureTutorialScreen';
 import DMScreen from './screens/DMScreen';
 import LegalScreen from './screens/LegalScreen';
 import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
@@ -51,6 +50,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
 import AlertHost from './components/AlertHost';
 import BadgeCeremony from './components/BadgeCeremony';
+import CoachmarkOverlay, { COACHMARK_SEEN_KEY } from './components/CoachmarkOverlay';
+import { CoachmarkProvider, useCoachmarkRegistry, useCoachmarkTarget } from './utils/CoachmarkContext';
 import StarLogo from './components/StarLogo';
 
 const navigationRef = createNavigationContainerRef();
@@ -135,9 +136,10 @@ function ThemedStatusBar() {
 
 // ── Animated tab icon ─────────────────────────────────────────────────────
 
-function AnimatedTabIcon({ name, focused, color }) {
+function AnimatedTabIcon({ name, focused, color, targetKey }) {
   const scale   = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(focused ? 1 : 0.7)).current;
+  const registerTarget = useCoachmarkTarget(targetKey);
 
   useEffect(() => {
     Animated.parallel([
@@ -157,7 +159,7 @@ function AnimatedTabIcon({ name, focused, color }) {
   }, [focused]);
 
   return (
-    <Animated.View style={{ transform: [{ scale }], opacity }}>
+    <Animated.View ref={registerTarget} style={{ transform: [{ scale }], opacity }}>
       <Ionicons name={name} size={22} color={color} />
     </Animated.View>
   );
@@ -251,7 +253,7 @@ function ProfileStack() {
           presentation: 'modal',
           animation: 'slide_from_bottom',
           animationDuration: 280,
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { backgroundColor: '#000' },
         }}
       />
       <Stack.Screen
@@ -296,7 +298,7 @@ function TabNavigator() {
           else if (route.name === 'Social') iconName = focused ? 'people' : 'people-outline';
           else if (route.name === 'For You') iconName = focused ? 'sparkles' : 'sparkles-outline';
           else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-          return <AnimatedTabIcon name={iconName} focused={focused} color={color} />;
+          return <AnimatedTabIcon name={iconName} focused={focused} color={color} targetKey={`tab-${route.name}`} />;
         },
         tabBarStyle: {
           position: 'absolute',
@@ -314,7 +316,7 @@ function TabNavigator() {
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: '#534AB7',
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       })}>
@@ -416,33 +418,45 @@ function AppNavigator() {
 
 function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGuidelines, onGuidelinesComplete }) {
   const { colors, isDark } = useTheme();
-  // Only ever true for a user finishing onboarding THIS session — existing
-  // users who onboarded before this feature shipped never pass through here,
-  // since needsOnboarding is already false for them on load.
-  const [showTutorial, setShowTutorial] = useState(false);
+  const coachmarks = useCoachmarkRegistry();
   // Sticks true for the rest of the session once a brand-new user finishes
   // onboarding — used to skip WhatsNewModal below. A "here's what's new"
   // changelog popup is meaningless to someone who has never used any prior
-  // version, and onboarding/the tutorial already cover what the app does.
+  // version, and onboarding/the coachmark tour already cover what the app does.
   const [justOnboarded, setJustOnboarded] = useState(false);
+
+  // Auto-start the coachmark tour the first time this device reaches the
+  // main tabs signed in — covers brand-new users right after onboarding
+  // (below) AND existing users who onboarded before this tour existed.
+  // Skipped entirely for signed-out/guideline-gated states so it only ever
+  // fires once real navigation (tab bar, Feed header) is actually mounted.
+  useEffect(() => {
+    if (needsOnboarding || (session && needsGuidelines) || !session) return;
+    let cancelled = false;
+    AsyncStorage.getItem(COACHMARK_SEEN_KEY).then((seen) => {
+      if (!cancelled && seen !== 'true') {
+        setTimeout(() => { if (!cancelled) coachmarks?.showTour(); }, 700);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [needsOnboarding, needsGuidelines, session]);
 
   const baseTheme = isDark ? DarkTheme : DefaultTheme;
   const navTheme = {
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
-      primary: '#534AB7',
+      primary: colors.primary,
       background: colors.background,
       card: colors.card,
       text: colors.text,
       border: colors.border,
-      notification: '#534AB7',
+      notification: colors.primary,
     },
   };
 
   if (needsOnboarding) {
     return <OnboardingScreen onComplete={() => {
-      setShowTutorial(true);
       setJustOnboarded(true);
       // A new install starts on the current version — there's no "before" for
       // a changelog to describe, so mark it seen now rather than surfacing it
@@ -454,10 +468,6 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
 
   if (session && needsGuidelines) {
     return <GuidelinesScreen onComplete={onGuidelinesComplete} />;
-  }
-
-  if (showTutorial) {
-    return <FeatureTutorialScreen onComplete={() => setShowTutorial(false)} />;
   }
 
   return (
@@ -734,17 +744,20 @@ export default function App() {
                 <QueryClientProvider client={queryClient}>
                   <ProfileProvider>
                     <NotificationsProvider>
-                      <RootNavigator
-                        session={session}
-                        needsOnboarding={needsOnboarding}
-                        onOnboardingComplete={() => setNeedsOnboarding(false)}
-                        needsGuidelines={needsGuidelines}
-                        onGuidelinesComplete={() => setNeedsGuidelines(false)}
-                      />
-                      <ToastHost />
-                      <AlertHost />
-                      <BadgeCeremony />
-                      <CoverMorphOverlay />
+                      <CoachmarkProvider>
+                        <RootNavigator
+                          session={session}
+                          needsOnboarding={needsOnboarding}
+                          onOnboardingComplete={() => setNeedsOnboarding(false)}
+                          needsGuidelines={needsGuidelines}
+                          onGuidelinesComplete={() => setNeedsGuidelines(false)}
+                        />
+                        <ToastHost />
+                        <AlertHost />
+                        <BadgeCeremony />
+                        <CoverMorphOverlay />
+                        <CoachmarkOverlay />
+                      </CoachmarkProvider>
                     </NotificationsProvider>
                   </ProfileProvider>
                 </QueryClientProvider>
