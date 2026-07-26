@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Manhwa — MangaRecs Catalog</title>
+<meta name="description" content="Browse 220 manhwa titles on MangaRecs — track progress, rate, and get personalized recs." />
+<link rel="canonical" href="https://mangarecs.net/catalog/manhwa/" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://mangarecs.net/catalog/manhwa/" />
+<meta property="og:title" content="Manhwa — MangaRecs Catalog" />
+<meta property="og:description" content="Browse 220 manhwa titles on MangaRecs — track progress, rate, and get personalized recs." />
+<meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta name="theme-color" content="#6B46F0" />
+<link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
+
+<style>
+  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0D0C11; --bg-panel:#17151F; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Strip Text', -apple-system, system-ui, sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  a { color: inherit; }
+  main { max-width: 760px; margin: 0 auto; padding: clamp(20px,5vw,48px) clamp(20px,5vw,32px) 64px; }
+  .brand { display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-weight:800; font-size:1.02rem; margin-bottom:28px; }
+  .brand svg { width:22px; height:22px; }
+  .brand b { color: var(--accent); }
+  .crumb { font-size:0.82rem; color:var(--ink-muted); margin-bottom:18px; }
+  .crumb a { color:var(--ink-muted); text-decoration:underline; }
+  .crumb a:hover { color:var(--accent); }
+  h1 { font-size: clamp(1.6rem,4vw,2.3rem); margin: 0 0 4px; }
+  .badges { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 20px; }
+  .chip { font-size:0.76rem; font-weight:700; padding:5px 11px; border-radius:999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+  .hero { display:flex; gap:24px; flex-wrap:wrap; }
+  .cover { width:180px; flex:none; border-radius:12px; overflow:hidden; background:var(--bg-panel); box-shadow:0 12px 30px -16px rgba(0,0,0,0.35); }
+  .cover img { width:100%; display:block; }
+  .meta { flex:1; min-width:240px; }
+  .desc { margin-top:22px; color:var(--ink); font-size:0.98rem; max-width:66ch; }
+  .facts { margin-top:18px; font-size:0.86rem; color:var(--ink-muted); display:grid; grid-template-columns:auto 1fr; gap:6px 14px; max-width:360px; }
+  .facts dt { font-weight:700; color:var(--ink-faint); }
+  .facts dd { margin:0; }
+  .cta { display:flex; gap:10px; flex-wrap:wrap; margin-top:24px; }
+  .btn { display:inline-flex; align-items:center; padding:11px 18px; border-radius:10px; font-weight:700; font-size:0.9rem; text-decoration:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-ghost { border:1px solid var(--line); color:var(--ink); }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:18px; margin-top:24px; }
+  .card { text-decoration:none; color:var(--ink); }
+  .card .cover { width:100%; aspect-ratio:2/3; margin-bottom:8px; }
+  .card .t { font-size:0.86rem; font-weight:700; }
+  footer { max-width:760px; margin:0 auto; padding: 0 clamp(20px,5vw,32px) 40px; font-size:0.78rem; color:var(--ink-faint); }
+  footer a { color: var(--ink-muted); text-decoration:none; }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/">
+    <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
+    <span>Manga<b>Recs</b></span>
+  </a>
+  
+  <div class="crumb"><a href="/catalog/">Catalog</a> / Manhwa</div>
+  <h1>Manhwa</h1>
+  <p class="desc" style="margin-top:6px;">220 titles, curated and tracked on MangaRecs.</p>
+  <div class="grid">
+    <a class="card" href="/catalog/title/crmgd/">
+        <div class="cover"></div>
+        <div class="t">Chronicle of the Martial God&#39;s Return</div>
+      </a><a class="card" href="/catalog/title/ssmrch/">
+        <div class="cover"></div>
+        <div class="t">A Stepmother&#39;s MÃ¤rchen</div>
+      </a><a class="card" href="/catalog/title/srnlm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/ee14c785-564a-4e5c-ac9e-2f4afe884aee/aa52b36f-24e4-4c50-87bf-a8ceb314d969.png.512.jpg" alt="Siren&#39;s Lament cover art" loading="lazy" /></div>
+        <div class="t">Siren&#39;s Lament</div>
+      </a><a class="card" href="/catalog/title/mdppl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/63e911a1-92af-4d97-a424-5a9e9855ac53/3a26d9a4-8c17-418a-8748-29f5fc795a04.png.512.jpg" alt="Midnight Poppy Land cover art" loading="lazy" /></div>
+        <div class="t">Midnight Poppy Land</div>
+      </a><a class="card" href="/catalog/title/bnstl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9342c30d-2f4b-4527-a66e-08616f348038/af6c4be1-a588-4063-abe8-564cbfc2bb6f.jpg.512.jpg" alt="Boundless Necromancer cover art" loading="lazy" /></div>
+        <div class="t">Boundless Necromancer</div>
+      </a><a class="card" href="/catalog/title/rcdem/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx137304-XZ91kOmUIMQo.png" alt="Return of the Crazy Demon cover art" loading="lazy" /></div>
+        <div class="t">Return of the Crazy Demon</div>
+      </a><a class="card" href="/catalog/title/mdcbk/">
+        <div class="cover"></div>
+        <div class="t">My Dear Cold-Blooded King</div>
+      </a><a class="card" href="/catalog/title/bwrvl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/85b51b37-0ce6-4144-a19b-6b064bc2c2ae/13cf72b3-03cf-46f1-b30c-b08d33db8704.jpg.512.jpg" alt="Beware of the Villainess! cover art" loading="lazy" /></div>
+        <div class="t">Beware of the Villainess!</div>
+      </a><a class="card" href="/catalog/title/authpv/">
+        <div class="cover"></div>
+        <div class="t">The Author&#39;s POV</div>
+      </a><a class="card" href="/catalog/title/bvlnct/">
+        <div class="cover"></div>
+        <div class="t">I Became the Villain&#39;s Own Cat</div>
+      </a><a class="card" href="/catalog/title/nmempr/">
+        <div class="cover"></div>
+        <div class="t">In the Name of the Empress</div>
+      </a><a class="card" href="/catalog/title/grd/">
+        <div class="cover"></div>
+        <div class="t">Grid</div>
+      </a><a class="card" href="/catalog/title/vltynt/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120806-fvJbeVgOk44n.jpg" alt="The Villainess and the Tyrant cover art" loading="lazy" /></div>
+        <div class="t">The Villainess and the Tyrant</div>
+      </a><a class="card" href="/catalog/title/svrvln/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx193376-PlkkdZ8ORGVa.png" alt="Survive as a Villain cover art" loading="lazy" /></div>
+        <div class="t">Survive as a Villain</div>
+      </a><a class="card" href="/catalog/title/rmrmds/">
+        <div class="cover"></div>
+        <div class="t">Remarriage and Desires</div>
+      </a><a class="card" href="/catalog/title/prncbrd/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146517-Azl00QF6bQPf.jpg" alt="The Princess Is Bored cover art" loading="lazy" /></div>
+        <div class="t">The Princess Is Bored</div>
+      </a><a class="card" href="/catalog/title/bhnsc/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6a7b2566-aa51-40c6-9329-0cc5b97ebd01/8ac3e0b3-611e-4e63-897d-1f2d6185305c.jpg.512.jpg" alt="Behind the Scenes Man cover art" loading="lazy" /></div>
+        <div class="t">Behind the Scenes Man</div>
+      </a><a class="card" href="/catalog/title/gnstl/">
+        <div class="cover"></div>
+        <div class="t">Age of Steel</div>
+      </a><a class="card" href="/catalog/title/mrgdmn/">
+        <div class="cover"></div>
+        <div class="t">I Married a Demon on the Run</div>
+      </a><a class="card" href="/catalog/title/acwkmg/">
+        <div class="cover"></div>
+        <div class="t">Academy&#39;s Weakest Mage</div>
+      </a><a class="card" href="/catalog/title/grxds/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d7f56ace-cd30-48b9-8b64-afeca0077fca/c2613a1e-426f-4ee3-a6f7-caf003324dc7.jpg.512.jpg" alt="The Greatest Estate Developer cover art" loading="lazy" /></div>
+        <div class="t">The Greatest Estate Developer</div>
+      </a><a class="card" href="/catalog/title/zmbc/">
+        <div class="cover"></div>
+        <div class="t">Zombie Campus</div>
+      </a><a class="card" href="/catalog/title/orv/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg" alt="Omniscient Reader cover art" loading="lazy" /></div>
+        <div class="t">Omniscient Reader</div>
+      </a><a class="card" href="/catalog/title/or/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9a414441-bbad-43f1-a3a7-dc262ca790a3/be18dc9a-7f1c-4ca5-b318-ffff2d7d58c3.jpg.512.jpg" alt="Omniscient Reader cover art" loading="lazy" /></div>
+        <div class="t">Omniscient Reader</div>
+      </a><a class="card" href="/catalog/title/mbgotl/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx187944-gzNbL7zeY7Ma.jpg" alt="My Bias Gets on the Last Train cover art" loading="lazy" /></div>
+        <div class="t">My Bias Gets on the Last Train</div>
+      </a><a class="card" href="/catalog/title/wbrk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c1c408f6-3dec-4d62-b6b3-b57e615d933c/8b279428-fa32-49b2-bd51-4f8d4db7d420.jpg.512.jpg" alt="WIND BREAKER cover art" loading="lazy" /></div>
+        <div class="t">WIND BREAKER</div>
+      </a><a class="card" href="/catalog/title/ele/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/7e544761-7d3d-4fce-8137-719814d7d138/52cf193d-6862-43e8-9de4-1025c0e6e297.jpg.512.jpg" alt="Eleceed cover art" loading="lazy" /></div>
+        <div class="t">Eleceed</div>
+      </a><a class="card" href="/catalog/title/lgnd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9ed16bc9-f570-4e71-8dda-aebc098b683b/8a917622-1853-47b7-9114-997da510a8a2.jpg.512.jpg" alt="The Legend of the Northern Blade cover art" loading="lazy" /></div>
+        <div class="t">The Legend of the Northern Blade</div>
+      </a><a class="card" href="/catalog/title/th/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx100568-4BC0PsdwU4bL.png" alt="The Horizon cover art" loading="lazy" /></div>
+        <div class="t">The Horizon</div>
+      </a><a class="card" href="/catalog/title/tkolt/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx177706-3r8dnAr8Prjq.jpg" alt="The Knight Only Lives Today cover art" loading="lazy" /></div>
+        <div class="t">The Knight Only Lives Today</div>
+      </a><a class="card" href="/catalog/title/sob/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/67e56a7a-c7ea-4db8-84f0-db19c2034729/86f85502-4640-4947-b740-69a2149c2eb3.jpg.512.jpg" alt="Seasons of Blossom cover art" loading="lazy" /></div>
+        <div class="t">Seasons of Blossom</div>
+      </a><a class="card" href="/catalog/title/sl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg.512.jpg" alt="Solo Leveling cover art" loading="lazy" /></div>
+        <div class="t">Solo Leveling</div>
+      </a><a class="card" href="/catalog/title/mths/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f0f62b75-5989-4f32-9b59-ab56abe35fc1/6a583c43-1e4a-45e0-91e4-8b48013b234c.jpg.512.jpg" alt="Return of the Blossoming Blade cover art" loading="lazy" /></div>
+        <div class="t">Return of the Blossoming Blade</div>
+      </a><a class="card" href="/catalog/title/vldst/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/73fe02d8-e892-4373-8179-15c79f426083/0eacac06-c01f-413c-b2cc-88a7c8c5210a.jpg.512.jpg" alt="Villains Are Destined to Die cover art" loading="lazy" /></div>
+        <div class="t">Villains Are Destined to Die</div>
+      </a><a class="card" href="/catalog/title/pmu/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/58167656-a065-4b49-b499-bd73d00555d5/a3cc2385-ad3a-4e29-84cb-9edf39203415.jpg.512.jpg" alt="Pick Me Up cover art" loading="lazy" /></div>
+        <div class="t">Pick Me Up</div>
+      </a><a class="card" href="/catalog/title/sbapod/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/722a45c0-5e55-40f2-929b-ff69b0989edb/1b24d6dc-04a2-466b-a5d7-b86dde5087d3.jpg.512.jpg" alt="Suddenly Became a Princess One Day cover art" loading="lazy" /></div>
+        <div class="t">Suddenly Became a Princess One Day</div>
+      </a><a class="card" href="/catalog/title/dngndf/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9e74f69c-e087-40a8-b066-f2f7eb05bd0e/63e2fe39-ee12-4f80-b941-fd17cf2ff4af.jpg.512.jpg" alt="Dungeon Defense cover art" loading="lazy" /></div>
+        <div class="t">Dungeon Defense</div>
+      </a><a class="card" href="/catalog/title/wmmpq/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/722a45c0-5e55-40f2-929b-ff69b0989edb/1b24d6dc-04a2-466b-a5d7-b86dde5087d3.jpg.512.jpg" alt="Who Made Me a Princess cover art" loading="lazy" /></div>
+        <div class="t">Who Made Me a Princess</div>
+      </a><a class="card" href="/catalog/title/sssh/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/4a973243-952e-44d7-a50f-883b4b7c9cc2/9adafa19-0424-4677-aab4-93a07a01a591.jpg.512.jpg" alt="SSS-Class Revival Hunter cover art" loading="lazy" /></div>
+        <div class="t">SSS-Class Revival Hunter</div>
+      </a><a class="card" href="/catalog/title/bstrd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/bb169078-7289-4f95-948f-9315960e6905/754567a4-754f-4bc5-988c-c387a95e4b6d.jpg.512.jpg" alt="Bastard cover art" loading="lazy" /></div>
+        <div class="t">Bastard</div>
+      </a><a class="card" href="/catalog/title/illb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f89ed57a-e4c0-48f5-b664-8ef88aa87fd9/56a636ca-405f-4524-ab7c-39b3b15c9880.jpg.512.jpg" alt="I&#39;ll Be the Matriarch in This Life cover art" loading="lazy" /></div>
+        <div class="t">I&#39;ll Be the Matriarch in This Life</div>
+      </a><a class="card" href="/catalog/title/tb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/40efa78d-d27a-4364-92ac-6d7af69a851b/1e3a2c9c-ee69-43be-a4ed-aa8d8006a2e3.png.512.jpg" alt="The Boxer cover art" loading="lazy" /></div>
+        <div class="t">The Boxer</div>
+      </a><a class="card" href="/catalog/title/mmm/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx175946-rx6eIfakvWYV.jpg" alt="Myst, Might, Mayhem cover art" loading="lazy" /></div>
+        <div class="t">Myst, Might, Mayhem</div>
+      </a><a class="card" href="/catalog/title/blbday/">
+        <div class="cover"></div>
+        <div class="t">Blue Birthday</div>
+      </a><a class="card" href="/catalog/title/tog/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c31927b3-8666-4e1f-a44d-319f3cec77df/1139acf4-d88a-4415-af7d-5d21dd316280.jpg.512.jpg" alt="Tower of God cover art" loading="lazy" /></div>
+        <div class="t">Tower of God</div>
+      </a><a class="card" href="/catalog/title/swhm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/7cc37898-6669-407f-b7a6-f23a2859bc0b/c7130fcd-f384-4ae1-9d11-70a2c8e74f24.jpg.512.jpg" alt="Sweet Home cover art" loading="lazy" /></div>
+        <div class="t">Sweet Home</div>
+      </a><a class="card" href="/catalog/title/tss1/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx170400-yMIuOIboWuoO.jpg" alt="The Stellar Swordmaster cover art" loading="lazy" /></div>
+        <div class="t">The Stellar Swordmaster</div>
+      </a><a class="card" href="/catalog/title/ismtf/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f89ed57a-e4c0-48f5-b664-8ef88aa87fd9/56a636ca-405f-4524-ab7c-39b3b15c9880.jpg.512.jpg" alt="I Shall Master this Family! cover art" loading="lazy" /></div>
+        <div class="t">I Shall Master this Family!</div>
+      </a><a class="card" href="/catalog/title/levi/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/274a8e39-71a8-4bd2-af19-4572518fe44f/272c092f-3933-4ab8-92e4-6a61606178bf.png.512.jpg" alt="Leviathan cover art" loading="lazy" /></div>
+        <div class="t">Leviathan</div>
+      </a><a class="card" href="/catalog/title/asm/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111075-ZSqT1Z2XASRp.jpg" alt="A Stepmother’s Märchen cover art" loading="lazy" /></div>
+        <div class="t">A Stepmother’s Märchen</div>
+      </a><a class="card" href="/catalog/title/wntrwd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/05ab8f64-34bc-4843-b686-45980d9256a5/2d54836c-27dd-4a06-ae31-9152c8813e63.jpg.512.jpg" alt="Winter Woods cover art" loading="lazy" /></div>
+        <div class="t">Winter Woods</div>
+      </a><a class="card" href="/catalog/title/extracd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/7f15e45c-b7fd-4164-8d8e-ede14a817f0d/e3099394-b192-440a-a32f-6a203d75759d.jpg.512.jpg" alt="The Extra&#39;s Academy Survival Guide cover art" loading="lazy" /></div>
+        <div class="t">The Extra&#39;s Academy Survival Guide</div>
+      </a><a class="card" href="/catalog/title/rlna/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/39e55355-dfb4-44e9-bd0b-df1fc3a0e33e/c6933fbb-e69b-492e-b3f9-ec722d7dc8ff.jpg.512.jpg" alt="The Reason Why Raeliana Ended Up at the Duke&#39;s Mansion cover art" loading="lazy" /></div>
+        <div class="t">The Reason Why Raeliana Ended Up at the Duke&#39;s Mansion</div>
+      </a><a class="card" href="/catalog/title/nm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6e4805a6-75ab-462d-883c-4ddedb8e4df6/16406b53-9224-4639-8511-9951484ad99a.jpg.512.jpg" alt="Nano Machine cover art" loading="lazy" /></div>
+        <div class="t">Nano Machine</div>
+      </a><a class="card" href="/catalog/title/sprfng/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/52ed62f8-2baf-4d7d-8948-dad4041fbab6/fa5532a5-ab03-43c5-b2c9-4a4e7010ee89.jpg.512.jpg" alt="Spirit Fingers cover art" loading="lazy" /></div>
+        <div class="t">Spirit Fingers</div>
+      </a><a class="card" href="/catalog/title/yretrl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/aaa51c38-cb68-4515-9ba6-92a76261346c/fdc63fe5-8330-4884-88ce-96630ad206ed.jpg.512.jpg" alt="Your Eternal Lies cover art" loading="lazy" /></div>
+        <div class="t">Your Eternal Lies</div>
+      </a><a class="card" href="/catalog/title/trmhap/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx182066-kqOV7WW1DAH4.jpg" alt="The Regressed Mercenary Has a Plan cover art" loading="lazy" /></div>
+        <div class="t">The Regressed Mercenary Has a Plan</div>
+      </a><a class="card" href="/catalog/title/htwmho/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx141013-YZhKrs2IqxWY.png" alt="How to Win My Husband Over cover art" loading="lazy" /></div>
+        <div class="t">How to Win My Husband Over</div>
+      </a><a class="card" href="/catalog/title/py/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120440-PdrYcdsMheyO.jpg" alt="Positively Yours cover art" loading="lazy" /></div>
+        <div class="t">Positively Yours</div>
+      </a><a class="card" href="/catalog/title/syim1l/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/28567105-e14a-49af-92c1-d3196dc6b446/76a95215-b870-46da-ae36-37e6670cf5ec.jpg.512.jpg" alt="See You in My 19th Life cover art" loading="lazy" /></div>
+        <div class="t">See You in My 19th Life</div>
+      </a><a class="card" href="/catalog/title/dscrms/">
+        <div class="cover"></div>
+        <div class="t">Descendant of the Crimson Sun</div>
+      </a><a class="card" href="/catalog/title/gnwpbk/">
+        <div class="cover"></div>
+        <div class="t">Genius Weapon Blacksmith</div>
+      </a><a class="card" href="/catalog/title/mup/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/246f2c0c-4c50-4ef4-b292-c17f0f68a17c/e56bc7d5-115c-4c47-8846-c356d3d33217.jpg.512.jpg" alt="Murim Login cover art" loading="lazy" /></div>
+        <div class="t">Murim Login</div>
+      </a><a class="card" href="/catalog/title/nvlr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/40bfd771-d92e-4719-ad89-5d4d944ad3a3/d63a3cab-ced6-4f30-85c2-6964582b8a0c.jpg.512.jpg" alt="Navillera: Like a Butterfly cover art" loading="lazy" /></div>
+        <div class="t">Navillera: Like a Butterfly</div>
+      </a><a class="card" href="/catalog/title/tmngtgr/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx126107-ZziwSTOwoHnK.jpg" alt="Taming the Tiger cover art" loading="lazy" /></div>
+        <div class="t">Taming the Tiger</div>
+      </a><a class="card" href="/catalog/title/dbtinc/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/b753dae4-5c05-4a3a-aa03-70aa94da90ec/0ff911ae-2407-4191-898b-d11abbd324ec.jpg.512.jpg" alt="Debut or Die! cover art" loading="lazy" /></div>
+        <div class="t">Debut or Die!</div>
+      </a><a class="card" href="/catalog/title/rotbb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/fbf326f7-ccbd-4d54-bbad-852d76e46523/1084eda4-b6f9-46de-96b8-a3898c4819a0.jpg.512.jpg" alt="Revenge of the Baskerville Bloodhound cover art" loading="lazy" /></div>
+        <div class="t">Revenge of the Baskerville Bloodhound</div>
+      </a><a class="card" href="/catalog/title/tb1/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/67c6df9e-280f-476c-b13c-cecf6b2eb3c7/916c6436-46fb-4d07-ace6-4aa9d5982c4a.png.512.jpg" alt="THE BREAKER cover art" loading="lazy" /></div>
+        <div class="t">THE BREAKER</div>
+      </a><a class="card" href="/catalog/title/roxa/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/efebd0bc-eb88-477c-bcc3-90413395a2a3/6ad2b495-e945-4498-a930-fe59ed46c2c5.jpg.512.jpg" alt="Roxana cover art" loading="lazy" /></div>
+        <div class="t">Roxana</div>
+      </a><a class="card" href="/catalog/title/fksnt/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx196329-o4AN38sxCF7D.jpg" alt="The Fake Saint cover art" loading="lazy" /></div>
+        <div class="t">The Fake Saint</div>
+      </a><a class="card" href="/catalog/title/wrtngm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9fcaa8e0-9ae6-4580-b53f-12efc6b516da/07f69e05-efa9-4e05-905d-af1347b6a18a.jpg.512.jpg" alt="Where Tangents Meet cover art" loading="lazy" /></div>
+        <div class="t">Where Tangents Meet</div>
+      </a><a class="card" href="/catalog/title/sdkick/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c9721042-b5b3-45c0-8cd9-8a153971c76c/bae4f8c5-0d4b-4585-85da-5640a5c72ce7.jpg.512.jpg" alt="Sidekick cover art" loading="lazy" /></div>
+        <div class="t">Sidekick</div>
+      </a><a class="card" href="/catalog/title/dclim/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6d342a6b-d2ac-4a82-a3e6-233fc1cc9ff6/18e28591-628b-4339-9e34-a61c9bc4f69c.png.512.jpg" alt="Level-Up Doctor cover art" loading="lazy" /></div>
+        <div class="t">Level-Up Doctor</div>
+      </a><a class="card" href="/catalog/title/numendk/">
+        <div class="cover"></div>
+        <div class="t">Numen: The Dark Age</div>
+      </a><a class="card" href="/catalog/title/bsnsp/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/80fc5001-aabb-4054-94ba-931a716f226e/8606878d-2b3c-44c1-8567-e55711f38599.jpg.512.jpg" alt="A Business Proposal cover art" loading="lazy" /></div>
+        <div class="t">A Business Proposal</div>
+      </a><a class="card" href="/catalog/title/chstr/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx100942-aVXzwKcnK9Wl.jpg" alt="Cheese in the Trap Season 3 cover art" loading="lazy" /></div>
+        <div class="t">Cheese in the Trap Season 3</div>
+      </a><a class="card" href="/catalog/title/merc/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9ecd208c-c592-4462-9f57-4d7d4a9f956f/75e7fac6-c9f4-43ce-ae0e-cbf06f28f99b.jpg.512.jpg" alt="Mercenary Enrollment cover art" loading="lazy" /></div>
+        <div class="t">Mercenary Enrollment</div>
+      </a><a class="card" href="/catalog/title/swdmst/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/85a8ebda-9959-4244-ad03-a2d9f6a746a2/3b1c5579-b65b-41e9-9851-74154ce68e02.jpg.512.jpg" alt="Swordmaster&#39;s Youngest Son cover art" loading="lazy" /></div>
+        <div class="t">Swordmaster&#39;s Youngest Son</div>
+      </a><a class="card" href="/catalog/title/brkrng/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8ba4426d-9713-4a65-a38e-cf662c7a208c/344029f4-c3a7-469f-9777-11aeb55228e4.jpg.512.jpg" alt="The Broken Ring: This Marriage Will Fail Anyway cover art" loading="lazy" /></div>
+        <div class="t">The Broken Ring: This Marriage Will Fail Anyway</div>
+      </a><a class="card" href="/catalog/title/unlbld/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/b2df3b97-06b4-4544-8ec3-79bc41dfa03b/b3d327d2-2c33-40ac-9c62-f85997578fae.jpg.512.jpg" alt="Unholy Blood cover art" loading="lazy" /></div>
+        <div class="t">Unholy Blood</div>
+      </a><a class="card" href="/catalog/title/anrsmn/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/0ea0abe6-2aad-4aae-8462-9c6caf266653/fcf468df-3ee8-4fc8-ac4a-154613fef786.jpg.512.jpg" alt="The Sound of Magic: Annarasumanara cover art" loading="lazy" /></div>
+        <div class="t">The Sound of Magic: Annarasumanara</div>
+      </a><a class="card" href="/catalog/title/tm/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx126297-SPiM7QtUnJ4P.jpg" alt="Teenage Mercenary cover art" loading="lazy" /></div>
+        <div class="t">Teenage Mercenary</div>
+      </a><a class="card" href="/catalog/title/tss/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx149332-adkSyOFY3c5U.jpg" alt="The Swordmaster&#39;s Son cover art" loading="lazy" /></div>
+        <div class="t">The Swordmaster&#39;s Son</div>
+      </a><a class="card" href="/catalog/title/db/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/773c2211-750b-4fff-bd64-c914986e4637/cf60f76c-19fa-441f-b20d-9528180aaff7.jpg.512.jpg" alt="Doom Breaker cover art" loading="lazy" /></div>
+        <div class="t">Doom Breaker</div>
+      </a><a class="card" href="/catalog/title/mmtb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/220282a9-a2ff-4a6b-9bed-f4a9da24c661/f1200311-3b79-436e-8edf-4f3a9465e2e5.jpg.512.jpg" alt="Maybe Meant to Be cover art" loading="lazy" /></div>
+        <div class="t">Maybe Meant to Be</div>
+      </a><a class="card" href="/catalog/title/rotmd/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx137304-XZ91kOmUIMQo.png" alt="Return of the Mad Demon cover art" loading="lazy" /></div>
+        <div class="t">Return of the Mad Demon</div>
+      </a><a class="card" href="/catalog/title/do/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx155485-YlWPkBFvWG3v.jpg" alt="Dungeon Odyssey cover art" loading="lazy" /></div>
+        <div class="t">Dungeon Odyssey</div>
+      </a><a class="card" href="/catalog/title/stgaab/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx164857-MVeV0leMZb0m.jpg" alt="Surviving the Game as a Barbarian cover art" loading="lazy" /></div>
+        <div class="t">Surviving the Game as a Barbarian</div>
+      </a><a class="card" href="/catalog/title/pigp/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx108952-wHZSxlOQxmxQ.jpg" alt="PIGPEN cover art" loading="lazy" /></div>
+        <div class="t">PIGPEN</div>
+      </a><a class="card" href="/catalog/title/tottdg/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/a846b1d7-2e57-4622-acdf-9c584d07ce7f/3e29572e-ddc1-4145-9146-bf61c8b1bc42.jpg.512.jpg" alt="Tyrant of the Tower Defense Game cover art" loading="lazy" /></div>
+        <div class="t">Tyrant of the Tower Defense Game</div>
+      </a><a class="card" href="/catalog/title/dpseries/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx175820-FNkQf1axwNoG.jpg" alt="D.P. cover art" loading="lazy" /></div>
+        <div class="t">D.P.</div>
+      </a><a class="card" href="/catalog/title/dwrwf/">
+        <div class="cover"></div>
+        <div class="t">The Duke&#39;s Winter Rose Wife</div>
+      </a><a class="card" href="/catalog/title/lks/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/596191eb-69ee-4401-983e-cc07e277fa17/6df15145-f15b-43f0-b87b-22fd3694eaca.jpg.512.jpg" alt="Lookism cover art" loading="lazy" /></div>
+        <div class="t">Lookism</div>
+      </a><a class="card" href="/catalog/title/yrthr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8c6e0eb8-fb94-44a3-9bf4-fa72dee36775/0c04d507-5603-407e-9fc5-ff9b55461c37.jpg.512.jpg" alt="Your Throne cover art" loading="lazy" /></div>
+        <div class="t">Your Throne</div>
+      </a><a class="card" href="/catalog/title/trtns/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/1dc3ebf9-c86c-431c-bcca-5e35ac124f28/f9ff647e-55f7-4065-95b3-0217eb3a8281.jpg.512.jpg" alt="Trash of the Count&#39;s Family cover art" loading="lazy" /></div>
+        <div class="t">Trash of the Count&#39;s Family</div>
+      </a><a class="card" href="/catalog/title/wh/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/94a87fd5-250d-4058-9d33-88b6885ebfc2/9bdfad9a-53b7-46a7-9d8d-4b68aa9a212f.jpg.512.jpg" alt="Weak Hero cover art" loading="lazy" /></div>
+        <div class="t">Weak Hero</div>
+      </a><a class="card" href="/catalog/title/lvlg/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/4a43c227-b201-4fb7-b796-924c51797d50/813e10ac-a4d9-42ee-a0a6-ba8ef0d19340.jpg.512.jpg" alt="Leveling with the Gods cover art" loading="lazy" /></div>
+        <div class="t">Leveling with the Gods</div>
+      </a><a class="card" href="/catalog/title/pgss/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/62c802ff-25ce-4b1c-aa94-55251c84ed0c/14a94728-dcc5-4f8e-9a7e-4c5e2a314a83.png.512.jpg" alt="Peerless Dad cover art" loading="lazy" /></div>
+        <div class="t">Peerless Dad</div>
+      </a><a class="card" href="/catalog/title/vlhgl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c1f672ea-70a2-4ecc-a3f7-c04699379a92/3af2a9ae-e470-40d5-89a3-87be7c08938d.jpg.512.jpg" alt="The Villainess Turns the Hourglass cover art" loading="lazy" /></div>
+        <div class="t">The Villainess Turns the Hourglass</div>
+      </a><a class="card" href="/catalog/title/hwpl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d2df017b-c003-4de6-9625-4f1fba7aef97/4602ab68-0eb7-42a3-bfba-5d90ec19ca40.jpg.512.jpg" alt="Viral Hit cover art" loading="lazy" /></div>
+        <div class="t">Viral Hit</div>
+      </a><a class="card" href="/catalog/title/dmnrc/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6e769716-df1e-4d66-89cc-32f3b46e17dc/d6613629-9df7-4cc0-89b2-e7b251b7a7e9.jpg.512.jpg" alt="Damn Reincarnation cover art" loading="lazy" /></div>
+        <div class="t">Damn Reincarnation</div>
+      </a><a class="card" href="/catalog/title/rfmdn/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/26c8f00a-3925-4f22-ac21-83145be2b733/f874bcb6-03be-4cb0-9478-8d3a0240beea.jpg.512.jpg" alt="Reformation of the Deadbeat Noble cover art" loading="lazy" /></div>
+        <div class="t">Reformation of the Deadbeat Noble</div>
+      </a><a class="card" href="/catalog/title/plyr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6994b74a-2ecd-4a54-8d23-d2adff5e0b0c/6391022a-fbbb-4001-913b-c25ee623502d.png.512.jpg" alt="Player cover art" loading="lazy" /></div>
+        <div class="t">Player</div>
+      </a><a class="card" href="/catalog/title/locf/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx123573-LKoCKwRouEMW.png" alt="Lout of Count’s Family cover art" loading="lazy" /></div>
+        <div class="t">Lout of Count’s Family</div>
+      </a><a class="card" href="/catalog/title/tim/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/4d97b35d-2d9f-4369-964f-3b0ce2c7fbbc/7f153c31-154c-4b49-b0cf-edcb9acb6425.jpg.512.jpg" alt="The Infinite Mage cover art" loading="lazy" /></div>
+        <div class="t">The Infinite Mage</div>
+      </a><a class="card" href="/catalog/title/mbrl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6e769716-df1e-4d66-89cc-32f3b46e17dc/d6613629-9df7-4cc0-89b2-e7b251b7a7e9.jpg.512.jpg" alt="My Blasted Reincarnated Life cover art" loading="lazy" /></div>
+        <div class="t">My Blasted Reincarnated Life</div>
+      </a><a class="card" href="/catalog/title/luwtg/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/4a43c227-b201-4fb7-b796-924c51797d50/813e10ac-a4d9-42ee-a0a6-ba8ef0d19340.jpg.512.jpg" alt="Level Up with the Gods cover art" loading="lazy" /></div>
+        <div class="t">Level Up with the Gods</div>
+      </a><a class="card" href="/catalog/title/tr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/32156657-0ea8-48a3-81fe-a29bb1f90219/96652862-746a-4a01-9a25-abd0010b73f1.jpg.512.jpg" alt="The Reaper cover art" loading="lazy" /></div>
+        <div class="t">The Reaper</div>
+      </a><a class="card" href="/catalog/title/yumicl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f46138f0-491c-45e1-8e99-e59e2a61ad4a/21b5b25a-fc5e-4da4-be97-76f28f731f2e.jpg.512.jpg" alt="Yumi&#39;s Cells cover art" loading="lazy" /></div>
+        <div class="t">Yumi&#39;s Cells</div>
+      </a><a class="card" href="/catalog/title/rprdftm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/32156657-0ea8-48a3-81fe-a29bb1f90219/96652862-746a-4a01-9a25-abd0010b73f1.jpg.512.jpg" alt="Reaper of the Drifting Moon cover art" loading="lazy" /></div>
+        <div class="t">Reaper of the Drifting Moon</div>
+      </a><a class="card" href="/catalog/title/athclns/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/fd8b0527-770a-4941-a8e1-c0acffb97a47/ada82e73-f2f0-455f-9702-f702f8b82472.png.512.jpg" alt="Auto-Hunting With Clones cover art" loading="lazy" /></div>
+        <div class="t">Auto-Hunting With Clones</div>
+      </a><a class="card" href="/catalog/title/ibwml/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/79428c31-72f5-4fb0-8579-250f7933b2d5/b6a48c88-59d1-4320-ba07-ab60f90ae762.jpg.512.jpg" alt="I Became the Wife of the Male Lead cover art" loading="lazy" /></div>
+        <div class="t">I Became the Wife of the Male Lead</div>
+      </a><a class="card" href="/catalog/title/rempr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/ac6819d8-de35-442c-82dd-3444983d4f26/6fadbf8b-1be6-4c37-9a57-4e03721674f3.png.512.jpg" alt="The Remarried Empress cover art" loading="lazy" /></div>
+        <div class="t">The Remarried Empress</div>
+      </a><a class="card" href="/catalog/title/itclss/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/419e68b9-736f-4637-8657-92ee96d9d142/08b48951-87a6-4a5d-8fd0-c55b05a067e7.jpg.512.jpg" alt="Itaewon Class cover art" loading="lazy" /></div>
+        <div class="t">Itaewon Class</div>
+      </a><a class="card" href="/catalog/title/flngk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9debf709-4d0a-47f8-aa1a-b656bcd54727/91ef0b82-9755-4e0c-a9ec-0c7512c9c99d.jpg.512.jpg" alt="The Heavenly Demon Can&#39;t Live a Normal Life cover art" loading="lazy" /></div>
+        <div class="t">The Heavenly Demon Can&#39;t Live a Normal Life</div>
+      </a><a class="card" href="/catalog/title/slr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/1ffca916-3ad7-46d2-9591-a9b39e639971/60aef1af-2df0-46aa-8270-e1ad9d287289.jpg.512.jpg" alt="Second Life Ranker cover art" loading="lazy" /></div>
+        <div class="t">Second Life Ranker</div>
+      </a><a class="card" href="/catalog/title/ovgr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6ef19044-70d3-4e87-994b-4cc07ccd0810/1c0f674d-e386-4f58-a7ef-723ae077737e.png.512.jpg" alt="Overgeared cover art" loading="lazy" /></div>
+        <div class="t">Overgeared</div>
+      </a><a class="card" href="/catalog/title/nvlxt/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6f18c4ef-3eb6-40ee-98a4-507343f05855/de9caf95-f1b2-4613-bb1f-ca48101ed066.jpg.512.jpg" alt="The Novel&#39;s Extra cover art" loading="lazy" /></div>
+        <div class="t">The Novel&#39;s Extra</div>
+      </a><a class="card" href="/catalog/title/itmn/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx137280-juUL79K7f9s7.png" alt="I’m the Max-Level Newbie cover art" loading="lazy" /></div>
+        <div class="t">I’m the Max-Level Newbie</div>
+      </a><a class="card" href="/catalog/title/tllmts/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx135325-YAhEGWro8zFK.jpg" alt="The Lazy Lord Masters the Sword cover art" loading="lazy" /></div>
+        <div class="t">The Lazy Lord Masters the Sword</div>
+      </a><a class="card" href="/catalog/title/btv/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/2af0ef15-7476-496e-b3be-2c9f259b773e/09207e3e-02c4-4fce-9a49-e157354f1da5.jpg.512.jpg" alt="Beware the Villainess! cover art" loading="lazy" /></div>
+        <div class="t">Beware the Villainess!</div>
+      </a><a class="card" href="/catalog/title/sb/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx130229-w8eYyQnAaPh8.jpg" alt="Shotgun Boy cover art" loading="lazy" /></div>
+        <div class="t">Shotgun Boy</div>
+      </a><a class="card" href="/catalog/title/dfd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/9debf709-4d0a-47f8-aa1a-b656bcd54727/91ef0b82-9755-4e0c-a9ec-0c7512c9c99d.jpg.512.jpg" alt="Descended from Divinity cover art" loading="lazy" /></div>
+        <div class="t">Descended from Divinity</div>
+      </a><a class="card" href="/catalog/title/dysofhn/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/2414cba6-3022-4d21-8268-836320ae622c/53b2f2eb-0a0e-4e36-a75f-7f3b16f2aabd.jpg.512.jpg" alt="Days of Hana cover art" loading="lazy" /></div>
+        <div class="t">Days of Hana</div>
+      </a><a class="card" href="/catalog/title/misvk/">
+        <div class="cover"></div>
+        <div class="t">My Insanity Saved the Kingdom</div>
+      </a><a class="card" href="/catalog/title/symbrp/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/561845c2-a33e-4f5d-b9b6-53ca4ca3a52d/f045b8da-e863-47a0-afd3-189ca24e4975.jpg.512.jpg" alt="A Symbiotic Relationship Between a Rabbit and a Black Panther cover art" loading="lazy" /></div>
+        <div class="t">A Symbiotic Relationship Between a Rabbit and a Black Panther</div>
+      </a><a class="card" href="/catalog/title/gohs/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/3fb3f1c3-153e-400c-a0b3-4eb9cc53be3b/a81cc7e0-1cfc-4cdc-ba75-3cb2bb4e856f.jpg.512.jpg" alt="The God of High School cover art" loading="lazy" /></div>
+        <div class="t">The God of High School</div>
+      </a><a class="card" href="/catalog/title/arms/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6a468761-5bd6-4de0-a0cb-47cb456ac2e0/98162533-1838-4639-8419-2f19f8af651b.png.512.jpg" alt="A Returner&#39;s Magic Should Be Special cover art" loading="lazy" /></div>
+        <div class="t">A Returner&#39;s Magic Should Be Special</div>
+      </a><a class="card" href="/catalog/title/nob/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f61952ad-63bb-4e81-a03e-9e50b9e23037/672b802b-92a5-400b-98f8-c0b18bb7b94a.jpg.512.jpg" alt="Noblesse cover art" loading="lazy" /></div>
+        <div class="t">Noblesse</div>
+      </a><a class="card" href="/catalog/title/dcels/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8368162b-a57e-4374-877a-926d42c683df/91214ee4-1cee-452a-bcd9-c4a2695efcd0.jpg.512.jpg" alt="Doctor Elise: The Royal Lady with the Lamp cover art" loading="lazy" /></div>
+        <div class="t">Doctor Elise: The Royal Lady with the Lamp</div>
+      </a><a class="card" href="/catalog/title/rgmn/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/bd1bf883-c7d4-4f4d-857c-29e2470cb693/6430bb7e-0a77-432a-943e-c787173e9092.jpg.512.jpg" alt="Regressor Instruction Manual cover art" loading="lazy" /></div>
+        <div class="t">Regressor Instruction Manual</div>
+      </a><a class="card" href="/catalog/title/jglj/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/80d288be-bdb9-4637-804e-02b2f89ad2d8/c0d3d0a0-9550-4afd-b593-141e12a39015.jpg.512.jpg" alt="Jungle Juice cover art" loading="lazy" /></div>
+        <div class="t">Jungle Juice</div>
+      </a><a class="card" href="/catalog/title/vlnlv/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6315a033-2f68-472c-86dd-dab446b2371d/3244d560-051e-489b-92f0-2a429ba5237a.jpg.512.jpg" alt="Villainess in Love cover art" loading="lazy" /></div>
+        <div class="t">Villainess in Love</div>
+      </a><a class="card" href="/catalog/title/lgmsc/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/1f5ade21-96a2-48a3-92e4-a8cac0c655e7/d4470ad3-61da-45bc-9084-97ccda2fe746.jpg.512.jpg" alt="The Legendary Moonlight Sculptor cover art" loading="lazy" /></div>
+        <div class="t">The Legendary Moonlight Sculptor</div>
+      </a><a class="card" href="/catalog/title/wrldftr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/14b81959-13ed-46eb-a277-da66f672acb5/1321f61b-c7e2-4213-a30c-7f7eaae1e42c.jpg.512.jpg" alt="The World After the Fall cover art" loading="lazy" /></div>
+        <div class="t">The World After the Fall</div>
+      </a><a class="card" href="/catalog/title/armsbs/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/013349ff-e9c3-493e-af16-54771f89ae5e/8962594f-2930-4ccf-b1a0-47c769551b08.jpg.512.jpg" alt="A Returner&#39;s Magic Should Be Special cover art" loading="lazy" /></div>
+        <div class="t">A Returner&#39;s Magic Should Be Special</div>
+      </a><a class="card" href="/catalog/title/taup/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d5c0896a-d4d5-4ee0-8bf1-a113cb1b86ac/136c7a9d-e081-46c8-9a7a-962c6b600a42.jpg.512.jpg" alt="The Academy&#39;s Undercover Professor cover art" loading="lazy" /></div>
+        <div class="t">The Academy&#39;s Undercover Professor</div>
+      </a><a class="card" href="/catalog/title/bmotma/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c5cdf853-1b18-4d1a-8534-a7772841e424/c7816ace-1eef-4f26-a931-060355887224.jpg.512.jpg" alt="Blink Master of the Magic Academy cover art" loading="lazy" /></div>
+        <div class="t">Blink Master of the Magic Academy</div>
+      </a><a class="card" href="/catalog/title/hs/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/27b5a8ba-818c-413f-9b50-ef74e4cbf62c/20a0b289-c4f6-4229-b064-7391a84c3299.jpg.512.jpg" alt="Her Summon cover art" loading="lazy" /></div>
+        <div class="t">Her Summon</div>
+      </a><a class="card" href="/catalog/title/mrmhb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/13b194c4-5d6b-421e-b95d-34ceb3f7e20f/2c7f89ad-845a-4b76-8f66-43c256e225c1.jpg.512.jpg" alt="Marry My Husband cover art" loading="lazy" /></div>
+        <div class="t">Marry My Husband</div>
+      </a><a class="card" href="/catalog/title/cndrlcl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/770ee34b-61a8-4cd5-97e2-e220ec8ecdf3/cae10f23-225f-4d82-814f-682066e52216.jpg.512.jpg" alt="Cinderella Closet cover art" loading="lazy" /></div>
+        <div class="t">Cinderella Closet</div>
+      </a><a class="card" href="/catalog/title/agdstr/">
+        <div class="cover"></div>
+        <div class="t">Age of Distrust</div>
+      </a><a class="card" href="/catalog/title/kubera/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/76ac6b53-df49-4ace-85a2-b27970830ef2/24edd0f4-234a-48a6-9bbe-fa6b667cee01.jpg.512.jpg" alt="Kubera cover art" loading="lazy" /></div>
+        <div class="t">Kubera</div>
+      </a><a class="card" href="/catalog/title/scls/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx141958-y46ASozodVNW.jpg" alt="The S-Classes That I Raised cover art" loading="lazy" /></div>
+        <div class="t">The S-Classes That I Raised</div>
+      </a><a class="card" href="/catalog/title/hclvl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/93398095-659d-4137-a630-5961c82a1f97/760643e7-da96-4a2c-9866-0e69c6942579.jpg.512.jpg" alt="Hardcore Leveling Warrior cover art" loading="lazy" /></div>
+        <div class="t">Hardcore Leveling Warrior</div>
+      </a><a class="card" href="/catalog/title/rbrch/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/e7362bdb-d530-4570-ae47-cd0fc47878e7/1cc41e28-a166-4f9a-8ab8-31dac7882fe9.jpg.512.jpg" alt="Reborn Rich cover art" loading="lazy" /></div>
+        <div class="t">Reborn Rich</div>
+      </a><a class="card" href="/catalog/title/tara4y/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx118424-JbTApgnIP1ON.jpg" alt="The Archmage Returns After 4000 Years cover art" loading="lazy" /></div>
+        <div class="t">The Archmage Returns After 4000 Years</div>
+      </a><a class="card" href="/catalog/title/trotdh/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143056-MEpVxW7346jz.jpg" alt="The Return of the Disaster-Class Hero cover art" loading="lazy" /></div>
+        <div class="t">The Return of the Disaster-Class Hero</div>
+      </a><a class="card" href="/catalog/title/htuar/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/bd1bf883-c7d4-4f4d-857c-29e2470cb693/6430bb7e-0a77-432a-943e-c787173e9092.jpg.512.jpg" alt="How to Use a Returner cover art" loading="lazy" /></div>
+        <div class="t">How to Use a Returner</div>
+      </a><a class="card" href="/catalog/title/blsw/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/daa6f76d-b7b4-4328-8d31-65aedbf1e071/7c283462-62d2-4b35-a91f-2a831753fb7d.jpg.512.jpg" alt="Bloody Sweet cover art" loading="lazy" /></div>
+        <div class="t">Bloody Sweet</div>
+      </a><a class="card" href="/catalog/title/untchbl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/a2b67cc2-67e7-43fe-beb5-e901fb107c02/96042ffc-7b7c-441d-af27-fea4835e012d.jpg.512.jpg" alt="Untouchable cover art" loading="lazy" /></div>
+        <div class="t">Untouchable</div>
+      </a><a class="card" href="/catalog/title/dcreb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8acdc047-6c6b-4603-8ee9-55f03421fceb/951166ee-792c-4e18-845e-9e85d71d5cc7.jpg.512.jpg" alt="Doctor&#39;s Rebirth cover art" loading="lazy" /></div>
+        <div class="t">Doctor&#39;s Rebirth</div>
+      </a><a class="card" href="/catalog/title/mrmrpg/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c8f0f000-35be-4f16-9b68-f2aea7e67fdb/fcac604f-129e-4d7f-82f6-6e4b13009f96.jpg.512.jpg" alt="Murim RPG Simulation cover art" loading="lazy" /></div>
+        <div class="t">Murim RPG Simulation</div>
+      </a><a class="card" href="/catalog/title/mygbt/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6a9baffb-505e-49c1-9b28-94521fdd5b2b/0b6eccff-1a90-446d-82fa-62731cc1029a.jpg.512.jpg" alt="My Gently Raised Beast cover art" loading="lazy" /></div>
+        <div class="t">My Gently Raised Beast</div>
+      </a><a class="card" href="/catalog/title/udtok/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c9a891f6-9f4b-487d-8b62-7abb0e3f59c8/9ea1571b-f680-494b-9a3c-04c1949bac27.jpg.512.jpg" alt="Under the Oak Tree cover art" loading="lazy" /></div>
+        <div class="t">Under the Oak Tree</div>
+      </a><a class="card" href="/catalog/title/wlsdnk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/81fd7526-4510-4ce9-8cc6-2ead22a87e7c/517d5fad-9518-4dde-a9a4-e0bf805c6066.jpg.512.jpg" alt="I Will Seduce the Northern Duke cover art" loading="lazy" /></div>
+        <div class="t">I Will Seduce the Northern Duke</div>
+      </a><a class="card" href="/catalog/title/mkhdr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/4ffd1f8f-ab82-4de4-9dea-e0608c043d7b/669f430e-a824-47cb-b3f5-14dfd1274c34.jpg.512.jpg" alt="Mookhyang: Dark Lady cover art" loading="lazy" /></div>
+        <div class="t">Mookhyang: Dark Lady</div>
+      </a><a class="card" href="/catalog/title/rdstrm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/1593cc24-e67a-411e-8e30-eec88a5ee670/fdf62de3-716e-4c62-b68b-968126e83c34.jpg.512.jpg" alt="Red Storm cover art" loading="lazy" /></div>
+        <div class="t">Red Storm</div>
+      </a><a class="card" href="/catalog/title/actlrl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/48d231af-d0cd-4f1e-a1e2-9d1a7aa91a6a/09cb0f58-a3a5-49d3-8244-92309f4f4d67.jpg.512.jpg" alt="Actually, I Was the Real One cover art" loading="lazy" /></div>
+        <div class="t">Actually, I Was the Real One</div>
+      </a><a class="card" href="/catalog/title/tluns/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f49c57a5-f3af-47d0-bdea-f5f05cc53517/01b6dbcc-5565-4d9d-9166-dcdbf11135ee.jpg.512.jpg" alt="Tales of the Unusual cover art" loading="lazy" /></div>
+        <div class="t">Tales of the Unusual</div>
+      </a><a class="card" href="/catalog/title/trot8c/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136331-cM7yJu8RtCoU.jpg" alt="The Return of the 8th Class Mage cover art" loading="lazy" /></div>
+        <div class="t">The Return of the 8th Class Mage</div>
+      </a><a class="card" href="/catalog/title/mio/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151025-j7nZBNb46cv9.jpg" alt="Mythic Item Obtained cover art" loading="lazy" /></div>
+        <div class="t">Mythic Item Obtained</div>
+      </a><a class="card" href="/catalog/title/msh/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/3f53fb25-b1b7-4fa6-92f8-2fc438a1ae65/7d9fb53c-1624-417b-8f96-675b8fd83f08.jpg.512.jpg" alt="My S-Class Hunters cover art" loading="lazy" /></div>
+        <div class="t">My S-Class Hunters</div>
+      </a><a class="card" href="/catalog/title/tmgwrb/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx167834-QgyPJ7tOMGqA.png" alt="The Martial God Who Regressed Back to Level 2 cover art" loading="lazy" /></div>
+        <div class="t">The Martial God Who Regressed Back to Level 2</div>
+      </a><a class="card" href="/catalog/title/sg/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/24c8e2f3-f515-4e58-bfdd-c423ab00499a/133f7d99-a535-43a3-b125-1783166766e6.jpg.512.jpg" alt="Study Group cover art" loading="lazy" /></div>
+        <div class="t">Study Group</div>
+      </a><a class="card" href="/catalog/title/otl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f8dbced3-1eea-4547-b657-ce568fbdda0f/9135af67-a75e-4045-a91f-7a7a87080b2d.jpg.512.jpg" alt="Operation: True Love cover art" loading="lazy" /></div>
+        <div class="t">Operation: True Love</div>
+      </a><a class="card" href="/catalog/title/vlmrnt/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/a82fe527-9e74-48d0-9c5f-a5e788c0bd4a/c62f9627-3690-47f4-b0cd-0060e379eb8b.jpg.512.jpg" alt="The Villainess Is a Marionette cover art" loading="lazy" /></div>
+        <div class="t">The Villainess Is a Marionette</div>
+      </a><a class="card" href="/catalog/title/sklsldr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d993f789-e7e5-4832-92fd-37614220b427/7e02ac66-1ac9-4eac-bc05-a264222ca87b.png.512.jpg" alt="Skeleton Soldier Couldn&#39;t Protect the Dungeon cover art" loading="lazy" /></div>
+        <div class="t">Skeleton Soldier Couldn&#39;t Protect the Dungeon</div>
+      </a><a class="card" href="/catalog/title/hskng/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8c9242d5-2575-4dd7-aeb8-0c52f6574a3c/961e2f88-ca5d-47c2-aec2-aa38c14b5e56.jpg.512.jpg" alt="High School Return of a Gangster cover art" loading="lazy" /></div>
+        <div class="t">High School Return of a Gangster</div>
+      </a><a class="card" href="/catalog/title/klhr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6964942d-5920-4e79-bc45-1f798d62b2bd/a14fcb77-26e1-408e-99c8-994722b6510d.png.512.jpg" alt="Kill the Hero cover art" loading="lazy" /></div>
+        <div class="t">Kill the Hero</div>
+      </a><a class="card" href="/catalog/title/vilk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/94e6f5a4-a215-4f5b-ae82-febc560be66d/9910ea6e-11ae-41e9-b143-3219603ed44f.png.512.jpg" alt="Villain to Kill cover art" loading="lazy" /></div>
+        <div class="t">Villain to Kill</div>
+      </a><a class="card" href="/catalog/title/trpdts/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/28c77530-dfa1-4b05-8ec3-998960ba24d4/2a87c2b5-83ab-4cfa-96fd-da840f6f0e6f.jpg.512.jpg" alt="Trapped in a Dating Sim: The World of Otome Games is Tough for Mobs cover art" loading="lazy" /></div>
+        <div class="t">Trapped in a Dating Sim: The World of Otome Games is Tough for Mobs</div>
+      </a><a class="card" href="/catalog/title/trk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/16e1767d-a8d5-4173-b87f-f7023f6c4578/a7959d46-cc3d-40cd-9a49-d3cded838058.jpg.512.jpg" alt="Tomb Raider King cover art" loading="lazy" /></div>
+        <div class="t">Tomb Raider King</div>
+      </a><a class="card" href="/catalog/title/tags/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx167649-8qpdNIjBdIhQ.png" alt="The Academy&#39;s Genius Swordsman cover art" loading="lazy" /></div>
+        <div class="t">The Academy&#39;s Genius Swordsman</div>
+      </a><a class="card" href="/catalog/title/6yaotd/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx137595-1m3i7vxyOqXc.png" alt="66,666 Years: Advent of the Dark Mage cover art" loading="lazy" /></div>
+        <div class="t">66,666 Years: Advent of the Dark Mage</div>
+      </a><a class="card" href="/catalog/title/dd/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx144079-ByjomNQKSo5s.jpg" alt="Demon Devourer cover art" loading="lazy" /></div>
+        <div class="t">Demon Devourer</div>
+      </a><a class="card" href="/catalog/title/tsoul/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/f2cb9465-c314-46a3-97fd-05210d3af0a7/f5f5d6a8-eaec-4e6f-9396-e0386fdb258e.jpg.512.jpg" alt="The Scholar&#39;s Reincarnation cover art" loading="lazy" /></div>
+        <div class="t">The Scholar&#39;s Reincarnation</div>
+      </a><a class="card" href="/catalog/title/mxhro/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/b407de00-75a5-415a-a001-585fb41b9cf2/ba79a85a-1a04-4739-a895-b1124823656a.jpg.512.jpg" alt="The Max Level Hero Has Returned! cover art" loading="lazy" /></div>
+        <div class="t">The Max Level Hero Has Returned!</div>
+      </a><a class="card" href="/catalog/title/plrnu/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/a796fb50-cdc9-4c15-a48d-bc1d733d89b2/ff288e38-47a0-4adf-8825-1d3286ebb69a.jpg.512.jpg" alt="The Player Who Can&#39;t Level Up cover art" loading="lazy" /></div>
+        <div class="t">The Player Who Can&#39;t Level Up</div>
+      </a><a class="card" href="/catalog/title/itsml/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d9ab5041-e497-4323-83cb-c3f3b9aaaf71/40f81dbb-901e-4a29-a0a0-5401961f3817.jpg.512.jpg" alt="It&#39;s My Life cover art" loading="lazy" /></div>
+        <div class="t">It&#39;s My Life</div>
+      </a><a class="card" href="/catalog/title/tutrhl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/5c0a6150-502b-4d88-a46e-50b83768fe8f/1cf61df7-2eb2-4f8e-baf7-c78417659896.jpg.512.jpg" alt="The Tutorial Is Too Hard cover art" loading="lazy" /></div>
+        <div class="t">The Tutorial Is Too Hard</div>
+      </a><a class="card" href="/catalog/title/taor/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/e7b5dec0-d875-4d44-b06c-8b45af865a32/cd84190a-c7d6-4ca1-8d3d-0f83aa25bea3.jpg.512.jpg" alt="The Art of Reincarnation cover art" loading="lazy" /></div>
+        <div class="t">The Art of Reincarnation</div>
+      </a><a class="card" href="/catalog/title/mydts/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/1196178c-3b8e-48a2-bd5a-2f0e1dbb142b/02740c29-b64c-4e02-ab70-4edfd4a451a5.jpg.512.jpg" alt="My Dad Is Too Strong cover art" loading="lazy" /></div>
+        <div class="t">My Dad Is Too Strong</div>
+      </a><a class="card" href="/catalog/title/tignk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/10c548ad-f7ce-47c3-8db8-b8863440a07b/1915ba70-06be-4857-a2f6-2ab8abf30c29.png.512.jpg" alt="Terminally-Ill Genius Dark Knight cover art" loading="lazy" /></div>
+        <div class="t">Terminally-Ill Genius Dark Knight</div>
+      </a><a class="card" href="/catalog/title/tscog/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/45a1ac5c-8be7-4a5a-8610-ff6495a1e72c/2d194fe8-3d0e-44f4-ac78-7ad682c1c82c.jpg.512.jpg" alt="The Second Coming of Gluttony cover art" loading="lazy" /></div>
+        <div class="t">The Second Coming of Gluttony</div>
+      </a><a class="card" href="/catalog/title/dngrst/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/dcdcc8c7-932e-4f60-a900-5f19934eb6cf/7bf49bfe-3a7c-4619-91ac-f23f51432131.png.512.jpg" alt="Dungeon Reset cover art" loading="lazy" /></div>
+        <div class="t">Dungeon Reset</div>
+      </a><a class="card" href="/catalog/title/flwr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8415b15e-0ed5-414a-ac5a-f4f2371e8bf1/1fcf540d-ba29-42cd-b3c5-7c010f2f0c60.jpg.512.jpg" alt="Flower and the Beast cover art" loading="lazy" /></div>
+        <div class="t">Flower and the Beast</div>
+      </a><a class="card" href="/catalog/title/tmlhsb/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125636-g0gkyLZbo3Tz.png" alt="The Max Level Hero Strikes Back! cover art" loading="lazy" /></div>
+        <div class="t">The Max Level Hero Strikes Back!</div>
+      </a><a class="card" href="/catalog/title/ft/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx113666-eemJQOpbo3qk.png" alt="FFF-Class Trashero cover art" loading="lazy" /></div>
+        <div class="t">FFF-Class Trashero</div>
+      </a><a class="card" href="/catalog/title/gotw/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c80873ba-a29c-4285-9e3b-9b2b03be3d65/3feee930-d9ee-4771-8240-dc1fe262eaf2.jpg.512.jpg" alt="Girls of the Wild&#39;s cover art" loading="lazy" /></div>
+        <div class="t">Girls of the Wild&#39;s</div>
+      </a><a class="card" href="/catalog/title/iatsk/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/5ed2558b-66e8-4413-aff8-0ff317f9f1d0/a7adcfdc-a374-4b96-baf0-fee44ba5121b.jpg.512.jpg" alt="I Am the Sorcerer King cover art" loading="lazy" /></div>
+        <div class="t">I Am the Sorcerer King</div>
+      </a><a class="card" href="/catalog/title/fidwtm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/fbecdece-de6a-4213-946b-62bf541dd60f/d13a020e-65ee-4572-b724-9de76bf587cf.jpg.512.jpg" alt="Appa, Na I Gyeolhon An Hallaeyo! cover art" loading="lazy" /></div>
+        <div class="t">Appa, Na I Gyeolhon An Hallaeyo!</div>
+      </a><a class="card" href="/catalog/title/gob/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/1a008e7e-0885-4830-92c6-16b3bbe4f5d4/429b17d6-0ea0-4e12-850f-e9f511dac38a.jpg.512.jpg" alt="God of Blackfield cover art" loading="lazy" /></div>
+        <div class="t">God of Blackfield</div>
+      </a><a class="card" href="/catalog/title/midgb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/eb22200f-2167-4dbe-8e4e-3f2966437771/19601584-4c08-4d75-8a36-2a5335e19d69.jpg.512.jpg" alt="My ID is Gangnam Beauty cover art" loading="lazy" /></div>
+        <div class="t">My ID is Gangnam Beauty</div>
+      </a><a class="card" href="/catalog/title/vdscmi/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d80322ff-3923-48ee-b823-0e9dda3aa8c2/31be7e6d-fee4-4e69-bdce-9f744b6c4059.jpg.512.jpg" alt="The Villain Discovered My Identity cover art" loading="lazy" /></div>
+        <div class="t">The Villain Discovered My Identity</div>
+      </a><a class="card" href="/catalog/title/rbaep/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/26bb9795-e583-4424-a128-6d91b59d476f/8250c5dd-5b92-4f6f-a22c-19e5f645c64c.jpg.512.jpg" alt="Reborn as the Enemy Prince cover art" loading="lazy" /></div>
+        <div class="t">Reborn as the Enemy Prince</div>
+      </a><a class="card" href="/catalog/title/rssscr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/10b4c1bb-f6bd-4dd7-a0aa-c895ad8c840d/7886e658-44c2-4ba9-9cde-785824960bed.png.512.jpg" alt="Return of the SSS-Class Ranker cover art" loading="lazy" /></div>
+        <div class="t">Return of the SSS-Class Ranker</div>
+      </a><a class="card" href="/catalog/title/rwthr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/0c3e20da-6f48-468f-bf92-755ee46e05ec/a33c16eb-99bc-467a-8586-3c486283efb2.jpg.512.jpg" alt="The Return of the Disaster-Class Hero cover art" loading="lazy" /></div>
+        <div class="t">The Return of the Disaster-Class Hero</div>
+      </a><a class="card" href="/catalog/title/thrlv/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/0f13d05a-dacf-43ff-93ca-165523e55a46/35700a24-c75d-4a1a-b631-3f617c2f1841.jpg.512.jpg" alt="The Live cover art" loading="lazy" /></div>
+        <div class="t">The Live</div>
+      </a><a class="card" href="/catalog/title/hrret/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/e0966537-58a1-421b-8ea9-3e7f02d703c4/111f931d-d3ff-45f7-95a8-2423edc85883.jpg.512.jpg" alt="The Hero Returns cover art" loading="lazy" /></div>
+        <div class="t">The Hero Returns</div>
+      </a><a class="card" href="/catalog/title/cnstn/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/4d3d5b96-09cb-47ae-90ff-77fbba13ca26/4d2654be-7402-4513-be74-7a0a93e10d0c.jpg.512.jpg" alt="The Constellation That Returned from Hell cover art" loading="lazy" /></div>
+        <div class="t">The Constellation That Returned from Hell</div>
+      </a><a class="card" href="/catalog/title/mgcgrl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/cde5b132-fa09-4306-89e1-12d3662c234e/21dacb08-03aa-4770-aa17-12dfc30d7001.jpg.512.jpg" alt="The Magical Girl and The Evil Lieutenant Used to Be Archenemies cover art" loading="lazy" /></div>
+        <div class="t">The Magical Girl and The Evil Lieutenant Used to Be Archenemies</div>
+      </a><a class="card" href="/catalog/title/reincr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/707bc36a-4547-4c46-890a-aab88f7d4e4b/a6ecc3ae-bdcd-4c4a-9ccf-c779de5cff0c.jpg.512.jpg" alt="Reincarnator cover art" loading="lazy" /></div>
+        <div class="t">Reincarnator</div>
+      </a><a class="card" href="/catalog/title/vlctn/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8f883600-9655-4498-b87c-65328cada285/f20b1590-d178-419f-b67d-65246b68d78c.jpg.512.jpg" alt="Violence Action cover art" loading="lazy" /></div>
+        <div class="t">Violence Action</div>
+      </a><a class="card" href="/catalog/title/ba1/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159439-CgZyaMliKpNe.jpg" alt="Boundless Ascension cover art" loading="lazy" /></div>
+        <div class="t">Boundless Ascension</div>
+      </a><a class="card" href="/catalog/title/aoad/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b126348-bB6q7AflI5Of.jpg" alt="All of Us Are Dead cover art" loading="lazy" /></div>
+        <div class="t">All of Us Are Dead</div>
+      </a><a class="card" href="/catalog/title/sncl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/cdd03460-c926-4aa3-9cea-1494d8c7c808/70c64d24-28d1-47c5-bea0-89c5e1da5e3c.png.512.jpg" alt="Seoul Station&#39;s Necromancer cover art" loading="lazy" /></div>
+        <div class="t">Seoul Station&#39;s Necromancer</div>
+      </a><a class="card" href="/catalog/title/tlsr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/707a112b-55cb-41a5-afe1-601d3e52e9a8/01a1ab5b-985e-402f-9e44-0b5ec9eae1f9.png.512.jpg" alt="The Legendary Spearman Returns cover art" loading="lazy" /></div>
+        <div class="t">The Legendary Spearman Returns</div>
+      </a><a class="card" href="/catalog/title/gam/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/e499ff53-68d3-4c1a-8dbf-3cea42fca501/d7a8856f-7457-4d13-a308-e7250b231b12.jpg.512.jpg" alt="The Gamer cover art" loading="lazy" /></div>
+        <div class="t">The Gamer</div>
+      </a><a class="card" href="/catalog/title/ishr/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c6db0d4c-a0e0-401a-8503-3c84ce30e346/e2955514-a8f7-4afd-8abc-e091fc8b39cb.jpg.512.jpg" alt="Is This Hero for Real? cover art" loading="lazy" /></div>
+        <div class="t">Is This Hero for Real?</div>
+      </a><a class="card" href="/catalog/title/strnfr/">
+        <div class="cover"></div>
+        <div class="t">Stranger Than Friends</div>
+      </a><a class="card" href="/catalog/title/dcrd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/7cc6c48f-ba3a-4b7a-8817-8ae28204e9e8/d8e37130-cc39-4a4c-be90-08872dc1ae90.jpg.512.jpg" alt="DICE cover art" loading="lazy" /></div>
+        <div class="t">DICE</div>
+      </a><a class="card" href="/catalog/title/mxlvl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/781032ee-4bbc-4f08-9464-903821acac7a/b84c79ec-6ba9-4c40-a946-0b0866c939e7.jpg.512.jpg" alt="The Max Level Returner cover art" loading="lazy" /></div>
+        <div class="t">The Max Level Returner</div>
+      </a><a class="card" href="/catalog/title/srndpt/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/c1ce7a55-2f8a-42fd-a9df-35367c884a07/efc8379f-a199-4b5d-b9a0-6ba8fc071e85.jpg.512.jpg" alt="Serendipity cover art" loading="lazy" /></div>
+        <div class="t">Serendipity</div>
+      </a><a class="card" href="/catalog/title/trb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/51a0cd0c-3254-47f0-a7fd-4b9bb178f813/22679123-1072-4cc2-baf0-95603e0e2a1a.jpg.512.jpg" alt="True Beauty cover art" loading="lazy" /></div>
+        <div class="t">True Beauty</div>
+      </a><a class="card" href="/catalog/title/hlbnd/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/bbad34ae-23ff-4879-9209-10133af54666/968a0be9-7d4a-41ef-a74e-d9b9429919cc.jpg.512.jpg" alt="Hellbound cover art" loading="lazy" /></div>
+        <div class="t">Hellbound</div>
+      </a><a class="card" href="/catalog/title/aband/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/0cdd9b97-9010-41b4-a423-ac901aa0c65f/4ca9e26a-a5af-440f-b43c-f5c8603f2a14.jpg.512.jpg" alt="The Abandoned Empress cover art" loading="lazy" /></div>
+        <div class="t">The Abandoned Empress</div>
+      </a><a class="card" href="/catalog/title/lvalm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/47440d76-3dc9-45c3-aef5-1fc8267d04e9/d7cd6099-b4f5-4a12-80cc-651b8f54605d.png.512.jpg" alt="Love Alarm cover art" loading="lazy" /></div>
+        <div class="t">Love Alarm</div>
+      </a><a class="card" href="/catalog/title/whrht/">
+        <div class="cover"></div>
+        <div class="t">Where the Heart Is</div>
+      </a><a class="card" href="/catalog/title/shdwslv/">
+        <div class="cover"></div>
+        <div class="t">Shadow Slave</div>
+      </a>
+  </div>
+  
+</main>
+<footer>
+  <a href="/">Home</a> · <a href="/catalog/">Full Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
+</footer>
+</body>
+</html>

@@ -477,17 +477,22 @@
   }
   /* Real hero cover art — the reader's own actual most-read series cover
      (fetched from AniList, same source used everywhere else on the site),
-     shown behind every slide of the story, not just intro/finale. This is
-     the real cover of a title the reader actually read, the same way any
-     catalog page on this site already displays covers — not a generated
-     or generic character collage. Kept fairly crisp (light blur) so it
-     reads as real art rather than a mushy smear; the scrim is there for
-     text legibility, not to hide the art. */
-  .recap-hero-bg { position: absolute; inset: -2%; z-index: 0; background-size: cover; background-position: center 18%; filter: blur(1px) saturate(1.25) contrast(1.05); }
+     shown full-bleed behind the story. This is the real cover of a title
+     the reader actually read, the same way any catalog page on this site
+     already displays covers — not a generated or generic character collage.
+     Kept crisp (near-zero blur) so it reads as real art, not a mushy smear;
+     the scrim exists purely for text legibility over the bottom third. */
+  .recap-hero-bg {
+    position: absolute; inset: -2%; z-index: 0; background-size: cover; background-position: center 18%;
+    filter: saturate(1.15) contrast(1.04); transition: background-image 0.25s ease;
+  }
   .recap-hero-bg::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(8,6,18,0.4) 0%, rgba(8,6,18,0.2) 40%, rgba(8,6,18,0.5) 70%, rgba(8,6,18,0.88) 100%);
+    background: linear-gradient(180deg, rgba(6,4,14,0.5) 0%, rgba(6,4,14,0.12) 32%, rgba(6,4,14,0.32) 62%, rgba(6,4,14,0.92) 100%);
   }
+  /* With real art behind it, the slide's own flat color wash is only ever a
+     fallback for the (rare) reader with zero resolvable covers — see the
+     `bgUrl ? 'transparent' : s.gradient` branch in fillSlide(). */
   /* Genre-themed ambient particles — the real per-user "this recap looks
      different for you" signal, driven by the reader's actual favorite genre. */
   .recap-particle-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
@@ -497,6 +502,10 @@
      bokeh, rain-streaks, wind rays), never a specific series' artwork.
      Continuously animated so the background is never a frozen gradient. */
   .recap-motif { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+  /* Real cover art is the star of the slide now — when it's present, the
+     ambient line-art motif drops to a faint accent instead of competing
+     with an actual photo. */
+  .recap-hero-bg ~ .recap-motif { opacity: 0.4; }
   .recap-motif-svg { position: absolute; top: 50%; left: 50%; width: 82vh; height: 82vh; max-width: 620px; max-height: 620px; transform: translate(-50%, -50%); opacity: 0.4; }
   .recap-motif-spin-slow { animation: recapMotifSpin 90s linear infinite; }
   .recap-motif-spin-slow-rev { animation: recapMotifSpinRev 70s linear infinite; }
@@ -605,21 +614,9 @@
   .recap-burst-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
   .recap-burst-center .recap-stat-big { font-size: clamp(2.1rem, 7.5vw, 2.9rem); }
 
-  .recap-donut { width: 180px; height: 180px; margin: 10px auto 6px; }
-  .recap-donut svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
-  .recap-donut circle { transition: stroke-dasharray 0.3s ease; }
-  .recap-genre-legend { display: flex; flex-direction: column; gap: 8px; margin: 18px auto 0; max-width: 260px; width: 100%; text-align: left; }
-  .recap-genre-legend-row { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; }
-  .recap-genre-dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
-  .recap-genre-legend-label { flex: 1; font-weight: 700; }
-  .recap-genre-legend-pct { font-weight: 800; color: rgba(255,255,255,0.85); }
-  .recap-bars { display: flex; align-items: flex-end; justify-content: center; gap: 10px; height: 140px; margin: 20px 0 4px; }
-  .recap-bar-col { display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
-  .recap-bar-track { width: 22px; height: 100%; display: flex; align-items: flex-end; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
-  .recap-bar-fill { width: 100%; height: 0; background: rgba(255,255,255,0.55); border-radius: 6px; transition: height 0.7s cubic-bezier(.22,1.3,.36,1); }
-  .recap-bar-fill-best { background: #fff; box-shadow: 0 0 16px var(--rc, rgba(255,255,255,0.6)); }
-  .recap-bar-label { font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.6); }
-  .recap-bar-label-best { color: #fff; font-weight: 900; }
+  .recap-dial { width: 220px; height: 220px; margin: 8px auto 4px; }
+  .recap-dial svg { width: 100%; height: 100%; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
+  .recap-dial line { transition: stroke-width 0.3s ease; }
 
   .recap-flame-visual { width: 130px; height: 170px; margin: 4px auto 6px; position: relative; }
   .recap-flame-visual svg { width: 100%; height: 100%; animation: recapFlicker 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
@@ -645,6 +642,13 @@
   .recap-topseries-title { font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .recap-topseries-chapters { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 3px; }
 
+  /* The "favorite moment" slide's own real cover — bigger than the top-
+     series row thumbnails since this slide spotlights a single title. */
+  .recap-favmoment-cover {
+    width: 132px; height: 184px; margin: 6px auto 4px; border-radius: 10px;
+    background-size: cover; background-position: center; background-color: rgba(255,255,255,0.12);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.14);
+  }
   .recap-stars { display: flex; gap: 8px; justify-content: center; margin: 20px 0 6px; }
   .recap-stars svg { width: 30px; height: 30px; }
   .recap-star-filled svg { fill: #FFD34D; stroke: #FFD34D; filter: drop-shadow(0 0 6px rgba(255,211,77,0.5)); }
@@ -701,8 +705,7 @@
   @media (max-width: 480px) {
     .recap-title { font-size: clamp(1.6rem, 8vw, 2rem); }
     .recap-watermark { width: 80vw; height: 80vw; }
-    .recap-burst { width: 170px; height: 170px; }
-    .recap-bars { height: 110px; gap: 7px; }
+    .recap-burst, .recap-dial { width: 170px; height: 170px; }
     .recap-flame-visual { width: 104px; height: 136px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -784,7 +787,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
-<script src="/assets/anilist.js?v=4" defer></script>
+<script src="/assets/anilist.js?v=3" defer></script>
 <script src="/assets/badges.js?v=2" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
 <script>
@@ -1019,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function () {
         app.innerHTML =
           '<a class="backlink" href="#/" onclick="history.back();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>Back</a>' +
           '<div class="detail-hero">' +
-            '<div class="detail-cover">' + (m.cover_url ? '<img src="' + m.cover_url + '" alt="" />' : '') + '</div>' +
+            '<div class="detail-cover">' + (m.cover_url ? '<img src="' + m.cover_url + '" alt="' + esc(m.title) + ' cover art" />' : '') + '</div>' +
             '<div class="detail-titlewrap">' +
               '<h1 class="detail-title">' + esc(m.title) + '</h1>' +
               '<div class="detail-actions">' +
@@ -1077,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', function () {
       app.innerHTML =
         '<a class="backlink" href="#/" onclick="history.back();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>Back</a>' +
         '<div class="detail-hero">' +
-          '<div class="detail-cover"><img src="' + m.coverImage.extraLarge + '" alt="" /></div>' +
+          '<div class="detail-cover"><img src="' + m.coverImage.extraLarge + '" alt="' + esc(titleOf(m)) + ' cover art" /></div>' +
           '<div class="detail-titlewrap">' +
             '<div class="detail-badge-row"><span class="format-badge">' + formatLabel(m) + '</span><span class="status-badge">' + statusLabel(m.status) + '</span></div>' +
             '<h1 class="detail-title">' + esc(titleOf(m)) + '</h1>' +
@@ -1105,7 +1108,7 @@ document.addEventListener('DOMContentLoaded', function () {
             (m.genres.length ? '<div class="card"><div class="card-title">Genres</div><div class="chiprow">' + genresHtml + '</div></div>' : '') +
             (m.characters.edges.length ? '<div class="card"><div class="card-title">Characters</div><div class="char-grid">' +
               m.characters.edges.map(function (e) {
-                return '<div class="char-card"><div class="char-img"><img src="' + e.node.image.medium + '" alt="" loading="lazy" />' +
+                return '<div class="char-card"><div class="char-img"><img src="' + e.node.image.medium + '" alt="' + esc(e.node.name.full) + '" loading="lazy" />' +
                   (e.role === 'MAIN' ? '<span class="char-role">Main</span>' : '') + '</div>' +
                   '<div class="char-name">' + esc(e.node.name.full) + '</div></div>';
               }).join('') + '</div></div>' : '') +
@@ -1204,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<div class="poster lib-card">' +
       '<div class="poster-img-wrap">' +
         '<div class="skeleton lib-card-ph" style="position:absolute;inset:0;"></div>' +
-        '<img alt="" loading="lazy" style="opacity:0;transition:opacity .3s;" />' +
+        '<img alt="' + esc(r.series_title) + ' cover art" loading="lazy" style="opacity:0;transition:opacity .3s;" />' +
         '<span class="poster-badge lib-pill lib-' + r.status + '">' + libStatusLabel(r.status) + '</span>' +
         '<button class="lib-remove" type="button" aria-label="Remove from library" title="Remove from library">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
@@ -1717,41 +1720,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return '<div class="recap-motif" data-motif="' + family + '">' + inner + '</div>';
   }
-
-  // Colors for the "Genres you explored" donut — keyed to AniList's own
-  // genre vocabulary (the source of the real per-title tags this chart is
-  // built from), which is coarser than and distinct from the app's own
-  // favorite_genre taxonomy used for RECAP_GENRE_THEMES above.
-  var RECAP_ANILIST_GENRE_COLORS = {
-    'Action': '#E8544A', 'Adventure': '#F0BE66', 'Comedy': '#FFD34D', 'Drama': '#7BA6F5',
-    'Fantasy': '#B18CFF', 'Horror': '#8A1414', 'Mystery': '#8F7CE0', 'Romance': '#F17FC0',
-    'Sci-Fi': '#3FC9C0', 'Slice of Life': '#8FCB8F', 'Sports': '#5B8DEF', 'Supernatural': '#7B5CFF',
-    'Thriller': '#C24747', 'Psychological': '#5B5570', 'Ecchi': '#E85FC2', 'Mecha': '#6BDCD4',
-    'Music': '#F0BE66', 'Other': 'rgba(255,255,255,0.35)',
-  };
-  // Real donut chart — stacked stroke-dasharray arcs on concentric circles,
-  // no chart library needed. Rotated -90deg so the first (largest) slice
-  // starts at 12 o'clock and proceeds clockwise.
-  function recapDonutHtml(slices) {
-    var r = 70, cx = 90, cy = 90, circ = 2 * Math.PI * r, offset = 0;
-    var arcs = slices.map(function (s) {
-      var len = (s.pct / 100) * circ;
-      var arc = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="22" ' +
-        'stroke-dasharray="' + len.toFixed(1) + ' ' + (circ - len).toFixed(1) + '" stroke-dashoffset="' + (-offset).toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
-      offset += len;
-      return arc;
-    }).join('');
-    return '<div class="recap-donut"><svg viewBox="0 0 180 180">' + arcs + '</svg></div>';
-  }
-  function recapGenreLegendHtml(slices) {
-    return '<div class="recap-genre-legend">' + slices.map(function (s) {
-      return '<div class="recap-genre-legend-row">' +
-        '<span class="recap-genre-dot" style="background:' + s.color + '"></span>' +
-        '<span class="recap-genre-legend-label">' + esc(s.label) + '</span>' +
-        '<span class="recap-genre-legend-pct">' + s.pct + '%</span>' +
-      '</div>';
-    }).join('') + '</div>';
-  }
   var RECAP_ICONS = {
     clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
     flame: '<path d="M12 2.5c.6 4.2-3.8 5.7-3.8 10a3.8 3.8 0 0 0 7.6 0c0-2.3-1.4-2.9-1.4-5.1 0 1.4-.8 2-1.4 2-1.1 0-1.3-1.7-1-3 .2-1.1.4-2.2 0-3.9z"/>',
@@ -1808,22 +1776,29 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="recap-burst-center">' + innerHtml + '</div>' +
     '</div>';
   }
-  // A real weekday bar chart — one bar per day, height mapped to real hours
-  // that day-of-week, the tallest/brightest bar is the real peak day. Reuses
-  // the existing [data-target-height] growth trigger (recapTriggerGrowth),
-  // the same mechanism the bookshelf spines use, so bars grow in on reveal
-  // for free without any new animation plumbing.
-  function recapBarsHtml(weekday) {
+  // Direct translation of a "peak period" wheel: one spoke per weekday, spoke
+  // length maps to real hours that day-of-week, the longest/brightest spoke
+  // is the real peak day. Day labels ring the rim like clock numerals.
+  function recapDialHtml(weekday) {
+    var n = 7, cx = 100, cy = 100, outerR = 78, innerR = 26, labelR = 94;
     var maxV = Math.max.apply(null, weekday.totals.concat([0.1]));
-    var cols = weekday.totals.map(function (v, i) {
-      var pct = Math.max(6, Math.round((v / maxV) * 100));
+    var spokes = '', labels = '';
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      var v = weekday.totals[i] / maxV;
       var isBest = i === weekday.best;
-      return '<div class="recap-bar-col">' +
-        '<div class="recap-bar-track"><div class="recap-bar-fill' + (isBest ? ' recap-bar-fill-best' : '') + '" data-target-height="' + pct + '%"></div></div>' +
-        '<div class="recap-bar-label' + (isBest ? ' recap-bar-label-best' : '') + '">' + weekday.labels[i] + '</div>' +
-      '</div>';
-    }).join('');
-    return '<div class="recap-bars">' + cols + '</div>';
+      var pointR = innerR + (outerR - innerR) * Math.max(0.14, v);
+      var x2 = (cx + pointR * Math.cos(a)).toFixed(1), y2 = (cy + pointR * Math.sin(a)).toFixed(1);
+      spokes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (isBest ? '#fff' : 'rgba(255,255,255,0.4)') + '" stroke-width="' + (isBest ? 8 : 5) + '" stroke-linecap="round"/>';
+      var lx = (cx + labelR * Math.cos(a)).toFixed(1), ly = (cy + labelR * Math.sin(a)).toFixed(1);
+      labels += '<text x="' + lx + '" y="' + ly + '" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="800" fill="' + (isBest ? '#fff' : 'rgba(255,255,255,0.55)') + '">' + weekday.labels[i] + '</text>';
+    }
+    return '<div class="recap-dial"><svg viewBox="0 0 200 200">' +
+      '<circle cx="100" cy="100" r="' + outerR + '" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="2 6"/>' +
+      spokes +
+      '<circle cx="100" cy="100" r="' + innerR + '" fill="rgba(0,0,0,0.32)" stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>' +
+      labels +
+    '</svg></div>';
   }
 
   // Real star rating (1-10 scale halved to 5 stars, rounded) — no half-star
@@ -2071,24 +2046,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Your rhythm</div>') +
             recapReveal('<h2 class="recap-title" style="font-size:2rem;">' + esc(d.weekday.bestName) + 's</h2>', 0.14) +
-            recapBarsHtml(d.weekday) +
+            recapDialHtml(d.weekday) +
             recapReveal('<p class="recap-sub">were your biggest reading days.</p>', 0.3) +
-          '</div>',
-      });
-    }
-
-    // Gated on 2+ real genre slices — built from a batched AniList lookup
-    // across the reader's own most chapters-invested series this half
-    // (see renderRecap), weighted by chapters read. Never shown as a
-    // single hollow 100% slice.
-    if (d.genreBreakdown && d.genreBreakdown.length >= 2) {
-      slides.push({
-        gradient: RECAP_PALETTE.blue,
-        html:
-          '<div class="recap-slide">' +
-            recapReveal('<div class="recap-eyebrow">Genres you explored</div>') +
-            recapReveal(recapDonutHtml(d.genreBreakdown), 0.16) +
-            recapReveal(recapGenreLegendHtml(d.genreBreakdown), 0.3) +
           '</div>',
       });
     }
@@ -2153,15 +2112,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (d.topRated) {
+      var favCoverStyle = d.topRated.cover ? ' style="background-image:url(' + d.topRated.cover + ')"' : '';
       slides.push({
         gradient: RECAP_PALETTE.gold,
+        // Spotlights this specific title's own real cover as the full-bleed
+        // background instead of the story-wide top-series hero — see the
+        // `s.bg || cardData.heroCover` branch in fillSlide().
+        bg: d.topRated.cover || null,
         html:
           recapWatermark('star') +
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Your favorite moment</div>') +
-            recapReveal('<h2 class="recap-title" style="font-size:1.9rem;">' + esc(d.topRated.title) + '</h2>', 0.16) +
-            recapReveal(recapStarsHtml(d.topRated.stars5), 0.3) +
-            recapReveal('<p class="recap-sub">Your highest-rated read this half.</p>', 0.42) +
+            recapReveal('<div class="recap-favmoment-cover"' + favCoverStyle + '></div>', 0.1) +
+            recapReveal('<h2 class="recap-title" style="font-size:1.9rem;">' + esc(d.topRated.title) + '</h2>', 0.2) +
+            recapReveal(recapStarsHtml(d.topRated.stars5), 0.34) +
+            recapReveal('<p class="recap-sub">Your highest-rated read this half.</p>', 0.46) +
           '</div>',
       });
     }
@@ -2329,6 +2294,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var particleCanvas = document.getElementById('recapParticles');
     var stopParticles = particleCanvas ? initRecapParticles(particleCanvas, cardData.theme || RECAP_DEFAULT_THEME) : function () {};
+    var heroBg = document.getElementById('recapHeroBg');
 
     function renderFinaleCard() {
       var canvas = drawRecapCard(cardData);
@@ -2394,7 +2360,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function fillSlide() {
       var s = slides[idx];
-      stage.style.background = s.gradient;
+      // Real cover art wins whenever it's available — a slide can spotlight
+      // its own title (e.g. the favorite-moment slide) via `s.bg`, otherwise
+      // every slide shares the story-wide hero cover. The flat color wash
+      // only ever shows for the rare reader with zero resolvable covers;
+      // otherwise the stage itself goes transparent so the real photo
+      // sitting behind it (recapHeroBg) is what's actually visible.
+      var bgUrl = s.bg || cardData.heroCover;
+      stage.style.background = bgUrl ? 'transparent' : s.gradient;
+      if (heroBg) {
+        if (bgUrl) { heroBg.style.backgroundImage = 'url(' + bgUrl + ')'; heroBg.style.display = ''; }
+        else { heroBg.style.display = 'none'; }
+      }
       stage.innerHTML = s.html;
       Array.prototype.forEach.call(segs, function (seg, i) {
         var bar = seg.querySelector('i');
@@ -2613,15 +2590,19 @@ document.addEventListener('DOMContentLoaded', function () {
             return {
               title: row.series_title, chapters: row.current_chapter || 0,
               cover: (m && m.coverImage && m.coverImage.large) || null,
+              // Highest-res real art available, for the full-bleed hero
+              // background specifically (the small topseries thumbnail row
+              // uses the lighter `cover` field instead).
+              coverBig: (m && m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || null,
               color: (m && m.coverImage && m.coverImage.color) || null,
             };
           })
-          .catch(function () { return { title: row.series_title, chapters: row.current_chapter || 0, cover: null, color: null }; });
+          .catch(function () { return { title: row.series_title, chapters: row.current_chapter || 0, cover: null, coverBig: null, color: null }; });
       });
       // Hard timeout so a slow/unreachable AniList can never block the whole
       // Recap from rendering — falls back to text-only titles past 2.5s.
       var coverFallback = topSeriesRaw.map(function (row) {
-        return { title: row.series_title, chapters: row.current_chapter || 0, cover: null, color: null };
+        return { title: row.series_title, chapters: row.current_chapter || 0, cover: null, coverBig: null, color: null };
       });
       var coverLookupsWithTimeout = new Promise(function (resolve) {
         var settled = false;
@@ -2631,55 +2612,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
 
-      // Real "Genres you explored" breakdown — a single batched AniList
-      // request (not one call per series) fetches genre tags for the
-      // reader's most chapters-invested series this half, weighted by
-      // chapters read so a 2-chapter dabble doesn't count the same as an
-      // 80-chapter binge. Same hard-timeout-with-fallback shape as the
-      // cover lookups above, so a slow/unreachable AniList never blocks
-      // the Recap from rendering.
-      var genreLookupRows = progressRows.slice()
-        .sort(function (a, b) { return (b.current_chapter || 0) - (a.current_chapter || 0); })
-        .slice(0, 12);
-      var genreLookupWithTimeout = new Promise(function (resolve) {
+      // Same best-effort real-cover lookup for the reader's own "favorite
+      // moment" (their highest-rated series this half) — that slide gets to
+      // spotlight its own real art instead of borrowing the top series' hero.
+      var topRatedCoverWithTimeout = new Promise(function (resolve) {
+        if (!data.topRated) { resolve(null); return; }
         var settled = false;
-        var timer = setTimeout(function () { if (!settled) { settled = true; resolve([]); } }, 2500);
-        genresForTitles(genreLookupRows.map(function (r) { return r.series_title; }))
-          .catch(function () { return []; })
-          .then(function (v) { if (!settled) { settled = true; clearTimeout(timer); resolve(v); } });
+        var timer = setTimeout(function () { if (!settled) { settled = true; resolve(null); } }, 2500);
+        searchMedia(data.topRated.title, null, 1).then(function (res) {
+          var m = (res.Page.media || [])[0];
+          var cover = (m && m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || null;
+          if (!settled) { settled = true; clearTimeout(timer); resolve(cover); }
+        }).catch(function () { if (!settled) { settled = true; clearTimeout(timer); resolve(null); } });
       });
 
-      Promise.all([coverLookupsWithTimeout, genreLookupWithTimeout]).then(function (combined) {
+      Promise.all([coverLookupsWithTimeout, topRatedCoverWithTimeout]).then(function (combined) {
         var topSeries = combined[0];
-        var genreResults = combined[1];
         data.topSeries = topSeries;
+        if (data.topRated) data.topRated.cover = combined[1];
         data.motifFamily = recapMotifFamilyFor(data.favoriteGenre);
-
-        // Weight each title's genre tags by its own chapters read, split
-        // evenly across a title's own multiple genres so one heavily-
-        // tagged series doesn't inflate the total beyond real reading time.
-        var genreWeights = {}, totalWeight = 0;
-        genreResults.forEach(function (gr) {
-          var row = genreLookupRows.filter(function (r) { return r.series_title === gr.title; })[0];
-          var chapters = (row && row.current_chapter) || 1;
-          var genres = (gr.genres && gr.genres.length) ? gr.genres : ['Other'];
-          var share = chapters / genres.length;
-          genres.forEach(function (g) {
-            genreWeights[g] = (genreWeights[g] || 0) + share;
-            totalWeight += share;
-          });
-        });
-        var breakdown = Object.keys(genreWeights)
-          .map(function (g) { return { label: g, weight: genreWeights[g] }; })
-          .sort(function (a, b) { return b.weight - a.weight; });
-        var topGenres = breakdown.slice(0, 6);
-        var restWeight = breakdown.slice(6).reduce(function (s, b) { return s + b.weight; }, 0);
-        if (restWeight > 0) topGenres.push({ label: 'Other', weight: restWeight });
-        data.genreBreakdown = totalWeight > 0
-          ? topGenres.map(function (b) {
-              return { label: b.label, pct: Math.round((b.weight / totalWeight) * 100), color: RECAP_ANILIST_GENRE_COLORS[b.label] || RECAP_ANILIST_GENRE_COLORS.Other };
-            }).filter(function (b) { return b.pct > 0; })
-          : [];
 
         // Personalize the theme/motif color beyond genre alone using
         // AniList's own real precomputed color for the reader's most-read
@@ -2691,10 +2642,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         data.motifColor = topColor || data.theme.colors[0];
         // Real cover art of the reader's own most-read series, shown as a
-        // persistent background behind every slide (not just intro/finale)
-        // — this is the actual cover of a title they actually read, same
-        // source as every other cover on the site.
-        data.heroCover = (topSeries[0] && topSeries[0].cover) || null;
+        // persistent full-bleed background behind the whole story (any
+        // slide can override it with its own `bg` — see the favorite-
+        // moment slide in buildRecapSlides) — the actual cover of a title
+        // they actually read, same source as every other cover on the site.
+        data.heroCover = (topSeries[0] && (topSeries[0].coverBig || topSeries[0].cover)) || null;
 
         app.innerHTML =
           '<div class="recap-overlay" id="recapOverlay">' +
@@ -2705,7 +2657,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
               '<button class="recap-ctrl-btn" id="recapReplayBtn" type="button" aria-label="Replay from start">' + RECAP_CTRL_ICONS.replay + '</button>' +
             '</div>' +
-            (data.heroCover ? '<div class="recap-hero-bg" style="background-image:url(' + data.heroCover + ')"></div>' : '') +
+            (data.heroCover ? '<div class="recap-hero-bg" id="recapHeroBg" style="background-image:url(' + data.heroCover + ')"></div>' : '') +
             recapMotifHtml(data.motifFamily, data.motifColor) +
             '<div class="recap-stage" id="recapStage"></div>' +
             '<canvas class="recap-particle-canvas" id="recapParticles" aria-hidden="true"></canvas>' +
@@ -2823,7 +2775,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="profile-banner" style="' + (profile.banner_url ? 'background-image:url(' + esc(profile.banner_url) + ');' : 'background:linear-gradient(120deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');') + '"></div>' +
           '<div class="profile-hero-body">' +
             '<div class="profile-avatar" title="' + (topGrade ? BADGE_GRADES[topGrade].label + ' tier' : '') + '" style="background:linear-gradient(135deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');border-color:' + theme.ring + ';box-shadow:0 0 0 4px var(--bg-panel), 0 0 0 ' + (4 + ringWidth) + 'px ' + tierColor + ';">' +
-              (profile.avatar_url ? '<img src="' + esc(profile.avatar_url) + '" alt="" />' : '<span>' + esc(initials) + '</span>') +
+              (profile.avatar_url ? '<img src="' + esc(profile.avatar_url) + '" alt="' + esc(username) + '’s avatar" />' : '<span>' + esc(initials) + '</span>') +
             '</div>' +
             '<div class="profile-namewrap">' +
               '<h1 class="profile-username">' + esc(username) + '</h1>' +
@@ -2984,7 +2936,7 @@ document.addEventListener('DOMContentLoaded', function () {
     searchDropdown.className = 'search-dropdown';
     searchDropdown.innerHTML = results.slice(0, 6).map(function (m) {
       return '<a class="search-dd-item" href="#/title/' + m.id + '" data-path="/title/' + m.id + '">' +
-        '<img src="' + m.coverImage.large + '" alt="" loading="lazy" />' +
+        '<img src="' + m.coverImage.large + '" alt="' + esc(titleOf(m)) + ' cover art" loading="lazy" />' +
         '<div><div class="search-dd-title">' + esc(titleOf(m)) + '</div><div class="search-dd-meta">' + formatLabel(m) + (m.startDate.year ? ' · ' + m.startDate.year : '') + '</div></div>' +
       '</a>';
     }).join('') +

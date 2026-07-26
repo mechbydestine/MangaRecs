@@ -60,26 +60,6 @@ function searchMedia(query, category, page) {
   return alFetch(gql, { search: query || undefined, page: page || 1 });
 }
 
-// Batched genre lookup for up to a handful of titles in a single GraphQL
-// round trip (aliased Media fields), instead of one request per title —
-// used by the website's Reading Recap to build a real per-user genre
-// breakdown. Callers are responsible for catching failures.
-function genresForTitles(titles) {
-  if (!titles || !titles.length) return Promise.resolve([]);
-  var capped = titles.slice(0, 12);
-  var params = capped.map(function (_, i) { return '$s' + i + ': String'; }).join(', ');
-  var fields = capped.map(function (_, i) { return 'm' + i + ': Media(search: $s' + i + ', type: MANGA, isAdult: false) { genres }'; }).join(' ');
-  var gql = 'query(' + params + ') { ' + fields + ' }';
-  var vars = {};
-  capped.forEach(function (t, i) { vars['s' + i] = t; });
-  return alFetch(gql, vars).then(function (data) {
-    return capped.map(function (t, i) {
-      var m = data['m' + i];
-      return { title: t, genres: (m && m.genres) || [] };
-    });
-  });
-}
-
 function trendingMedia(category, page, sort, genre) {
   var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA, isAdult: false';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
@@ -119,7 +99,7 @@ function posterCard(m) {
   var saved = isSavedLocally(m.id);
   return '<a class="poster" data-title="' + esc(titleOf(m)) + '" href="#/title/' + m.id + '" onclick="navigate(\'/title/' + m.id + '\');return false;">' +
     '<div class="poster-img-wrap">' +
-      '<img src="' + m.coverImage.large + '" alt="" loading="lazy" />' +
+      '<img src="' + m.coverImage.large + '" alt="' + esc(titleOf(m)) + ' cover art" loading="lazy" />' +
       '<span class="poster-badge">' + formatLabel(m) + '</span>' +
       (score ? '<span class="poster-score"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + score + '</span>' : '') +
       '<button class="poster-save' + (saved ? ' active' : '') + '" type="button" aria-label="' + (saved ? 'Remove from Library' : 'Save to Library') + '" data-id="' + m.id + '">' +
