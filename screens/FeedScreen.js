@@ -12,6 +12,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useTheme } from '../utils/ThemeContext';
+import { useCoachmarkTarget } from '../utils/CoachmarkContext';
 import StarLogo from '../components/StarLogo';
 import ShareCard from '../components/ShareCard';
 import { supabase } from '../supabase';
@@ -862,6 +863,7 @@ export default function FeedScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const route = useRoute();
+  const searchCoachTarget = useCoachmarkTarget('header-search');
 
   const [feed, setFeed]           = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -1601,7 +1603,7 @@ export default function FeedScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <StarLogo ref={logoRef} size={38} />
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => setSearchOpen(true)}>
+          <TouchableOpacity ref={searchCoachTarget} style={styles.headerBtn} onPress={() => setSearchOpen(true)}>
             <Ionicons name="search-outline" size={24} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={openNotif}>

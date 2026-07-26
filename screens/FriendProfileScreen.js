@@ -14,20 +14,12 @@ import BadgeDetail from '../components/BadgeDetail';
 import { useTheme } from '../utils/ThemeContext';
 import { MangaCover, fetchMangaInfo } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
+import StreakCalendar from '../components/StreakCalendar';
 import { PeopleListModal, PeopleRow } from './ProfileScreen';
 import { localDateKey } from '../utils/readerUtils';
 import { Bone, RowSkeleton } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
-
-const PROFILE_THEMES = [
-  { id: 'default', label: 'Default', ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'], banner: ['#7B5CFF', '#0D0D0F'] },
-  { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#0D0D0F'] },
-  { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#0D0D0F'] },
-  { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },
-  { id: 'amber',   label: 'Amber',   ring: '#EF9F27', gradient: ['#EF9F27', '#BA7517'], banner: ['#EF9F27', '#0D0D0F'] },
-  { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'] },
-  { id: 'crimson', label: 'Crimson', ring: '#FF5C7A', gradient: ['#FF5C7A', '#7A0F2E'], banner: ['#FF5C7A', '#0D0D0F'] },
-];
+import { PROFILE_THEMES } from '../utils/profileThemes';
 
 const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
 
@@ -36,98 +28,6 @@ const fmtHrs = (h) => {
   if (h < 1) return `${Math.round(h * 60)}m`;
   return `${Math.round(h)}h`;
 };
-
-const MONTH_ABBRS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAY_LABELS  = ['S','M','T','W','T','F','S'];
-
-function StreakCalendar({ dailyLog }) {
-  const log = dailyLog || {};
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const firstOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const startSunday = new Date(firstOfLastMonth);
-  startSunday.setDate(startSunday.getDate() - startSunday.getDay());
-
-  const allDays = [];
-  const cursor = new Date(startSunday);
-  while (cursor <= today) {
-    allDays.push(new Date(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  while (allDays.length % 7 !== 0) allDays.push(null);
-
-  const weeks = [];
-  for (let i = 0; i < allDays.length; i += 7) weeks.push(allDays.slice(i, i + 7));
-
-  const monthHeaders = weeks.map((week, idx) => {
-    for (const day of week) {
-      if (day && day.getDate() === 1) return MONTH_ABBRS[day.getMonth()];
-    }
-    if (idx === 0) {
-      const first = week.find((d) => d);
-      return first ? MONTH_ABBRS[first.getMonth()] : null;
-    }
-    return null;
-  });
-
-  const currentMonth = today.getMonth();
-  const currentYear  = today.getFullYear();
-
-  function isCurrentMonth(date) {
-    return date && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-  }
-
-  function getColor(hours) {
-    if (!hours || hours <= 0) return '#1C1C1E';
-    if (hours < 0.25) return '#2D2872';
-    if (hours < 0.75) return '#3D3580';
-    if (hours < 1.5)  return '#4A40A0';
-    return '#7B5CFF';
-  }
-
-  return (
-    <View style={styles.streakGrid}>
-      <View style={styles.streakDayLabels}>
-        <View style={styles.streakMonthSpacer} />
-        {DAY_LABELS.map((label, i) => (
-          <View key={i} style={styles.streakDayLabelRow}>
-            <Text style={styles.streakDayLabelText}>{label}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row' }}>
-        {weeks.map((week, weekIdx) => (
-          <View key={weekIdx} style={styles.streakWeekCol}>
-            <View style={styles.streakMonthHeader}>
-              {monthHeaders[weekIdx] ? (
-                <Text style={styles.streakMonthText}>{monthHeaders[weekIdx]}</Text>
-              ) : null}
-            </View>
-            {week.map((day, dayIdx) => {
-              const dateStr = day ? localDateKey(day) : null;
-              const hours   = dateStr ? (log[dateStr] || 0) : 0;
-              const future  = day && day > today;
-              const inMonth = isCurrentMonth(day);
-              return (
-                <View
-                  key={dayIdx}
-                  style={[
-                    styles.streakCell,
-                    {
-                      backgroundColor: getColor(future ? 0 : hours),
-                      opacity: !day || future ? 0.15 : inMonth ? 1 : 0.45,
-                    },
-                  ]}
-                />
-              );
-            })}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
 
 export default function FriendProfileScreen({ route }) {
   const { colors } = useTheme();
@@ -902,15 +802,6 @@ const styles = StyleSheet.create({
   fireBadgeText: { color: '#FF9500', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   streakBody: { flexDirection: 'row', alignItems: 'flex-start' },
   streakLeft: { flex: 1 },
-  streakGrid: { flexDirection: 'row', marginBottom: 10 },
-  streakDayLabels: { marginRight: 5 },
-  streakMonthSpacer: { height: 16 },
-  streakDayLabelRow: { height: 11, marginBottom: 3, justifyContent: 'center' },
-  streakDayLabelText: { fontSize: 8, color: '#888892', width: 8, textAlign: 'center' },
-  streakWeekCol: { marginRight: 3 },
-  streakMonthHeader: { height: 16, justifyContent: 'flex-end', paddingBottom: 2 },
-  streakMonthText: { fontSize: 8, color: '#888892' },
-  streakCell: { width: 11, height: 11, borderRadius: 2, marginBottom: 3 },
   streakLegend: { flexDirection: 'row', alignItems: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
   legendDot: { width: 11, height: 11, borderRadius: 2, marginRight: 5 },

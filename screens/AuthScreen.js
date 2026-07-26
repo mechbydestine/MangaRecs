@@ -8,18 +8,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
 import { useKeyboardPadding } from '../utils/keyboard';
+import { useTheme } from '../utils/ThemeContext';
 import StarLogo from '../components/StarLogo';
 import { GoogleButton, AuthDivider } from '../components/AuthButtons';
 
 function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
   const [hidden, setHidden] = useState(true);
+  const { colors } = useTheme();
   return (
-    <View style={styles.fieldWrap}>
-      <Ionicons name={icon} size={16} color="#9B9AA3" style={styles.fieldIcon} />
+    <View style={[styles.fieldWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+      <Ionicons name={icon} size={16} color={colors.textSecondary} style={styles.fieldIcon} />
       <TextInput
         ref={inputRef}
-        style={styles.input}
-        placeholderTextColor="#9B9AA3"
+        style={[styles.input, { color: colors.text }]}
+        placeholderTextColor={colors.textSecondary}
         autoCapitalize="none"
         secureTextEntry={secure ? hidden : false}
         {...props}
@@ -28,7 +30,7 @@ function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
         <TouchableOpacity
           onPress={() => setHidden((h) => !h)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color="#9B9AA3" />
+          <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={colors.textSecondary} />
         </TouchableOpacity>
       ) : rightSlot}
     </View>
@@ -63,13 +65,15 @@ export function useUsernameAvailability(username) {
 }
 
 export function UsernameStatusIcon({ status }) {
-  if (status === 'checking') return <ActivityIndicator size="small" color="#9B9AA3" />;
-  if (status === 'available') return <Ionicons name="checkmark-circle" size={18} color="#1D9E75" />;
-  if (status === 'taken') return <Ionicons name="close-circle" size={18} color="#FF453A" />;
+  const { colors } = useTheme();
+  if (status === 'checking') return <ActivityIndicator size="small" color={colors.textSecondary} />;
+  if (status === 'available') return <Ionicons name="checkmark-circle" size={18} color={colors.accent} />;
+  if (status === 'taken') return <Ionicons name="close-circle" size={18} color={colors.error} />;
   return null;
 }
 
 export default function AuthScreen() {
+  const { colors } = useTheme();
   const [mode, setMode] = useState('login');
 
   const [email, setEmail] = useState('');
@@ -237,34 +241,34 @@ export default function AuthScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: 24 + keyboardPadding }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
           <LinearGradient
-            colors={['rgba(123,92,255,0.35)', 'rgba(123,92,255,0)']}
+            colors={[colors.primary + '59', colors.primary + '00']}
             style={styles.brandGlow}
             pointerEvents="none"
           />
           <StarLogo size={64} />
         </View>
         <View style={styles.wordmarkRow}>
-          <Text style={styles.wordmarkWhite}>Manga</Text>
-          <Text style={styles.wordmarkPurple}>Recs</Text>
+          <Text style={[styles.wordmarkWhite, { color: colors.text }]}>Manga</Text>
+          <Text style={[styles.wordmarkPurple, { color: colors.primary, textShadowColor: colors.primary }]}>Recs</Text>
         </View>
-        <Text style={styles.tagline}>Your next story, recommended.</Text>
+        <Text style={[styles.tagline, { color: colors.textSecondary }]}>Your next story, recommended.</Text>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.primary + '2E' }]}>
           {mode === 'login' && (
             <>
-              <Text style={styles.cardTitle}>Welcome back</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Welcome back</Text>
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <AuthDivider />
 
-              {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {notice ? <Text style={[styles.notice, { color: colors.accent }]}>{notice}</Text> : null}
+              {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
               <IconField
                 icon="person-outline"
@@ -282,19 +286,19 @@ export default function AuthScreen() {
               />
 
               <TouchableOpacity onPress={() => switchMode('forgot-email')}>
-                <Text style={styles.forgotLink}>Forgot password?</Text>
+                <Text style={[styles.forgotLink, { color: colors.primary }]}>Forgot password?</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.btn, loading && styles.btnDisabled]}
+                style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleLogin}
                 disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Log In</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => switchMode('register')}>
-                <Text style={styles.switchText}>
-                  Don't have an account? <Text style={styles.switchLink}>Create one</Text>
+                <Text style={[styles.switchText, { color: colors.textSecondary }]}>
+                  Don't have an account? <Text style={[styles.switchLink, { color: colors.primary }]}>Create one</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -302,11 +306,11 @@ export default function AuthScreen() {
 
           {mode === 'register' && (
             <>
-              <Text style={styles.cardTitle}>Create your account</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Create your account</Text>
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <AuthDivider />
 
-              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
               <IconField
                 inputRef={usernameInputRef}
@@ -319,10 +323,10 @@ export default function AuthScreen() {
                 rightSlot={<UsernameStatusIcon status={usernameStatus} />}
               />
               {usernameStatus === 'taken' && (
-                <Text style={styles.fieldHint}>@{username} is taken — try another.</Text>
+                <Text style={[styles.fieldHint, { color: colors.error }]}>@{username} is taken — try another.</Text>
               )}
               {usernameStatus === 'available' && (
-                <Text style={[styles.fieldHint, { color: '#1D9E75' }]}>@{username} is available!</Text>
+                <Text style={[styles.fieldHint, { color: colors.accent }]}>@{username} is available!</Text>
               )}
               <IconField
                 icon="mail-outline"
@@ -347,15 +351,15 @@ export default function AuthScreen() {
               />
 
               <TouchableOpacity
-                style={[styles.btn, loading && styles.btnDisabled]}
+                style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleRegister}
                 disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create Account</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => switchMode('login')}>
-                <Text style={styles.switchText}>
-                  Already have an account? <Text style={styles.switchLink}>Log in</Text>
+                <Text style={[styles.switchText, { color: colors.textSecondary }]}>
+                  Already have an account? <Text style={[styles.switchLink, { color: colors.primary }]}>Log in</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -363,10 +367,10 @@ export default function AuthScreen() {
 
           {mode === 'forgot-email' && (
             <>
-              <Text style={styles.cardTitle}>Reset your password</Text>
-              <Text style={styles.cardSub}>We'll send a 6-digit code to your email.</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Reset your password</Text>
+              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>We'll send a 6-digit code to your email.</Text>
 
-              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
               <IconField
                 icon="mail-outline"
@@ -377,15 +381,15 @@ export default function AuthScreen() {
               />
 
               <TouchableOpacity
-                style={[styles.btn, loading && styles.btnDisabled]}
+                style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleSendResetCode}
                 disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send code</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => switchMode('login')}>
-                <Text style={styles.switchText}>
-                  <Text style={styles.switchLink}>Back to log in</Text>
+                <Text style={[styles.switchText, { color: colors.textSecondary }]}>
+                  <Text style={[styles.switchLink, { color: colors.primary }]}>Back to log in</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -393,10 +397,10 @@ export default function AuthScreen() {
 
           {mode === 'forgot-code' && (
             <>
-              <Text style={styles.cardTitle}>Check your email</Text>
-              <Text style={styles.cardSub}>Enter the 6-digit code we sent to {email}, then choose a new password.</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Check your email</Text>
+              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>Enter the 6-digit code we sent to {email}, then choose a new password.</Text>
 
-              {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
               <IconField
                 icon="key-outline"
@@ -415,15 +419,15 @@ export default function AuthScreen() {
               />
 
               <TouchableOpacity
-                style={[styles.btn, loading && styles.btnDisabled]}
+                style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleResetPassword}
                 disabled={loading || resetCode.length < 6 || !newPassword}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Reset password</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleSendResetCode} disabled={loading}>
-                <Text style={styles.switchText}>
-                  Didn't get a code? <Text style={[styles.switchLink, loading && { opacity: 0.4 }]}>Resend</Text>
+                <Text style={[styles.switchText, { color: colors.textSecondary }]}>
+                  Didn't get a code? <Text style={[styles.switchLink, { color: colors.primary }, loading && { opacity: 0.4 }]}>Resend</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -437,7 +441,6 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D0D0F',
   },
   scroll: {
     flexGrow: 1,
@@ -463,45 +466,37 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   wordmarkWhite: {
-    color: '#FFFFFF',
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   wordmarkPurple: {
-    color: '#B18CFF',
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: 0.5,
-    textShadowColor: '#9B6BFF',
     textShadowRadius: 14,
     textShadowOffset: { width: 0, height: 0 },
   },
   tagline: {
-    color: '#9B9AA3',
     fontSize: 14,
     marginBottom: 32,
   },
   card: {
-    backgroundColor: '#16161B',
     borderRadius: 22,
     padding: 24,
     width: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(123,92,255,0.18)',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
       android: { elevation: 8 },
     }),
   },
   cardTitle: {
-    color: '#fff',
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 6,
   },
   cardSub: {
-    color: '#9B9AA3',
     fontSize: 13,
     marginBottom: 20,
     lineHeight: 18,
@@ -510,36 +505,12 @@ const styles = StyleSheet.create({
     height: 46,
     marginTop: 16,
   },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0D0D0F',
-    borderWidth: 1,
-    borderColor: '#2A2A2F',
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  googleBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#2A2A2F',
-  },
   dividerText: {
-    color: '#9B9AA3',
     fontSize: 11,
     textTransform: 'uppercase',
     marginHorizontal: 10,
@@ -547,9 +518,7 @@ const styles = StyleSheet.create({
   fieldWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D0D0F',
     borderWidth: 1,
-    borderColor: '#2A2A2F',
     borderRadius: 12,
     paddingHorizontal: 14,
     marginBottom: 12,
@@ -560,28 +529,23 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 14,
-    color: '#fff',
     fontSize: 15,
   },
   fieldHint: {
-    color: '#FF453A',
     fontSize: 12,
     marginTop: -6,
     marginBottom: 10,
     marginLeft: 4,
   },
   notice: {
-    color: '#1D9E75',
     fontSize: 13,
     marginBottom: 12,
   },
   error: {
-    color: '#FF3B30',
     fontSize: 13,
     marginBottom: 12,
   },
   forgotLink: {
-    color: '#7B5CFF',
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'right',
@@ -589,13 +553,11 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   btn: {
-    backgroundColor: '#7B5CFF',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
     marginTop: 4,
-    shadowColor: '#7B5CFF',
     shadowOpacity: 0.4,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -610,12 +572,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   switchText: {
-    color: '#9B9AA3',
     fontSize: 14,
     textAlign: 'center',
   },
   switchLink: {
-    color: '#7B5CFF',
     fontWeight: '600',
   },
 });

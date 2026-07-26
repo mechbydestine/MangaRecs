@@ -7,43 +7,13 @@ import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
-import { MangaCover } from '../utils/mangaCovers';
 import { GENRES as GENRE_OPTIONS } from '../utils/genres';
 import { useKeyboardPadding } from '../utils/keyboard';
+import { useTheme } from '../utils/ThemeContext';
 import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
 import { GoogleButton, AuthDivider } from '../components/AuthButtons';
 import StarLogo from '../components/StarLogo';
 import { useResponsive } from '../utils/responsive';
-
-const ACCENT = '#1D9E75';
-
-const DISCOVER_CARDS = [
-  { title: 'Solo Leveling', searchKey: 'Solo Leveling', lang: 'ko', genre: 'Action', color: '#0D1B2A', rating: '4.9' },
-  { title: "Frieren: Beyond Journey's End", searchKey: 'Sousou no Frieren', lang: 'ja', genre: 'Fantasy', color: '#0D2230', rating: '4.9' },
-  { title: 'Sakamoto Days', searchKey: 'Sakamoto Days', lang: 'ja', genre: 'Action', color: '#2D1A0A', rating: '4.8' },
-  { title: 'Dungeon Meshi', searchKey: 'Dungeon Meshi', lang: 'ja', genre: 'Fantasy', color: '#0D1A0D', rating: '4.8' },
-  { title: "Omniscient Reader's Viewpoint", lang: 'ko', genre: 'Thriller', color: '#1A0A0A', rating: '4.9' },
-];
-
-const DISCOVER_CHIPS = [
-  { icon: 'sparkles', label: 'AI Picks' },
-  { icon: 'trending-up', label: 'Trending' },
-  { icon: 'star', label: 'By Mood' },
-];
-
-const ACTIVITY = [
-  { user: 'AkiraFan99', avatar: 'A', action: 'started', title: 'Solo Leveling', time: '2m ago' },
-  { user: 'LunaReads', avatar: 'L', action: 'reached Chapter 124 of', title: 'Frieren: Beyond Journey\'s End', time: '5m ago' },
-  { user: 'MangaQueen', avatar: 'M', action: 'recommends', title: 'Jujutsu Kaisen', time: '12m ago' },
-];
-
-const FEATURES = [
-  { icon: 'flame', label: 'Streaks' },
-  { icon: 'download-outline', label: 'Offline reading' },
-  { icon: 'notifications-outline', label: 'New chapter alerts' },
-  { icon: 'desktop-outline', label: 'Synced everywhere' },
-];
-
 
 function generateGuestUsername() {
   // profiles.username is CHECK'd to ^[a-z0-9]{3,24}$ — base36 keeps this
@@ -86,6 +56,7 @@ async function ensureGuestSession() {
 }
 
 function SignUpGate({ onDone }) {
+  const { colors } = useTheme();
   const [mode, setMode] = useState('prompt');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -127,32 +98,32 @@ function SignUpGate({ onDone }) {
   if (mode === 'form') {
     return (
       <View style={styles.screenPad}>
-        <Text style={styles.headline}>Create your account</Text>
-        <Text style={styles.sub}>Save your progress, preferences, and library.</Text>
+        <Text style={[styles.headline, { color: colors.text }]}>Create your account</Text>
+        <Text style={[styles.sub, { color: colors.textSecondary }]}>Save your progress, preferences, and library.</Text>
 
         <GoogleButton onPress={handleGoogle} loading={googleLoading} />
         <AuthDivider />
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text> : null}
 
-        <View style={styles.fieldWrap}>
-          <Ionicons name="mail-outline" size={16} color="#9B9AA3" style={styles.fieldIcon} />
+        <View style={[styles.fieldWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+          <Ionicons name="mail-outline" size={16} color={colors.textSecondary} style={styles.fieldIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder="you@example.com"
-            placeholderTextColor="#9B9AA3"
+            placeholderTextColor={colors.textSecondary}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
           />
         </View>
-        <View style={styles.fieldWrap}>
-          <Ionicons name="lock-closed-outline" size={16} color="#9B9AA3" style={styles.fieldIcon} />
+        <View style={[styles.fieldWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+          <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} style={styles.fieldIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder="Create a password"
-            placeholderTextColor="#9B9AA3"
+            placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={passwordHidden}
@@ -160,19 +131,19 @@ function SignUpGate({ onDone }) {
           <TouchableOpacity
             onPress={() => setPasswordHidden((h) => !h)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name={passwordHidden ? 'eye-outline' : 'eye-off-outline'} size={18} color="#9B9AA3" />
+            <Ionicons name={passwordHidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={[styles.ctaBtn, loading && styles.ctaBtnDisabled]}
+          style={[styles.ctaBtn, { backgroundColor: colors.primary }, loading && styles.ctaBtnDisabled]}
           onPress={handleRegister}
           disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaBtnText}>Create Account</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setMode('prompt')}>
-          <Text style={styles.backLink}>← Back</Text>
+          <Text style={[styles.backLink, { color: colors.textSecondary }]}>← Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -180,12 +151,12 @@ function SignUpGate({ onDone }) {
 
   return (
     <View style={[styles.screenPad, { alignItems: 'center' }]}>
-      <View style={styles.gateOrb}>
+      <View style={[styles.gateOrb, { backgroundColor: colors.primary }]}>
         <Ionicons name="sparkles" size={32} color="#fff" />
       </View>
 
-      <Text style={[styles.headline, { textAlign: 'center' }]}>Save your journey</Text>
-      <Text style={[styles.sub, { textAlign: 'center' }]}>
+      <Text style={[styles.headline, { color: colors.text, textAlign: 'center' }]}>Save your journey</Text>
+      <Text style={[styles.sub, { color: colors.textSecondary, textAlign: 'center' }]}>
         Sign up to save your reading progress, genre preferences, friends, and library — all synced to your account.
       </Text>
 
@@ -197,106 +168,38 @@ function SignUpGate({ onDone }) {
           'Earn badges & build streaks',
         ].map((f) => (
           <View key={f} style={styles.gateFeatureRow}>
-            <View style={styles.gateFeatureCheck}>
-              <Ionicons name="checkmark" size={10} color={ACCENT} />
+            <View style={[styles.gateFeatureCheck, { backgroundColor: colors.accent + '33' }]}>
+              <Ionicons name="checkmark" size={10} color={colors.accent} />
             </View>
-            <Text style={styles.gateFeatureText}>{f}</Text>
+            <Text style={[styles.gateFeatureText, { color: colors.textSecondary }]}>{f}</Text>
           </View>
         ))}
       </View>
 
-      <TouchableOpacity style={styles.ctaBtn} onPress={() => setMode('form')}>
+      <TouchableOpacity style={[styles.ctaBtn, { backgroundColor: colors.primary }]} onPress={() => setMode('form')}>
         <Text style={styles.ctaBtnText}>Sign Up — It's Free</Text>
         <Ionicons name="chevron-forward" size={16} color="#fff" />
       </TouchableOpacity>
       <TouchableOpacity onPress={onDone}>
-        <Text style={styles.skipText}>Skip for now, explore first</Text>
+        <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip for now, explore first</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-function ScreenDiscover() {
-  return (
-    <View style={styles.screenPadBleed}>
-      <View style={styles.screenPad}>
-        <Text style={styles.headline}>Your next{'\n'}obsession is here</Text>
-        <Text style={styles.sub}>AI-tuned picks from manga, manhwa & webcomics — swipe to peek.</Text>
-      </View>
+const VIBES = [
+  { id: 'dark',  label: 'Dark & Intense', emoji: '⚔️', boost: ['Action', 'Horror', 'Thriller'] },
+  { id: 'light', label: 'Light & Fun',    emoji: '🌸', boost: ['Comedy', 'Romance', 'Slice of Life'] },
+  { id: 'mix',   label: 'Mix of Both',    emoji: '✨', boost: [] },
+];
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.discoverScroll}>
-        {DISCOVER_CARDS.map((card) => (
-          <MangaCover key={card.title} title={card.title} searchKey={card.searchKey} lang={card.lang} color={card.color} style={styles.discoverCard}>
-            <View style={styles.discoverCardOverlay}>
-              <Text style={styles.discoverCardGenre}>{card.genre}</Text>
-              <Text style={styles.discoverCardTitle} numberOfLines={2}>{card.title}</Text>
-              <View style={styles.miniCardMeta}>
-                <Ionicons name="star" size={10} color="#FFD700" />
-                <Text style={styles.miniCardRating}>{card.rating}</Text>
-              </View>
-            </View>
-          </MangaCover>
-        ))}
-      </ScrollView>
-
-      <View style={styles.screenPad}>
-        <View style={styles.chipRow}>
-          {DISCOVER_CHIPS.map((c) => (
-            <View key={c.label} style={styles.chip}>
-              <Ionicons name={c.icon} size={13} color="#7B5CFF" />
-              <Text style={styles.chipLabel}>{c.label}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function ScreenConnect() {
+function ScreenGenreVibe({ selected, onToggle, vibe, onVibe }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.screenPad}>
-      <Text style={styles.headline}>Read together,{'\n'}not alone</Text>
-      <Text style={styles.sub}>Follow friends and never lose your place.</Text>
-
-      <View style={{ marginTop: 18 }}>
-        {ACTIVITY.map((item) => (
-          <View key={item.user} style={styles.activityRow}>
-            <View style={styles.activityAvatar}>
-              <Text style={styles.activityAvatarText}>{item.avatar}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.activityText}>
-                <Text style={styles.activityUser}>{item.user}</Text>
-                <Text style={styles.activityAction}> {item.action} </Text>
-                <Text style={styles.activityTitle}>{item.title}</Text>
-              </Text>
-              <Text style={styles.activityTime}>{item.time}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.highlightGrid}>
-        {FEATURES.map((f) => (
-          <View key={f.label} style={styles.highlightCard}>
-            <View style={styles.highlightIconWrap}>
-              <Ionicons name={f.icon} size={14} color="#7B5CFF" />
-            </View>
-            <Text style={styles.highlightLabel}>{f.label}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function Screen5({ selected, onToggle }) {
-  return (
-    <View style={styles.screenPad}>
-      <Text style={styles.headline}>What do you love?</Text>
-      <Text style={styles.highlightText}>Pick your 3 favourite genres.</Text>
-      <Text style={styles.sub}>We'll tailor your entire experience around your taste.</Text>
+      <Text style={[styles.headline, { color: colors.text }]}>What do you love?</Text>
+      <Text style={[styles.highlightText, { color: colors.primary }]}>Pick your 3 favourite genres.</Text>
+      <Text style={[styles.sub, { color: colors.textSecondary }]}>We'll tailor your entire experience around your taste.</Text>
 
       <View style={styles.genreGrid}>
         {GENRE_OPTIONS.map((g) => {
@@ -307,68 +210,38 @@ function Screen5({ selected, onToggle }) {
               key={g.label}
               onPress={() => !maxed && onToggle(g.label)}
               disabled={maxed}
-              style={[styles.genreBtn, active && styles.genreBtnActive, maxed && styles.genreBtnMaxed]}>
-              <Ionicons name={active ? (g.iconActive || g.icon) : g.icon} size={17} color={active ? '#7B5CFF' : '#9B9AA3'} />
-              <Text style={[styles.genreLabel, active && styles.genreLabelActive]}>{g.label}</Text>
-              {active && <Ionicons name="checkmark" size={14} color="#7B5CFF" />}
+              style={[
+                styles.genreBtn,
+                { borderColor: colors.border, backgroundColor: colors.card },
+                active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
+                maxed && styles.genreBtnMaxed,
+              ]}>
+              <Ionicons name={active ? (g.iconActive || g.icon) : g.icon} size={17} color={active ? colors.primary : colors.textSecondary} />
+              <Text style={[styles.genreLabel, { color: active ? colors.text : colors.textSecondary }]}>{g.label}</Text>
+              {active && <Ionicons name="checkmark" size={14} color={colors.primary} />}
             </TouchableOpacity>
           );
         })}
       </View>
-      <Text style={styles.genreCount}>
+      <Text style={[styles.genreCount, { color: colors.textSecondary }]}>
         {selected.length}/3 selected{selected.length === 3 ? '  ✓ Perfect!' : ''}
       </Text>
-    </View>
-  );
-}
 
-const VIBES = [
-  { id: 'dark',  label: 'Dark & Intense', emoji: '⚔️', desc: 'Action, Horror, Thriller',    boost: ['Action', 'Horror', 'Thriller'] },
-  { id: 'light', label: 'Light & Fun',    emoji: '🌸', desc: 'Comedy, Romance, Slice of Life', boost: ['Comedy', 'Romance', 'Slice of Life'] },
-  { id: 'mix',   label: 'Mix of Both',    emoji: '✨', desc: 'A little of everything',       boost: [] },
-];
-const FREQUENCIES = [
-  { id: 'daily',  label: 'Every day',              emoji: '🔥' },
-  { id: 'weekly', label: 'A few times a week',     emoji: '📅' },
-  { id: 'casual', label: 'Whenever I feel like it', emoji: '😊' },
-];
-
-function ScreenTaste({ vibe, onVibe, frequency, onFrequency }) {
-  return (
-    <View style={styles.screenPad}>
-      <Text style={styles.headline}>Tell us your{'\n'}vibe</Text>
-      <Text style={styles.highlightText}>We'll fine-tune your taste profile right away.</Text>
-
-      <View style={{ marginTop: 16, marginBottom: 24 }}>
+      <Text style={[styles.vibeLabel, { color: colors.textSecondary }]}>What's your vibe?</Text>
+      <View style={styles.vibeRow}>
         {VIBES.map((v) => {
           const active = vibe === v.id;
           return (
             <TouchableOpacity
               key={v.id}
               onPress={() => onVibe(v.id)}
-              style={[styles.tasteOption, active && styles.tasteOptionActive]}>
-              <Text style={styles.tasteOptionEmoji}>{v.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.tasteOptionLabel, active && { color: '#fff' }]}>{v.label}</Text>
-                <Text style={styles.tasteOptionDesc}>{v.desc}</Text>
-              </View>
-              {active && <Ionicons name="checkmark-circle" size={20} color="#7B5CFF" />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <Text style={[styles.sub, { marginBottom: 10 }]}>How often do you read?</Text>
-      <View style={styles.freqRow}>
-        {FREQUENCIES.map((f) => {
-          const active = frequency === f.id;
-          return (
-            <TouchableOpacity
-              key={f.id}
-              onPress={() => onFrequency(f.id)}
-              style={[styles.freqBtn, active && styles.freqBtnActive]}>
-              <Text style={styles.freqEmoji}>{f.emoji}</Text>
-              <Text style={[styles.freqLabel, active && { color: '#fff' }]}>{f.label}</Text>
+              style={[
+                styles.vibePill,
+                { borderColor: colors.border, backgroundColor: colors.card },
+                active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
+              ]}>
+              <Text style={styles.vibeEmoji}>{v.emoji}</Text>
+              <Text style={[styles.vibePillLabel, { color: active ? colors.text : colors.textSecondary }]}>{v.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -377,26 +250,28 @@ function ScreenTaste({ vibe, onVibe, frequency, onFrequency }) {
   );
 }
 
-function Screen6({ username, onChange, status }) {
+function ScreenUsername({ username, onChange, status }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.screenPad}>
-      <View style={styles.gateOrb}>
+      <View style={[styles.gateOrb, { backgroundColor: colors.primary }]}>
         <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>@</Text>
       </View>
-      <Text style={styles.headline}>What should we call you?</Text>
-      <Text style={styles.highlightText}>Choose a username for your MangaRecs profile.</Text>
-      <Text style={styles.sub}>This is how friends and the community will find you.</Text>
+      <Text style={[styles.headline, { color: colors.text }]}>What should we call you?</Text>
+      <Text style={[styles.highlightText, { color: colors.primary }]}>Choose a username for your MangaRecs profile.</Text>
+      <Text style={[styles.sub, { color: colors.textSecondary }]}>This is how friends and the community will find you.</Text>
 
       <View style={[
         styles.usernameWrap,
+        { backgroundColor: colors.card, borderColor: colors.border },
         status === 'available' && { borderColor: 'rgba(29,158,117,0.6)' },
         status === 'taken' && { borderColor: 'rgba(255,69,58,0.6)' },
       ]}>
-        <Text style={styles.usernameAt}>@</Text>
+        <Text style={[styles.usernameAt, { color: colors.textSecondary }]}>@</Text>
         <TextInput
-          style={styles.usernameInput}
+          style={[styles.usernameInput, { color: colors.text }]}
           placeholder="yourname"
-          placeholderTextColor="rgba(155,154,163,0.4)"
+          placeholderTextColor={colors.textSecondary}
           value={username}
           onChangeText={(v) => onChange(v.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())}
           maxLength={20}
@@ -405,70 +280,80 @@ function Screen6({ username, onChange, status }) {
         />
         <UsernameStatusIcon status={status} />
       </View>
-      {status === 'available' && <Text style={styles.usernamePreview}>@{username} is available — looks great!</Text>}
-      {status === 'taken' && <Text style={[styles.usernamePreview, { color: '#FF453A' }]}>@{username} is already taken — try another.</Text>}
-      {status === 'invalid' && <Text style={[styles.usernamePreview, { color: '#9B9AA3' }]}>Usernames need at least 3 characters.</Text>}
-      <Text style={styles.sub}>This is permanent and can't be changed later — choose carefully. Already have one? Leave this blank.</Text>
+      {status === 'available' && <Text style={[styles.usernamePreview, { color: colors.accent }]}>@{username} is available — looks great!</Text>}
+      {status === 'taken' && <Text style={[styles.usernamePreview, { color: colors.error }]}>@{username} is already taken — try another.</Text>}
+      {status === 'invalid' && <Text style={[styles.usernamePreview, { color: colors.textSecondary }]}>Usernames need at least 3 characters.</Text>}
+      <Text style={[styles.sub, { color: colors.textSecondary }]}>This is permanent and can't be changed later — choose carefully. Already have one? Leave this blank.</Text>
     </View>
   );
 }
 
 export default function OnboardingScreen({ onComplete }) {
+  const { colors } = useTheme();
   const [step, setStep] = useState(-1);
   const [genres, setGenres] = useState([]);
   const [vibe, setVibe] = useState('mix');
-  const [frequency, setFrequency] = useState('weekly');
   const [username, setUsername] = useState('');
   const [finishing, setFinishing] = useState(false);
 
   const keyboardPadding = useKeyboardPadding();
-  const usernameStatus = useUsernameAvailability(step === 4 ? username : '');
+  const usernameStatus = useUsernameAvailability(step === 1 ? username : '');
   const { isTablet } = useResponsive();
 
-  const totalSteps = 5;
+  const totalSteps = 2; // 0: genres + vibe, 1: username — the sign-up gate (-1) has no dots
 
   function toggleGenre(g) {
     setGenres((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : prev.length < 3 ? [...prev, g] : prev));
   }
 
   function canProceed() {
-    if (step === 2) return genres.length === 3;
-    if (step === 4) {
+    if (step === 0) return genres.length === 3;
+    if (step === 1) {
       if (username.trim().length === 0) return true; // empty = skip (already has a handle)
       return username.trim().length >= 2 && usernameStatus !== 'taken' && usernameStatus !== 'checking';
     }
     return true;
   }
 
+  // Used by both the "Continue"/"Start Reading" CTA and the top-bar Skip —
+  // skipping now finishes with whatever's already been picked instead of
+  // discarding it, so a genre pick made just before tapping Skip still saves.
   async function finishOnboarding() {
     setFinishing(true);
     try {
       await AsyncStorage.setItem('onboarding_complete', 'true');
-      await AsyncStorage.setItem('preferred_genres', JSON.stringify(genres));
+
       const initialWeights = {};
       genres.forEach((g) => { initialWeights[g] = 10; });
-      // Apply vibe bonus to fine-tune initial weights
       const selectedVibe = VIBES.find((v) => v.id === vibe);
       if (selectedVibe?.boost?.length) {
         selectedVibe.boost.forEach((g) => { initialWeights[g] = (initialWeights[g] || 0) + 5; });
-      } else if (vibe === 'mix') {
-        GENRE_OPTIONS.forEach((g) => { initialWeights[g.label] = (initialWeights[g.label] || 0) + 2; });
       }
-      await AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(initialWeights));
+      if (Object.keys(initialWeights).length > 0) {
+        await AsyncStorage.setItem('@mangarecs_genre_prefs', JSON.stringify(initialWeights));
+      }
+
       await ensureGuestSession();
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         if (username.trim()) {
           await supabase.rpc('claim_username', { new_username: username.trim() });
         }
-        const updates = {};
-        if (genres.length > 0) updates.favorite_genre = genres[0];
-        if (Object.keys(initialWeights).length > 0) updates.genre_weights = initialWeights;
-        if (vibe) updates.reading_vibe = vibe;
-        if (frequency) updates.reading_frequency = frequency;
-        if (Object.keys(updates).length > 0) {
-          await supabase.from('profiles').update(updates).eq('id', data.user.id);
+        const profileUpdates = {};
+        if (genres.length > 0) profileUpdates.favorite_genre = genres[0];
+        if (vibe) profileUpdates.reading_vibe = vibe;
+        if (Object.keys(profileUpdates).length > 0) {
+          await supabase.from('profiles').update(profileUpdates).eq('id', data.user.id);
         }
+        // Seed the table the real recommendation engine reads
+        // (get_personalized_feed → user_genre_preferences) directly, instead
+        // of only profiles.genre_weights — that field is a legacy fallback
+        // that stops being consulted the moment any row exists here, which
+        // silently discarded onboarding's weighting the instant a user liked
+        // or disliked anything anywhere else in the app.
+        await Promise.all(Object.entries(initialWeights).map(([genre, delta]) =>
+          supabase.rpc('upsert_genre_weight', { p_user_id: data.user.id, p_genre: genre, p_delta: delta }).catch(() => {})
+        ));
       }
     } catch (e) {
       // best-effort sync; never block the user from entering the app
@@ -477,31 +362,24 @@ export default function OnboardingScreen({ onComplete }) {
     onComplete();
   }
 
-  function handleSkipAll() {
-    AsyncStorage.setItem('onboarding_complete', 'true').finally(async () => {
-      try { await ensureGuestSession(); } catch (_) {}
-      onComplete();
-    });
-  }
-
   function handleNext() {
-    if (step < 4) setStep((s) => s + 1);
+    if (step < 1) setStep((s) => s + 1);
     else finishOnboarding();
   }
 
   function ctaLabel() {
     if (finishing) return null;
-    if (step === 4) return 'Start Reading';
+    if (step === 1) return 'Start Reading';
     return 'Continue';
   }
 
   if (step === -1) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.topBar}>
           <View style={styles.logoRow}>
             <StarLogo size={22} />
-            <Text style={styles.logo}>MangaRecs</Text>
+            <Text style={[styles.logo, { color: colors.primary }]}>MangaRecs</Text>
           </View>
         </View>
         <ScrollView
@@ -516,31 +394,31 @@ export default function OnboardingScreen({ onComplete }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.topBar}>
         <View style={styles.logoRow}>
           <StarLogo size={22} />
-          <Text style={styles.logo}>MangaRecs</Text>
+          <Text style={[styles.logo, { color: colors.primary }]}>MangaRecs</Text>
         </View>
-        {step < 3 && (
-          <TouchableOpacity onPress={handleSkipAll}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={finishOnboarding} disabled={finishing}>
+          <Text style={[styles.skipText, { color: colors.textSecondary, marginTop: 0 }]}>Skip</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.dotsRow}>
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              i === step && styles.dotActive,
-              i <= step && { opacity: 1 },
-              i > step && { opacity: 0.3 },
-            ]}
-          />
-        ))}
+        {Array.from({ length: totalSteps }).map((_, i) => {
+          const active = i === step;
+          return (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                { backgroundColor: active ? colors.primary : colors.textSecondary, opacity: i <= step ? 1 : 0.3 },
+                active && styles.dotActive,
+              ]}
+            />
+          );
+        })}
       </View>
 
       <ScrollView
@@ -548,17 +426,14 @@ export default function OnboardingScreen({ onComplete }) {
         contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
         keyboardShouldPersistTaps="handled">
         <View style={isTablet ? styles.tabletWrap : null}>
-          {step === 0 && <ScreenDiscover />}
-          {step === 1 && <ScreenConnect />}
-          {step === 2 && <Screen5 selected={genres} onToggle={toggleGenre} />}
-          {step === 3 && <ScreenTaste vibe={vibe} onVibe={setVibe} frequency={frequency} onFrequency={setFrequency} />}
-          {step === 4 && <Screen6 username={username} onChange={setUsername} status={usernameStatus} />}
+          {step === 0 && <ScreenGenreVibe selected={genres} onToggle={toggleGenre} vibe={vibe} onVibe={setVibe} />}
+          {step === 1 && <ScreenUsername username={username} onChange={setUsername} status={usernameStatus} />}
         </View>
       </ScrollView>
 
       <View style={[styles.bottomBar, isTablet && styles.tabletWrap]}>
         <TouchableOpacity
-          style={[styles.ctaBtn, (!canProceed() || finishing) && styles.ctaBtnDisabled]}
+          style={[styles.ctaBtn, { backgroundColor: colors.primary }, (!canProceed() || finishing) && styles.ctaBtnDisabled]}
           onPress={handleNext}
           disabled={!canProceed() || finishing}>
           {finishing ? (
@@ -572,7 +447,7 @@ export default function OnboardingScreen({ onComplete }) {
         </TouchableOpacity>
         {step > 0 && (
           <TouchableOpacity onPress={() => setStep((s) => s - 1)}>
-            <Text style={styles.backLink}>← Back</Text>
+            <Text style={[styles.backLink, { color: colors.textSecondary }]}>← Back</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -581,7 +456,7 @@ export default function OnboardingScreen({ onComplete }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0F' },
+  container: { flex: 1 },
   tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   topBar: {
     flexDirection: 'row',
@@ -592,34 +467,32 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logo: { color: '#7B5CFF', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
-  skipText: { color: '#9B9AA3', fontSize: 12, textAlign: 'center', marginTop: 12 },
+  logo: { fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
+  skipText: { fontSize: 12, textAlign: 'center', marginTop: 12 },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 12 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#9B9AA3' },
-  dotActive: { width: 24, backgroundColor: '#7B5CFF' },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  dotActive: { width: 24 },
   screenPad: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 },
-  headline: { color: '#fff', fontSize: 32, fontWeight: '800', marginBottom: 8, lineHeight: 37, letterSpacing: -0.3 },
-  highlightText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
-  sub: { color: '#9B9AA3', fontSize: 12, lineHeight: 18, marginBottom: 4 },
+  headline: { fontSize: 32, fontWeight: '800', marginBottom: 8, lineHeight: 37, letterSpacing: -0.3 },
+  highlightText: { fontSize: 13, fontWeight: '600', marginBottom: 6, lineHeight: 18 },
+  sub: { fontSize: 12, lineHeight: 18, marginBottom: 4 },
   bottomBar: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   ctaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7B5CFF',
     borderRadius: 16,
     paddingVertical: 16,
     gap: 8,
   },
   ctaBtnDisabled: { opacity: 0.4 },
   ctaBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  backLink: { color: '#9B9AA3', fontSize: 12, textAlign: 'center', marginTop: 12 },
+  backLink: { fontSize: 12, textAlign: 'center', marginTop: 12 },
 
   gateOrb: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#7B5CFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -628,100 +501,43 @@ const styles = StyleSheet.create({
   gateFeatureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   gateFeatureCheck: {
     width: 16, height: 16, borderRadius: 8,
-    backgroundColor: 'rgba(29,158,117,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  gateFeatureText: { color: '#9B9AA3', fontSize: 12 },
+  gateFeatureText: { fontSize: 12 },
 
   fieldWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F',
-    borderWidth: 1, borderColor: '#2A2A2F', borderRadius: 12, paddingHorizontal: 14, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, marginBottom: 12,
   },
   fieldIcon: { marginRight: 8 },
-  input: { flex: 1, paddingVertical: 14, color: '#fff', fontSize: 14 },
-  errorText: { color: '#FF3B30', fontSize: 12, marginBottom: 12 },
-
-  screenPadBleed: { paddingTop: 16, paddingBottom: 24 },
-  discoverScroll: { paddingLeft: 24, paddingRight: 14, paddingVertical: 16, gap: 12 },
-  discoverCard: {
-    width: 152, height: 214, borderRadius: 20, marginRight: 12,
-    borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)',
-  },
-  discoverCardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, paddingTop: 24, backgroundColor: 'rgba(0,0,0,0.68)', borderBottomLeftRadius: 19, borderBottomRightRadius: 19 },
-  discoverCardGenre: { color: 'rgba(255,255,255,0.6)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  discoverCardTitle: { color: '#fff', fontSize: 14, fontWeight: 'bold', marginTop: 3, lineHeight: 17 },
-  miniCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 3 },
-  miniCardRating: { color: 'rgba(255,255,255,0.7)', fontSize: 10 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20,
-    backgroundColor: 'rgba(123,92,255,0.12)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)',
-  },
-  chipLabel: { color: '#fff', fontSize: 11, fontWeight: '600' },
-
-  activityRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 12, backgroundColor: '#1A1A1F', borderRadius: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: '#2A2A2F',
-  },
-  activityAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#7B5CFF',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  activityAvatarText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  activityText: { fontSize: 12, lineHeight: 17 },
-  activityUser: { color: '#fff', fontWeight: '600' },
-  activityAction: { color: '#9B9AA3' },
-  activityTitle: { color: '#7B5CFF', fontWeight: '600' },
-  activityTime: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
-
-  highlightGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
-  highlightCard: {
-    width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, backgroundColor: '#1A1A1F', borderWidth: 1, borderColor: '#2A2A2F',
-    borderRadius: 12, marginBottom: 8,
-  },
-  highlightIconWrap: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.15)' },
-  highlightLabel: { color: '#fff', fontSize: 11, fontWeight: '500', flex: 1 },
+  input: { flex: 1, paddingVertical: 14, fontSize: 14 },
+  errorText: { fontSize: 12, marginBottom: 12 },
 
   genreGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 16, gap: 10 },
   genreBtn: {
     width: '47%', flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#1A1A1F', marginBottom: 4,
+    borderWidth: 1, marginBottom: 4,
   },
-  genreBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
   genreBtnMaxed: { opacity: 0.4 },
-  genreLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
-  genreLabelActive: { color: '#fff' },
-  genreCount: { color: '#9B9AA3', fontSize: 12, textAlign: 'center', marginTop: 16 },
+  genreLabel: { fontSize: 13, fontWeight: '500', flex: 1 },
+  genreCount: { fontSize: 12, textAlign: 'center', marginTop: 16 },
 
-  tasteOption: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#2A2A2F',
-    backgroundColor: '#1A1A1F', marginBottom: 10,
+  vibeLabel: { fontSize: 12, fontWeight: '600', marginTop: 22, marginBottom: 10 },
+  vibeRow: { flexDirection: 'row', gap: 8 },
+  vibePill: {
+    flex: 1, alignItems: 'center', gap: 4,
+    paddingVertical: 12, paddingHorizontal: 8, borderRadius: 14, borderWidth: 1,
   },
-  tasteOptionActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.12)' },
-  tasteOptionEmoji: { fontSize: 22, width: 30, textAlign: 'center' },
-  tasteOptionLabel: { color: '#9B9AA3', fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  tasteOptionDesc: { color: 'rgba(155,154,163,0.55)', fontSize: 11 },
-  freqRow: { flexDirection: 'column', gap: 8 },
-  freqBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
-    borderWidth: 1, borderColor: '#2A2A2F', backgroundColor: '#1A1A1F',
-  },
-  freqBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.12)' },
-  freqEmoji: { fontSize: 16 },
-  freqLabel: { color: '#9B9AA3', fontSize: 13, fontWeight: '500', flex: 1 },
+  vibeEmoji: { fontSize: 20 },
+  vibePillLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
 
   usernameWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F',
-    borderWidth: 1, borderColor: '#2A2A2F', borderRadius: 16, paddingHorizontal: 16,
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderRadius: 16, paddingHorizontal: 16,
     marginTop: 20, marginBottom: 12,
   },
-  usernameAt: { color: '#9B9AA3', fontSize: 16, fontWeight: '600', marginRight: 6 },
-  usernameInput: { flex: 1, paddingVertical: 16, color: '#fff', fontSize: 16 },
-  usernamePreview: { color: ACCENT, fontSize: 12, marginBottom: 12 },
+  usernameAt: { fontSize: 16, fontWeight: '600', marginRight: 6 },
+  usernameInput: { flex: 1, paddingVertical: 16, fontSize: 16 },
+  usernamePreview: { fontSize: 12, marginBottom: 12 },
 });
