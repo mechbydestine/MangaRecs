@@ -503,7 +503,7 @@
   }
   /* With real art behind it, the slide's own flat color wash is only ever a
      fallback for the (rare) reader with zero resolvable covers — see the
-     `bgUrl ? 'transparent' : s.gradient` branch in fillSlide(). */
+     per-slide theme composition in fillSlide(). */
   /* Genre-themed ambient particles — the real per-user "this recap looks
      different for you" signal, driven by the reader's actual favorite genre. */
   .recap-particle-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
@@ -632,6 +632,46 @@
     25% { transform: scale(0.97, 1.03) rotate(-1deg); }
     50% { transform: scale(1.03, 0.98) rotate(1deg); }
     75% { transform: scale(0.99, 1.02) rotate(-0.5deg); }
+  }
+
+  /* ── Per-slide theming (mirrors the app's THEMES) ───────────────────── */
+  /* Text colours come from the active slide's theme via CSS vars set on the
+     stage in fillSlide(), so a cream "paper" slide flips to dark ink without
+     needing a second copy of every rule. */
+  .recap-stage .recap-title,
+  .recap-stage .recap-stat-big,
+  .recap-stage .recap-stat-mid,
+  .recap-stage .recap-kword { color: var(--ink, #fff); }
+  .recap-stage .recap-eyebrow,
+  .recap-stage .recap-sub,
+  .recap-stage .recap-stat-label,
+  .recap-stage .recap-tap-hint { color: var(--dim, rgba(255,255,255,0.75)); }
+  .recap-stage .recap-genre-label,
+  .recap-stage .recap-topseries-title,
+  .recap-stage .recap-peak-value { color: var(--ink, #fff); }
+  .recap-stage .recap-genre-pct,
+  .recap-stage .recap-topseries-chapters,
+  .recap-stage .recap-peak-label,
+  .recap-stage .recap-peak-pct { color: var(--dim, rgba(255,255,255,0.7)); }
+  .recap-stage .recap-topseries-rank { color: var(--accent, #fff); opacity: 1; }
+  /* Paper slides: light stock, dark ink — surfaces and tracks invert too. */
+  .recap-paper .recap-topseries-row { background: rgba(26,18,8,0.06); border-color: rgba(26,18,8,0.14); }
+  .recap-paper .recap-genre-track,
+  .recap-paper .recap-bar-track { background: rgba(26,18,8,0.12); }
+  .recap-paper .recap-genre-icon,
+  .recap-paper .recap-peak-pill { background: rgba(255,255,255,0.5); }
+  .recap-paper .recap-bar-fill { background: rgba(26,18,8,0.4); }
+  .recap-paper .recap-bar-fill-best { background: var(--accent, #C4452D); box-shadow: none; }
+  .recap-paper .recap-bar-label { color: rgba(26,18,8,0.6); }
+  .recap-paper .recap-bar-label-best { color: #1A1208; }
+  .recap-paper .recap-halftone { background-image: radial-gradient(#1A1208 1.5px, transparent 1.5px); opacity: 0.1; }
+  .recap-paper .recap-stat-big { text-shadow: none; }
+  /* Footer caption — every slide in the reference closes on one, and it's a
+     surprising amount of what makes the story feel authored. */
+  .recap-foot {
+    position: absolute; left: 0; right: 0; bottom: 26px; text-align: center;
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; color: var(--dim, rgba(255,255,255,0.7));
+    z-index: 12; pointer-events: none;
   }
 
   /* ── Manga texture + art composition (mirrors the app) ──────────────── */
@@ -857,7 +897,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
-<script src="/assets/anilist.js?v=5" defer></script>
+<script src="/assets/anilist.js?v=6" defer></script>
 <script src="/assets/badges.js?v=2" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
 <script>
@@ -1523,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // comments, series_ratings) filtered to this exact window — nothing here
   // is a lifetime total mislabeled as a period stat.
   // Converts a hex color (AniList's own precomputed cover color, or a
-  // RECAP_PALETTE/genre-theme hex) into an rgba() string at the given
+  // RECAP_THEMES/genre-theme hex) into an rgba() string at the given
   // alpha — used to color-grade the hero scrim with the reader's own real
   // per-title accent instead of a flat neutral black wash.
   function recapHexToRgba(hex, alpha) {
@@ -1655,14 +1695,23 @@ document.addEventListener('DOMContentLoaded', function () {
   // days active, movie-equivalence, membership length, reading personality,
   // lifetime chapters, finale) is guaranteed so the story is never thin,
   // even for a brand-new or low-activity account — always 7+ slides.
-  var RECAP_PALETTE = {
-    purple: 'linear-gradient(160deg,#6B2FD9,#20123f)',
-    pink:   'linear-gradient(160deg,#E85FA8,#4a1730)',
-    teal:   'linear-gradient(160deg,#3FC9C0,#0c332f)',
-    gold:   'linear-gradient(160deg,#E8A83C,#3a2a0c)',
-    blue:   'linear-gradient(160deg,#5B8DEF,#101b3d)',
-    fire:   'linear-gradient(160deg,#E8544A,#3a0f0c)',
+  // Each slide is its own colour composition rather than text floating over
+  // one shared photo — that alternation (deep colour → cream paper → deep
+  // colour) is what gives a Wrapped-style story its rhythm. `paper` slides
+  // deliberately invert to dark ink on light stock, like a print volume.
+  // Kept identical to THEMES in screens/RecapScreen.js so both platforms
+  // render the same story.
+  var RECAP_THEMES = {
+    crimson: { bg: ['#4A1018', '#1C0509'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#FF5A5A', art: 0.5 },
+    navy:    { bg: ['#101F47', '#05091C'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#7FB4FF', art: 0.42 },
+    paper:   { bg: ['#F4EADA', '#DFCFB4'], ink: '#1A1208', dim: 'rgba(26,18,8,0.66)', accent: '#C4452D', art: 0.16 },
+    ember:   { bg: ['#54120B', '#1B0604'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#FF7A4A', art: 0.46 },
+    violet:  { bg: ['#2E1257', '#0E0622'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#C0A0FF', art: 0.46 },
+    teal:    { bg: ['#0A3A38', '#031412'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#5FE3D6', art: 0.42 },
   };
+  function recapThemeCss(t) {
+    return 'linear-gradient(165deg,' + t.bg[0] + ',' + t.bg[1] + ')';
+  }
   // Real per-user visual identity: driven by the reader's actual favorite
   // genre (already fetched, real data), not a per-title AI-generated theme
   // (which would need art/generation infra this static site doesn't have).
@@ -2019,7 +2068,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var slides = [];
 
     slides.push({
-      gradient: RECAP_PALETTE.purple,
+      theme: RECAP_THEMES.crimson,
+      foot: "Every chapter is a new adventure",
       html:
         '<div class="recap-slide recap-intro">' +
           recapReveal(recapCoverFanHtml(d.topSeries, d.motifColor), 0) +
@@ -2031,7 +2081,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     slides.push({
-      gradient: RECAP_PALETTE.pink,
+      theme: RECAP_THEMES.navy,
+      foot: "Six months, one story at a time",
       html:
         '<div class="recap-speedlines-spin"></div>' +
         '<div class="recap-slide">' +
@@ -2060,7 +2111,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>';
       }).join('');
       slides.push({
-        gradient: RECAP_PALETTE.teal,
+        theme: RECAP_THEMES.paper,
+        foot: "These stories made the biggest impact",
         html:
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Your top series</div>') +
@@ -2083,7 +2135,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>', 0.1 + i * 0.07);
       }).join('');
       slides.push({
-        gradient: RECAP_PALETTE.blue,
+        theme: RECAP_THEMES.paper,
+        foot: "Every genre took you somewhere new",
         html:
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Genres you explored</div>') +
@@ -2094,7 +2147,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (d.weekday.best >= 0) {
       slides.push({
-        gradient: RECAP_PALETTE.blue,
+        theme: RECAP_THEMES.navy,
+        foot: "Those late nights hit different",
         html:
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Your rhythm</div>') +
@@ -2115,7 +2169,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (d.longestStreak >= 2) {
       slides.push({
-        gradient: RECAP_PALETTE.fire,
+        theme: RECAP_THEMES.ember,
+        foot: "Consistency is power",
         confetti: true,
         html:
           '<div class="recap-speedlines-spin recap-speedlines-fire"></div>' +
@@ -2136,7 +2191,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (d.topRated && !showFaces) {
       var favCoverStyle = d.topRated.cover ? ' style="background-image:url(' + d.topRated.cover + ')"' : '';
       slides.push({
-        gradient: RECAP_PALETTE.gold,
+        theme: RECAP_THEMES.crimson,
+        foot: "Those moments will stay with you",
         // Spotlights this specific title's own real art as the full-bleed
         // background instead of the story-wide top-series hero — see the
         // `s.bg || cardData.heroCover` branch in fillSlide().
@@ -2164,7 +2220,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>', 0.11 + i * 0.085);
       }).join('');
       slides.push({
-        gradient: RECAP_PALETTE.purple,
+        theme: RECAP_THEMES.crimson,
+        foot: "Those moments will stay with you",
         html:
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Faces of your half</div>') +
@@ -2176,7 +2233,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (d.earnedBadgeCount > 0) {
       slides.push({
-        gradient: RECAP_PALETTE.teal,
+        theme: RECAP_THEMES.teal,
+        foot: "Earned, not given",
         html:
           '<div class="recap-slide">' +
             recapReveal('<div class="recap-eyebrow">Real badges, really earned</div>') +
@@ -2189,7 +2247,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var archetype = recapArchetype(d);
     slides.push({
-      gradient: RECAP_PALETTE.gold,
+      theme: RECAP_THEMES.violet,
+      foot: "This half was uniquely yours",
       html:
         recapWatermark(archetype.icon) +
         '<div class="recap-slide">' +
@@ -2201,7 +2260,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     slides.push({
-      gradient: RECAP_PALETTE.gold,
+      theme: RECAP_THEMES.violet,
+      foot: "Never stop turning pages",
       isFinale: true,
       html:
         '<div class="recap-slide recap-finale">' +
@@ -2394,14 +2454,28 @@ document.addEventListener('DOMContentLoaded', function () {
       // only ever shows for the rare reader with zero resolvable covers;
       // otherwise the stage itself goes transparent so the real photo
       // sitting behind it (recapHeroBg) is what's actually visible.
+      // The slide's own colour field is the base; the reader's real art sits
+      // INSIDE it at the theme's opacity rather than replacing it, so a cream
+      // "paper" slide stays paper instead of becoming another photo.
+      var t = s.theme || RECAP_THEMES.violet;
+      var isPaper = t.ink !== '#FFFFFF';
       heroPinned = s.bg || null;
       var bgUrl = s.bg || heroPool[heroIdx] || cardData.heroCover;
-      stage.style.background = bgUrl ? 'transparent' : s.gradient;
+      stage.style.background = recapThemeCss(t);
+      stage.style.color = t.ink;
+      stage.style.setProperty('--ink', t.ink);
+      stage.style.setProperty('--dim', t.dim);
+      stage.style.setProperty('--accent', t.accent);
+      stage.classList.toggle('recap-paper', isPaper);
       if (heroBg) {
-        if (bgUrl) { heroBg.style.backgroundImage = 'url(' + bgUrl + ')'; heroBg.style.display = ''; }
-        else { heroBg.style.display = 'none'; }
+        if (bgUrl) {
+          heroBg.style.backgroundImage = 'url(' + bgUrl + ')';
+          heroBg.style.opacity = t.art;
+          heroBg.style.display = '';
+        } else { heroBg.style.display = 'none'; }
       }
-      stage.innerHTML = s.html;
+      stage.innerHTML = s.html +
+        (s.foot ? '<div class="recap-foot recap-reveal" style="animation-delay:0.76s">' + esc(s.foot) + '</div>' : '');
       Array.prototype.forEach.call(segs, function (seg, i) {
         var bar = seg.querySelector('i');
         bar.style.transition = 'none';
