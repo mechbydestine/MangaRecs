@@ -4,6 +4,7 @@ import {
   Share, Dimensions, Easing, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import Svg, { Defs, Pattern, Circle, Rect, Line, G } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../supabase';
 import { useProfile } from '../utils/ProfileContext';
 import { fetchMangaInfo } from '../utils/mangaCovers';
-import { getMergedDailyLog, localDateKey } from '../utils/readerUtils';
+import { getMergedDailyLog, getMergedHourLog, peakReadingWindow, localDateKey } from '../utils/readerUtils';
 import { BADGE_GRADES, ALL_BADGES, profileToBadgeStats, computeEarnedBadgeIds, highestGradeEarned } from '../utils/badges';
 import { StarRatingDisplay } from '../components/StarRating';
 import { selection } from '../utils/haptics';
@@ -26,7 +27,13 @@ const FALLBACK_BG = '#15101B';
 // (a wide promo/key-art crop with no logo baked in, unlike a portrait cover)
 // and a precomputed dominant color, and a recap needs those specifically for
 // a real color-graded hero rather than a plain portrait cover thumbnail.
-const ANILIST_ART_QUERY = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage genres } }';
+// `characters` is what makes the recap look like real manga rather than a
+// stats dashboard: AniList ships a portrait per character, so the Favorite
+// Moments grid can be built from actual characters out of the reader's own
+// top series. (Scanned interior panels — what a mockup would use — aren't
+// available from any API and aren't ours to redistribute; official character
+// portraits are the legitimate equivalent and read almost identically.)
+const ANILIST_ART_QUERY = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage genres characters(perPage: 6, sort: ROLE) { edges { node { name { full } image { large medium } } } } } }';
 async function fetchAniListArt(title) {
   try {
     const resp = await fetch('https://graphql.anilist.co', {
@@ -221,6 +228,62 @@ function RealCover({ uri, style }) {
   );
 }
 
+// ── Manga texture primitives ─────────────────────────────────────────────
+// The visual language that makes this read as manga rather than as a generic
+// stats dashboard: screentone dots and radiating speed lines, the two most
+// recognizable print-manga textures. Both are pure geometry (no bitmap
+// assets, no licensed art) and sit above the photo but below the text.
+
+function HalftoneOverlay({ color = '#ffffff', opacity = 0.16, size = 9, dot = 1.5 }) {
+  return (
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Defs>
+        <Pattern id="mrHalftone" width={size} height={size} patternUnits="userSpaceOnUse">
+          <Circle cx={size / 2} cy={size / 2} r={dot} fill={color} />
+        </Pattern>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#mrHalftone)" opacity={opacity} />
+    </Svg>
+  );
+}
+
+// Radiating "impact" lines, the manga shorthand for energy/emphasis. Drawn
+// from an inner radius outward so the middle stays clear for the stat text.
+function SpeedLines({ color = '#ffffff', opacity = 0.2, count = 30 }) {
+  const lines = [];
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2;
+    const jitter = 0.55 + ((i * 37) % 30) / 100;
+    const x1 = 50 + Math.cos(a) * 26, y1 = 50 + Math.sin(a) * 26;
+    const x2 = 50 + Math.cos(a) * (70 * jitter + 34), y2 = 50 + Math.sin(a) * (70 * jitter + 34);
+    lines.push(
+      <Line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={0.7 + (i % 3) * 0.5} strokeLinecap="round" />
+    );
+  }
+  return (
+    <Svg style={StyleSheet.absoluteFill} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" pointerEvents="none">
+      <G opacity={opacity}>{lines}</G>
+    </Svg>
+  );
+}
+
+// Slowly rotating speed lines — used behind the biggest stat moments so the
+// emphasis reads as motion rather than a frozen sunburst.
+function RotatingSpeedLines({ color, opacity = 0.18 }) {
+  const spin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 60000, easing: Easing.linear, useNativeDriver: true }));
+    anim.start();
+    return () => anim.stop();
+  }, [spin]);
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate }] }]} pointerEvents="none">
+      <SpeedLines color={color} opacity={opacity} />
+    </Animated.View>
+  );
+}
+
 // A soft pulsing glow, always present underneath everything else — the last
 // line of defense against a flat, dead-looking background on total network
 // failure (no personal art, and even the trending-art fallback didn't
@@ -308,6 +371,9 @@ function HeroBackground({ images, tintColor }) {
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
+      {/* Screentone over the whole composition — the single texture that most
+          reads as "printed manga" rather than "photo with a gradient". */}
+      <HalftoneOverlay opacity={0.13} />
     </View>
   );
 }
@@ -321,15 +387,61 @@ function ProgressSegment({ anim }) {
   );
 }
 
+// A fanned stack of the reader's own real covers, gently drifting — the
+// "here's what you actually read" visual, instead of describing it in text.
+function CoverFan({ covers, tint }) {
+  const items = (covers || []).filter(Boolean).slice(0, 5);
+  const float = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(float, { toValue: 0, duration: 3200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [float]);
+  if (!items.length) return null;
+  const mid = (items.length - 1) / 2;
+  return (
+    <View style={styles.coverFan} pointerEvents="none">
+      {items.map((uri, i) => {
+        const offset = i - mid;
+        const drift = float.interpolate({ inputRange: [0, 1], outputRange: [0, (i % 2 === 0 ? -1 : 1) * 7] });
+        return (
+          <Animated.View
+            key={uri + i}
+            style={[
+              styles.coverFanItem,
+              {
+                marginLeft: i === 0 ? 0 : -26,
+                zIndex: 10 - Math.abs(offset),
+                transform: [{ rotate: `${offset * 7}deg` }, { translateY: drift }, { scale: 1 - Math.abs(offset) * 0.06 }],
+                borderColor: hexToRgba(tint, 0.7),
+              },
+            ]}
+          >
+            <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} cachePolicy="disk" />
+          </Animated.View>
+        );
+      })}
+    </View>
+  );
+}
+
 // ── Slides ───────────────────────────────────────────────────────────────
 
 function IntroSlide({ data }) {
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>{data.period.label}</Text></Reveal>
-      <Reveal delay={120}><Text style={styles.megaTitle}>Your MangaRecap</Text></Reveal>
-      <Reveal delay={300}><Text style={styles.sub}>Let's see what kind of reader you were these past six months, @{data.username}.</Text></Reveal>
-      <Reveal delay={480} style={styles.tapHintRow}>
+      <Reveal delay={0} style={{ alignItems: 'center' }}>
+        <CoverFan covers={data.topSeries.map((s) => s.cover)} tint={data.vividColor} />
+      </Reveal>
+      <Reveal delay={160}><Text style={styles.eyebrow}>{data.period.label}</Text></Reveal>
+      <Reveal delay={260}><Text style={styles.megaTitle}>Your{'\n'}MangaRecap</Text></Reveal>
+      <Reveal delay={420}><Text style={styles.subLeft}>Six months of reading, wrapped. Let's get into it, @{data.username}.</Text></Reveal>
+      <Reveal delay={560} style={styles.tapHintRow}>
         <Text style={styles.tapHint}>Tap to begin your journey</Text>
         <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.75)" />
       </Reveal>
@@ -337,18 +449,33 @@ function IntroSlide({ data }) {
   );
 }
 
+// The reference's "you dove into N chapters across N series spent N hours"
+// beat — three real numbers stacked as one falling headline, each landing
+// with its own punch, over rotating speed lines.
 function StatsSlide({ data }) {
-  const { value: hours, punch } = useCountUp(Math.round(data.hoursRead));
+  const chapters = useCountUp(data.chaptersInPeriod, 1100);
+  const series = useCountUp(data.seriesTouched, 900);
+  const hours = useCountUp(Math.round(data.hoursRead), 1300);
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Time well spent</Text></Reveal>
-      <Reveal delay={100}>
-        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: punch }] }]}>{hours.toLocaleString()}</Animated.Text>
+      <RotatingSpeedLines color={data.vividColor} opacity={0.16} />
+      <Reveal delay={0}><Text style={styles.eyebrow}>You dove into</Text></Reveal>
+      <Reveal delay={90}>
+        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: chapters.punch }] }]}>
+          {chapters.value.toLocaleString()}
+        </Animated.Text>
       </Reveal>
-      <Reveal delay={180}><Text style={styles.label}>Hours read</Text></Reveal>
-      <Reveal delay={320} style={styles.chipRow}>
-        <View style={styles.chip}><Text style={styles.chipText}>{data.readingDays} days active</Text></View>
-        <View style={styles.chip}><Text style={styles.chipText}>{data.seriesTouched} series</Text></View>
+      <Reveal delay={170}><Text style={styles.label}>Chapters</Text></Reveal>
+      <Reveal delay={300} style={styles.statSplitRow}>
+        <View style={styles.statSplitCell}>
+          <Animated.Text style={[styles.midNumber, { transform: [{ scale: series.punch }] }]}>{series.value}</Animated.Text>
+          <Text style={styles.label}>Series</Text>
+        </View>
+        <View style={styles.statSplitDivider} />
+        <View style={styles.statSplitCell}>
+          <Animated.Text style={[styles.midNumber, { transform: [{ scale: hours.punch }] }]}>{hours.value}</Animated.Text>
+          <Text style={styles.label}>Hours</Text>
+        </View>
       </Reveal>
     </View>
   );
@@ -375,6 +502,42 @@ function TopSeriesSlide({ data }) {
 }
 
 const GENRE_COLORS = ['#E8544A', '#F0BE66', '#7BA6F5', '#B18CFF', 'rgba(255,255,255,0.4)'];
+// Ionicons standing in for each of AniList's real genre names, so the genre
+// list reads as iconography rather than a plain bar chart.
+const GENRE_ICONS = {
+  Action: 'flash', Adventure: 'compass', Comedy: 'happy', Drama: 'rainy',
+  Fantasy: 'sparkles', Horror: 'skull', Mystery: 'search', Romance: 'heart',
+  'Sci-Fi': 'planet', 'Slice of Life': 'cafe', Sports: 'football',
+  Supernatural: 'flame', Thriller: 'alert-circle', Psychological: 'eye',
+  Mecha: 'hardware-chip', Music: 'musical-notes', Ecchi: 'flame', Other: 'ellipsis-horizontal',
+};
+
+// Real characters out of the reader's own top series, in a manga-panel grid —
+// the "Favorite Moments" beat. Each tile is an official AniList character
+// portrait, captioned with the series it came from.
+function FavoriteMomentsSlide({ data }) {
+  return (
+    <View style={styles.bottomAnchor}>
+      <Reveal delay={0}><Text style={styles.eyebrow}>Faces of your half</Text></Reveal>
+      <View style={styles.faceGrid}>
+        {data.characters.map((c, i) => (
+          <Reveal key={c.image} delay={110 + i * 85} style={styles.faceCell}>
+            <View style={[styles.facePanel, { borderColor: hexToRgba(data.vividColor, 0.8) }]}>
+              <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" />
+              <LinearGradient
+                colors={['transparent', 'rgba(6,4,14,0.9)']}
+                style={styles.faceCaptionWrap}
+              >
+                <Text style={styles.faceName} numberOfLines={1}>{c.name}</Text>
+              </LinearGradient>
+            </View>
+          </Reveal>
+        ))}
+      </View>
+      <Reveal delay={620}><Text style={styles.subLeft}>The characters you spent your half with.</Text></Reveal>
+    </View>
+  );
+}
 
 function GenresSlide({ data }) {
   const rows = data.genreBreakdown;
@@ -395,7 +558,9 @@ function GenresSlide({ data }) {
           return (
             <Reveal key={r.label} delay={100 + i * 70} style={styles.genreRow}>
               <View style={styles.genreLabelRow}>
-                <View style={[styles.genreDot, { backgroundColor: color }]} />
+                <View style={[styles.genreIconWrap, { borderColor: color }]}>
+                  <Ionicons name={GENRE_ICONS[r.label] || 'ellipse'} size={15} color={color} />
+                </View>
                 <Text style={styles.genreLabel}>{r.label}</Text>
                 <Text style={styles.genrePct}>{r.pct}%</Text>
               </View>
@@ -438,7 +603,17 @@ function RhythmSlide({ data }) {
           );
         })}
       </View>
-      <Reveal delay={260}><Text style={styles.sub}>were your biggest reading days.</Text></Reveal>
+      <Reveal delay={260}><Text style={styles.subLeft}>were your biggest reading days.</Text></Reveal>
+      {data.peakWindow && (
+        <Reveal delay={360} style={[styles.peakPill, { borderColor: hexToRgba(data.vividColor, 0.9) }]}>
+          <Ionicons name="moon" size={15} color={data.vividColor} />
+          <View>
+            <Text style={styles.peakLabel}>Peak reading time</Text>
+            <Text style={styles.peakValue}>{data.peakWindow.label}</Text>
+          </View>
+          <Text style={styles.peakPct}>{data.peakWindow.pct}%</Text>
+        </Reveal>
+      )}
     </View>
   );
 }
@@ -459,6 +634,7 @@ function StreakSlide({ data }) {
   const flickerScale = flicker.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   return (
     <View style={styles.bottomAnchor}>
+      <RotatingSpeedLines color="#FF6B4A" opacity={0.22} />
       <Reveal delay={0}><Text style={styles.eyebrow}>On a roll</Text></Reveal>
       <Reveal delay={80}>
         <Animated.View style={{ transform: [{ scale: flickerScale }], marginBottom: 8 }}>
@@ -581,12 +757,13 @@ export default function RecapScreen() {
         const startIso = period.start.toISOString();
         const endIso = period.end.toISOString();
 
-        const [progressRes, commentsRes, ratingsCountRes, topRatedRes, dailyLog] = await Promise.all([
+        const [progressRes, commentsRes, ratingsCountRes, topRatedRes, dailyLog, hourLog] = await Promise.all([
           supabase.from('reading_progress').select('series_title,status,current_chapter,updated_at').eq('user_id', userId).gte('updated_at', startIso).lte('updated_at', endIso),
           supabase.from('comments').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startIso).lte('created_at', endIso),
           supabase.from('series_ratings').select('series_title', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startIso).lte('created_at', endIso),
           supabase.from('series_ratings').select('series_title,stars,created_at').eq('user_id', userId).gte('created_at', startIso).lte('created_at', endIso).order('stars', { ascending: false }).limit(1),
           getMergedDailyLog(profile?.daily_log),
+          getMergedHourLog(profile?.hour_log),
         ]);
         if (cancelled) return;
 
@@ -609,6 +786,10 @@ export default function RecapScreen() {
           longestStreak: longestStreakInRange(dailyLog, period.start, period.end),
           weekday: weekdayBreakdown(dailyLog, period.start, period.end),
           seriesTouched: progressRows.length,
+          // Chapters actually reached across the series they touched this
+          // half — summed from their own reading_progress rows, not the
+          // lifetime chapters_read counter (which spans all time).
+          chaptersInPeriod: progressRows.reduce((s, r) => s + (r.current_chapter || 0), 0),
           commentsCount,
           ratingsCount,
           favoriteGenre: profile?.favorite_genre || null,
@@ -632,7 +813,10 @@ export default function RecapScreen() {
           const hero = al?.bannerImage || cover || null;
           const color = al?.coverImage?.color || null;
           const genres = al?.genres || [];
-          return { cover, hero, color, genres };
+          const characters = (al?.characters?.edges || [])
+            .map((e) => ({ name: e?.node?.name?.full || '', image: e?.node?.image?.large || e?.node?.image?.medium || null }))
+            .filter((c) => c.image);
+          return { cover, hero, color, genres, characters };
         }
 
         const topSeriesRaw = [...progressRows]
@@ -653,6 +837,25 @@ export default function RecapScreen() {
 
         base.topSeries = topSeries;
         base.genreBreakdown = genreBreakdown(topSeries);
+
+        // Favorite Moments grid — real characters from the reader's own top
+        // series, interleaved round-robin so the grid spans several of their
+        // series instead of showing six faces from whichever one resolved
+        // first. Deduped by image URL.
+        const faces = [];
+        const seenFace = new Set();
+        for (let round = 0; round < 6; round++) {
+          topSeries.forEach((s) => {
+            const c = (s.characters || [])[round];
+            if (c && !seenFace.has(c.image)) { seenFace.add(c.image); faces.push({ ...c, series: s.title }); }
+          });
+        }
+        base.characters = faces.slice(0, 6);
+
+        // Real peak reading window — only exists once hour_log has data (the
+        // column was added with this feature, so it stays empty until the
+        // reader logs sessions from here on; the slide is skipped, never faked).
+        base.peakWindow = peakReadingWindow(hourLog);
 
         // Real art pool for the background — every one of the reader's own
         // resolved covers/banners, deduped, cycling behind the whole story
@@ -707,7 +910,13 @@ export default function RecapScreen() {
     if (data.genreBreakdown.length >= 2) list.push({ key: 'genres', Comp: GenresSlide });
     if (data.weekday.best >= 0) list.push({ key: 'rhythm', Comp: RhythmSlide });
     if (data.longestStreak >= 2) list.push({ key: 'streak', Comp: StreakSlide });
-    if (data.topRated) list.push({ key: 'favmoment', Comp: FavoriteMomentSlide });
+    // Two "favorites" beats that would otherwise both fire and push the story
+    // past 10 slides. The character grid is the stronger visual (and the one
+    // the design reference leads with), so it wins when there's enough real
+    // character art; the highest-rated-series slide is the fallback when a
+    // reader's titles don't resolve enough portraits.
+    if (data.characters.length >= 3) list.push({ key: 'faces', Comp: FavoriteMomentsSlide });
+    else if (data.topRated) list.push({ key: 'favmoment', Comp: FavoriteMomentSlide });
     if (data.earnedBadgeCount > 0) list.push({ key: 'achievements', Comp: AchievementsSlide });
     list.push({ key: 'personality', Comp: PersonalitySlide });
     list.push({ key: 'finale', Comp: FinaleSlide, isFinale: true });
@@ -858,10 +1067,11 @@ const styles = StyleSheet.create({
   bottomAnchor: { width: '100%' },
 
   eyebrow: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 10 },
-  megaTitle: { color: '#fff', fontSize: 34, fontWeight: '900', lineHeight: 40, marginBottom: 10 },
+  megaTitle: { color: '#fff', fontSize: 42, fontWeight: '900', lineHeight: 46, marginBottom: 12, letterSpacing: -1 },
   title: { color: '#fff', fontSize: 26, fontWeight: '900', marginBottom: 8 },
   sub: { color: 'rgba(255,255,255,0.82)', fontSize: 15, lineHeight: 21, marginTop: 4, textAlign: 'center' },
-  bigNumber: { color: '#fff', fontSize: 64, fontWeight: '900', letterSpacing: -1 },
+  subLeft: { color: 'rgba(255,255,255,0.82)', fontSize: 15, lineHeight: 21, marginTop: 4 },
+  bigNumber: { color: '#fff', fontSize: 76, fontWeight: '900', letterSpacing: -2, lineHeight: 82 },
   label: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginTop: 6 },
 
   tapHintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18 },
@@ -889,9 +1099,37 @@ const styles = StyleSheet.create({
 
   favCover: { width: 132, height: 184, borderRadius: 10, marginBottom: 14 },
 
+  coverFan: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 22, height: 150 },
+  coverFanItem: {
+    width: 96, height: 138, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 2, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8,
+  },
+
+  midNumber: { color: '#fff', fontSize: 40, fontWeight: '900', letterSpacing: -0.5 },
+  statSplitRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginTop: 20 },
+  statSplitCell: { alignItems: 'flex-start' },
+  statSplitDivider: { width: 1, height: 44, backgroundColor: 'rgba(255,255,255,0.25)' },
+
+  faceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16, marginBottom: 6 },
+  faceCell: { width: '31%', aspectRatio: 0.78 },
+  facePanel: { flex: 1, borderRadius: 8, overflow: 'hidden', borderWidth: 2, backgroundColor: 'rgba(255,255,255,0.1)' },
+  faceCaptionWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 5, paddingTop: 14, paddingBottom: 5 },
+  faceName: { color: '#fff', fontSize: 9.5, fontWeight: '800' },
+
+  peakPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, alignSelf: 'flex-start',
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, borderWidth: 1, backgroundColor: 'rgba(6,4,14,0.45)',
+  },
+  peakLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  peakValue: { color: '#fff', fontSize: 15, fontWeight: '900', marginTop: 1 },
+  peakPct: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '900', marginLeft: 4 },
+
   genreRow: { marginBottom: 14 },
-  genreLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  genreDot: { width: 10, height: 10, borderRadius: 5 },
+  genreLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  genreIconWrap: {
+    width: 28, height: 28, borderRadius: 14, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(6,4,14,0.4)',
+  },
   genreLabel: { flex: 1, color: '#fff', fontWeight: '800', fontSize: 14 },
   genrePct: { color: 'rgba(255,255,255,0.8)', fontWeight: '900', fontSize: 14 },
   genreTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },

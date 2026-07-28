@@ -5,6 +5,7 @@ import { isJunkTitle } from './titleValidation';
 const _openedThisSession = new Set();
 const GENRE_PREFS_KEY = '@mangarecs_genre_prefs';
 const DAILY_LOG_KEY   = '@mangarecs_daily_log';
+const HOUR_LOG_KEY    = '@mangarecs_hour_log';
 const LAST_READ_KEY   = '@mangarecs_last_read';
 const HISTORY_KEY     = '@mangarecs_reading_history';
 
@@ -166,7 +167,8 @@ export async function updateGenreWeights(genres) {
 }
 
 /**
- * Add hoursElapsed to today's reading log entry.
+ * Add hoursElapsed to today's reading log entry, and to the hour-of-day
+ * histogram that powers MangaRecap's "peak reading time".
  */
 export async function updateDailyLog(hoursElapsed) {
   if (!hoursElapsed || hoursElapsed <= 0) return;
@@ -176,14 +178,79 @@ export async function updateDailyLog(hoursElapsed) {
     const log = raw ? JSON.parse(raw) : {};
     log[key] = (log[key] || 0) + hoursElapsed;
     await AsyncStorage.setItem(DAILY_LOG_KEY, JSON.stringify(log));
+
+    // Hour-of-day bucket, in the reader's LOCAL time — same reasoning as
+    // localDateKey: bucketing in UTC would misattribute late-night reads for
+    // UTC+ readers, who are exactly what this stat is about. Attributed to the
+    // hour the session ENDED; a session long enough to span hours is rare
+    // enough that splitting it across buckets isn't worth the complexity.
+    const hourRaw = await AsyncStorage.getItem(HOUR_LOG_KEY);
+    const hourLog = hourRaw ? JSON.parse(hourRaw) : {};
+    const hourKey = String(new Date().getHours());
+    hourLog[hourKey] = (hourLog[hourKey] || 0) + hoursElapsed;
+    await AsyncStorage.setItem(HOUR_LOG_KEY, JSON.stringify(hourLog));
+
     // Sync via merge_daily_log RPC — the server clamps per-day hours, merges
     // multi-device logs, and recomputes hours_read + streak_count itself.
     // (Direct writes to those columns are revoked; see migration section 36.)
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
       supabase.rpc('merge_daily_log', { p_log: log }).then(() => {});
+      supabase.rpc('merge_hour_log', { p_log: hourLog }).then(() => {}, () => {});
     }
   } catch (_) {}
+}
+
+/**
+ * Merges the local hour-of-day histogram with the cloud copy, taking the
+ * higher value per bucket so the peak-time stat survives reinstalls and is
+ * accurate across devices — same merge strategy as getMergedDailyLog.
+ */
+export async function getMergedHourLog(cloudLog = {}) {
+  try {
+    const raw = await AsyncStorage.getItem(HOUR_LOG_KEY);
+    const localLog = raw ? JSON.parse(raw) : {};
+    const cloud = cloudLog || {};
+    const merged = {};
+    new Set([...Object.keys(localLog), ...Object.keys(cloud)]).forEach((h) => {
+      merged[h] = Math.max(localLog[h] || 0, cloud[h] || 0);
+    });
+    await AsyncStorage.setItem(HOUR_LOG_KEY, JSON.stringify(merged));
+    return merged;
+  } catch (_) {
+    return cloudLog || {};
+  }
+}
+
+/**
+ * The contiguous 1-4h window of the day with the most real logged reading, as
+ * a display string ("11PM – 2AM"). Returns null when there's no hour data at
+ * all — the recap slide is skipped rather than inventing a window.
+ */
+export function peakReadingWindow(hourLog) {
+  const log = hourLog || {};
+  const hours = Array.from({ length: 24 }, (_, h) => log[String(h)] || 0);
+  const total = hours.reduce((s, v) => s + v, 0);
+  if (total <= 0) return null;
+
+  // Best contiguous 3-hour block, wrapping past midnight (a late-night reader's
+  // real window is 23:00-01:00, which a non-wrapping scan would never find).
+  let bestStart = 0, bestSum = -1;
+  for (let start = 0; start < 24; start++) {
+    let sum = 0;
+    for (let k = 0; k < 3; k++) sum += hours[(start + k) % 24];
+    if (sum > bestSum) { bestSum = sum; bestStart = start; }
+  }
+  const fmt = (h) => {
+    const hr = ((h % 24) + 24) % 24;
+    const suffix = hr < 12 ? 'AM' : 'PM';
+    const display = hr % 12 === 0 ? 12 : hr % 12;
+    return `${display}${suffix}`;
+  };
+  return {
+    label: `${fmt(bestStart)} – ${fmt(bestStart + 3)}`,
+    pct: Math.round((bestSum / total) * 100),
+  };
 }
 
 /**

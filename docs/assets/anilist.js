@@ -71,8 +71,11 @@ function searchMedia(query, category, page) {
 // bannerImage is a wide promotional/key-art crop (no logo/title text baked
 // in like a cover often has) — preferred for full-bleed hero use; coverImage
 // is kept too since MangaRecap's top-series thumbnails want a portrait crop.
+// `characters` powers the Favorite Moments grid — real character portraits
+// out of the reader's own top series, which is what makes the recap read as
+// manga instead of as a stats dashboard.
 function recapArtFor(title) {
-  var gql = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage } }';
+  var gql = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage genres characters(perPage: 6, sort: ROLE) { edges { node { name { full } image { large medium } } } } } }';
   return alFetch(gql, { search: title }).then(function (d) { return d.Media || null; });
 }
 
