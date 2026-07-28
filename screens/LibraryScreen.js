@@ -355,12 +355,18 @@ export default function LibraryScreen() {
       getLastRead().then((lr) => { if (lr) setLastReadEntry(lr); });
       // Which pool entries appeared recently (green NEW badge)
       getRecentlyAddedIds(JUST_ADDED_WINDOW).then(setNewPoolIds);
-      // Load full reading history for the Reading tab; also kick off background update check
-      getReadingHistory().then((items) => {
-        setHistoryItems(items);
-        checkUpdatesInBackground(items);
-        loadSiteIcons(items);
-      });
+      // Load full reading history for the Reading tab. The update/site-icon
+      // checks deliberately do NOT run off this list: raw history is scraped
+      // webview page titles (see the note by readingSeries below), so its keys
+      // almost never match a grid tile's key and it can't produce a badge that
+      // actually renders. It used to be kicked off here as well as from the
+      // combined-set effect below, and since both wholesale-replace
+      // updatesMap/siteIconMap, whichever finished last won — the useless
+      // history run routinely wiped the real results. They also both
+      // read-modify-write the same AsyncStorage update cache, so the loser's
+      // freshly-fetched chapters were clobbered and refetched next time.
+      // The combined-set effect is now the single owner of both.
+      getReadingHistory().then(setHistoryItems);
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         const uid = session?.user?.id;
@@ -975,11 +981,27 @@ export default function LibraryScreen() {
         const dismissedAt = dismissed[cacheKey];
         if (latest != null && latest > currentCh && (dismissedAt == null || latest > dismissedAt)) {
           newCounts.set(cacheKey, Math.max(1, Math.floor(latest) - Math.floor(currentCh)));
+        } else {
+          newCounts.set(cacheKey, 0); // explicitly "not new" for whatever we just checked
         }
       }
 
       await AsyncStorage.setItem(UPDATE_CACHE_KEY, JSON.stringify(cache)).catch(() => {});
-      setUpdatesMap(newCounts);
+      // Merge, don't replace. The combined-set effect re-fires whenever its
+      // signature changes, which happens several times during a normal load
+      // (savedItems lands, then progressRows, then profile), so two runs can
+      // easily overlap on different item sets. Replacing the whole map
+      // wholesale meant whichever run finished last wiped out badges the
+      // other had already found, for items it simply hadn't checked this
+      // round. Only touch the keys actually checked here.
+      setUpdatesMap((prev) => {
+        const next = new Map(prev);
+        for (const [k, count] of newCounts) {
+          if (count > 0) next.set(k, count);
+          else next.delete(k);
+        }
+        return next;
+      });
     } catch (_) {}
   }
 
@@ -1019,14 +1041,24 @@ export default function LibraryScreen() {
         const cacheKey = s.searchKey || s.title;
         if (!cacheKey) continue;
         const resumeRaw = await AsyncStorage.getItem('@mangarecs/resume/' + encodeURIComponent(cacheKey)).catch(() => null);
-        if (!resumeRaw) continue;
+        if (!resumeRaw) continue; // no info either way — leave any existing entry alone
         try {
           const resume = JSON.parse(resumeRaw);
-          const favicon = resolveSiteFavicon(resume.site);
-          if (favicon) icons.set(cacheKey, favicon);
+          icons.set(cacheKey, resolveSiteFavicon(resume.site) || null);
         } catch (_) {}
       }
-      setSiteIconMap(icons);
+      // Merge, don't replace — same reasoning as checkUpdatesInBackground:
+      // overlapping runs cover different item sets, and replacing the whole
+      // map wholesale wiped out icons for entries an earlier run had already
+      // resolved but this one didn't happen to check.
+      setSiteIconMap((prev) => {
+        const next = new Map(prev);
+        for (const [k, favicon] of icons) {
+          if (favicon) next.set(k, favicon);
+          else next.delete(k);
+        }
+        return next;
+      });
     } catch (_) {}
   }
 
