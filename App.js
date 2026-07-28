@@ -57,6 +57,55 @@ import StarLogo from './components/StarLogo';
 
 const navigationRef = createNavigationContainerRef();
 
+// ── Notification tap routing ──────────────────────────────────────────────
+// A tap can arrive long before we're able to act on it: on a cold start the
+// response fires while the navigation container is still mounting, and even
+// once it's ready the target routes (Reader/Tabs) only exist inside
+// AppNavigator, which isn't rendered until the session has been restored.
+// This used to be a bare `if (!navigationRef.isReady()) return;`, which
+// silently dropped the tap in exactly those cases — so launching the app by
+// tapping a notification just dumped you on the default screen. Instead,
+// hold the response and replay it once both conditions are actually true.
+let _pendingNotifResponse = null;
+let _navReady = false;
+let _sessionActive = false;
+// Expo's docs point at getLastNotificationResponseAsync for the launch case
+// but don't guarantee the listener won't also fire for the same tap, and
+// warn to manage this explicitly — dedupe on the notification's identifier
+// so a tap is never routed twice.
+const _handledNotifIds = new Set();
+
+function routeNotificationResponse(response) {
+  if (!response) return;
+  const id = response.notification?.request?.identifier;
+  if (id && _handledNotifIds.has(id)) return;
+
+  if (!_navReady || !_sessionActive || !navigationRef.isReady()) {
+    _pendingNotifResponse = response;
+    return;
+  }
+
+  _pendingNotifResponse = null;
+  if (id) _handledNotifIds.add(id);
+
+  const data = response.notification?.request?.content?.data || {};
+  if ((data.type === 'new_chapter' || data.type === 'chapter_update') && (data.series_title || data.title)) {
+    navigationRef.navigate('Reader', {
+      searchQuery: data.series_title || data.title,
+      title: data.series_title || data.title,
+      chapters: data.chapter || 0,
+    });
+  } else if (data.type === 'friend_request' || data.type === 'direct_message') {
+    navigationRef.navigate('Tabs', { screen: 'Social' });
+  } else {
+    navigationRef.navigate('Tabs', { screen: 'Feed', params: { screen: 'Notifications' } });
+  }
+}
+
+function flushPendingNotifResponse() {
+  if (_pendingNotifResponse) routeNotificationResponse(_pendingNotifResponse);
+}
+
 // Deep links: mangarecs://series/<title> opens the Reader on that series,
 // mangarecs://discussion/<title> opens its discussion. Share messages include
 // these links so a friend with the app lands directly on the series.
@@ -426,6 +475,15 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   // version, and onboarding/the coachmark tour already cover what the app does.
   const [justOnboarded, setJustOnboarded] = useState(false);
 
+  // A queued notification tap can only be routed once AppNavigator is really
+  // mounted — before that, Reader/Tabs don't exist as routes yet. Track the
+  // session here (rather than reading it inside the module-level router) and
+  // replay whatever's pending the moment it becomes available.
+  useEffect(() => {
+    _sessionActive = !!session && !needsOnboarding && !needsGuidelines;
+    if (_sessionActive) flushPendingNotifResponse();
+  }, [session, needsOnboarding, needsGuidelines]);
+
   // Auto-start the coachmark tour the first time this device reaches the
   // main tabs signed in — covers brand-new users right after onboarding
   // (below) AND existing users who onboarded before this tour existed.
@@ -472,7 +530,11 @@ function RootNavigator({ session, needsOnboarding, onOnboardingComplete, needsGu
   }
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme} linking={linking}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      linking={linking}
+      onReady={() => { _navReady = true; flushPendingNotifResponse(); }}>
       <ThemedStatusBar />
       {session ? (
         <>
@@ -660,24 +722,13 @@ export default function App() {
       notifReceivedSub = Notifications.addNotificationReceivedListener(() => {
         playNotificationSound();
       });
-      notifSub = Notifications.addNotificationResponseReceivedListener((response) => {
-        if (!navigationRef.isReady()) return;
-        const data = response.notification.request.content.data || {};
-        if ((data.type === 'new_chapter' || data.type === 'chapter_update') && (data.series_title || data.title)) {
-          navigationRef.navigate('Reader', {
-            searchQuery: data.series_title || data.title,
-            title: data.series_title || data.title,
-            chapters: data.chapter || 0,
-          });
-        } else if (data.type === 'friend_request' || data.type === 'direct_message') {
-          navigationRef.navigate('Tabs', { screen: 'Social' });
-        } else {
-          navigationRef.navigate('Tabs', {
-            screen: 'Feed',
-            params: { screen: 'Notifications' },
-          });
-        }
-      });
+      notifSub = Notifications.addNotificationResponseReceivedListener(routeNotificationResponse);
+      // Covers the tap that launched the app, which can land before the
+      // listener above is even registered. Deduped by identifier inside
+      // routeNotificationResponse, so it's safe if the listener fires too.
+      Notifications.getLastNotificationResponseAsync?.()
+        .then((response) => { if (response) routeNotificationResponse(response); })
+        .catch(() => {});
     }
 
     return () => {
