@@ -2,6 +2,17 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.3.1',
+    date: 'July 28, 2026',
+    highlights: [
+      'Like, save, and share counts in the Feed now stick instead of snapping back to the old number when you keep scrolling',
+      'Tapping a notification opens what it points at even when the app was fully closed — it used to just dump you on the home screen',
+      'Turning notifications back on after switching them all off actually starts delivering again, instead of staying silent until the next app restart',
+      '"New Chapter" badges in your Library no longer vanish on their own, and now show up on Bookmarked and Completed too',
+      'Picking a specific site under "Read Available" now really opens that site, instead of quietly falling back to the last one you used',
+    ],
+  },
+  {
     version: '1.3.0',
     date: 'July 19, 2026',
     highlights: [
