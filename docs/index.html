@@ -1,3 +1,4 @@
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MangaRecs — Your next story, recommended.</title>
 <meta name="description" content="The social home for your manga & manhwa library. Track what you're reading, Rec titles to friends, talk chapters in Comms, and climb the badge ladder — with browser-based reading built in for whatever's not in your library yet. Coming soon to the App Store and Google Play." />
@@ -19,73 +20,16 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
 <noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=1" />
 <style>
   /* ── Type: Big Shoulders (display, wt 900 only) + Libre Franklin (variable, body/UI) ── */
   /* fonts loaded async via /assets/fonts.css link tag in <head> */
 
-  /* ── Tokens ─────────────────────────────────────────────────────────── */
-  :root {
-    --bg: #F6F3FB;
-    --bg-panel: #FFFFFF;
-    --bg-sunken: #EFEAFA;
-    --ink: #16121F;
-    --ink-muted: #5B5570;
-    --ink-faint: #8A84A0;
-    --accent: #6B46F0;
-    --accent-soft: #8A63FF;
-    --accent-wash: rgba(107,70,240,0.08);
-    --line: rgba(107,70,240,0.16);
-    --line-strong: rgba(22,18,31,0.12);
-    --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
-    --rail-track: rgba(107,70,240,0.14);
-    /* Fixed brand purple — used by decorative mockup fills (.meter, .rail-visual)
-       so per-chapter accent overrides can't clash them against the static
-       --bg-sunken track color they're built against. */
-    --brand-accent: #6B46F0;
-    --brand-accent-soft: #8A63FF;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0D0C11;
-      --bg-panel: #17151F;
-      --bg-sunken: #121017;
-      --ink: #F3F1F8;
-      --ink-muted: #A39DB8;
-      --ink-faint: #6D6785;
-      --accent: #7B5CFF;
-      --accent-soft: #B18CFF;
-      --accent-wash: rgba(123,92,255,0.10);
-      --line: rgba(123,92,255,0.18);
-      --line-strong: rgba(255,255,255,0.10);
-      --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
-      --rail-track: rgba(123,92,255,0.16);
-      --brand-accent: #7B5CFF;
-      --brand-accent-soft: #B18CFF;
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
-    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
-    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
-    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
-    --shadow: 0 24px 48px -28px rgba(46,26,110,0.35); --rail-track: rgba(107,70,240,0.14);
-    --brand-accent: #6B46F0; --brand-accent-soft: #8A63FF;
-    color-scheme: light;
-  }
-  :root[data-theme="dark"] {
-    --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
-    --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
-    --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
-    --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
-    --shadow: 0 24px 60px -24px rgba(0,0,0,0.6); --rail-track: rgba(123,92,255,0.16);
-    --brand-accent: #7B5CFF; --brand-accent-soft: #B18CFF;
-    color-scheme: dark;
-  }
+  /* Tokens, box-sizing reset, :focus-visible, .display/.eyebrow, and
+     .icon-btn* now live in /assets/base.css (linked above) so every page
+     shares one cached copy instead of re-inlining ~90 identical lines. */
 
   /* ── Reset ──────────────────────────────────────────────────────────── */
-  * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
@@ -102,23 +46,6 @@
   h1, h2, h3 { text-wrap: balance; margin: 0; }
   p { margin: 0; }
   button { font-family: inherit; cursor: pointer; }
-  :focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
-
-  .display {
-    font-family: 'Panel Display', 'Strip Text', sans-serif;
-    font-weight: 900;
-    letter-spacing: -0.01em;
-    line-height: 0.92;
-    text-transform: uppercase;
-  }
-  .eyebrow {
-    font-family: 'Strip Text', sans-serif;
-    font-weight: 700;
-    font-size: 0.72rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
 
   /* ── Shell / progress rail ──────────────────────────────────────────── */
   .rail {
@@ -296,8 +223,11 @@
   .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-soft)); border-radius: 999px; }
   .stat-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--ink-muted); }
   .badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .medal { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; }
+  .medal { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; transition: opacity 0.2s ease, box-shadow 0.2s ease; }
   .medal i { width: 8px; height: 8px; border-radius: 50%; background: var(--medal-c); }
+  .medal.is-current { box-shadow: 0 0 0 1.5px var(--medal-c); }
+  .medal.is-dim { opacity: 0.4; }
+  .visual-tag { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 12px; }
   .thread { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 2px; }
   .thread + .thread { margin-top: 0; }
   .thread .who { font-weight: 700; font-size: 0.88rem; }
@@ -322,6 +252,13 @@
     display: flex; align-items: center; gap: 4px;
   }
   .rail-dimmer-tag svg { width: 9px; height: 9px; }
+
+  /* ── Maker's note (solo-dev blurb) ────────────────────────────────────── */
+  .maker-note { padding: clamp(40px, 7vw, 64px) 0; border-top: 1px solid var(--line); }
+  .maker-note-inner { max-width: 640px; margin: 0 auto; text-align: center; }
+  .maker-note-mark { width: 52px; height: 52px; margin: 0 auto 14px; opacity: 0.9; }
+  .maker-note-text { margin-top: 12px; font-size: 1.04rem; color: var(--ink); line-height: 1.6; }
+  .maker-note-sign { margin-top: 14px; font-size: 0.86rem; color: var(--ink-faint); font-weight: 600; }
 
   /* ── Screenshots ────────────────────────────────────────────────────── */
   .showcase { padding: clamp(48px, 8vw, 80px) 0; border-top: 1px solid var(--line); }
@@ -376,16 +313,8 @@
     * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
 
-  /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ── */
-  .icon-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border-radius: 999px; flex: none;
-    background: var(--bg-panel); border: 1px solid var(--line-strong);
-    color: var(--ink-muted); cursor: pointer; padding: 0;
-  }
-  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
-  .icon-btn svg { width: 17px; height: 17px; }
-  .icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+  /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ──
+     .icon-btn* base rules now live in /assets/base.css. */
   .nav-actions { display: flex; align-items: center; gap: 14px; }
   @media (max-width: 480px) {
     .nav-actions { gap: 8px; }
@@ -625,7 +554,7 @@
     </div>
 
     <div class="demo">
-      <div class="demo-stack" id="demoStack" aria-hidden="true"></div>
+      <div class="demo-stack" id="demoStack"></div>
       <p class="demo-hint">← swipe away · swipe right to save →</p>
     </div>
   </section>
@@ -649,6 +578,7 @@
     <p class="eyebrow" style="margin:0;">Live from the catalog</p>
     <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Trending Right Now</h2>
     <div class="format-pills" id="formatPills"></div>
+    <div class="format-pills" id="moodPills" style="margin-top:-8px;"></div>
     <div class="grid" id="trendingGrid"></div>
     <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
     <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/">See the full catalog</a></div>
@@ -702,16 +632,17 @@
       </ul>
     </div>
     <div class="chapter-visual">
-      <div class="badge-row">
+      <p class="visual-tag" id="progressTag">Sample profile</p>
+      <div class="badge-row" id="progressBadgeRow">
         <span class="medal" style="--medal-c:#CD7F32"><i></i>Bronze</span>
         <span class="medal" style="--medal-c:#C0C0C0"><i></i>Silver</span>
         <span class="medal" style="--medal-c:#FFD700"><i></i>Gold</span>
         <span class="medal" style="--medal-c:#7B5CFF"><i></i>Mythic</span>
       </div>
-      <div class="stat-row" style="margin-top:6px"><span>Streak</span><span>14 days</span></div>
-      <div class="meter"><i style="width:70%"></i></div>
-      <div class="stat-row"><span>Chapters read</span><span>1,204</span></div>
-      <div class="meter"><i style="width:85%"></i></div>
+      <div class="stat-row" style="margin-top:6px"><span>Streak</span><span id="progressStreakVal">14 days</span></div>
+      <div class="meter"><i id="progressStreakBar" style="width:70%"></i></div>
+      <div class="stat-row"><span>Chapters read</span><span id="progressChaptersVal">1,204</span></div>
+      <div class="meter"><i id="progressChaptersBar" style="width:85%"></i></div>
     </div>
   </section>
 
@@ -746,14 +677,26 @@
       </ul>
     </div>
     <div class="chapter-visual">
+      <p class="visual-tag" id="readTag">Sample profile</p>
       <div class="rail-visual">
         <div class="rail-panels" aria-hidden="true"><span></span><span></span><span></span></div>
-        <div class="fill" style="height:58%"></div>
+        <div class="fill" id="readFill" style="height:58%"></div>
         <div class="dim"></div>
-        <div class="rail-thumb" style="bottom:58%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="rail-thumb" id="readThumb" style="bottom:58%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
         <span class="rail-dimmer-tag"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dimmer on</span>
       </div>
-      <div class="stat-row"><span>Ch. 94 of 112</span><span>58%</span></div>
+      <div class="stat-row"><span id="readLabel">Ch. 94 of 112</span><span id="readPct">58%</span></div>
+    </div>
+  </section>
+
+  <section class="maker-note" id="why">
+    <div class="maker-note-inner">
+      <div class="maker-note-mark" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><path d="M60 34c-14-8-32-9-42-4v54c10-5 28-4 42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34c14-8 32-9 42-4v54c-10-5-28-4-42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34v54" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
+      <p class="eyebrow">Why this exists</p>
+      <p class="maker-note-text">I kept losing track of what I was reading across a dozen sites and group chats, and every tracker I tried felt like a spreadsheet. So I'm building the one I actually wanted: a library that remembers your progress, friends who see what you're really reading right now, and a badge ladder worth chasing — not a trophy case nobody opens twice. It's one person, shipping this constantly and reading every reply.</p>
+      <p class="maker-note-sign">— Built solo. Still building.</p>
     </div>
   </section>
 
@@ -813,7 +756,7 @@
     </details>
     <details class="faq-item">
       <summary>Is it free?</summary>
-      <p>Yes. Browsing the catalog here never requires a login, and the app is free to use.</p>
+      <p>Yes. Browsing the catalog here never requires a login, and the app itself is free — no paywall to track your library, talk to friends, or read.</p>
     </details>
     <details class="faq-item">
       <summary>Does MangaRecs host the actual chapters?</summary>
@@ -867,6 +810,7 @@
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
 <script src="/assets/anilist.js?v=4" defer></script>
+<script src="/assets/badges.js?v=1" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
 <script>
 (function () {
@@ -891,6 +835,7 @@
   var stack = document.getElementById('demoStack');
   var order = CARDS.slice();
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var firstRender = true;
 
   function render() {
     stack.innerHTML = '';
@@ -914,7 +859,16 @@
       el.querySelector('.sub').style.color = 'rgba(255,255,255,0.72)';
       el.querySelector('.match').style.background = 'rgba(255,255,255,0.2)';
       el.querySelector('.match').style.color = '#fff';
-      if (i === 0) attachDrag(el);
+      if (i === 0) {
+        attachDrag(el);
+        // One-time nudge so keyboard/mouse users notice the top card is
+        // actually interactive, not just a decorative screenshot.
+        if (firstRender && !reduced) {
+          firstRender = false;
+          el.classList.add('demo-nudge');
+          setTimeout(function () { el.classList.remove('demo-nudge'); }, 2600);
+        }
+      }
       stack.appendChild(el);
     });
   }
@@ -923,6 +877,15 @@
     var top = order.shift();
     if (dir === 'right') order.splice(1, 0, top); else order.push(top);
     render();
+  }
+
+  // Shared fly-off used by both pointer release and keyboard triggers, so
+  // Left/Right arrow keys produce the exact same motion as a real swipe.
+  function flyOff(el, dir) {
+    el.style.transition = 'transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s';
+    el.style.transform = 'translateX(' + (dir === 'right' ? 600 : -600) + 'px) rotate(' + (dir === 'right' ? 24 : -24) + 'deg)';
+    el.style.opacity = '0';
+    setTimeout(function () { cycle(dir); }, 220);
   }
 
   function attachDrag(el) {
@@ -938,10 +901,7 @@
       dragging = false;
       el.style.transition = 'transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s';
       if (Math.abs(dx) > 70) {
-        var dir = dx > 0 ? 'right' : 'left';
-        el.style.transform = 'translateX(' + (dir === 'right' ? 600 : -600) + 'px) rotate(' + (dir === 'right' ? 24 : -24) + 'deg)';
-        el.style.opacity = '0';
-        setTimeout(function () { cycle(dir); }, 220);
+        flyOff(el, dx > 0 ? 'right' : 'left');
       } else {
         el.style.transform = 'translateY(0px) scale(1)';
       }
@@ -951,6 +911,19 @@
     window.addEventListener('pointermove', function (e) { move(e.clientX); });
     window.addEventListener('pointerup', up);
   }
+
+  // Keyboard equivalent of the swipe gesture — Left to skip, Right to save —
+  // for anyone who tabs to the demo instead of dragging with a pointer.
+  stack.setAttribute('tabindex', '0');
+  stack.setAttribute('role', 'group');
+  stack.setAttribute('aria-label', 'Swipe demo — press Left to skip, Right to save');
+  stack.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    var top = stack.querySelector('.demo-card');
+    if (!top) return;
+    flyOff(top, e.key === 'ArrowRight' ? 'right' : 'left');
+  });
 
   render();
   if (!reduced) {
@@ -966,6 +939,64 @@ document.addEventListener('DOMContentLoaded', function () {
   initThemeToggle('themeToggle');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
+
+  // Signed-in only: swap the Progress/Read chapters' sample mockups for the
+  // visitor's real numbers, pulled the same way badges/index.html does.
+  // Signed-out visitors keep the static marketing mockup untouched.
+  (function personalizeChapters() {
+    var progressTag = document.getElementById('progressTag');
+    var readTag = document.getElementById('readTag');
+    var TIER_ORDER = ['grey', 'green', 'blue', 'indigo', 'purple', 'gold', 'mythic'];
+    var MEDAL_SHOW = [
+      { grade: 'grey', label: 'Bronze', color: '#CD7F32' },
+      { grade: 'green', label: 'Silver', color: '#C0C0C0' },
+      { grade: 'blue', label: 'Gold', color: '#FFD700' },
+      { grade: 'mythic', label: 'Mythic', color: '#7B5CFF' },
+    ];
+    onAuthChange(function (user) {
+      if (!user) return;
+      sb.from('profiles')
+        .select('chapters_read,hours_read,streak_count,series_count,friends_count,comments_count,likes_given,completed_count,night_reads,genres_count,shares_count,manga_count,ratings_count,created_at,avatar_url')
+        .eq('id', user.id).maybeSingle()
+        .then(function (res) {
+          if (!res.data) return;
+          var stats = profileToBadgeStats(res.data);
+          var earnedIds = computeEarnedBadgeIds(stats);
+          var currentTier = highestGradeEarned(earnedIds);
+
+          progressTag.textContent = 'Your progress';
+          document.querySelectorAll('#progressBadgeRow .medal').forEach(function (el, i) {
+            var m = MEDAL_SHOW[i];
+            var reached = currentTier && TIER_ORDER.indexOf(m.grade) <= TIER_ORDER.indexOf(currentTier);
+            el.classList.toggle('is-current', !!currentTier && m.grade === currentTier);
+            el.classList.toggle('is-dim', !reached);
+          });
+          document.getElementById('progressStreakVal').textContent = stats.streak_count + (stats.streak_count === 1 ? ' day' : ' days');
+          document.getElementById('progressStreakBar').style.width = Math.min(100, (stats.streak_count / 30) * 100) + '%';
+          document.getElementById('progressChaptersVal').textContent = stats.chapters_read.toLocaleString();
+          document.getElementById('progressChaptersBar').style.width = Math.min(100, (stats.chapters_read / 500) * 100) + '%';
+        });
+
+      sb.from('reading_progress')
+        .select('series_title,current_chapter,total_chapters,status,updated_at')
+        .eq('user_id', user.id).eq('status', 'reading')
+        .order('updated_at', { ascending: false }).limit(1)
+        .then(function (res) {
+          var row = res.data && res.data[0];
+          readTag.textContent = 'Your progress';
+          if (!row) {
+            document.getElementById('readLabel').textContent = 'Nothing in progress yet';
+            document.getElementById('readPct').textContent = '';
+            return;
+          }
+          var pct = row.total_chapters ? Math.round((row.current_chapter / row.total_chapters) * 100) : 0;
+          document.getElementById('readFill').style.height = pct + '%';
+          document.getElementById('readThumb').style.bottom = pct + '%';
+          document.getElementById('readLabel').textContent = row.series_title + ' — Ch. ' + row.current_chapter + (row.total_chapters ? ' of ' + row.total_chapters : '');
+          document.getElementById('readPct').textContent = row.total_chapters ? pct + '%' : '';
+        });
+    });
+  })();
 
   var notifyForm = document.getElementById('notifyForm');
   var notifyMsg = document.getElementById('notifyMsg');
@@ -991,10 +1022,17 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   var pillsEl = document.getElementById('formatPills');
+  var moodPillsEl = document.getElementById('moodPills');
   var gridEl = document.getElementById('trendingGrid');
+  var currentGenre = null;
 
   pillsEl.innerHTML = CATEGORIES.map(function (c) {
     return '<button class="format-pill' + (c.id === 'all' ? ' active' : '') + '" data-cat="' + c.id + '" type="button">' + c.label + '</button>';
+  }).join('');
+
+  var MOODS = ['All moods'].concat(GENRES);
+  moodPillsEl.innerHTML = MOODS.map(function (g) {
+    return '<button class="format-pill' + (g === 'All moods' ? ' active' : '') + '" data-genre="' + g + '" type="button">' + g + '</button>';
   }).join('');
 
   // Real AniList favourites counts, not a fabricated "X people just saved this" — cycles
@@ -1018,13 +1056,17 @@ document.addEventListener('DOMContentLoaded', function () {
     liveStatTimer = setInterval(paint, 5000);
   }
 
+  var currentCatId = 'all';
+
   function loadTrending(catId) {
+    currentCatId = catId;
     Array.prototype.forEach.call(pillsEl.children, function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-cat') === catId);
     });
     gridEl.innerHTML = skeletonGrid(10);
     var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0];
-    trendingMedia(catId === 'all' ? null : cat, 1).then(function (d) {
+    var genre = currentGenre === 'All moods' ? null : currentGenre;
+    trendingMedia(catId === 'all' ? null : cat, 1, 'TRENDING_DESC', genre).then(function (d) {
       gridEl.innerHTML = d.Page.media.slice(0, 10).map(posterCard).join('');
       updateLiveStat(d.Page.media.slice(0, 10));
     }).catch(function () {
@@ -1035,6 +1077,16 @@ document.addEventListener('DOMContentLoaded', function () {
   pillsEl.addEventListener('click', function (e) {
     var btn = e.target.closest('.format-pill');
     if (btn) loadTrending(btn.getAttribute('data-cat'));
+  });
+
+  moodPillsEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.format-pill');
+    if (!btn) return;
+    currentGenre = btn.getAttribute('data-genre');
+    Array.prototype.forEach.call(moodPillsEl.children, function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    loadTrending(currentCatId);
   });
 
   loadTrending('all');

@@ -1,3 +1,4 @@
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Terms of Service — MangaRecs</title>
 <meta name="description" content="The terms for using the MangaRecs app and website." />
@@ -5,38 +6,8 @@
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <link rel="manifest" href="/assets/manifest.json" />
 <meta name="theme-color" content="#6B46F0" />
+<link rel="stylesheet" href="/assets/base.css?v=1" />
 <style>
-  :root {
-    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
-    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
-    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
-    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
-      --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
-      --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
-      --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
-    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
-    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
-    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
-    color-scheme: light;
-  }
-  :root[data-theme="dark"] {
-    --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
-    --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
-    --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
-    --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
-    color-scheme: dark;
-  }
-  * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
     font-family: -apple-system, system-ui, 'Segoe UI', sans-serif;
@@ -51,13 +22,6 @@
   .brand svg { width: 26px; height: 26px; }
   .brand-word { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); }
-  .icon-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border-radius: 999px;
-    background: var(--bg-panel); border: 1px solid var(--line-strong);
-    color: var(--ink-muted); cursor: pointer; padding: 0;
-  }
-  .icon-btn svg { width: 17px; height: 17px; }
   main.legal { max-width: 720px; margin: 0 auto; padding: 56px 20px 60px; }
   .legal h1 { font-size: clamp(1.8rem, 4vw, 2.3rem); margin: 0 0 6px; }
   .legal .updated { color: var(--ink-faint); font-size: 0.85rem; margin-bottom: 22px; }

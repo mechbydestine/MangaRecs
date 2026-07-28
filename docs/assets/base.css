@@ -1,0 +1,95 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Shared design tokens + base reset — loaded on index, badges, features,
+   about, privacy, terms, and 404 so the browser caches this once instead
+   of re-downloading the same ~100 lines inline on every page. catalog/
+   is intentionally excluded (its own inline block has SPA-specific rules
+   too entangled to split safely without a live visual pass).
+   Page-specific <style> blocks load AFTER this file and may still add or
+   override anything here (topnav layout, hero, chapter sections, etc.).
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #F6F3FB;
+  --bg-panel: #FFFFFF;
+  --bg-sunken: #EFEAFA;
+  --ink: #16121F;
+  --ink-muted: #5B5570;
+  --ink-faint: #8A84A0;
+  --accent: #6B46F0;
+  --accent-soft: #8A63FF;
+  --accent-wash: rgba(107,70,240,0.08);
+  --line: rgba(107,70,240,0.16);
+  --line-strong: rgba(22,18,31,0.12);
+  --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
+  --rail-track: rgba(107,70,240,0.14);
+  --brand-accent: #6B46F0;
+  --brand-accent-soft: #8A63FF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0D0C11;
+    --bg-panel: #17151F;
+    --bg-sunken: #121017;
+    --ink: #F3F1F8;
+    --ink-muted: #A39DB8;
+    --ink-faint: #6D6785;
+    --accent: #7B5CFF;
+    --accent-soft: #B18CFF;
+    --accent-wash: rgba(123,92,255,0.10);
+    --line: rgba(123,92,255,0.18);
+    --line-strong: rgba(255,255,255,0.10);
+    --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
+    --rail-track: rgba(123,92,255,0.16);
+    --brand-accent: #7B5CFF;
+    --brand-accent-soft: #B18CFF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
+  --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
+  --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
+  --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
+  --shadow: 0 24px 48px -28px rgba(46,26,110,0.35); --rail-track: rgba(107,70,240,0.14);
+  --brand-accent: #6B46F0; --brand-accent-soft: #8A63FF;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
+  --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
+  --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
+  --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
+  --shadow: 0 24px 60px -24px rgba(0,0,0,0.6); --rail-track: rgba(123,92,255,0.16);
+  --brand-accent: #7B5CFF; --brand-accent-soft: #B18CFF;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+.display {
+  font-family: 'Panel Display', 'Strip Text', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+.eyebrow {
+  font-family: 'Strip Text', sans-serif;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 999px; flex: none;
+  background: var(--bg-panel); border: 1px solid var(--line-strong);
+  color: var(--ink-muted); cursor: pointer; padding: 0;
+}
+.icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+.icon-btn svg { width: 17px; height: 17px; }
+.icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
