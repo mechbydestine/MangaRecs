@@ -20,6 +20,40 @@ import StarLogo from '../components/StarLogo';
 const AUTO_MS = 6000;
 const FALLBACK_BG = '#15101B';
 
+// Lightweight direct AniList lookup for MangaRecap's hero backgrounds — a
+// bare single-Media search for just 4 fields, not the app's usual 5-source
+// cover race (utils/mangaCovers.js), because only AniList exposes bannerImage
+// (a wide promo/key-art crop with no logo baked in, unlike a portrait cover)
+// and a precomputed dominant color, and a recap needs those specifically for
+// a real color-graded hero rather than a plain portrait cover thumbnail.
+const ANILIST_ART_QUERY = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage } }';
+async function fetchAniListArt(title) {
+  try {
+    const resp = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: ANILIST_ART_QUERY, variables: { search: title } }),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    return json?.data?.Media || null;
+  } catch (_) {
+    return null;
+  }
+}
+// Converts a hex color (AniList's own precomputed cover color, or the
+// badge-tier fallback) into an rgba() string at the given alpha — used to
+// color-grade the hero scrim with the reader's own real per-title accent
+// instead of a flat neutral black wash.
+function hexToRgba(hex, alpha) {
+  let h = (hex || '').replace('#', '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const num = parseInt(h, 16);
+  if (h.length !== 6 || Number.isNaN(num)) return `rgba(6,4,14,${alpha})`;
+  const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // ── Period + stat math — ported 1:1 from the website recap (docs/catalog/
 // index.html) so the app and mangarecs.net always agree on what "this half"
 // means and how streaks/rhythm are computed from the same daily_log shape. ──
@@ -128,17 +162,29 @@ function RealCover({ uri, style }) {
   );
 }
 
-function HeroBackground({ uri }) {
+// Real art gets a slow continuous zoom (Ken Burns) instead of sitting frozen
+// behind the text — restarts fresh per hero swap since `uri` changing means
+// this whole tree remounts (new Image, new Animated.Value).
+function HeroBackground({ uri, tintColor }) {
+  const zoom = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const anim = Animated.timing(zoom, { toValue: 1.1, duration: 22000, easing: Easing.inOut(Easing.ease), useNativeDriver: true });
+    anim.start();
+    return () => anim.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {uri ? (
-        <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" />
+        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: zoom }] }]}>
+          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" />
+        </Animated.View>
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: FALLBACK_BG }]} />
       )}
       <LinearGradient
-        colors={['rgba(6,4,14,0.55)', 'rgba(6,4,14,0.15)', 'rgba(6,4,14,0.4)', 'rgba(6,4,14,0.95)']}
-        locations={[0, 0.32, 0.62, 1]}
+        colors={[hexToRgba(tintColor, 0.5), 'rgba(6,4,14,0.1)', 'rgba(6,4,14,0.34)', 'rgba(6,4,14,0.95)']}
+        locations={[0, 0.3, 0.6, 1]}
         style={StyleSheet.absoluteFill}
       />
     </View>
@@ -160,7 +206,7 @@ function IntroSlide({ data }) {
   return (
     <View style={styles.bottomAnchor}>
       <Reveal delay={0}><Text style={styles.eyebrow}>{data.period.label}</Text></Reveal>
-      <Reveal delay={120}><Text style={styles.megaTitle}>Your Reading Recap</Text></Reveal>
+      <Reveal delay={120}><Text style={styles.megaTitle}>Your MangaRecap</Text></Reveal>
       <Reveal delay={300}><Text style={styles.sub}>Let's see what kind of reader you were these past six months, @{data.username}.</Text></Reveal>
       <Reveal delay={480} style={styles.tapHintRow}>
         <Text style={styles.tapHint}>Tap to begin your journey</Text>
@@ -289,7 +335,7 @@ function FinaleSlide({ data, onDone }) {
 
   function handleShare() {
     const bits = stats.map((s) => `${s.value} ${s.label.toLowerCase()}`).join(' · ');
-    Share.share({ message: `My MangaRecs ${data.period.label} Recap — ${bits}. What's yours?` }).catch(() => {});
+    Share.share({ message: `My MangaRecap (${data.period.label}) — ${bits}. What's yours?` }).catch(() => {});
   }
 
   return (
@@ -374,34 +420,53 @@ export default function RecapScreen() {
           ratingsCount,
           favoriteGenre: profile?.favorite_genre || null,
           accentColor: topGrade ? BADGE_GRADES[topGrade].color : '#7B5CFF',
-          topRated: topRatedRow ? { title: topRatedRow.series_title, stars: topRatedRow.stars, cover: null } : null,
+          topRated: topRatedRow ? { title: topRatedRow.series_title, stars: topRatedRow.stars, cover: null, hero: null } : null,
         };
 
-        // Real "Top Series" ranking from the reader's own reading_progress
-        // rows, with a best-effort real cover lookup per title via the same
-        // MangaDex → AniList → Jikan → Comick → Kitsu pipeline the rest of
-        // the app already uses (utils/mangaCovers.js) — text-only fallback
-        // if a title doesn't resolve, never a wrong/guessed cover.
+        // Real art per title, from two sources in parallel: AniList directly
+        // (for bannerImage — a wide promo/key-art crop with no logo baked in
+        // — and its precomputed dominant color, neither of which the app's
+        // usual cover pipeline exposes) and fetchMangaInfo's 5-source race
+        // (utils/mangaCovers.js) as a portrait-cover fallback for titles
+        // AniList doesn't resolve. Text-only fallback if neither resolves —
+        // never a wrong/guessed cover.
+        async function resolveArt(title) {
+          const [al, md] = await Promise.all([
+            withTimeout(fetchAniListArt(title), 5000, null),
+            withTimeout(fetchMangaInfo(title).catch(() => null), 6000, null),
+          ]);
+          const cover = al?.coverImage?.extraLarge || al?.coverImage?.large || md?.coverUrl || null;
+          const hero = al?.bannerImage || cover || null;
+          const color = al?.coverImage?.color || null;
+          return { cover, hero, color };
+        }
+
         const topSeriesRaw = [...progressRows]
           .sort((a, b) => (b.current_chapter || 0) - (a.current_chapter || 0))
           .slice(0, 3);
         const topSeries = await Promise.all(topSeriesRaw.map(async (row) => {
-          const info = await withTimeout(fetchMangaInfo(row.series_title).catch(() => null), 6000, null);
-          return { title: row.series_title, chapters: row.current_chapter || 0, cover: info?.coverUrl || null };
+          const art = await resolveArt(row.series_title);
+          return { title: row.series_title, chapters: row.current_chapter || 0, ...art };
         }));
         if (cancelled) return;
 
         if (base.topRated) {
-          const info = await withTimeout(fetchMangaInfo(base.topRated.title).catch(() => null), 6000, null);
-          base.topRated.cover = info?.coverUrl || null;
+          const art = await resolveArt(base.topRated.title);
+          base.topRated.cover = art.cover;
+          base.topRated.hero = art.hero;
         }
         if (cancelled) return;
 
         base.topSeries = topSeries;
-        // Real cover art of the reader's own most-read series, shown as the
+        // Real art of the reader's own most-read series, shown as the
         // full-bleed background behind the story — the favorite-moment slide
-        // spotlights its own title's cover instead (see slideDefs below).
-        base.heroCover = topSeries[0]?.cover || null;
+        // spotlights its own title's art instead (see slideDefs below).
+        base.heroCover = topSeries[0]?.hero || null;
+        // The reader's own real per-title color (AniList's precomputed
+        // dominant color for their most-read cover) drives the hero scrim
+        // tint and a couple of accent touches — falls back to the badge-tier
+        // color when no real color resolved, never an arbitrary constant.
+        base.vividColor = topSeries[0]?.color || base.accentColor;
         base.archetype = pickArchetype(base);
 
         setData(base);
@@ -423,7 +488,7 @@ export default function RecapScreen() {
     if (data.topSeries.length) list.push({ key: 'topseries', bg: data.heroCover, Comp: TopSeriesSlide });
     if (data.weekday.best >= 0) list.push({ key: 'rhythm', bg: data.heroCover, Comp: RhythmSlide });
     if (data.longestStreak >= 2) list.push({ key: 'streak', bg: data.heroCover, Comp: StreakSlide });
-    if (data.topRated) list.push({ key: 'favmoment', bg: data.topRated.cover || data.heroCover, Comp: FavoriteMomentSlide });
+    if (data.topRated) list.push({ key: 'favmoment', bg: data.topRated.hero || data.heroCover, Comp: FavoriteMomentSlide });
     list.push({ key: 'personality', bg: data.heroCover, Comp: PersonalitySlide });
     list.push({ key: 'finale', bg: data.heroCover, Comp: FinaleSlide, isFinale: true });
     return list;
@@ -520,7 +585,7 @@ export default function RecapScreen() {
 
   return (
     <View style={styles.root} onLayout={(e) => setScreenW(e.nativeEvent.layout.width)}>
-      <HeroBackground uri={current.bg} />
+      <HeroBackground uri={current.bg} tintColor={data.vividColor} />
 
       <TouchableWithoutFeedback onPress={(e) => advance(e.nativeEvent.locationX < screenW * 0.3 ? -1 : 1)}>
         <View style={StyleSheet.absoluteFill} />
@@ -533,7 +598,7 @@ export default function RecapScreen() {
         <View style={styles.topBarRow}>
           <View style={styles.brandRow}>
             <StarLogo size={16} />
-            <Text style={styles.brandText}>MangaRecs</Text>
+            <Text style={styles.brandText}>MangaRecap</Text>
           </View>
           <View style={styles.topBarBtns}>
             {!current.isFinale && (
