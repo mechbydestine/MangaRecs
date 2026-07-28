@@ -41,6 +41,30 @@ async function fetchAniListArt(title) {
     return null;
   }
 }
+// Real-art fallback for the (surprisingly common while testing, and not
+// impossible for a genuinely new account) case where a reader has zero
+// reading_progress rows inside the current recap window — no personal
+// title to fetch art *for*, so there's nothing for fetchAniListArt above to
+// resolve. Grabs a real trending manga's banner instead of leaving the
+// story with no photo at all — still real art off the internet, just not
+// personalized to this specific reader the way the top-series art is.
+const TRENDING_ART_QUERY = 'query { Page(page: 1, perPage: 8) { media(sort: TRENDING_DESC, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage } } }';
+async function fetchTrendingArt() {
+  try {
+    const resp = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: TRENDING_ART_QUERY }),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const list = json?.data?.Page?.media || [];
+    const withBanner = list.find((m) => m.bannerImage);
+    return withBanner || list[0] || null;
+  } catch (_) {
+    return null;
+  }
+}
 // Converts a hex color (AniList's own precomputed cover color, or the
 // badge-tier fallback) into an rgba() string at the given alpha — used to
 // color-grade the hero scrim with the reader's own real per-title accent
@@ -162,6 +186,36 @@ function RealCover({ uri, style }) {
   );
 }
 
+// A soft pulsing glow, always present underneath everything else — the last
+// line of defense against a flat, dead-looking background on total network
+// failure (no personal art, and even the trending-art fallback didn't
+// resolve). Tinted with the reader's own real color when one's available.
+function AmbientGlow({ color }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 4200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 4200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.55] });
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Animated.View
+        style={{
+          position: 'absolute', top: '14%', left: '50%', width: 460, height: 460, marginLeft: -230,
+          borderRadius: 230, backgroundColor: color || '#7B5CFF', opacity, transform: [{ scale }],
+        }}
+      />
+    </View>
+  );
+}
+
 // Real art gets a slow continuous zoom (Ken Burns) instead of sitting frozen
 // behind the text — restarts fresh per hero swap since `uri` changing means
 // this whole tree remounts (new Image, new Animated.Value).
@@ -174,13 +228,12 @@ function HeroBackground({ uri, tintColor }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {uri ? (
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: FALLBACK_BG, overflow: 'hidden' }]} pointerEvents="none">
+      <AmbientGlow color={tintColor} />
+      {uri && (
         <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: zoom }] }]}>
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" />
         </Animated.View>
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: FALLBACK_BG }]} />
       )}
       <LinearGradient
         colors={[hexToRgba(tintColor, 0.5), 'rgba(6,4,14,0.1)', 'rgba(6,4,14,0.34)', 'rgba(6,4,14,0.95)']}
@@ -462,11 +515,18 @@ export default function RecapScreen() {
         // full-bleed background behind the story — the favorite-moment slide
         // spotlights its own title's art instead (see slideDefs below).
         base.heroCover = topSeries[0]?.hero || null;
+        base.vividColor = topSeries[0]?.color || null;
+        if (!base.heroCover) {
+          const trending = await withTimeout(fetchTrendingArt(), 5000, null);
+          base.heroCover = trending?.bannerImage || trending?.coverImage?.extraLarge || trending?.coverImage?.large || null;
+          base.vividColor = base.vividColor || trending?.coverImage?.color || null;
+        }
+        if (cancelled) return;
         // The reader's own real per-title color (AniList's precomputed
-        // dominant color for their most-read cover) drives the hero scrim
-        // tint and a couple of accent touches — falls back to the badge-tier
-        // color when no real color resolved, never an arbitrary constant.
-        base.vividColor = topSeries[0]?.color || base.accentColor;
+        // dominant color for their most-read cover, or the trending
+        // fallback's) drives the hero scrim tint — falls back to the
+        // badge-tier color only if nothing real ever resolved.
+        base.vividColor = base.vividColor || base.accentColor;
         base.archetype = pickArchetype(base);
 
         setData(base);
