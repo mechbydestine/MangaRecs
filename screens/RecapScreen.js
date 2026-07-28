@@ -12,7 +12,7 @@ import { supabase } from '../supabase';
 import { useProfile } from '../utils/ProfileContext';
 import { fetchMangaInfo } from '../utils/mangaCovers';
 import { getMergedDailyLog, localDateKey } from '../utils/readerUtils';
-import { BADGE_GRADES, profileToBadgeStats, computeEarnedBadgeIds, highestGradeEarned } from '../utils/badges';
+import { BADGE_GRADES, ALL_BADGES, profileToBadgeStats, computeEarnedBadgeIds, highestGradeEarned } from '../utils/badges';
 import { StarRatingDisplay } from '../components/StarRating';
 import { selection } from '../utils/haptics';
 import StarLogo from '../components/StarLogo';
@@ -26,7 +26,7 @@ const FALLBACK_BG = '#15101B';
 // (a wide promo/key-art crop with no logo baked in, unlike a portrait cover)
 // and a precomputed dominant color, and a recap needs those specifically for
 // a real color-graded hero rather than a plain portrait cover thumbnail.
-const ANILIST_ART_QUERY = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage } }';
+const ANILIST_ART_QUERY = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage genres } }';
 async function fetchAniListArt(title) {
   try {
     const resp = await fetch('https://graphql.anilist.co', {
@@ -131,20 +131,45 @@ function pickArchetype(d) {
 function withTimeout(promise, ms, fallback) {
   return Promise.race([promise, new Promise((res) => setTimeout(() => res(fallback), ms))]);
 }
+// Weights each resolved title's real AniList genre tags by its own chapters
+// read, split evenly across a title's own multiple genres so one heavily-
+// tagged series doesn't inflate the total beyond real reading time — same
+// weighting the website recap uses. Top 4 genres + "Other" bucket.
+function genreBreakdown(topSeries) {
+  const weights = {};
+  let total = 0;
+  topSeries.forEach((s) => {
+    const genres = (s.genres && s.genres.length) ? s.genres : [];
+    if (!genres.length) return;
+    const share = (s.chapters || 1) / genres.length;
+    genres.forEach((g) => { weights[g] = (weights[g] || 0) + share; total += share; });
+  });
+  if (!total) return [];
+  const sorted = Object.entries(weights).sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, 4);
+  const restWeight = sorted.slice(4).reduce((s, [, w]) => s + w, 0);
+  const rows = top.map(([label, w]) => ({ label, pct: Math.round((w / total) * 100) }));
+  if (restWeight > 0) rows.push({ label: 'Other', pct: Math.round((restWeight / total) * 100) });
+  return rows.filter((r) => r.pct > 0);
+}
 
 // ── Shared primitives ────────────────────────────────────────────────────
 
+// Spring-based scale+slide instead of a plain fade — a "movie title sequence"
+// pop rather than a gentle fade-in, matching Wrapped's energetic reveal style.
 function Reveal({ delay = 0, style, children }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const t = setTimeout(() => {
-      Animated.timing(anim, { toValue: 1, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180, mass: 0.9 }).start();
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] });
   return (
-    <Animated.View style={[{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }, style]}>
+    <Animated.View style={[{ opacity: anim, transform: [{ translateY }, { scale }] }, style]}>
       {children}
     </Animated.View>
   );
@@ -153,21 +178,31 @@ function Reveal({ delay = 0, style, children }) {
 // Plays once per mount — every slide is remounted fresh on transition (see
 // `key={current.key}` in the main render), so this naturally restarts on
 // every visit to the slide, matching the website recap's count-up behavior.
+// Also returns `punch`, a scale value that pops on landing instead of the
+// count-up quietly stopping — a real "hero moment" for the big number.
 function useCountUp(target, duration = 1000) {
   const [value, setValue] = useState(0);
+  const punch = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     let raf;
     const start = Date.now();
     const step = () => {
       const p = Math.min(1, (Date.now() - start) / duration);
       setValue(Math.round(target * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(step);
+      if (p < 1) {
+        raf = requestAnimationFrame(step);
+      } else {
+        Animated.sequence([
+          Animated.timing(punch, { toValue: 1.16, duration: 130, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.spring(punch, { toValue: 1, useNativeDriver: true, damping: 6, stiffness: 180 }),
+        ]).start();
+      }
     };
     raf = requestAnimationFrame(step);
     return () => raf && cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  return value;
+  return { value, punch };
 }
 
 // A real cover — the actual art of a title the reader actually read (same
@@ -216,30 +251,63 @@ function AmbientGlow({ color }) {
   );
 }
 
-// Real art gets a slow continuous zoom (Ken Burns) instead of sitting frozen
-// behind the text — restarts fresh per hero swap since `uri` changing means
-// this whole tree remounts (new Image, new Animated.Value).
-function HeroBackground({ uri, tintColor }) {
-  const zoom = useRef(new Animated.Value(1)).current;
+// The story's real art, alive instead of frozen: cycles through every one of
+// the reader's own resolved covers/banners (crossfading via expo-image's own
+// transition when the source changes), a continuous back-and-forth Ken Burns
+// zoom running independently of which image is showing, and a slow
+// "breathing" pulse on the color scrim so there's always motion and color
+// shifting even behind a single image or no image at all.
+function HeroBackground({ images, tintColor }) {
+  const pool = images && images.length ? images : [];
+  const [i, setI] = useState(0);
   useEffect(() => {
-    const anim = Animated.timing(zoom, { toValue: 1.1, duration: 22000, easing: Easing.inOut(Easing.ease), useNativeDriver: true });
+    if (pool.length < 2) return;
+    const id = setInterval(() => setI((v) => (v + 1) % pool.length), 4800);
+    return () => clearInterval(id);
+  }, [pool.length]);
+  const uri = pool[i] || null;
+
+  const zoom = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(zoom, { toValue: 1, duration: 7000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(zoom, { toValue: 0, duration: 7000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
     anim.start();
     return () => anim.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [zoom]);
+  const scale = zoom.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+
+  const breathe = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathe, { toValue: 1, duration: 5000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(breathe, { toValue: 0, duration: 5000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [breathe]);
+  const tintOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
+
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: FALLBACK_BG, overflow: 'hidden' }]} pointerEvents="none">
       <AmbientGlow color={tintColor} />
       {uri && (
-        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: zoom }] }]}>
-          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" />
+        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }] }]}>
+          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={700} cachePolicy="disk" />
         </Animated.View>
       )}
-      <LinearGradient
-        colors={[hexToRgba(tintColor, 0.5), 'rgba(6,4,14,0.1)', 'rgba(6,4,14,0.34)', 'rgba(6,4,14,0.95)']}
-        locations={[0, 0.3, 0.6, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: tintOpacity }]}>
+        <LinearGradient
+          colors={[hexToRgba(tintColor, 0.55), 'rgba(6,4,14,0.1)', 'rgba(6,4,14,0.34)', 'rgba(6,4,14,0.95)']}
+          locations={[0, 0.3, 0.6, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -270,11 +338,13 @@ function IntroSlide({ data }) {
 }
 
 function StatsSlide({ data }) {
-  const hours = useCountUp(Math.round(data.hoursRead));
+  const { value: hours, punch } = useCountUp(Math.round(data.hoursRead));
   return (
     <View style={styles.bottomAnchor}>
       <Reveal delay={0}><Text style={styles.eyebrow}>Time well spent</Text></Reveal>
-      <Reveal delay={100}><Text style={styles.bigNumber}>{hours.toLocaleString()}</Text></Reveal>
+      <Reveal delay={100}>
+        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: punch }] }]}>{hours.toLocaleString()}</Animated.Text>
+      </Reveal>
       <Reveal delay={180}><Text style={styles.label}>Hours read</Text></Reveal>
       <Reveal delay={320} style={styles.chipRow}>
         <View style={styles.chip}><Text style={styles.chipText}>{data.readingDays} days active</Text></View>
@@ -299,6 +369,42 @@ function TopSeriesSlide({ data }) {
             </View>
           </Reveal>
         ))}
+      </View>
+    </View>
+  );
+}
+
+const GENRE_COLORS = ['#E8544A', '#F0BE66', '#7BA6F5', '#B18CFF', 'rgba(255,255,255,0.4)'];
+
+function GenresSlide({ data }) {
+  const rows = data.genreBreakdown;
+  const anims = useRef(rows.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    Animated.stagger(90, anims.map((a, i) =>
+      Animated.timing(a, { toValue: rows[i].pct / 100, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false })
+    )).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <View style={styles.bottomAnchor}>
+      <Reveal delay={0}><Text style={styles.eyebrow}>Genres you explored</Text></Reveal>
+      <View style={{ marginTop: 14, width: '100%' }}>
+        {rows.map((r, i) => {
+          const width = anims[i].interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+          const color = GENRE_COLORS[i % GENRE_COLORS.length];
+          return (
+            <Reveal key={r.label} delay={100 + i * 70} style={styles.genreRow}>
+              <View style={styles.genreLabelRow}>
+                <View style={[styles.genreDot, { backgroundColor: color }]} />
+                <Text style={styles.genreLabel}>{r.label}</Text>
+                <Text style={styles.genrePct}>{r.pct}%</Text>
+              </View>
+              <View style={styles.genreTrack}>
+                <Animated.View style={[styles.genreFill, { width, backgroundColor: color }]} />
+              </View>
+            </Reveal>
+          );
+        })}
       </View>
     </View>
   );
@@ -338,14 +444,30 @@ function RhythmSlide({ data }) {
 }
 
 function StreakSlide({ data }) {
-  const streak = useCountUp(data.longestStreak);
+  const { value: streak, punch } = useCountUp(data.longestStreak);
+  const flicker = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(flicker, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(flicker, { toValue: 0, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [flicker]);
+  const flickerScale = flicker.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   return (
     <View style={styles.bottomAnchor}>
       <Reveal delay={0}><Text style={styles.eyebrow}>On a roll</Text></Reveal>
       <Reveal delay={80}>
-        <Ionicons name="flame" size={60} color={data.accentColor} style={{ marginBottom: 8 }} />
+        <Animated.View style={{ transform: [{ scale: flickerScale }], marginBottom: 8 }}>
+          <Ionicons name="flame" size={60} color={data.accentColor} />
+        </Animated.View>
       </Reveal>
-      <Reveal delay={160}><Text style={styles.bigNumber}>{streak}</Text></Reveal>
+      <Reveal delay={160}>
+        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: punch }] }]}>{streak}</Animated.Text>
+      </Reveal>
       <Reveal delay={240}><Text style={styles.label}>Day streak — your longest this half</Text></Reveal>
     </View>
   );
@@ -359,6 +481,24 @@ function FavoriteMomentSlide({ data }) {
       <Reveal delay={220}><Text style={styles.title}>{data.topRated.title}</Text></Reveal>
       <Reveal delay={320}><StarRatingDisplay avg={data.topRated.stars} showCount={false} size={24} /></Reveal>
       <Reveal delay={420}><Text style={styles.sub}>Your highest-rated read this half.</Text></Reveal>
+    </View>
+  );
+}
+
+function AchievementsSlide({ data }) {
+  const { value: count, punch } = useCountUp(data.earnedBadgeCount);
+  return (
+    <View style={styles.bottomAnchor}>
+      <Reveal delay={0}><Text style={styles.eyebrow}>Real badges, really earned</Text></Reveal>
+      <Reveal delay={100}>
+        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: punch }] }]}>{count}</Animated.Text>
+      </Reveal>
+      <Reveal delay={180}><Text style={styles.label}>of {data.totalBadgeCount} badges unlocked</Text></Reveal>
+      {data.tierLabel && (
+        <Reveal delay={320} style={[styles.tierPill, { borderColor: data.accentColor }]}>
+          <Text style={[styles.tierPillText, { color: data.accentColor }]}>{data.tierLabel} Tier</Text>
+        </Reveal>
+      )}
     </View>
   );
 }
@@ -491,7 +631,8 @@ export default function RecapScreen() {
           const cover = al?.coverImage?.extraLarge || al?.coverImage?.large || md?.coverUrl || null;
           const hero = al?.bannerImage || cover || null;
           const color = al?.coverImage?.color || null;
-          return { cover, hero, color };
+          const genres = al?.genres || [];
+          return { cover, hero, color, genres };
         }
 
         const topSeriesRaw = [...progressRows]
@@ -511,22 +652,39 @@ export default function RecapScreen() {
         if (cancelled) return;
 
         base.topSeries = topSeries;
-        // Real art of the reader's own most-read series, shown as the
-        // full-bleed background behind the story — the favorite-moment slide
-        // spotlights its own title's art instead (see slideDefs below).
-        base.heroCover = topSeries[0]?.hero || null;
-        base.vividColor = topSeries[0]?.color || null;
-        if (!base.heroCover) {
+        base.genreBreakdown = genreBreakdown(topSeries);
+
+        // Real art pool for the background — every one of the reader's own
+        // resolved covers/banners, deduped, cycling behind the whole story
+        // (not just the top-series slide) so the recap actually shows what
+        // they read on every screen, not one borrowed hero image. Falls
+        // back to a real trending manga's art only when the reader has
+        // nothing personal to show at all (e.g. zero series this half).
+        const pool = [];
+        [...topSeries, base.topRated].forEach((s) => {
+          if (s?.hero && !pool.includes(s.hero)) pool.push(s.hero);
+        });
+        let vividColor = topSeries[0]?.color || null;
+        if (!pool.length) {
           const trending = await withTimeout(fetchTrendingArt(), 5000, null);
-          base.heroCover = trending?.bannerImage || trending?.coverImage?.extraLarge || trending?.coverImage?.large || null;
-          base.vividColor = base.vividColor || trending?.coverImage?.color || null;
+          const art = trending?.bannerImage || trending?.coverImage?.extraLarge || trending?.coverImage?.large || null;
+          if (art) pool.push(art);
+          vividColor = vividColor || trending?.coverImage?.color || null;
         }
         if (cancelled) return;
+        base.heroImages = pool;
         // The reader's own real per-title color (AniList's precomputed
         // dominant color for their most-read cover, or the trending
         // fallback's) drives the hero scrim tint — falls back to the
         // badge-tier color only if nothing real ever resolved.
-        base.vividColor = base.vividColor || base.accentColor;
+        base.vividColor = vividColor || base.accentColor;
+
+        // Real achievement snapshot — how many of the app's own real badges
+        // are earned right now, and the highest medal tier among them.
+        base.earnedBadgeCount = earnedIds.size;
+        base.totalBadgeCount = ALL_BADGES.length;
+        base.tierLabel = topGrade ? BADGE_GRADES[topGrade].label : null;
+
         base.archetype = pickArchetype(base);
 
         setData(base);
@@ -542,15 +700,17 @@ export default function RecapScreen() {
   const slideDefs = useMemo(() => {
     if (!data) return [];
     const list = [
-      { key: 'intro', bg: data.heroCover, Comp: IntroSlide },
-      { key: 'stats', bg: data.heroCover, Comp: StatsSlide },
+      { key: 'intro', Comp: IntroSlide },
+      { key: 'stats', Comp: StatsSlide },
     ];
-    if (data.topSeries.length) list.push({ key: 'topseries', bg: data.heroCover, Comp: TopSeriesSlide });
-    if (data.weekday.best >= 0) list.push({ key: 'rhythm', bg: data.heroCover, Comp: RhythmSlide });
-    if (data.longestStreak >= 2) list.push({ key: 'streak', bg: data.heroCover, Comp: StreakSlide });
-    if (data.topRated) list.push({ key: 'favmoment', bg: data.topRated.hero || data.heroCover, Comp: FavoriteMomentSlide });
-    list.push({ key: 'personality', bg: data.heroCover, Comp: PersonalitySlide });
-    list.push({ key: 'finale', bg: data.heroCover, Comp: FinaleSlide, isFinale: true });
+    if (data.topSeries.length) list.push({ key: 'topseries', Comp: TopSeriesSlide });
+    if (data.genreBreakdown.length >= 2) list.push({ key: 'genres', Comp: GenresSlide });
+    if (data.weekday.best >= 0) list.push({ key: 'rhythm', Comp: RhythmSlide });
+    if (data.longestStreak >= 2) list.push({ key: 'streak', Comp: StreakSlide });
+    if (data.topRated) list.push({ key: 'favmoment', Comp: FavoriteMomentSlide });
+    if (data.earnedBadgeCount > 0) list.push({ key: 'achievements', Comp: AchievementsSlide });
+    list.push({ key: 'personality', Comp: PersonalitySlide });
+    list.push({ key: 'finale', Comp: FinaleSlide, isFinale: true });
     return list;
   }, [data]);
 
@@ -645,7 +805,7 @@ export default function RecapScreen() {
 
   return (
     <View style={styles.root} onLayout={(e) => setScreenW(e.nativeEvent.layout.width)}>
-      <HeroBackground uri={current.bg} tintColor={data.vividColor} />
+      <HeroBackground images={data.heroImages} tintColor={data.vividColor} />
 
       <TouchableWithoutFeedback onPress={(e) => advance(e.nativeEvent.locationX < screenW * 0.3 ? -1 : 1)}>
         <View style={StyleSheet.absoluteFill} />
@@ -728,6 +888,17 @@ const styles = StyleSheet.create({
   barLabelBest: { color: '#fff', fontWeight: '900' },
 
   favCover: { width: 132, height: 184, borderRadius: 10, marginBottom: 14 },
+
+  genreRow: { marginBottom: 14 },
+  genreLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  genreDot: { width: 10, height: 10, borderRadius: 5 },
+  genreLabel: { flex: 1, color: '#fff', fontWeight: '800', fontSize: 14 },
+  genrePct: { color: 'rgba(255,255,255,0.8)', fontWeight: '900', fontSize: 14 },
+  genreTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  genreFill: { height: '100%', borderRadius: 4 },
+
+  tierPill: { marginTop: 16, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+  tierPillText: { fontWeight: '800', fontSize: 14 },
 
   archetypeBadge: { width: 66, height: 66, borderRadius: 33, borderWidth: 2, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 14 },
 

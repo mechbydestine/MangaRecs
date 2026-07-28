@@ -1369,6 +1369,27 @@ export default function ReaderScreen({ route, navigation }) {
           return;
         }
 
+        // ── Explicit site pick from "Read Available" always wins — a saved
+        // resume from some earlier, different site otherwise silently
+        // overrode it below, so tapping a specific site never actually
+        // landed there if the series had been opened before.
+        if (paramResumeUrl) {
+          setCurrentUrl(paramResumeUrl);
+          if (paramResumeSite) setActiveSite(paramResumeSite);
+          if (routeTitle && routeTitle !== 'Reader') animateTitle(routeTitle, '');
+          if (resumeKey) {
+            AsyncStorage.setItem(resumeKey, JSON.stringify({
+              mode: 'webview',
+              url: paramResumeUrl,
+              site: paramResumeSite || null,
+              mangaTitle: (routeTitle && routeTitle !== 'Reader') ? routeTitle : searchQuery,
+            })).catch(() => {});
+          }
+          setReaderMode('webview');
+          setResolving(false);
+          return;
+        }
+
         const savedRaw = await AsyncStorage.getItem(SAVED_SITES_KEY);
         if (savedRaw) setSavedSites(JSON.parse(savedRaw));
 
@@ -1445,16 +1466,6 @@ export default function ReaderScreen({ route, navigation }) {
             }
           } catch (_) {}
 
-          // Step 1b: No resume key but Library passed a direct URL — use it immediately
-          if (paramResumeUrl) {
-            setCurrentUrl(paramResumeUrl);
-            if (paramResumeSite) setActiveSite(paramResumeSite);
-            if (routeTitle && routeTitle !== 'Reader') animateTitle(routeTitle, '');
-            setReaderMode('webview');
-            setResolving(false);
-            return;
-          }
-
           // Step 2: Native API reader first — direct MangaDex images, no ads,
           // no site breakage. WebView only when MangaDex has no chapters.
           try {
@@ -1526,23 +1537,17 @@ export default function ReaderScreen({ route, navigation }) {
           setResolving(false);
 
         } else {
-          // No searchQuery — use direct resume URL if Library passed one, else restore last site
-          if (paramResumeUrl) {
-            setCurrentUrl(paramResumeUrl);
-            if (paramResumeSite) setActiveSite(paramResumeSite);
-            if (routeTitle && routeTitle !== 'Reader') animateTitle(routeTitle, '');
+          // No searchQuery and no explicit site pick (handled above) — restore last site
+          const [lastRaw, defSite] = await Promise.all([
+            AsyncStorage.getItem(LAST_SITE_KEY),
+            getDefaultSite(),
+          ]);
+          if (lastRaw) {
+            const last = JSON.parse(lastRaw);
+            if (last?.url) { setCurrentUrl(last.url); setActiveSite(last); }
           } else {
-            const [lastRaw, defSite] = await Promise.all([
-              AsyncStorage.getItem(LAST_SITE_KEY),
-              getDefaultSite(),
-            ]);
-            if (lastRaw) {
-              const last = JSON.parse(lastRaw);
-              if (last?.url) { setCurrentUrl(last.url); setActiveSite(last); }
-            } else {
-              setCurrentUrl(defSite.url);
-              setActiveSite(defSite);
-            }
+            setCurrentUrl(defSite.url);
+            setActiveSite(defSite);
           }
           setReaderMode('webview');
         }

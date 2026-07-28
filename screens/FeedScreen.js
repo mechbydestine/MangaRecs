@@ -431,13 +431,21 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
       chapters: item.chapters,
     };
     if (coverUrl && !coverError && coverCardRef.current) {
+      // measureInWindow resolves async (a native bridge round-trip) — firing
+      // navigate() outside this callback let it happen before or well after
+      // the transition was ever triggered, so a quick back-and-reopen could
+      // leave a stale morph overlay covering the next screen. Navigate right
+      // after triggering (or immediately, if the measurement comes back
+      // empty) so the two are never split by an unbounded async gap.
       coverCardRef.current.measureInWindow((x, y, width, height) => {
         if (width > 0 && height > 0) {
           startCoverTransition({ uri: coverUrl, color: item.color, rect: { x, y, width, height, radius: 18 } });
         }
+        navigation.navigate('MangaDetail', navParams);
       });
+    } else {
+      navigation.navigate('MangaDetail', navParams);
     }
-    navigation.navigate('MangaDetail', navParams);
   }
 
   // Per-card interaction state — lives here, never in the parent feed array
@@ -625,8 +633,8 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
               </View>
             ))}
           </View>
-          <Text style={[styles.title, { color: cardText }]} numberOfLines={2}>{item.title}</Text>
           <TouchableOpacity onPress={openDetail} activeOpacity={0.7} hitSlop={{ top: 4, bottom: 4 }}>
+            <Text style={[styles.title, { color: cardText }]} numberOfLines={2}>{item.title}</Text>
             <Text style={[styles.description, { color: cardDesc }]} numberOfLines={2}>{item.description}</Text>
           </TouchableOpacity>
           <View style={styles.meta}>
@@ -1174,10 +1182,19 @@ export default function FeedScreen() {
   }
 
   // FeedCard calls handleLike(id, isNowLiked) — card already updated its own
-  // liked/likeCount state optimistically; we only handle persistence here.
+  // liked/likeCount state optimistically, but that lives in local card state
+  // only. The feed list uses windowSize/removeClippedSubviews, so a card can
+  // unmount and remount as the user scrolls, re-initializing from whatever
+  // `feed` still has — patch it here too so the count survives that.
   function handleLike(id, isNowLiked) {
     const item = feed.find((i) => i.id === id);
     if (isNowLiked && item?.genres?.length) trackGenreInteraction(item.genres);
+
+    setFeed((prev) => prev.map((i) => {
+      if (i.id !== id) return i;
+      const count = Math.max(0, (i.likeCount ?? i.likes ?? 0) + (isNowLiked ? 1 : -1));
+      return { ...i, liked: isNowLiked, likeCount: count, likes: count };
+    }));
 
     setLikedIds((prev) => {
       const next = new Set(prev);
@@ -1221,11 +1238,18 @@ export default function FeedScreen() {
     ]).start();
   }
 
-  // FeedCard calls handleBookmark(id, isNowSaved) — card already updated its own
-  // bookmarked state, so we only handle persistence here (no setFeed).
+  // FeedCard calls handleBookmark(id, isNowSaved) — card already updated its
+  // own bookmarked state locally, but (same reasoning as handleLike above)
+  // that's lost on remount unless it's also mirrored into `feed`.
   function handleBookmark(id, isNowSaved) {
     const item = feed.find((i) => i.id === id);
     if (!item) return;
+
+    setFeed((prev) => prev.map((i) => {
+      if (i.id !== id) return i;
+      const count = Math.max(0, (i.bookmarkCount ?? i.bookmark_count ?? 0) + (isNowSaved ? 1 : -1));
+      return { ...i, bookmarked: isNowSaved, bookmarkCount: count, bookmark_count: count };
+    }));
 
     setSavedMap((prev) => {
       const next = new Map(prev);
@@ -1263,8 +1287,18 @@ export default function FeedScreen() {
 
   async function handleShareOpen(item) {
     light();
-    // Persist the share for the live counter (matches the optimistic +1 on tap)
-    if (item?.id) supabase.rpc('increment_manga_shares', { p_manga_id: item.id, p_delta: 1 }).then(() => {});
+    // Persist the share for the live counter (matches the optimistic +1 on
+    // tap) and mirror it into `feed` — same reasoning as handleLike/
+    // handleBookmark above, the card's own local count doesn't survive a
+    // scroll-triggered unmount/remount on its own.
+    if (item?.id) {
+      supabase.rpc('increment_manga_shares', { p_manga_id: item.id, p_delta: 1 }).then(() => {});
+      setFeed((prev) => prev.map((i) => {
+        if (i.id !== item.id) return i;
+        const count = (i.shareCount ?? i.share_count ?? 0) + 1;
+        return { ...i, shareCount: count, share_count: count };
+      }));
+    }
     setActiveItem(item);
     setShareProgress(0);
     setShareChapter(1);

@@ -32,6 +32,17 @@ export default function CoverMorphOverlay() {
     return unsub;
   }, []);
 
+  // Safety net: the overlay sits at zIndex 999 above the whole app, so if its
+  // completion callback ever failed to fire (an interrupted/overlapping
+  // animation), it would otherwise cover the screen indefinitely. Never let
+  // it outlive the animation it's supposed to run (300ms + 160ms) by more
+  // than a comfortable margin.
+  useEffect(() => {
+    if (!pending) return;
+    const t = setTimeout(() => setPending(null), 1000);
+    return () => clearTimeout(t);
+  }, [pending]);
+
   if (!pending) return null;
 
   const destTop = insets.top + 14;
