@@ -12,8 +12,29 @@ function relTime(iso) {
   return d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : m > 0 ? `${m}m ago` : 'just now';
 }
 
+// `system` rows come from the app itself (the chapter-push / report-alert
+// functions), so they carry no actor_id and no data.message. There was no
+// case for them below, so every one fell through to the generic fallback and
+// rendered as a meaningless "Someone sent you a notification" — one per new
+// chapter, per followed series, inserted on a schedule. That's what filled
+// the panel with identical junk lines. Give them their real content instead.
+function systemText(d) {
+  if (d.kind === 'chapter_update') {
+    const series = d.series_title || 'a series you follow';
+    return d.chapter ? `Chapter ${d.chapter} of ${series} is out` : `New chapter of ${series}`;
+  }
+  if (d.kind === 'report_submitted') {
+    return `New report from ${d.reporter || 'a user'}${d.reason ? ` — ${d.reason}` : ''}`;
+  }
+  return d.message || null;
+}
+
+// Returns null for anything with no meaningful text to show. A notification
+// that can only say "sent you a notification" carries no information at all,
+// so it's dropped rather than rendered as filler.
 function buildNotification(row) {
-  const isMangaRec = row.type === 'badge' || (row.type === 'direct_message' && row.data?.message_type === 'recommendation');
+  const isSystem = row.type === 'system';
+  const isMangaRec = isSystem || row.type === 'badge' || (row.type === 'direct_message' && row.data?.message_type === 'recommendation');
   const name = isMangaRec ? 'MangaRecs' : (row.actor?.display_name || row.actor?.username || 'Someone');
   const d = row.data || {};
   let text = '';
@@ -25,8 +46,11 @@ function buildNotification(row) {
   else if (row.type === 'like')            text = `liked ${d.series_title || 'your series'}`;
   else if (row.type === 'badge')           text = `You unlocked "${d.badge_name || 'a badge'}" — ${d.badge_desc || ''}`;
   else if (row.type === 'direct_message')  text = d.message_type === 'recommendation' ? `sent a Rec: ${d.manga_title || 'a manga'}` : d.message_type === 'image' ? 'sent you a photo' : 'sent you a message';
-  else                                     text = d.message || 'sent you a notification';
+  else if (isSystem)                       text = systemText(d);
+  else                                     text = d.message || null;
+  if (!text) return null;
   return {
+    isChapterUpdate: isSystem && d.kind === 'chapter_update',
     id: row.id,
     friendshipId: d.friendship_id || null,
     actorId: row.actor_id || null,
@@ -72,8 +96,27 @@ export function NotificationsProvider({ children }) {
     setLoading(false);
     if (error || !data) return;
 
-    // Badge unlocks are hidden until the badge system rework ships
-    const built = data.filter((row) => row.type !== 'badge').map(buildNotification);
+    // Badge unlocks are hidden until the badge system rework ships.
+    // buildNotification returns null for rows with nothing meaningful to say —
+    // those are dropped rather than shown as filler.
+    const all = data
+      .filter((row) => row.type !== 'badge')
+      .map(buildNotification)
+      .filter(Boolean);
+
+    // One row per series for chapter updates. The checker inserts one per new
+    // chapter, so a series that dropped several at once (or while the user was
+    // away) would otherwise bury everything else under near-identical lines.
+    // `data` is ordered newest-first, so the one kept is the latest chapter.
+    const seenChapterSeries = new Set();
+    const built = all.filter((n) => {
+      if (!n.isChapterUpdate) return true;
+      const key = (n.seriesTitle || '').toLowerCase();
+      if (!key) return true;
+      if (seenChapterSeries.has(key)) return false;
+      seenChapterSeries.add(key);
+      return true;
+    });
     built.sort((a, b) => Number(a.read) - Number(b.read));
 
     if (built.length === 0) {
