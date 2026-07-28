@@ -60,6 +60,22 @@ function searchMedia(query, category, page) {
   return alFetch(gql, { search: query || undefined, page: page || 1 });
 }
 
+// Lightweight single-title art lookup for MangaRecap's hero backgrounds —
+// a bare `Media(search:)` for exactly one result with only the 4 fields a
+// background needs (coverImage's 3 sub-fields + bannerImage), instead of
+// reusing searchMedia's `Page(perPage: 50)` query built for the full catalog
+// grid (50 results × every MEDIA_FIELDS, including staff/characters/tags).
+// That heavier query was the actual reason recap art so often lost the race
+// against its own timeout — this one is a fraction of the payload and comes
+// back fast enough that a real cover reliably makes it in under the limit.
+// bannerImage is a wide promotional/key-art crop (no logo/title text baked
+// in like a cover often has) — preferred for full-bleed hero use; coverImage
+// is kept too since MangaRecap's top-series thumbnails want a portrait crop.
+function recapArtFor(title) {
+  var gql = 'query($search: String) { Media(search: $search, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage } }';
+  return alFetch(gql, { search: title }).then(function (d) { return d.Media || null; });
+}
+
 function trendingMedia(category, page, sort, genre) {
   var filters = 'sort: ' + (sort || 'TRENDING_DESC') + ', type: MANGA, isAdult: false';
   if (category && category.country) filters += ', countryOfOrigin: "' + category.country + '"';
