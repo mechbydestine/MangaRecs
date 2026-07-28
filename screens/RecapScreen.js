@@ -29,13 +29,16 @@ const DISPLAY = 'MangaRecsBrand';
 // shared photo — that alternation (deep colour → cream paper → deep colour) is
 // what gives a Wrapped-style story its rhythm. `paper` slides deliberately
 // invert to dark ink on light stock, the way a print manga volume does.
+// `art` is intentionally LOW. The art is a texture inside the colour field,
+// not the background — at 0.4+ a bright cover washes the whole theme out and
+// every slide turns into the same photo, which is exactly what it used to do.
 const THEMES = {
-  crimson: { bg: ['#4A1018', '#1C0509'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#FF5A5A', art: 0.5 },
-  navy:    { bg: ['#101F47', '#05091C'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#7FB4FF', art: 0.42 },
-  paper:   { bg: ['#F4EADA', '#DFCFB4'], ink: '#1A1208', dim: 'rgba(26,18,8,0.66)', accent: '#C4452D', art: 0.16 },
-  ember:   { bg: ['#54120B', '#1B0604'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#FF7A4A', art: 0.46 },
-  violet:  { bg: ['#2E1257', '#0E0622'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#C0A0FF', art: 0.46 },
-  teal:    { bg: ['#0A3A38', '#031412'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#5FE3D6', art: 0.42 },
+  crimson: { bg: ['#5E1220', '#16040A'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.78)', accent: '#FF5A5A', art: 0.20 },
+  navy:    { bg: ['#14265A', '#040814'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.78)', accent: '#7FB4FF', art: 0.16 },
+  paper:   { bg: ['#F6EDDE', '#DBC9AC'], ink: '#1A1208', dim: 'rgba(26,18,8,0.7)',  accent: '#C4452D', art: 0.10 },
+  ember:   { bg: ['#6B160C', '#170503'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.78)', accent: '#FF7A4A', art: 0.18 },
+  violet:  { bg: ['#3A1670', '#0B0518'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.78)', accent: '#C0A0FF', art: 0.18 },
+  teal:    { bg: ['#0C4744', '#02100F'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.78)', accent: '#5FE3D6', art: 0.16 },
 };
 
 // Lightweight direct AniList lookup for MangaRecap's hero backgrounds — a
@@ -151,6 +154,13 @@ function pickArchetype(d) {
   if (!candidates.length) candidates.push({ w: 1, icon: 'star', title: 'The Steady Reader', desc: 'Slow and steady — every story starts somewhere.' });
   candidates.sort((a, b) => b.w - a.w);
   return candidates[0];
+}
+function peakIconFor(startHour) {
+  const h = typeof startHour === 'number' ? startHour : 21;
+  if (h >= 20 || h < 5) return 'moon';
+  if (h < 12) return 'sunny';
+  if (h < 17) return 'partly-sunny';
+  return 'cloudy-night';
 }
 function withTimeout(promise, ms, fallback) {
   return Promise.race([promise, new Promise((res) => setTimeout(() => res(fallback), ms))]);
@@ -318,7 +328,7 @@ function AmbientGlow({ color }) {
     return () => anim.stop();
   }, [pulse]);
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] });
-  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.55] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.14, 0.26] });
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Animated.View
@@ -386,20 +396,22 @@ function HeroBackground({ images, tintColor, theme }) {
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={700} cachePolicy="disk" />
         </Animated.View>
       )}
-      {/* 3. Re-tint toward the theme so the art never fights the palette, and
-             keep the text end of the slide legible. */}
+      {/* 3. Re-tint hard toward the theme. These alphas are high on purpose:
+             the palette must win over the photo, and the bottom two-thirds
+             (where all the text lives) has to stay solidly legible. */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: tintOpacity }]}>
         <LinearGradient
           colors={isPaper
-            ? [hexToRgba(t.bg[0], 0.55), hexToRgba(t.bg[0], 0.8), hexToRgba(t.bg[1], 0.96)]
-            : [hexToRgba(t.bg[0], 0.5), hexToRgba(t.bg[0], 0.35), hexToRgba(t.bg[1], 0.9), hexToRgba(t.bg[1], 0.98)]}
-          locations={isPaper ? [0, 0.5, 1] : [0, 0.35, 0.78, 1]}
+            ? [hexToRgba(t.bg[0], 0.86), hexToRgba(t.bg[0], 0.93), hexToRgba(t.bg[1], 0.99)]
+            : [hexToRgba(t.bg[0], 0.7), hexToRgba(t.bg[0], 0.82), hexToRgba(t.bg[1], 0.97), hexToRgba(t.bg[1], 1)]}
+          locations={isPaper ? [0, 0.5, 1] : [0, 0.4, 0.8, 1]}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
-      {/* 4. Screentone — the texture that most reads as printed manga. Dark
-             dots on paper stock, light dots on the deep-colour slides. */}
-      <HalftoneOverlay color={isPaper ? '#1A1208' : '#ffffff'} opacity={isPaper ? 0.1 : 0.13} />
+      {/* 4. Screentone — the texture that most reads as printed manga. Fine
+             and faint: at a larger dot it stops being texture and becomes a
+             visible mesh laid over the art. */}
+      <HalftoneOverlay color={isPaper ? '#1A1208' : '#ffffff'} opacity={isPaper ? 0.07 : 0.08} size={7} dot={1} />
     </View>
   );
 }
@@ -629,7 +641,7 @@ function RhythmSlide({ data, t }) {
           return (
             <View key={label + i} style={styles.barCol}>
               <View style={[styles.barTrack, { backgroundColor: paper ? 'rgba(26,18,8,0.1)' : 'rgba(255,255,255,0.08)' }]}>
-                <Animated.View style={[styles.barFill, { height, backgroundColor: isBest ? t.accent : hexToRgba(t.ink, 0.4) }]} />
+                <Animated.View style={[styles.barFill, { height, backgroundColor: isBest ? t.accent : hexToRgba(t.ink, 0.62) }]} />
               </View>
               <Text style={[styles.barLabel, { color: isBest ? t.ink : t.dim }, isBest && styles.barLabelBest]}>{label}</Text>
             </View>
@@ -638,7 +650,9 @@ function RhythmSlide({ data, t }) {
       </View>
       {data.peakWindow && (
         <Reveal delay={360} style={[styles.peakPill, { borderColor: hexToRgba(t.accent, 0.9), backgroundColor: paper ? 'rgba(255,255,255,0.5)' : 'rgba(6,4,14,0.45)' }]}>
-          <Ionicons name="moon" size={15} color={t.accent} />
+          {/* Icon follows the actual window — a moon over a 10AM peak was
+              just wrong. Night = 8PM-5AM, morning = 5AM-noon, else day. */}
+          <Ionicons name={peakIconFor(data.peakWindow.startHour)} size={15} color={t.accent} />
           <View>
             <Text style={[styles.peakLabel, { color: t.dim }]}>Peak reading time</Text>
             <Text style={[styles.peakValue, { color: t.ink }]}>{data.peakWindow.label}</Text>

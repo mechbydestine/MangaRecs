@@ -297,16 +297,6 @@ function ProfileStack() {
         }}
       />
       <Stack.Screen
-        name="Recap"
-        component={RecapScreen}
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-          animationDuration: 280,
-          contentStyle: { backgroundColor: '#000' },
-        }}
-      />
-      <Stack.Screen
         name="Guidelines"
         component={GuidelinesScreen}
         options={{
@@ -417,6 +407,14 @@ function AppNavigator() {
     <ErrorBoundary>
     <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
+      {/* Recap lives on the ROOT stack, not inside ProfileStack — nested in the
+          tab navigator the bottom tab bar stayed on top of the story and cut
+          off the bottom of every slide (footer caption, peak-time pill). */}
+      <Stack.Screen
+        name="Recap"
+        component={RecapScreen}
+        options={{ animation: 'slide_from_bottom', contentStyle: { backgroundColor: '#000' } }}
+      />
       <Stack.Screen
         name="Reader"
         component={ReaderScreen}
