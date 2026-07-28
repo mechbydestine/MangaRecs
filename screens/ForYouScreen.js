@@ -14,7 +14,7 @@ import { useTheme } from '../utils/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
-import { syncReadOpen, updateGenreWeights, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
+import { syncLibraryWrite } from '../utils/readerUtils';
 import { showAppToast } from '../utils/appToast';
 import { MANGA_POOL } from '../utils/mangaPool';
 import { augmentPoolFromApi } from './FeedScreen';
@@ -240,7 +240,7 @@ function MoodButton({ mood, active, onPress }) {
 
 // Gmail-style swipeable row: slide right to save to Library, slide left to
 // remove ("not interested"). Tap still opens the reader.
-function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey }) {
+function RecCard({ series, reason, onDismiss, onSave, index, animKey }) {
   const { colors } = useTheme();
   const { width: screenW } = useResponsive();
   const navigation = useNavigation();
@@ -310,7 +310,10 @@ function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey })
       Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 60, bounciness: 0 }),
       Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 8 }),
     ]).start();
-    onPress();
+    // Every tap on a rec — cover, title, whole card — opens the detail
+    // screen first, same as everywhere else; reading directly from here
+    // skipped it entirely.
+    openDetail();
   }
 
   const opacity    = anim;
@@ -349,9 +352,7 @@ function RecCard({ series, reason, onPress, onDismiss, onSave, index, animKey })
           <View style={styles.recInfo}>
             {reason && <Text style={styles.recReason}>{reason}</Text>}
             <Text style={[styles.recTitle, { color: colors.text }]} numberOfLines={1}>{series.title}</Text>
-            <TouchableOpacity onPress={openDetail} hitSlop={{ top: 4, bottom: 4 }}>
-              <Text style={[styles.recDesc, { color: colors.muted }]} numberOfLines={1}>{series.description}</Text>
-            </TouchableOpacity>
+            <Text style={[styles.recDesc, { color: colors.muted }]} numberOfLines={1}>{series.description}</Text>
             <View style={styles.recMeta}>
               <Ionicons name="star" size={10} color="#FFD700" />
               <Text style={[styles.recMetaText, { color: colors.muted }]}>{series.rating}</Text>
@@ -703,7 +704,7 @@ export default function ForYouScreen() {
       const filtered = fullPool.filter((s) =>
         (s.genres || []).some((g) => g.toLowerCase().includes(activeMood.toLowerCase()))
       );
-      return sortByWeights(filtered).slice(0, 15);
+      return sortByWeights(filtered).slice(0, 10);
     }
     if (aiRecEnabled) {
       return sortByWeights(fullPool);
@@ -750,43 +751,20 @@ export default function ForYouScreen() {
     return series.readers ? `${series.readers} readers` : undefined;
   }
 
-  const openReader = useCallback((series) => {
+  // Every card tap opens the detail screen first, same as everywhere else in
+  // the app — HotCard used to jump straight into the reader instead.
+  const openHotDetail = useCallback((series) => {
     if (series.comingSoon) return;
-    // Supabase manga_pool entries use the MangaDex UUID as their `id`.
-    // Passing it directly skips the unreliable title search in ReaderScreen.
-    // Supabase search_key is also stripped of spaces (e.g. "soloLeveling") which
-    // breaks MangaDex search — always use the display title for those entries.
     const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(series.id);
-    const mangaId = series.mangaId || (isMangaDexUuid ? series.id : undefined);
-    const searchQuery = isMangaDexUuid
-      ? series.title
-      : (series.searchKey || series.title);
-    setLastRead({
+    navigation.navigate('MangaDetail', {
       title: series.title,
-      searchKey: series.title,
-      chapter: 1,
-      chapterLabel: null,
-      color: series.color || '#1A1A2E',
+      searchKey: series.searchKey || series.title,
       lang: series.lang || 'ja',
-      chapters: series.chapters || 999,
-      rating: series.rating,
+      color: series.color,
+      mangaId: series.mangaId || (isMangaDexUuid ? series.id : undefined),
+      chapters: series.chapters,
     });
-    navigation.navigate('Reader', {
-      searchQuery,
-      title: series.title,
-      chapters: series.chapters || 1,
-      mangaId,
-      lang: series.lang || 'ja',
-    });
-    if (userId) {
-      updateProfile({ currently_reading: series.title });
-      syncReadOpen(userId, series.title);
-      if (series.genres?.length) updateGenreWeights(series.genres);
-    }
-    if (series.creatorSeriesId) {
-      supabase.rpc('increment_series_views', { p_series_id: series.creatorSeriesId }).catch(() => {});
-    }
-  }, [navigation, userId, updateProfile]);
+  }, [navigation]);
 
   function onRefresh() {
     setRefreshing(true);
@@ -900,7 +878,7 @@ export default function ForYouScreen() {
           horizontal
           data={hotRightNow}
           keyExtractor={(item) => `hot-${item.id}`}
-          renderItem={({ item }) => <HotCard series={item} onPress={() => openReader(item)} />}
+          renderItem={({ item }) => <HotCard series={item} onPress={() => openHotDetail(item)} />}
           showsHorizontalScrollIndicator={false}
           style={styles.hotRow}
           contentContainerStyle={{ paddingRight: 20 }}
@@ -919,7 +897,7 @@ export default function ForYouScreen() {
               horizontal
               data={creatorSeries}
               keyExtractor={(item) => `creator-${item.id}`}
-              renderItem={({ item }) => <HotCard series={item} onPress={() => openReader(item)} />}
+              renderItem={({ item }) => <HotCard series={item} onPress={() => openHotDetail(item)} />}
               showsHorizontalScrollIndicator={false}
               style={styles.hotRow}
               contentContainerStyle={{ paddingRight: 20 }}
@@ -955,7 +933,7 @@ export default function ForYouScreen() {
               horizontal
               data={becauseYouReadRecs.filter((s) => !dismissedIds.has(s.id))}
               keyExtractor={(item) => `byr-${item.id}`}
-              renderItem={({ item }) => <HotCard series={item} onPress={() => openReader(item)} />}
+              renderItem={({ item }) => <HotCard series={item} onPress={() => openHotDetail(item)} />}
               showsHorizontalScrollIndicator={false}
               style={styles.hotRow}
               contentContainerStyle={{ paddingRight: 20 }}
@@ -985,14 +963,13 @@ export default function ForYouScreen() {
           </View>
         ) : (
           <View style={styles.recList}>
-            {displayRecs.filter((s) => !dismissedIds.has(s.id)).slice(0, 15).map((series, index) => (
+            {displayRecs.filter((s) => !dismissedIds.has(s.id)).slice(0, 10).map((series, index) => (
               <RecCard
                 key={series.id}
                 series={series}
                 animKey={recAnimKey}
                 index={index}
                 reason={buildReason(series)}
-                onPress={() => openReader(series)}
                 onDismiss={() => dismissRec(series)}
                 onSave={() => saveRec(series)}
               />

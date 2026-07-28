@@ -22,7 +22,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const POOL_SEEN_KEY = '@mangarecs/pool_seen_ids';
 const POOL_NEW_WINDOW = 14 * 24 * 60 * 60 * 1000; // 14 days
 
-export async function getRecentlyAddedIds() {
+// windowMs lets a specific surface show a shorter "still fresh" window than
+// the pool-wide 14-day default (e.g. Library's badge only lingers 10 min)
+// without changing when an entry is considered added in the first place —
+// both share the same underlying first-seen timestamps.
+export async function getRecentlyAddedIds(windowMs = POOL_NEW_WINDOW) {
   try {
     const raw = await AsyncStorage.getItem(POOL_SEEN_KEY);
     const seen = raw ? JSON.parse(raw) : null;
@@ -41,7 +45,7 @@ export async function getRecentlyAddedIds() {
       if (m.fromApi) return;
       const id = String(m.id);
       if (!(id in seen)) { seen[id] = now; dirty = true; }
-      if (seen[id] && now - seen[id] < POOL_NEW_WINDOW) fresh.add(id);
+      if (seen[id] && now - seen[id] < windowMs) fresh.add(id);
     });
     if (dirty) AsyncStorage.setItem(POOL_SEEN_KEY, JSON.stringify(seen)).catch(() => {});
     return fresh;

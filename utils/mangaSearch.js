@@ -21,6 +21,19 @@ export const ALL_SUPPORTED_SITES = [
   { name: 'Weeb Central',url: 'https://weebcentral.com',         emoji: '⚡', desc: 'Community manga browser' },
 ];
 
+// Real site favicon via Google's favicon service (same technique
+// mangarecs.net's catalog page uses) — resolves each site's actual declared
+// icon instead of guessing at /favicon.ico or using a plain emoji.
+export function siteFaviconUrl(url) {
+  if (!url) return null;
+  try {
+    const hostname = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64`;
+  } catch (_) {
+    return null;
+  }
+}
+
 /**
  * Returns the primary reading site for a given content language/type.
  * - en  → Webtoon (official LINE Webtoon)

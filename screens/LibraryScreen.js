@@ -1,5 +1,5 @@
 ﻿import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Modal,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Image,
   ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator, Platform, PanResponder,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,7 @@ import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRe
 import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
+import { ALL_SUPPORTED_SITES, siteFaviconUrl } from '../utils/mangaSearch';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { isJunkTitle } from '../utils/titleValidation';
 import { maybeAskForReview } from '../utils/reviewPrompt';
@@ -37,6 +38,22 @@ const DELETE_LABEL = {
 };
 const UPDATE_CACHE_KEY = '@mangarecs/updates_cache';
 const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+const UPDATE_DISMISSED_KEY = '@mangarecs/updates_dismissed';
+const JUST_ADDED_WINDOW = 10 * 60 * 1000; // 10 minutes — how long the "JUST ADDED" badge lingers
+
+// Resolve whatever shape a saved "site" ended up as — an object ({name,url}
+// from the normal auto-resolve flow), a bare name string (from an explicit
+// "Read Available" pick), or occasionally already a URL — into a favicon.
+function resolveSiteFavicon(site) {
+  if (!site) return null;
+  if (typeof site === 'object') return siteFaviconUrl(site.url);
+  if (typeof site === 'string') {
+    if (/^https?:\/\//i.test(site)) return siteFaviconUrl(site);
+    const match = ALL_SUPPORTED_SITES.find((s) => s.name.toLowerCase() === site.toLowerCase());
+    return match ? siteFaviconUrl(match.url) : null;
+  }
+  return null;
+}
 // v2: getMangaStatistics now returns { rating, readers } (was a bare, halved
 // rating number) and ratings are on the pool's native 0–10 scale — bump the
 // key so devices don't keep serving the old halved value for up to 7 days.
@@ -55,7 +72,7 @@ const keyOf = (s) => s.searchKey || s.title;
 
 // ── GridItem with entrance animation ──────────────────────────────────────
 
-function GridItem({ series, activeTab, onPress, onLongPress, index, opening, hasUpdate, isNewInPool, arranging, pinned, onSlotLayout, onDragStart, onDrop, widthPct }) {
+function GridItem({ series, activeTab, onPress, onLongPress, index, opening, newChapterCount, isNewInPool, siteIcon, arranging, pinned, onSlotLayout, onDragStart, onDrop, widthPct }) {
   const { colors } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   const wiggle = useRef(new Animated.Value(0)).current;
@@ -162,13 +179,19 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, has
             </View>
           )}
 
-          {hasUpdate ? (
+          {siteIcon && (
+            <View style={styles.siteFaviconBadge}>
+              <Image source={{ uri: siteIcon }} style={styles.siteFaviconImg} />
+            </View>
+          )}
+
+          {newChapterCount > 0 ? (
             <View style={[styles.updateBadge, styles.newChapterBadge]}>
               <Text style={styles.updateBadgeText}>NEW CHAPTER</Text>
             </View>
           ) : isNewInPool ? (
             <View style={styles.updateBadge}>
-              <Text style={styles.updateBadgeText}>NEW</Text>
+              <Text style={styles.updateBadgeText}>JUST ADDED</Text>
             </View>
           ) : null}
 
@@ -294,7 +317,8 @@ export default function LibraryScreen() {
   const [historyItems, setHistoryItems] = useState([]);
   const [openingId, setOpeningId] = useState(null);
   const [libLoading, setLibLoading] = useState(true);
-  const [updatesSet, setUpdatesSet] = useState(new Set());
+  const [updatesMap, setUpdatesMap] = useState(new Map());
+  const [siteIconMap, setSiteIconMap] = useState(new Map());
   const [newPoolIds, setNewPoolIds] = useState(new Set());
   const [ratingsMap, setRatingsMap] = useState({});
   const ratingsFetchedRef = useRef(new Set());
@@ -330,11 +354,12 @@ export default function LibraryScreen() {
       // Load most recently read series for Continue Reading card
       getLastRead().then((lr) => { if (lr) setLastReadEntry(lr); });
       // Which pool entries appeared recently (green NEW badge)
-      getRecentlyAddedIds().then(setNewPoolIds);
+      getRecentlyAddedIds(JUST_ADDED_WINDOW).then(setNewPoolIds);
       // Load full reading history for the Reading tab; also kick off background update check
       getReadingHistory().then((items) => {
         setHistoryItems(items);
-        checkUpdatesInBackground(items.slice(0, 8));
+        checkUpdatesInBackground(items);
+        loadSiteIcons(items);
       });
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -674,6 +699,28 @@ export default function LibraryScreen() {
     ...staticPool.filter((s) => (s.progress >= 1 || completedIds.has(s.id)) && !deletedIds.has(s.id)),
   ]);
 
+  // New-chapter / site-icon checks used to only ever see raw reading history,
+  // which — per the note above — deliberately isn't the same set shown in
+  // the Bookmarked/Completed tabs. Build the real union of what's actually
+  // visible across all three so those tabs get the same badges as Reading.
+  const bookmarkedForCheck = savedItems.filter((item) => !item.downloaded && !deletedIds.has(item.id));
+  const combinedCheckItems = [];
+  const combinedCheckKeys = new Set();
+  for (const s of [...readingSeries, ...bookmarkedForCheck, ...completedSeries]) {
+    const k = keyOf(s);
+    if (k && !combinedCheckKeys.has(k)) { combinedCheckKeys.add(k); combinedCheckItems.push(s); }
+  }
+  // A plain string, not the array itself, so this only fires when the actual
+  // set of items changes — the arrays above are freshly rebuilt every render.
+  const combinedCheckSignature = combinedCheckItems.map((s) => keyOf(s)).sort().join('|');
+
+  useEffect(() => {
+    if (!combinedCheckItems.length) return;
+    checkUpdatesInBackground(combinedCheckItems);
+    loadSiteIcons(combinedCheckItems);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [combinedCheckSignature]);
+
   // The resume cache's own searchKey can drift out of sync with its title
   // (e.g. a webview session navigating to a different manga mid-read updates
   // one but not the other) — MangaCover resolves the shown cover from
@@ -729,9 +776,9 @@ export default function LibraryScreen() {
         .sort((a, b) => a.rank - b.rank)
         .map((x) => x.s);
     }
-    if (activeTab === 'Reading' && updatesSet.size) {
-      const pinned = sorted.filter((s) => updatesSet.has(keyOf(s)));
-      if (pinned.length) sorted = [...pinned, ...sorted.filter((s) => !updatesSet.has(keyOf(s)))];
+    if ((activeTab === 'Reading' || activeTab === 'Bookmarked' || activeTab === 'Completed') && updatesMap.size) {
+      const pinned = sorted.filter((s) => updatesMap.has(keyOf(s)));
+      if (pinned.length) sorted = [...pinned, ...sorted.filter((s) => !updatesMap.has(keyOf(s)))];
     }
     return sorted;
   }
@@ -747,8 +794,8 @@ export default function LibraryScreen() {
   const filtered = genreFilter
     ? sortedForTab.filter((s) => genresFor(s).includes(genreFilter))
     : sortedForTab;
-  const pinnedCount = activeTab === 'Reading'
-    ? filtered.filter((s) => updatesSet.has(keyOf(s))).length
+  const pinnedCount = (activeTab === 'Reading' || activeTab === 'Bookmarked' || activeTab === 'Completed')
+    ? filtered.filter((s) => updatesMap.has(keyOf(s))).length
     : 0;
 
   function changeSortMode(mode) {
@@ -810,6 +857,7 @@ export default function LibraryScreen() {
 
   async function openReader(series) {
     setOpeningId(series.id);
+    dismissUpdateBadge(keyOf(series));
 
     // Offline: open directly from local filesystem without API calls
     if (series.downloadDir) {
@@ -867,45 +915,118 @@ export default function LibraryScreen() {
     setContextMenu({ visible: false, series: null, pos: null });
   }
 
+  // Caches the expensive part (MangaDex's "latest chapter" lookup) but always
+  // compares it against the item's LIVE current-chapter, so a badge clears
+  // the moment the user reads up to it instead of sticking around stale
+  // until the 2-hour cache entry happens to expire.
   async function checkUpdatesInBackground(items) {
     if (!items?.length) return;
     try {
-      const cacheRaw = await AsyncStorage.getItem(UPDATE_CACHE_KEY);
+      const [cacheRaw, dismissedRaw] = await Promise.all([
+        AsyncStorage.getItem(UPDATE_CACHE_KEY),
+        AsyncStorage.getItem(UPDATE_DISMISSED_KEY),
+      ]);
       const cache = cacheRaw ? JSON.parse(cacheRaw) : {};
+      // Chapters the user already tapped the badge for — stays suppressed
+      // until an even newer chapter comes out past this value.
+      const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : {};
       const now = Date.now();
-      const newUpdates = new Set();
+      const newCounts = new Map();
 
-      for (const s of items.slice(0, 10)) {
+      for (const s of items.slice(0, 20)) {
         const cacheKey = s.searchKey || s.title;
         if (!cacheKey) continue;
 
         const cached = cache[cacheKey];
+        let latest = null;
+
         if (cached && now - cached.ts < UPDATE_CACHE_TTL) {
-          if (cached.hasUpdate) newUpdates.add(cacheKey);
-          continue;
+          latest = cached.latest;
+        } else {
+          // Prefer the exact id the reader already resolved (resume data);
+          // fall back to a title search — same approach as the push-
+          // notification checker in utils/chapterUpdates.js — so bookmarked
+          // or never-opened-via-API series still get checked instead of
+          // being silently skipped.
+          let mangaId = cached?.mangaId || null;
+          if (!mangaId) {
+            const resumeKey = '@mangarecs/resume/' + encodeURIComponent(cacheKey);
+            const resumeRaw = await AsyncStorage.getItem(resumeKey).catch(() => null);
+            if (resumeRaw) {
+              try {
+                const resume = JSON.parse(resumeRaw);
+                if (resume?.mode === 'api' && resume?.mangaId) mangaId = resume.mangaId;
+              } catch (_) {}
+            }
+          }
+          if (!mangaId) {
+            const found = await searchMangaDex(cacheKey);
+            mangaId = found?.id || null;
+          }
+          if (mangaId) {
+            latest = await getLatestChapter(mangaId);
+            // Brief pause between API calls to respect MangaDex rate limits
+            await new Promise((r) => setTimeout(r, 500));
+          }
+          cache[cacheKey] = { ts: now, latest, mangaId };
         }
-
-        const resumeKey = '@mangarecs/resume/' + encodeURIComponent(cacheKey);
-        const resumeRaw = await AsyncStorage.getItem(resumeKey).catch(() => null);
-        if (!resumeRaw) { cache[cacheKey] = { ts: now, hasUpdate: false }; continue; }
-
-        let resume;
-        try { resume = JSON.parse(resumeRaw); } catch (_) { continue; }
-        if (resume?.mode !== 'api' || !resume?.mangaId) {
-          cache[cacheKey] = { ts: now, hasUpdate: false }; continue;
-        }
-
-        const latest = await getLatestChapter(resume.mangaId);
-        if (latest == null) { cache[cacheKey] = { ts: now, hasUpdate: false }; continue; }
 
         const currentCh = s.chapter || s.currentChapter || 1;
-        const hasUpdate = latest > currentCh;
-        cache[cacheKey] = { ts: now, hasUpdate };
-        if (hasUpdate) newUpdates.add(cacheKey);
+        const dismissedAt = dismissed[cacheKey];
+        if (latest != null && latest > currentCh && (dismissedAt == null || latest > dismissedAt)) {
+          newCounts.set(cacheKey, Math.max(1, Math.floor(latest) - Math.floor(currentCh)));
+        }
       }
 
       await AsyncStorage.setItem(UPDATE_CACHE_KEY, JSON.stringify(cache)).catch(() => {});
-      setUpdatesSet(newUpdates);
+      setUpdatesMap(newCounts);
+    } catch (_) {}
+  }
+
+  // Tapping into a series clears its "New Chapter" badge immediately, not
+  // only once actually read up to — recorded against the currently-known
+  // latest chapter so a genuinely newer chapter later still re-shows it.
+  async function dismissUpdateBadge(cacheKey) {
+    if (!cacheKey) return;
+    setUpdatesMap((prev) => {
+      if (!prev.has(cacheKey)) return prev;
+      const next = new Map(prev);
+      next.delete(cacheKey);
+      return next;
+    });
+    try {
+      const [cacheRaw, dismissedRaw] = await Promise.all([
+        AsyncStorage.getItem(UPDATE_CACHE_KEY),
+        AsyncStorage.getItem(UPDATE_DISMISSED_KEY),
+      ]);
+      const cache = cacheRaw ? JSON.parse(cacheRaw) : {};
+      const latest = cache[cacheKey]?.latest;
+      if (latest == null) return;
+      const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : {};
+      dismissed[cacheKey] = latest;
+      await AsyncStorage.setItem(UPDATE_DISMISSED_KEY, JSON.stringify(dismissed));
+    } catch (_) {}
+  }
+
+  // Which site each series was actually read from — purely local (resume
+  // data already on-device), so unlike checkUpdatesInBackground this needs
+  // no network call and can run for every item, not just a capped subset.
+  async function loadSiteIcons(items) {
+    if (!items?.length) return;
+    try {
+      const icons = new Map();
+      for (const s of items) {
+        const cacheKey = s.searchKey || s.title;
+        if (!cacheKey) continue;
+        const resumeRaw = await AsyncStorage.getItem('@mangarecs/resume/' + encodeURIComponent(cacheKey)).catch(() => null);
+        if (!resumeRaw) continue;
+        try {
+          const resume = JSON.parse(resumeRaw);
+          const favicon = resolveSiteFavicon(resume.site);
+          if (favicon) icons.set(cacheKey, favicon);
+        } catch (_) {}
+      }
+      setSiteIconMap(icons);
     } catch (_) {}
   }
 
@@ -1353,8 +1474,9 @@ export default function LibraryScreen() {
                   onPress={() => { if (!arranging) openReader(series); }}
                   onLongPress={handleLongPress}
                   opening={openingId === series.id}
-                  hasUpdate={updatesSet.has(metaKey)}
+                  newChapterCount={updatesMap.get(metaKey) || 0}
                   isNewInPool={!!pool && newPoolIds.has(String(pool.id))}
+                  siteIcon={siteIconMap.get(metaKey)}
                   arranging={arranging}
                   pinned={index < pinnedCount}
                   onSlotLayout={(i, layout) => { slotRects.current[i] = layout; }}
@@ -1604,9 +1726,11 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 0.66, borderRadius: 12, overflow: 'hidden', marginBottom: 6 },
   progressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(0,0,0,0.4)' },
   progressFill: { height: 3, backgroundColor: '#7B5CFF' },
-  savedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(123,92,255,0.25)', borderRadius: 10, padding: 3 },
-  downloadedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, padding: 3 },
-  cloudBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 },
+  savedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(123,92,255,0.25)', borderRadius: 10, padding: 3 },
+  downloadedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, padding: 3 },
+  cloudBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 },
+  siteFaviconBadge: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  siteFaviconImg: { width: 20, height: 20 },
   updateBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: '#1D9E75', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
   newChapterBadge: { backgroundColor: '#FF3B30' },
   gridItemDragging: { zIndex: 100, elevation: 8, opacity: 0.92 },

@@ -16,6 +16,7 @@ import { supabase } from './supabase';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 import { registerPushToken } from './utils/pushNotifications';
 import { ProfileProvider } from './utils/ProfileContext';
+import { ensureGuestSession } from './utils/guestSession';
 import { NotificationsProvider, useNotifications } from './utils/NotificationsContext';
 import { loadSaved as loadSavedAmbience } from './utils/ambiencePlayer';
 import { hydrateCoverCache } from './utils/mangaCovers';
@@ -530,9 +531,25 @@ export default function App() {
         const currentUpdateId = Updates.updateId || null;
         const isNewUpdate = !!currentUpdateId && currentUpdateId !== lastSeenUpdateId;
         setShowIntro(lastSeenVersion !== CURRENT_APP_VERSION || isNewUpdate);
-        const s = sessionResult?.data?.session ?? null;
+        const onboardingComplete = onboardingDone === 'true';
+        setNeedsOnboarding(!onboardingComplete);
+        let s = sessionResult?.data?.session ?? null;
+
+        // Self-healing: sign-in is only ever supposed to be "recommended", not
+        // required — a first-time user who skips or finishes onboarding gets a
+        // real (anonymous) session behind the scenes so their data still has
+        // somewhere to attach. If that one attempt silently failed (network
+        // blip, anonymous auth briefly unavailable), onboarding was still
+        // marked complete and there was no way back into that flow — every
+        // future launch landed straight on the sign-in screen with no escape.
+        // Retry it here instead of leaving anyone stranded there permanently.
+        if (!s && onboardingComplete) {
+          await ensureGuestSession().catch(() => {});
+          const retry = await supabase.auth.getSession();
+          s = retry?.data?.session ?? null;
+        }
+
         setSession(s);
-        setNeedsOnboarding(onboardingDone !== 'true');
         if (s?.user?.id) {
           registerPushToken(s.user.id);
           if (guidelinesLocal === 'true') {
@@ -594,11 +611,23 @@ export default function App() {
       } catch (_) {}
     }
 
+    // Supabase's own auto-refresh timer only runs while something is actively
+    // calling into it — on React Native it does NOT keep ticking reliably in
+    // the background, so a session (including the anonymous guest session
+    // onboarding creates) can quietly go stale while the app is backgrounded.
+    // This is the exact wiring Supabase's RN docs call for: pause the refresh
+    // loop on background, restart it on foreground, so the token is always
+    // current by the time the user is back and something tries to use it.
+    // Missing this is what caused intermittent forced-to-sign-in-again and
+    // silently-failed writes (stale token → RLS rejects the request).
+    if (AppState.currentState === 'active') supabase.auth.startAutoRefresh();
+
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (!_presenceUserId) {
         supabase.auth.getSession().then(({ data: { session } }) => { _presenceUserId = session?.user?.id ?? null; });
       }
       const isActive = nextState === 'active';
+      if (isActive) supabase.auth.startAutoRefresh(); else supabase.auth.stopAutoRefresh();
       if (_presenceUserId) {
         supabase.from('profiles').update({ online: isActive }).eq('id', _presenceUserId).then(() => {});
       }

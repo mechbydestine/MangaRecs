@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
@@ -9,23 +9,11 @@ import { MangaCover } from '../utils/mangaCovers';
 import { findPoolEntry, MANGA_POOL } from '../utils/mangaPool';
 import { searchMangaDex, getMangaFullDetails } from '../utils/mangaDexApi';
 import { syncReadOpen, updateGenreWeights, syncLibraryWrite } from '../utils/readerUtils';
-import { TOP_SITES, buildSearchUrl } from '../utils/mangaSearch';
+import { TOP_SITES, buildSearchUrl, siteFaviconUrl } from '../utils/mangaSearch';
 import { fetchAnilistCharacters } from '../utils/anilist';
 import { supabase } from '../supabase';
 
 const READ_AVAILABLE_SITES = TOP_SITES.slice(0, 5);
-
-function siteFavicon(url) {
-  try {
-    const hostname = new URL(url).hostname;
-    // Same technique mangarecs.net's catalog page uses — Google's favicon
-    // service resolves each site's actual declared icon, giving a real logo
-    // mark instead of guessing at /favicon.ico or using a plain emoji.
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64`;
-  } catch (_) {
-    return null;
-  }
-}
 
 function formatLabel(lang) {
   if (lang === 'ko') return 'Manhwa';
@@ -91,34 +79,57 @@ export default function MangaDetailScreen() {
   const bookmarkPop = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.timing(heroAnim, { toValue: 1, duration: 260, useNativeDriver: true }).start();
+    heroAnim.setValue(0);
+    const anim = Animated.timing(heroAnim, { toValue: 1, duration: 260, useNativeDriver: true });
+    anim.start();
+    // Explicitly stop rather than letting it dangle — a native-driver
+    // animation still ticking on the native side after this screen instance
+    // unmounts (e.g. a very quick back-then-reopen) is a plausible source of
+    // the reader getting stuck: it can't cleanly recover mid-navigation.
+    return () => anim.stop();
   }, []);
 
-  const loadDetails = useCallback(async () => {
-    setLoading(true);
-    let id = routeMangaId;
-    if (!id) {
-      const found = await searchMangaDex(searchKey || title, { lang });
-      id = found?.id || null;
-    }
-    if (id) {
-      const full = await getMangaFullDetails(id);
-      setDetails(full);
-    }
-    setLoading(false);
-    const stagger = (a, delay, duration = 260) => Animated.timing(a, { toValue: 1, duration, delay, useNativeDriver: true });
-    [synopsisAnim, detailsAnim, genresAnim, warningsAnim, charactersAnim, recsAnim].forEach((a) => a.setValue(0));
-    Animated.parallel([
-      stagger(synopsisAnim, 0),
-      stagger(detailsAnim, 70),
-      stagger(genresAnim, 130),
-      stagger(charactersAnim, 160),
-      stagger(warningsAnim, 190),
-      stagger(recsAnim, 220),
-    ]).start();
+  // `cancelled` is declared in the effect's own synchronous scope (not
+  // inside the async work) so the cleanup can flip it the instant this
+  // screen unmounts — including mid-fetch — rather than only after the
+  // in-flight request finally resolves. Without this, a quick back-and-
+  // reopen could let a stale response from the FIRST instance land on the
+  // SECOND one after it already started its own fetch.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setDetails(null);
+      try {
+        let id = routeMangaId;
+        if (!id) {
+          const found = await searchMangaDex(searchKey || title, { lang });
+          if (cancelled) return;
+          id = found?.id || null;
+        }
+        if (id) {
+          const full = await getMangaFullDetails(id);
+          if (cancelled) return;
+          setDetails(full);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          const stagger = (a, delay, duration = 260) => Animated.timing(a, { toValue: 1, duration, delay, useNativeDriver: true });
+          [synopsisAnim, detailsAnim, genresAnim, warningsAnim, charactersAnim, recsAnim].forEach((a) => a.setValue(0));
+          Animated.parallel([
+            stagger(synopsisAnim, 0),
+            stagger(detailsAnim, 70),
+            stagger(genresAnim, 130),
+            stagger(charactersAnim, 160),
+            stagger(warningsAnim, 190),
+            stagger(recsAnim, 220),
+          ]).start();
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [routeMangaId, searchKey, title, lang]);
-
-  useEffect(() => { loadDetails(); }, [loadDetails]);
 
   // Best-effort — a wrong/no AniList match just means an empty Characters
   // card (already conditionally hidden below), nothing else depends on this.
@@ -166,7 +177,11 @@ export default function MangaDetailScreen() {
       chapters: details?.lastChapter || routeChapters || 1,
       lang: details?.lang || lang || 'ja',
       resumeUrl: buildSearchUrl(site.url, searchKey || title),
-      resumeSite: site.name,
+      // Full {name,url,emoji} object, not just the name — ReaderScreen's
+      // `activeSite` is read as an object everywhere (site-card highlighting,
+      // download labels, site-switch detection), and a bare string there
+      // silently drops all of that.
+      resumeSite: site,
     });
     if (userId) {
       updateProfile({ currently_reading: title });
@@ -263,28 +278,25 @@ export default function MangaDetailScreen() {
           </View>
         </Animated.View>
 
-        <View style={styles.stackedActions}>
-          <TouchableOpacity style={styles.readBtn} onPress={openReader} activeOpacity={0.85}>
-            <Ionicons name="book" size={16} color="#fff" />
-            <Text style={styles.readBtnText}>Read</Text>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.readBtn} onPress={openReader} activeOpacity={0.85} accessibilityLabel="Read">
+            <Ionicons name="book" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.fullBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+            style={[styles.iconActionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
             onPress={toggleBookmark}
-            activeOpacity={0.7}>
-            <Animated.View style={[styles.fullBtnContent, { transform: [{ scale: bookmarkPop }] }]}>
-              <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={16} color={bookmarked ? '#7B5CFF' : colors.muted} />
-              <Text style={[styles.fullBtnText, { color: bookmarked ? '#7B5CFF' : colors.text }]}>{bookmarked ? 'Saved' : 'Save to Library'}</Text>
+            activeOpacity={0.7}
+            accessibilityLabel={bookmarked ? 'Saved' : 'Save to Library'}>
+            <Animated.View style={{ transform: [{ scale: bookmarkPop }] }}>
+              <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#7B5CFF' : colors.muted} />
             </Animated.View>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.fullBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+            style={[styles.iconActionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
             onPress={() => Share.share({ message: `Check out ${title} on MangaRecs — mangarecs://series/${encodeURIComponent(searchKey || title)}` })}
-            activeOpacity={0.7}>
-            <View style={styles.fullBtnContent}>
-              <Ionicons name="share-outline" size={16} color={colors.text} />
-              <Text style={[styles.fullBtnText, { color: colors.text }]}>Share</Text>
-            </View>
+            activeOpacity={0.7}
+            accessibilityLabel="Share">
+            <Ionicons name="share-outline" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -311,24 +323,25 @@ export default function MangaDetailScreen() {
               <Text style={[styles.readAvailableSub, { color: colors.muted }]}>
                 Pick a site to read this series in the app.
               </Text>
-              {READ_AVAILABLE_SITES.map((site) => {
-                const favicon = siteFavicon(site.url);
-                return (
-                  <TouchableOpacity
-                    key={site.name}
-                    style={[styles.siteRow, { borderColor: colors.border, backgroundColor: colors.background }]}
-                    onPress={() => openReaderWithSite(site)}
-                    activeOpacity={0.75}>
-                    {favicon ? (
-                      <Image source={{ uri: favicon }} style={styles.siteRowIcon} />
-                    ) : (
-                      <Text style={styles.siteRowEmoji}>{site.emoji}</Text>
-                    )}
-                    <Text style={[styles.siteRowText, { color: colors.text }]}>{site.name}</Text>
-                    <Ionicons name="chevron-forward" size={14} color={colors.muted} />
-                  </TouchableOpacity>
-                );
-              })}
+              <View style={styles.siteIconRow}>
+                {READ_AVAILABLE_SITES.map((site) => {
+                  const favicon = siteFaviconUrl(site.url);
+                  return (
+                    <TouchableOpacity
+                      key={site.name}
+                      style={[styles.siteIconBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                      onPress={() => openReaderWithSite(site)}
+                      activeOpacity={0.75}
+                      accessibilityLabel={site.name}>
+                      {favicon ? (
+                        <Image source={{ uri: favicon }} style={styles.siteIconImg} />
+                      ) : (
+                        <Text style={styles.siteIconEmoji}>{site.emoji}</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </Animated.View>
 
             {genres.length > 0 && (
@@ -445,15 +458,14 @@ const styles = StyleSheet.create({
   ratingPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,215,0,0.14)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   ratingText: { fontSize: 12, fontWeight: '800', color: '#FFD700' },
   readersText: { fontSize: 12, fontWeight: '600' },
-  stackedActions: { paddingHorizontal: 20, marginTop: 18, gap: 10 },
+  actionsRow: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 18, gap: 10 },
   readBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#7B5CFF', borderRadius: 12, paddingVertical: 14,
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#7B5CFF', borderRadius: 14, height: 52,
+    shadowColor: '#7B5CFF', shadowOpacity: 0.6, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
+    elevation: 10,
   },
-  readBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  fullBtn: { borderRadius: 12, borderWidth: 1, paddingVertical: 13 },
-  fullBtnContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  fullBtnText: { fontWeight: '700', fontSize: 14 },
+  iconActionBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, height: 52 },
   loadingWrap: { paddingVertical: 60, alignItems: 'center' },
   body: { paddingHorizontal: 20, paddingTop: 24, gap: 14 },
   card: { borderRadius: 16, borderWidth: 1, padding: 16 },
@@ -461,10 +473,10 @@ const styles = StyleSheet.create({
   synopsis: { fontSize: 14, lineHeight: 21 },
   showMore: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', marginTop: 8 },
   readAvailableSub: { fontSize: 12, lineHeight: 17, marginBottom: 12, marginTop: -4 },
-  siteRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, marginBottom: 8 },
-  siteRowEmoji: { fontSize: 16 },
-  siteRowIcon: { width: 20, height: 20, borderRadius: 4 },
-  siteRowText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  siteIconRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  siteIconBtn: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  siteIconImg: { width: 28, height: 28, borderRadius: 6 },
+  siteIconEmoji: { fontSize: 20 },
   sectionHeading: { fontSize: 14, fontWeight: '700', marginBottom: 12 },
   recsRow: { gap: 12 },
   recCard: { width: 108 },
