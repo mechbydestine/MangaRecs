@@ -434,7 +434,27 @@
   .account-email { font-size: 0.86rem; font-weight: 600; margin-bottom: 12px; word-break: break-all; }
 
   /* ── MangaRecap story ─────────────────────────────────────────────── */
-  .recap-overlay { position: fixed; inset: 0; z-index: 500; background: #000; display: flex; flex-direction: column; }
+  /* The story is a 9:16 vertical format by design. On a wide screen it used to
+     stretch edge to edge, which left the content marooned as a tiny island in
+     the middle of a 1900px void. Instead: letterbox it into a centred
+     phone-shaped frame, exactly as it appears on a device. */
+  .recap-overlay {
+    position: fixed; inset: 0; z-index: 500; background: #08050F;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .recap-frame {
+    position: relative; overflow: hidden; display: flex; flex-direction: column;
+    width: 100%; height: 100%;
+  }
+  @media (min-aspect-ratio: 10/16) {
+    .recap-frame {
+      width: auto; height: 100%; aspect-ratio: 9 / 16;
+      border-radius: 18px; box-shadow: 0 30px 90px rgba(0,0,0,0.7);
+    }
+  }
+  @media (min-width: 720px) and (min-height: 640px) {
+    .recap-frame { height: min(94vh, 900px); }
+  }
   .recap-brandmark {
     position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 25;
     display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85);
@@ -456,9 +476,26 @@
   }
   .recap-ctrl-btn svg { width: 16px; height: 16px; }
   .recap-ctrl-btn:active { transform: scale(0.9); }
+  /* Layer order matters: the frame carries the slide's colour field, the art
+     sits INSIDE it at the theme's opacity, a scrim keeps text legible, and the
+     stage is transparent on top holding only content. The stage used to carry
+     an opaque background itself, which painted straight over the art. */
+  .recap-frame { background: var(--slide-bg, #08050F); transition: background 0.5s ease; }
   .recap-stage {
     flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
     padding: 48px 28px; cursor: pointer; user-select: none; position: relative; overflow: hidden;
+    background: transparent; z-index: 5;
+  }
+  /* Scrim over the art, tinted to the slide's own theme. Alphas are high on
+     purpose — the palette must win over the photo, and the lower half (where
+     every slide's text lives) has to stay solidly legible. */
+  .recap-scrim {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg,
+      var(--scrim-a, rgba(8,5,15,0.7)) 0%,
+      var(--scrim-b, rgba(8,5,15,0.82)) 40%,
+      var(--scrim-c, rgba(8,5,15,0.97)) 80%,
+      var(--scrim-d, rgba(8,5,15,1)) 100%);
     transition: background 0.5s ease;
   }
   /* Manga screentone + film-grain texture, always present regardless of slide content */
@@ -483,27 +520,18 @@
      already displays covers — not a generated or generic character collage.
      Kept crisp (near-zero blur) so it reads as real art, not a mushy smear;
      the scrim exists purely for text legibility over the bottom third. */
+  /* Art layer only — opacity is set per-slide from the theme's `art` value,
+     and legibility is handled by .recap-scrim above it (this element used to
+     carry its own ::after scrim, which double-darkened the composition). */
   .recap-hero-bg {
-    position: absolute; inset: -6%; z-index: 0; background-size: cover; background-position: center 18%;
-    filter: saturate(1.25) contrast(1.06); transition: background-image 0.25s ease;
-    animation: recapHeroKenBurns 22s ease-in-out infinite alternate;
+    position: absolute; inset: -8%; z-index: 0; background-size: cover; background-position: center 18%;
+    filter: saturate(1.2) contrast(1.05); transition: background-image 0.6s ease, opacity 0.6s ease;
+    animation: recapHeroKenBurns 14s ease-in-out infinite alternate;
   }
   @keyframes recapHeroKenBurns {
     from { transform: scale(1); }
-    to { transform: scale(1.1); }
+    to { transform: scale(1.14); }
   }
-  /* Scrim is color-graded with the reader's own real per-title accent
-     (--hero-tint, set inline from data.motifColor — the same real AniList
-     cover color already used to drive the particle/motif theme) instead of
-     a neutral black wash, so the story reads as color-graded like real key
-     art rather than "photo with a dark filter slapped on it". */
-  .recap-hero-bg::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, var(--hero-tint, rgba(6,4,14,0.55)) 0%, rgba(6,4,14,0.1) 30%, rgba(6,4,14,0.34) 60%, rgba(6,4,14,0.94) 100%);
-  }
-  /* With real art behind it, the slide's own flat color wash is only ever a
-     fallback for the (rare) reader with zero resolvable covers — see the
-     per-slide theme composition in fillSlide(). */
   /* Genre-themed ambient particles — the real per-user "this recap looks
      different for you" signal, driven by the reader's actual favorite genre. */
   .recap-particle-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
@@ -664,7 +692,7 @@
   .recap-paper .recap-bar-fill-best { background: var(--accent, #C4452D); box-shadow: none; }
   .recap-paper .recap-bar-label { color: rgba(26,18,8,0.6); }
   .recap-paper .recap-bar-label-best { color: #1A1208; }
-  .recap-paper .recap-halftone { background-image: radial-gradient(#1A1208 1.5px, transparent 1.5px); opacity: 0.1; }
+  .recap-paper .recap-halftone { background-image: radial-gradient(#1A1208 1px, transparent 1px); opacity: 0.07; }
   .recap-paper .recap-stat-big { text-shadow: none; }
   /* Footer caption — every slide in the reference closes on one, and it's a
      surprising amount of what makes the story feel authored. */
@@ -678,20 +706,23 @@
   /* Screentone dots over the whole composition — the single texture that most
      reads as "printed manga" rather than "photo with a gradient". */
   .recap-halftone {
-    position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0.13;
-    background-image: radial-gradient(#fff 1.5px, transparent 1.5px);
-    background-size: 9px 9px;
+    position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0.08;
+    background-image: radial-gradient(#fff 1px, transparent 1px);
+    background-size: 7px 7px;
   }
-  /* Radiating impact lines behind the biggest stat moments. */
+  /* Radiating impact lines behind the biggest stat moments. Sized to the
+     FRAME (140% of its short edge), not the viewport — at 190vh on a desktop
+     monitor these became giant spokes sprawling across the whole screen.
+     Tinted from the slide's own theme so they never fight the palette. */
   .recap-speedlines-spin {
-    position: absolute; top: 50%; left: 50%; width: 190vh; height: 190vh;
-    transform: translate(-50%, -50%); border-radius: 50%; opacity: 0.16; z-index: 0; pointer-events: none;
-    background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.9) 0deg 0.5deg, transparent 0.5deg 6deg);
-    -webkit-mask-image: radial-gradient(circle, transparent 12%, #000 26%, #000 62%, transparent 78%);
-    mask-image: radial-gradient(circle, transparent 12%, #000 26%, #000 62%, transparent 78%);
+    position: absolute; top: 50%; left: 50%; width: 140%; aspect-ratio: 1;
+    transform: translate(-50%, -50%); border-radius: 50%; opacity: 0.12; z-index: 0; pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, var(--accent, rgba(255,255,255,0.9)) 0deg 0.4deg, transparent 0.4deg 7deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 14%, #000 30%, #000 58%, transparent 74%);
+    mask-image: radial-gradient(circle, transparent 14%, #000 30%, #000 58%, transparent 74%);
     animation: recapMotifSpin 60s linear infinite;
   }
-  .recap-speedlines-fire { background: repeating-conic-gradient(from 0deg, rgba(255,107,74,0.95) 0deg 0.5deg, transparent 0.5deg 6deg); opacity: 0.24; }
+  .recap-speedlines-fire { opacity: 0.18; }
 
   /* Fanned stack of the reader's own real covers on the intro. */
   .recap-cover-fan { display: flex; align-items: flex-end; justify-content: center; height: 150px; margin-bottom: 22px; }
@@ -897,7 +928,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
-<script src="/assets/anilist.js?v=6" defer></script>
+<script src="/assets/anilist.js?v=7" defer></script>
 <script src="/assets/badges.js?v=2" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
 <script>
@@ -2369,9 +2400,13 @@ document.addEventListener('DOMContentLoaded', function () {
     progressWrap.innerHTML = slides.map(function () { return '<div class="recap-seg"><i></i></div>'; }).join('');
     var segs = progressWrap.querySelectorAll('.recap-seg');
 
-    var particleCanvas = document.getElementById('recapParticles');
-    var stopParticles = particleCanvas ? initRecapParticles(particleCanvas, cardData.theme || RECAP_DEFAULT_THEME) : function () {};
+    // The genre particle canvas and the per-genre motif layer are gone: they
+    // predate the per-slide theme system and fought it (a brown speed-line
+    // motif over a navy slide). The themes now own the whole composition.
+    var stopParticles = function () {};
     var heroBg = document.getElementById('recapHeroBg');
+    var frameEl = document.querySelector('.recap-frame');
+    var scrimEl = document.getElementById('recapScrim');
     // Cycle the reader's own art behind the whole story, independent of slide
     // changes, so the background is never a single frozen image — matches the
     // app's HeroBackground. A slide that spotlights its own title (`s.bg`)
@@ -2461,12 +2496,19 @@ document.addEventListener('DOMContentLoaded', function () {
       var isPaper = t.ink !== '#FFFFFF';
       heroPinned = s.bg || null;
       var bgUrl = s.bg || heroPool[heroIdx] || cardData.heroCover;
-      stage.style.background = recapThemeCss(t);
+      // Colour field on the frame (below the art), ink vars on the stage.
+      if (frameEl) frameEl.style.setProperty('--slide-bg', recapThemeCss(t));
       stage.style.color = t.ink;
       stage.style.setProperty('--ink', t.ink);
       stage.style.setProperty('--dim', t.dim);
       stage.style.setProperty('--accent', t.accent);
       stage.classList.toggle('recap-paper', isPaper);
+      if (scrimEl) {
+        scrimEl.style.setProperty('--scrim-a', recapHexToRgba(t.bg[0], isPaper ? 0.86 : 0.70));
+        scrimEl.style.setProperty('--scrim-b', recapHexToRgba(t.bg[0], isPaper ? 0.93 : 0.82));
+        scrimEl.style.setProperty('--scrim-c', recapHexToRgba(t.bg[1], isPaper ? 0.99 : 0.97));
+        scrimEl.style.setProperty('--scrim-d', recapHexToRgba(t.bg[1], 1));
+      }
       if (heroBg) {
         if (bgUrl) {
           heroBg.style.backgroundImage = 'url(' + bgUrl + ')';
@@ -2756,20 +2798,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         app.innerHTML =
           '<div class="recap-overlay" id="recapOverlay">' +
-            '<div class="recap-progress" id="recapProgress"></div>' +
-            '<div class="recap-brandmark"><svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"/></svg>MangaRecap</div>' +
-            '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
-            '<div class="recap-controls">' +
-              '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
-              '<button class="recap-ctrl-btn" id="recapReplayBtn" type="button" aria-label="Replay from start">' + RECAP_CTRL_ICONS.replay + '</button>' +
+            '<div class="recap-frame">' +
+              '<div class="recap-progress" id="recapProgress"></div>' +
+              '<div class="recap-brandmark"><svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"/></svg>MangaRecap</div>' +
+              '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
+              '<div class="recap-controls">' +
+                '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
+                '<button class="recap-ctrl-btn" id="recapReplayBtn" type="button" aria-label="Replay from start">' + RECAP_CTRL_ICONS.replay + '</button>' +
+              '</div>' +
+              (data.heroCover ? '<div class="recap-hero-bg" id="recapHeroBg"></div>' : '') +
+              '<div class="recap-scrim" id="recapScrim" aria-hidden="true"></div>' +
+              '<div class="recap-stage" id="recapStage"></div>' +
+              '<div class="recap-halftone" aria-hidden="true"></div>' +
+              '<div class="recap-grain" aria-hidden="true"></div>' +
             '</div>' +
-            (data.heroCover ? '<div class="recap-hero-bg" id="recapHeroBg" style="background-image:url(' + data.heroCover + ');--hero-tint:' + recapHexToRgba(data.motifColor, 0.5) + ';"></div>' : '') +
-            recapMotifHtml(data.motifFamily, data.motifColor) +
-            '<div class="recap-stage" id="recapStage"></div>' +
-            '<canvas class="recap-particle-canvas" id="recapParticles" aria-hidden="true"></canvas>' +
-            '<div class="recap-halftone" aria-hidden="true"></div>' +
-            '<div class="recap-grain" aria-hidden="true"></div>' +
-            '<div class="recap-panel-corners" aria-hidden="true"><span></span><span></span><span></span><span></span></div>' +
           '</div>';
         initRecapStory(buildRecapSlides(data), data);
       });

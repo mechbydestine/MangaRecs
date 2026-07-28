@@ -250,6 +250,9 @@ export function peakReadingWindow(hourLog) {
   return {
     label: `${fmt(bestStart)} – ${fmt(bestStart + 3)}`,
     pct: Math.round((bestSum / total) * 100),
+    // Consumers pick a time-appropriate icon off this (a moon over a 10AM
+    // window read as a bug), so the raw hour has to survive formatting.
+    startHour: bestStart,
   };
 }
 
