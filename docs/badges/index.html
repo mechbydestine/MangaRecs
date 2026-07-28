@@ -1,3 +1,4 @@
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Badges — MangaRecs</title>
 <meta name="description" content="All 250 MangaRecs badges, Bronze through Mythic — what each one takes, and which ones are still secret." />
@@ -17,42 +18,8 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
 <noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=1" />
 <style>
-  :root {
-    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
-    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
-    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
-    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
-    --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
-      --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
-      --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
-      --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
-      --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
-    --ink: #16121F; --ink-muted: #5B5570; --ink-faint: #8A84A0;
-    --accent: #6B46F0; --accent-soft: #8A63FF; --accent-wash: rgba(107,70,240,0.08);
-    --line: rgba(107,70,240,0.16); --line-strong: rgba(22,18,31,0.12);
-    --shadow: 0 24px 48px -28px rgba(46,26,110,0.35);
-    color-scheme: light;
-  }
-  :root[data-theme="dark"] {
-    --bg: #0D0C11; --bg-panel: #17151F; --bg-sunken: #121017;
-    --ink: #F3F1F8; --ink-muted: #A39DB8; --ink-faint: #6D6785;
-    --accent: #7B5CFF; --accent-soft: #B18CFF; --accent-wash: rgba(123,92,255,0.10);
-    --line: rgba(123,92,255,0.18); --line-strong: rgba(255,255,255,0.10);
-    --shadow: 0 24px 60px -24px rgba(0,0,0,0.6);
-    color-scheme: dark;
-  }
-  * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
     font-family: 'Strip Text', -apple-system, system-ui, sans-serif;
@@ -119,10 +86,6 @@
 
   .hidden-note { text-align: center; font-size: 0.84rem; color: var(--ink-faint); margin: 8px 0 56px; }
 
-  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; flex: none; background: var(--bg-panel); border: 1px solid var(--line-strong); color: var(--ink-muted); cursor: pointer; padding: 0; }
-  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
-  .icon-btn svg { width: 17px; height: 17px; }
-  .icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
   .account-wrap { position: relative; flex: none; }
   .account-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 260px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; display: none; z-index: 60; text-align: left; }
   .account-panel.open { display: block; }

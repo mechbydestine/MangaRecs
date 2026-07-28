@@ -59,8 +59,12 @@ function initHeroFX() {
   var markWrap = document.querySelector('.hero-mark-wrap');
   if (markWrap && !REDUCED_MOTION) {
     window.addEventListener('scroll', function () {
-      var y = window.scrollY || 0;
-      markWrap.style.transform = 'translateY(' + Math.min(y * 0.12, 40) + 'px)';
+      var y = Math.min(window.scrollY || 0, 340);
+      var depth = y / 340;
+      var ty = Math.min(y * 0.12, 40);
+      var scale = 1 - depth * 0.08;
+      var rotate = depth * 3;
+      markWrap.style.transform = 'translateY(' + ty + 'px) scale(' + scale.toFixed(3) + ') rotate(' + rotate.toFixed(2) + 'deg)';
     }, { passive: true });
   }
 }
@@ -363,6 +367,14 @@ function initMascotEmptyStates() {
   }
 }
 
+// ── Offline shell for the marketing site + catalog (see /sw.js) ─────────
+function initServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   initAmbientFX();
   initSkipLink();
@@ -379,4 +391,5 @@ document.addEventListener('DOMContentLoaded', function () {
   initNotifyCheckmark();
   initMascotSlots();
   initMascotEmptyStates();
+  initServiceWorker();
 });
