@@ -209,7 +209,15 @@ export default function FriendProfileScreen({ route }) {
     if (iFollow) {
       setIFollow(false);
       setFollowersList(prev => prev.filter(p => p.id !== myId));
-      await supabase.from('followers').delete().eq('follower_id', myId).eq('followed_id', id);
+      const { error } = await supabase.from('followers').delete().eq('follower_id', myId).eq('followed_id', id);
+      // The follow path below already rolls back on failure; this one didn't,
+      // so a failed delete (offline, RLS) left the button reading "Follow"
+      // while the row was still there — tapping it again then hit the unique
+      // constraint and silently did nothing, stranding the button wrong.
+      if (error) {
+        setIFollow(true);
+        loadFollowers();
+      }
     } else {
       setIFollow(true);
       const { error } = await supabase.from('followers').insert({ follower_id: myId, followed_id: id });
