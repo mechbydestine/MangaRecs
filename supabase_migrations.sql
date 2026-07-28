@@ -1794,3 +1794,54 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_streak_reminder_sent DATE;
 --   );
 --   $$
 -- );
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 61. Per-hour reading log (MangaRecap "peak reading time") -------------------
+-- daily_log only ever stored hours per CALENDAR DAY, so there was no way to
+-- answer "when during the day do you actually read?" — the recap's peak-time
+-- slide had no data behind it and couldn't be backfilled. This adds a parallel
+-- hour-of-day histogram: { "0".."23": cumulativeHours }, in the reader's own
+-- LOCAL time (bucketed device-side, same reasoning as localDateKey — a UTC
+-- bucket would misattribute late-night reads for UTC+ users, which is exactly
+-- the audience this stat is about).
+--
+-- Deliberately NOT used to recompute hours_read/streak_count — daily_log stays
+-- the single source of truth for those. This is display-only, so a bad hour
+-- bucket can never inflate a real stat or a badge.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS hour_log JSONB DEFAULT '{}';
+
+CREATE OR REPLACE FUNCTION merge_hour_log(p_log JSONB)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid    UUID := auth.uid();
+  merged JSONB;
+  rec    RECORD;
+  v      NUMERIC;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
+  IF p_log IS NULL OR jsonb_typeof(p_log) <> 'object' THEN RAISE EXCEPTION 'invalid log'; END IF;
+
+  SELECT COALESCE(hour_log, '{}'::jsonb) INTO merged FROM profiles WHERE id = uid;
+
+  FOR rec IN SELECT key, value FROM jsonb_each(p_log) LOOP
+    -- keys must be a bare hour-of-day, 0..23
+    CONTINUE WHEN rec.key !~ '^([0-9]|1[0-9]|2[0-3])$';
+    BEGIN
+      -- 8760 = one full year of clock hours; a legitimate 6-month bucket can
+      -- hold a few hundred, so this only rejects garbage, never real reading.
+      v := LEAST(GREATEST((rec.value #>> '{}')::numeric, 0), 8760);
+    EXCEPTION WHEN others THEN CONTINUE; END;
+    -- per-bucket max, mirroring merge_daily_log's multi-device merge: never
+    -- loses a device's history and never double-counts the same hours twice.
+    IF merged ? rec.key THEN
+      v := GREATEST(v, LEAST((merged ->> rec.key)::numeric, 8760));
+    END IF;
+    merged := jsonb_set(merged, ARRAY[rec.key], to_jsonb(round(v, 3)));
+  END LOOP;
+
+  UPDATE profiles SET hour_log = merged WHERE id = uid;
+  RETURN merged;
+END; $$;
+GRANT EXECUTE ON FUNCTION merge_hour_log(JSONB) TO authenticated;
+-- hour_log is intentionally absent from the GRANT UPDATE list in 36f, so this
+-- RPC is the only write path — same lockdown daily_log has.
