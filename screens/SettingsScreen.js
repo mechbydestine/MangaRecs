@@ -12,6 +12,7 @@ import { AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsfwCache } from '
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
 import { clearBadgeCache } from '../utils/badgeEngine';
 import { clearAllLocalDataAndSignOut } from '../utils/accountSession';
+import { registerPushToken } from '../utils/pushNotifications';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
@@ -378,6 +379,7 @@ export default function SettingsScreen({ navigation }) {
 
   async function toggleNotif(key) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const wasAllOff = Object.values(notifs).every((v) => !v);
     const updated = { ...notifs, [key]: !notifs[key] };
     setNotifs(updated);
     await AsyncStorage.setItem(NOTIFS_KEY, JSON.stringify(updated));
@@ -387,6 +389,11 @@ export default function SettingsScreen({ navigation }) {
         const patch = { notification_prefs: updated };
         if (allOff) patch.push_token = null;
         supabase.from('profiles').update(patch).eq('id', session.user.id).then(() => {});
+        // Turning the last toggle off clears push_token above. Turning one
+        // back on has to re-register it — otherwise the row stays tokenless
+        // and no push can be delivered no matter what the prefs say, until
+        // the next cold start happens to call registerPushToken from App.js.
+        if (wasAllOff && !allOff) registerPushToken(session.user.id);
       }
     });
   }
