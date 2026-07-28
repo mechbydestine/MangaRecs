@@ -313,6 +313,38 @@ export default function ProfileScreen() {
   const settingsRot = useRef(new Animated.Value(0)).current;
   const settingsSpin = settingsRot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
 
+  // Same failsafe MangaDetailScreen uses, for the same reason: every animated
+  // section here starts at opacity 0 and is revealed only by its entrance
+  // animation, so a native-driven value left stranded at 0 renders as blank
+  // space rather than a cosmetic glitch. Force-commit the visible state as a
+  // backstop. Idempotent — a no-op if the animation finished normally.
+  const entranceFailsafe = useRef(null);
+  function armProfileEntranceFailsafe(anims) {
+    if (entranceFailsafe.current) clearTimeout(entranceFailsafe.current);
+    // Longest delay here is creatorAnim (280 + up to 12*12) + 260 duration.
+    entranceFailsafe.current = setTimeout(() => {
+      anims.forEach((a) => a.setValue(1));
+    }, 1200);
+  }
+  useEffect(() => () => { if (entranceFailsafe.current) clearTimeout(entranceFailsafe.current); }, []);
+
+  // The focus effect below resets all 12 badge anims to 0, then animates only
+  // the first `earnedBadgesLenRef.current` of them back in. On a cold start
+  // that count is still 0 — `profile` (and therefore earnedBadges) hasn't
+  // loaded when focus fires — so nothing gets animated, and the badges then
+  // render at opacity 0 and stay invisible until the user navigates away and
+  // back. Run the stagger again once the real count actually arrives.
+  useEffect(() => {
+    const count = earnedBadges.length;
+    if (!count) return;
+    Animated.parallel(
+      badgeAnims.slice(0, count).map((a, i) =>
+        Animated.timing(a, { toValue: 1, duration: 300, delay: i * 35, useNativeDriver: true })
+      )
+    ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [earnedBadges.length]);
+
   // ── Load local images + favorites on mount ───────────────────────────────
 
   useEffect(() => {
@@ -580,6 +612,7 @@ export default function ProfileScreen() {
         ...badgeAnims.slice(0, badgeCount).map((a, i) => t(a, 240 + i * 35, 300)),
         t(creatorAnim, 280 + Math.min(badgeCount, 12) * 12, 260),
       ]).start();
+      armProfileEntranceFailsafe(all);
     }, [])
   );
 
