@@ -20,6 +20,23 @@ import StarLogo from '../components/StarLogo';
 
 const AUTO_MS = 6000;
 const FALLBACK_BG = '#15101B';
+// The brand display face, already loaded app-wide in App.js. Every headline
+// and stat number in the recap uses it — system-bold was what made the whole
+// thing read as a dashboard instead of a designed spread.
+const DISPLAY = 'MangaRecsBrand';
+
+// Each slide is its own colour composition rather than text floating over one
+// shared photo — that alternation (deep colour → cream paper → deep colour) is
+// what gives a Wrapped-style story its rhythm. `paper` slides deliberately
+// invert to dark ink on light stock, the way a print manga volume does.
+const THEMES = {
+  crimson: { bg: ['#4A1018', '#1C0509'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#FF5A5A', art: 0.5 },
+  navy:    { bg: ['#101F47', '#05091C'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#7FB4FF', art: 0.42 },
+  paper:   { bg: ['#F4EADA', '#DFCFB4'], ink: '#1A1208', dim: 'rgba(26,18,8,0.66)', accent: '#C4452D', art: 0.16 },
+  ember:   { bg: ['#54120B', '#1B0604'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#FF7A4A', art: 0.46 },
+  violet:  { bg: ['#2E1257', '#0E0622'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#C0A0FF', art: 0.46 },
+  teal:    { bg: ['#0A3A38', '#031412'], ink: '#FFFFFF', dim: 'rgba(255,255,255,0.72)', accent: '#5FE3D6', art: 0.42 },
+};
 
 // Lightweight direct AniList lookup for MangaRecap's hero backgrounds — a
 // bare single-Media search for just 4 fields, not the app's usual 5-source
@@ -314,13 +331,13 @@ function AmbientGlow({ color }) {
   );
 }
 
-// The story's real art, alive instead of frozen: cycles through every one of
-// the reader's own resolved covers/banners (crossfading via expo-image's own
-// transition when the source changes), a continuous back-and-forth Ken Burns
-// zoom running independently of which image is showing, and a slow
-// "breathing" pulse on the color scrim so there's always motion and color
-// shifting even behind a single image or no image at all.
-function HeroBackground({ images, tintColor }) {
+// Each slide's own colour composition. The reader's real art still moves
+// underneath (cycling covers, Ken Burns drift), but it now sits INSIDE a
+// designed colour field at a per-theme opacity rather than being the whole
+// background — so a cream "paper" slide stays paper, and a crimson slide
+// stays crimson, instead of every slide looking like the same photo.
+function HeroBackground({ images, tintColor, theme }) {
+  const t = theme || THEMES.violet;
   const pool = images && images.length ? images : [];
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -356,24 +373,33 @@ function HeroBackground({ images, tintColor }) {
   }, [breathe]);
   const tintOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
 
+  const isPaper = t.ink !== '#FFFFFF';
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: FALLBACK_BG, overflow: 'hidden' }]} pointerEvents="none">
-      <AmbientGlow color={tintColor} />
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: t.bg[1], overflow: 'hidden' }]} pointerEvents="none">
+      {/* 1. The slide's own colour field — the base everything sits on. */}
+      <LinearGradient colors={t.bg} style={StyleSheet.absoluteFill} />
+      {!isPaper && <AmbientGlow color={t.accent} />}
+      {/* 2. The reader's real art, held at the theme's opacity so it enriches
+             the colour field instead of replacing it. */}
       {uri && (
-        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }] }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }], opacity: t.art }]}>
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={700} cachePolicy="disk" />
         </Animated.View>
       )}
+      {/* 3. Re-tint toward the theme so the art never fights the palette, and
+             keep the text end of the slide legible. */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: tintOpacity }]}>
         <LinearGradient
-          colors={[hexToRgba(tintColor, 0.55), 'rgba(6,4,14,0.1)', 'rgba(6,4,14,0.34)', 'rgba(6,4,14,0.95)']}
-          locations={[0, 0.3, 0.6, 1]}
+          colors={isPaper
+            ? [hexToRgba(t.bg[0], 0.55), hexToRgba(t.bg[0], 0.8), hexToRgba(t.bg[1], 0.96)]
+            : [hexToRgba(t.bg[0], 0.5), hexToRgba(t.bg[0], 0.35), hexToRgba(t.bg[1], 0.9), hexToRgba(t.bg[1], 0.98)]}
+          locations={isPaper ? [0, 0.5, 1] : [0, 0.35, 0.78, 1]}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
-      {/* Screentone over the whole composition — the single texture that most
-          reads as "printed manga" rather than "photo with a gradient". */}
-      <HalftoneOverlay opacity={0.13} />
+      {/* 4. Screentone — the texture that most reads as printed manga. Dark
+             dots on paper stock, light dots on the deep-colour slides. */}
+      <HalftoneOverlay color={isPaper ? '#1A1208' : '#ffffff'} opacity={isPaper ? 0.1 : 0.13} />
     </View>
   );
 }
@@ -432,18 +458,18 @@ function CoverFan({ covers, tint }) {
 
 // ── Slides ───────────────────────────────────────────────────────────────
 
-function IntroSlide({ data }) {
+function IntroSlide({ data, t }) {
   return (
     <View style={styles.bottomAnchor}>
       <Reveal delay={0} style={{ alignItems: 'center' }}>
-        <CoverFan covers={data.topSeries.map((s) => s.cover)} tint={data.vividColor} />
+        <CoverFan covers={data.topSeries.map((s) => s.cover)} tint={t.accent} />
       </Reveal>
-      <Reveal delay={160}><Text style={styles.eyebrow}>{data.period.label}</Text></Reveal>
-      <Reveal delay={260}><Text style={styles.megaTitle}>Your{'\n'}MangaRecap</Text></Reveal>
-      <Reveal delay={420}><Text style={styles.subLeft}>Six months of reading, wrapped. Let's get into it, @{data.username}.</Text></Reveal>
+      <Reveal delay={160}><Text style={[styles.eyebrow, { color: t.dim }]}>{data.period.label}</Text></Reveal>
+      <Reveal delay={260}><Text style={[styles.megaTitle, { color: t.ink }]}>Your{'\n'}MangaRecap</Text></Reveal>
+      <Reveal delay={420}><Text style={[styles.subLeft, { color: t.dim }]}>Six months of reading, wrapped. Let's get into it, @{data.username}.</Text></Reveal>
       <Reveal delay={560} style={styles.tapHintRow}>
-        <Text style={styles.tapHint}>Tap to begin your journey</Text>
-        <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.75)" />
+        <Text style={[styles.tapHint, { color: t.dim }]}>Tap to begin your journey</Text>
+        <Ionicons name="chevron-down" size={16} color={t.dim} />
       </Reveal>
     </View>
   );
@@ -452,47 +478,55 @@ function IntroSlide({ data }) {
 // The reference's "you dove into N chapters across N series spent N hours"
 // beat — three real numbers stacked as one falling headline, each landing
 // with its own punch, over rotating speed lines.
-function StatsSlide({ data }) {
+function StatsSlide({ data, t }) {
   const chapters = useCountUp(data.chaptersInPeriod, 1100);
   const series = useCountUp(data.seriesTouched, 900);
   const hours = useCountUp(Math.round(data.hoursRead), 1300);
   return (
     <View style={styles.bottomAnchor}>
-      <RotatingSpeedLines color={data.vividColor} opacity={0.16} />
-      <Reveal delay={0}><Text style={styles.eyebrow}>You dove into</Text></Reveal>
+      <RotatingSpeedLines color={t.accent} opacity={0.16} />
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>You dove into</Text></Reveal>
       <Reveal delay={90}>
-        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: chapters.punch }] }]}>
+        <Animated.Text style={[styles.bigNumber, { color: t.ink, transform: [{ scale: chapters.punch }] }]}>
           {chapters.value.toLocaleString()}
         </Animated.Text>
       </Reveal>
-      <Reveal delay={170}><Text style={styles.label}>Chapters</Text></Reveal>
+      <Reveal delay={170}><Text style={[styles.label, { color: t.dim }]}>Chapters</Text></Reveal>
       <Reveal delay={300} style={styles.statSplitRow}>
         <View style={styles.statSplitCell}>
-          <Animated.Text style={[styles.midNumber, { transform: [{ scale: series.punch }] }]}>{series.value}</Animated.Text>
-          <Text style={styles.label}>Series</Text>
+          <Animated.Text style={[styles.midNumber, { color: t.ink, transform: [{ scale: series.punch }] }]}>{series.value}</Animated.Text>
+          <Text style={[styles.label, { color: t.dim }]}>Series</Text>
         </View>
-        <View style={styles.statSplitDivider} />
+        <View style={[styles.statSplitDivider, { backgroundColor: t.dim, opacity: 0.4 }]} />
         <View style={styles.statSplitCell}>
-          <Animated.Text style={[styles.midNumber, { transform: [{ scale: hours.punch }] }]}>{hours.value}</Animated.Text>
-          <Text style={styles.label}>Hours</Text>
+          <Animated.Text style={[styles.midNumber, { color: t.ink, transform: [{ scale: hours.punch }] }]}>{hours.value}</Animated.Text>
+          <Text style={[styles.label, { color: t.dim }]}>Hours</Text>
         </View>
       </Reveal>
     </View>
   );
 }
 
-function TopSeriesSlide({ data }) {
+function TopSeriesSlide({ data, t }) {
+  const paper = t.ink !== '#FFFFFF';
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Your top series</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Your top series</Text></Reveal>
       <View style={{ marginTop: 14, width: '100%' }}>
         {data.topSeries.map((s, i) => (
-          <Reveal key={s.title + i} delay={140 + i * 110} style={styles.topSeriesRow}>
-            <Text style={styles.topSeriesRank}>{i + 1}</Text>
+          <Reveal
+            key={s.title + i}
+            delay={140 + i * 110}
+            style={[styles.topSeriesRow, {
+              backgroundColor: paper ? 'rgba(26,18,8,0.06)' : 'rgba(255,255,255,0.09)',
+              borderColor: paper ? 'rgba(26,18,8,0.14)' : 'rgba(255,255,255,0.1)',
+            }]}
+          >
+            <Text style={[styles.topSeriesRank, { color: t.accent }]}>{i + 1}</Text>
             <RealCover uri={s.cover} style={styles.topSeriesCover} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.topSeriesTitle} numberOfLines={1}>{s.title}</Text>
-              <Text style={styles.topSeriesChapters}>{s.chapters} {s.chapters === 1 ? 'chapter' : 'chapters'}</Text>
+              <Text style={[styles.topSeriesTitle, { color: t.ink }]} numberOfLines={1}>{s.title}</Text>
+              <Text style={[styles.topSeriesChapters, { color: t.dim }]}>{s.chapters} {s.chapters === 1 ? 'chapter' : 'chapters'}</Text>
             </View>
           </Reveal>
         ))}
@@ -501,7 +535,7 @@ function TopSeriesSlide({ data }) {
   );
 }
 
-const GENRE_COLORS = ['#E8544A', '#F0BE66', '#7BA6F5', '#B18CFF', 'rgba(255,255,255,0.4)'];
+const GENRE_COLORS = ['#E8544A', '#E09A2B', '#4C7FD4', '#8B5CF6', '#7A8A99'];
 // Ionicons standing in for each of AniList's real genre names, so the genre
 // list reads as iconography rather than a plain bar chart.
 const GENRE_ICONS = {
@@ -514,33 +548,31 @@ const GENRE_ICONS = {
 
 // Real characters out of the reader's own top series, in a manga-panel grid —
 // the "Favorite Moments" beat. Each tile is an official AniList character
-// portrait, captioned with the series it came from.
-function FavoriteMomentsSlide({ data }) {
+// portrait, captioned with the character's name.
+function FavoriteMomentsSlide({ data, t }) {
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Faces of your half</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Favorite moments</Text></Reveal>
       <View style={styles.faceGrid}>
         {data.characters.map((c, i) => (
           <Reveal key={c.image} delay={110 + i * 85} style={styles.faceCell}>
-            <View style={[styles.facePanel, { borderColor: hexToRgba(data.vividColor, 0.8) }]}>
+            <View style={[styles.facePanel, { borderColor: hexToRgba(t.accent, 0.85) }]}>
               <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} cachePolicy="disk" />
-              <LinearGradient
-                colors={['transparent', 'rgba(6,4,14,0.9)']}
-                style={styles.faceCaptionWrap}
-              >
+              <LinearGradient colors={['transparent', 'rgba(6,4,14,0.92)']} style={styles.faceCaptionWrap}>
                 <Text style={styles.faceName} numberOfLines={1}>{c.name}</Text>
               </LinearGradient>
             </View>
           </Reveal>
         ))}
       </View>
-      <Reveal delay={620}><Text style={styles.subLeft}>The characters you spent your half with.</Text></Reveal>
+      <Reveal delay={620}><Text style={[styles.subLeft, { color: t.dim }]}>The characters you spent your half with.</Text></Reveal>
     </View>
   );
 }
 
-function GenresSlide({ data }) {
+function GenresSlide({ data, t }) {
   const rows = data.genreBreakdown;
+  const paper = t.ink !== '#FFFFFF';
   const anims = useRef(rows.map(() => new Animated.Value(0))).current;
   useEffect(() => {
     Animated.stagger(90, anims.map((a, i) =>
@@ -550,7 +582,7 @@ function GenresSlide({ data }) {
   }, []);
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Genres you explored</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Genres you explored</Text></Reveal>
       <View style={{ marginTop: 14, width: '100%' }}>
         {rows.map((r, i) => {
           const width = anims[i].interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
@@ -558,13 +590,13 @@ function GenresSlide({ data }) {
           return (
             <Reveal key={r.label} delay={100 + i * 70} style={styles.genreRow}>
               <View style={styles.genreLabelRow}>
-                <View style={[styles.genreIconWrap, { borderColor: color }]}>
+                <View style={[styles.genreIconWrap, { borderColor: color, backgroundColor: paper ? 'rgba(255,255,255,0.5)' : 'rgba(6,4,14,0.4)' }]}>
                   <Ionicons name={GENRE_ICONS[r.label] || 'ellipse'} size={15} color={color} />
                 </View>
-                <Text style={styles.genreLabel}>{r.label}</Text>
-                <Text style={styles.genrePct}>{r.pct}%</Text>
+                <Text style={[styles.genreLabel, { color: t.ink }]}>{r.label}</Text>
+                <Text style={[styles.genrePct, { color: t.dim }]}>{r.pct}%</Text>
               </View>
-              <View style={styles.genreTrack}>
+              <View style={[styles.genreTrack, { backgroundColor: paper ? 'rgba(26,18,8,0.12)' : 'rgba(255,255,255,0.1)' }]}>
                 <Animated.View style={[styles.genreFill, { width, backgroundColor: color }]} />
               </View>
             </Reveal>
@@ -575,8 +607,9 @@ function GenresSlide({ data }) {
   );
 }
 
-function RhythmSlide({ data }) {
+function RhythmSlide({ data, t }) {
   const { weekday } = data;
+  const paper = t.ink !== '#FFFFFF';
   const maxV = Math.max(...weekday.totals, 0.1);
   const anims = useRef(weekday.totals.map(() => new Animated.Value(0))).current;
   useEffect(() => {
@@ -587,38 +620,37 @@ function RhythmSlide({ data }) {
   }, []);
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Your rhythm</Text></Reveal>
-      <Reveal delay={90}><Text style={styles.title}>{weekday.bestName}s</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>You read the most on</Text></Reveal>
+      <Reveal delay={90}><Text style={[styles.title, { color: t.ink }]}>{weekday.bestName}s</Text></Reveal>
       <View style={styles.barsRow}>
         {weekday.labels.map((label, i) => {
           const height = anims[i].interpolate({ inputRange: [0, 1], outputRange: ['4%', '100%'] });
           const isBest = i === weekday.best;
           return (
             <View key={label + i} style={styles.barCol}>
-              <View style={styles.barTrack}>
-                <Animated.View style={[styles.barFill, { height }, isBest && styles.barFillBest]} />
+              <View style={[styles.barTrack, { backgroundColor: paper ? 'rgba(26,18,8,0.1)' : 'rgba(255,255,255,0.08)' }]}>
+                <Animated.View style={[styles.barFill, { height, backgroundColor: isBest ? t.accent : hexToRgba(t.ink, 0.4) }]} />
               </View>
-              <Text style={[styles.barLabel, isBest && styles.barLabelBest]}>{label}</Text>
+              <Text style={[styles.barLabel, { color: isBest ? t.ink : t.dim }, isBest && styles.barLabelBest]}>{label}</Text>
             </View>
           );
         })}
       </View>
-      <Reveal delay={260}><Text style={styles.subLeft}>were your biggest reading days.</Text></Reveal>
       {data.peakWindow && (
-        <Reveal delay={360} style={[styles.peakPill, { borderColor: hexToRgba(data.vividColor, 0.9) }]}>
-          <Ionicons name="moon" size={15} color={data.vividColor} />
+        <Reveal delay={360} style={[styles.peakPill, { borderColor: hexToRgba(t.accent, 0.9), backgroundColor: paper ? 'rgba(255,255,255,0.5)' : 'rgba(6,4,14,0.45)' }]}>
+          <Ionicons name="moon" size={15} color={t.accent} />
           <View>
-            <Text style={styles.peakLabel}>Peak reading time</Text>
-            <Text style={styles.peakValue}>{data.peakWindow.label}</Text>
+            <Text style={[styles.peakLabel, { color: t.dim }]}>Peak reading time</Text>
+            <Text style={[styles.peakValue, { color: t.ink }]}>{data.peakWindow.label}</Text>
           </View>
-          <Text style={styles.peakPct}>{data.peakWindow.pct}%</Text>
+          <Text style={[styles.peakPct, { color: t.dim }]}>{data.peakWindow.pct}%</Text>
         </Reveal>
       )}
     </View>
   );
 }
 
-function StreakSlide({ data }) {
+function StreakSlide({ data, t }) {
   const { value: streak, punch } = useCountUp(data.longestStreak);
   const flicker = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -634,66 +666,66 @@ function StreakSlide({ data }) {
   const flickerScale = flicker.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   return (
     <View style={styles.bottomAnchor}>
-      <RotatingSpeedLines color="#FF6B4A" opacity={0.22} />
-      <Reveal delay={0}><Text style={styles.eyebrow}>On a roll</Text></Reveal>
+      <RotatingSpeedLines color={t.accent} opacity={0.22} />
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Your longest reading streak</Text></Reveal>
       <Reveal delay={80}>
         <Animated.View style={{ transform: [{ scale: flickerScale }], marginBottom: 8 }}>
-          <Ionicons name="flame" size={60} color={data.accentColor} />
+          <Ionicons name="flame" size={60} color={t.accent} />
         </Animated.View>
       </Reveal>
       <Reveal delay={160}>
-        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: punch }] }]}>{streak}</Animated.Text>
+        <Animated.Text style={[styles.bigNumber, { color: t.ink, transform: [{ scale: punch }] }]}>{streak}</Animated.Text>
       </Reveal>
-      <Reveal delay={240}><Text style={styles.label}>Day streak — your longest this half</Text></Reveal>
+      <Reveal delay={240}><Text style={[styles.label, { color: t.dim }]}>Days in a row</Text></Reveal>
     </View>
   );
 }
 
-function FavoriteMomentSlide({ data }) {
+function FavoriteMomentSlide({ data, t }) {
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Your favorite moment</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Your favorite moment</Text></Reveal>
       <Reveal delay={100}><RealCover uri={data.topRated.cover} style={styles.favCover} /></Reveal>
-      <Reveal delay={220}><Text style={styles.title}>{data.topRated.title}</Text></Reveal>
+      <Reveal delay={220}><Text style={[styles.title, { color: t.ink }]}>{data.topRated.title}</Text></Reveal>
       <Reveal delay={320}><StarRatingDisplay avg={data.topRated.stars} showCount={false} size={24} /></Reveal>
-      <Reveal delay={420}><Text style={styles.sub}>Your highest-rated read this half.</Text></Reveal>
+      <Reveal delay={420}><Text style={[styles.subLeft, { color: t.dim }]}>Your highest-rated read this half.</Text></Reveal>
     </View>
   );
 }
 
-function AchievementsSlide({ data }) {
+function AchievementsSlide({ data, t }) {
   const { value: count, punch } = useCountUp(data.earnedBadgeCount);
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Real badges, really earned</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Achievements & milestones</Text></Reveal>
       <Reveal delay={100}>
-        <Animated.Text style={[styles.bigNumber, { transform: [{ scale: punch }] }]}>{count}</Animated.Text>
+        <Animated.Text style={[styles.bigNumber, { color: t.ink, transform: [{ scale: punch }] }]}>{count}</Animated.Text>
       </Reveal>
-      <Reveal delay={180}><Text style={styles.label}>of {data.totalBadgeCount} badges unlocked</Text></Reveal>
+      <Reveal delay={180}><Text style={[styles.label, { color: t.dim }]}>of {data.totalBadgeCount} badges unlocked</Text></Reveal>
       {data.tierLabel && (
-        <Reveal delay={320} style={[styles.tierPill, { borderColor: data.accentColor }]}>
-          <Text style={[styles.tierPillText, { color: data.accentColor }]}>{data.tierLabel} Tier</Text>
+        <Reveal delay={320} style={[styles.tierPill, { borderColor: t.accent }]}>
+          <Text style={[styles.tierPillText, { color: t.accent }]}>{data.tierLabel} Tier</Text>
         </Reveal>
       )}
     </View>
   );
 }
 
-function PersonalitySlide({ data }) {
+function PersonalitySlide({ data, t }) {
   const a = data.archetype;
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>Your reading personality</Text></Reveal>
-      <Reveal delay={100} style={[styles.archetypeBadge, { borderColor: data.accentColor }]}>
-        <Ionicons name={a.icon} size={30} color={data.accentColor} />
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>Your reading personality</Text></Reveal>
+      <Reveal delay={100} style={[styles.archetypeBadge, { borderColor: t.accent }]}>
+        <Ionicons name={a.icon} size={30} color={t.accent} />
       </Reveal>
-      <Reveal delay={220}><Text style={styles.title}>{a.title}</Text></Reveal>
-      <Reveal delay={340}><Text style={styles.sub}>{a.desc}</Text></Reveal>
+      <Reveal delay={220}><Text style={[styles.title, { color: t.ink }]}>{a.title}</Text></Reveal>
+      <Reveal delay={340}><Text style={[styles.subLeft, { color: t.dim }]}>{a.desc}</Text></Reveal>
     </View>
   );
 }
 
-function FinaleSlide({ data, onDone }) {
+function FinaleSlide({ data, onDone, t }) {
   const stats = [
     { value: Math.round(data.hoursRead), label: 'Hours read' },
     { value: data.readingDays, label: 'Days active' },
@@ -709,29 +741,28 @@ function FinaleSlide({ data, onDone }) {
 
   return (
     <View style={styles.bottomAnchor}>
-      <Reveal delay={0}><Text style={styles.eyebrow}>{data.period.label}, wrapped</Text></Reveal>
+      <Reveal delay={0}><Text style={[styles.eyebrow, { color: t.dim }]}>{data.period.label}</Text></Reveal>
+      <Reveal delay={90}><Text style={[styles.megaTitle, { color: t.ink }]}>What a{'\n'}legendary half!</Text></Reveal>
       <View style={styles.finaleStatsGrid}>
         {stats.map((s, i) => (
-          <Reveal key={s.label} delay={100 + i * 80} style={styles.finaleStatCell}>
-            <Text style={styles.finaleStatValue} numberOfLines={1}>{s.value}</Text>
-            <Text style={styles.finaleStatLabel}>{s.label}</Text>
+          <Reveal key={s.label} delay={220 + i * 80} style={styles.finaleStatCell}>
+            <Text style={[styles.finaleStatValue, { color: t.ink }]} numberOfLines={1}>{s.value}</Text>
+            <Text style={[styles.finaleStatLabel, { color: t.dim }]}>{s.label}</Text>
           </Reveal>
         ))}
       </View>
-      <Reveal delay={480} style={styles.finaleActions}>
-        <TouchableOpacity style={styles.btnPrimary} onPress={handleShare} activeOpacity={0.85}>
-          <Ionicons name="share-social" size={16} color="#0D0D0F" />
-          <Text style={styles.btnPrimaryText}>Share</Text>
+      <Reveal delay={600} style={styles.finaleActions}>
+        <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: t.accent }]} onPress={handleShare} activeOpacity={0.85}>
+          <Ionicons name="share-social" size={16} color="#14060B" />
+          <Text style={styles.btnPrimaryText}>Share your recap</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.btnGhost} onPress={onDone} activeOpacity={0.85}>
-          <Text style={styles.btnGhostText}>Done</Text>
+        <TouchableOpacity style={[styles.btnGhost, { borderColor: hexToRgba(t.ink, 0.35) }]} onPress={onDone} activeOpacity={0.85}>
+          <Text style={[styles.btnGhostText, { color: t.ink }]}>Continue reading</Text>
         </TouchableOpacity>
       </Reveal>
-      <Reveal delay={560}><Text style={styles.sub}>See you at the next one.</Text></Reveal>
     </View>
   );
 }
-
 // ── Screen ───────────────────────────────────────────────────────────────
 
 export default function RecapScreen() {
@@ -900,26 +931,29 @@ export default function RecapScreen() {
     return () => { cancelled = true; };
   }, [profileLoading, userId]);
 
+  // Theme + footer per slide. The deep-colour / cream-paper alternation is
+  // deliberate: it's the rhythm that makes the story read as a designed spread
+  // rather than one photo with different text on it.
   const slideDefs = useMemo(() => {
     if (!data) return [];
     const list = [
-      { key: 'intro', Comp: IntroSlide },
-      { key: 'stats', Comp: StatsSlide },
+      { key: 'intro', Comp: IntroSlide, theme: THEMES.crimson, foot: 'Every chapter is a new adventure' },
+      { key: 'stats', Comp: StatsSlide, theme: THEMES.navy, foot: 'Six months, one story at a time' },
     ];
-    if (data.topSeries.length) list.push({ key: 'topseries', Comp: TopSeriesSlide });
-    if (data.genreBreakdown.length >= 2) list.push({ key: 'genres', Comp: GenresSlide });
-    if (data.weekday.best >= 0) list.push({ key: 'rhythm', Comp: RhythmSlide });
-    if (data.longestStreak >= 2) list.push({ key: 'streak', Comp: StreakSlide });
+    if (data.topSeries.length) list.push({ key: 'topseries', Comp: TopSeriesSlide, theme: THEMES.paper, foot: 'These stories made the biggest impact' });
+    if (data.genreBreakdown.length >= 2) list.push({ key: 'genres', Comp: GenresSlide, theme: THEMES.paper, foot: 'Every genre took you somewhere new' });
+    if (data.weekday.best >= 0) list.push({ key: 'rhythm', Comp: RhythmSlide, theme: THEMES.navy, foot: 'Those late nights hit different' });
+    if (data.longestStreak >= 2) list.push({ key: 'streak', Comp: StreakSlide, theme: THEMES.ember, foot: 'Consistency is power' });
     // Two "favorites" beats that would otherwise both fire and push the story
     // past 10 slides. The character grid is the stronger visual (and the one
     // the design reference leads with), so it wins when there's enough real
     // character art; the highest-rated-series slide is the fallback when a
     // reader's titles don't resolve enough portraits.
-    if (data.characters.length >= 3) list.push({ key: 'faces', Comp: FavoriteMomentsSlide });
-    else if (data.topRated) list.push({ key: 'favmoment', Comp: FavoriteMomentSlide });
-    if (data.earnedBadgeCount > 0) list.push({ key: 'achievements', Comp: AchievementsSlide });
-    list.push({ key: 'personality', Comp: PersonalitySlide });
-    list.push({ key: 'finale', Comp: FinaleSlide, isFinale: true });
+    if (data.characters.length >= 3) list.push({ key: 'faces', Comp: FavoriteMomentsSlide, theme: THEMES.crimson, foot: 'Those moments will stay with you' });
+    else if (data.topRated) list.push({ key: 'favmoment', Comp: FavoriteMomentSlide, theme: THEMES.crimson, foot: 'Those moments will stay with you' });
+    if (data.earnedBadgeCount > 0) list.push({ key: 'achievements', Comp: AchievementsSlide, theme: THEMES.teal, foot: 'Earned, not given' });
+    list.push({ key: 'personality', Comp: PersonalitySlide, theme: THEMES.violet, foot: 'This half was uniquely yours' });
+    list.push({ key: 'finale', Comp: FinaleSlide, theme: THEMES.violet, foot: 'Never stop turning pages', isFinale: true });
     return list;
   }, [data]);
 
@@ -1014,7 +1048,7 @@ export default function RecapScreen() {
 
   return (
     <View style={styles.root} onLayout={(e) => setScreenW(e.nativeEvent.layout.width)}>
-      <HeroBackground images={data.heroImages} tintColor={data.vividColor} />
+      <HeroBackground images={data.heroImages} tintColor={data.vividColor} theme={current.theme} />
 
       <TouchableWithoutFeedback onPress={(e) => advance(e.nativeEvent.locationX < screenW * 0.3 ? -1 : 1)}>
         <View style={StyleSheet.absoluteFill} />
@@ -1042,8 +1076,15 @@ export default function RecapScreen() {
         </View>
       </View>
 
-      <View key={current.key} style={[styles.contentWrap, { paddingBottom: insets.bottom + 28 }]} pointerEvents="box-none">
-        <CurrentComp data={data} onDone={close} />
+      <View key={current.key} style={[styles.contentWrap, { paddingBottom: insets.bottom + 20 }]} pointerEvents="box-none">
+        <CurrentComp data={data} onDone={close} t={current.theme} />
+        {/* Footer caption — every slide in the reference closes on one, and
+            it's a surprising amount of what makes the story feel authored. */}
+        {!!current.foot && (
+          <Reveal delay={760}>
+            <Text style={[styles.footCaption, { color: current.theme.dim }]}>{current.foot}</Text>
+          </Reveal>
+        )}
       </View>
     </View>
   );
@@ -1064,14 +1105,15 @@ const styles = StyleSheet.create({
   iconBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
 
   contentWrap: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 26, zIndex: 10 },
+  footCaption: { fontSize: 12.5, fontWeight: '700', textAlign: 'center', marginTop: 20, letterSpacing: 0.2 },
   bottomAnchor: { width: '100%' },
 
   eyebrow: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 10 },
-  megaTitle: { color: '#fff', fontSize: 42, fontWeight: '900', lineHeight: 46, marginBottom: 12, letterSpacing: -1 },
-  title: { color: '#fff', fontSize: 26, fontWeight: '900', marginBottom: 8 },
+  megaTitle: { fontFamily: DISPLAY, fontSize: 44, lineHeight: 48, marginBottom: 12, letterSpacing: -0.5 },
+  title: { fontFamily: DISPLAY, fontSize: 32, marginBottom: 8 },
   sub: { color: 'rgba(255,255,255,0.82)', fontSize: 15, lineHeight: 21, marginTop: 4, textAlign: 'center' },
   subLeft: { color: 'rgba(255,255,255,0.82)', fontSize: 15, lineHeight: 21, marginTop: 4 },
-  bigNumber: { color: '#fff', fontSize: 76, fontWeight: '900', letterSpacing: -2, lineHeight: 82 },
+  bigNumber: { fontFamily: DISPLAY, fontSize: 82, letterSpacing: -1, lineHeight: 88 },
   label: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginTop: 6 },
 
   tapHintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18 },
@@ -1084,7 +1126,7 @@ const styles = StyleSheet.create({
   coverBase: { backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
 
   topSeriesRow: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 10, marginBottom: 10 },
-  topSeriesRank: { color: '#fff', fontWeight: '900', fontSize: 20, width: 22, textAlign: 'center', opacity: 0.8 },
+  topSeriesRank: { fontFamily: DISPLAY, fontSize: 24, width: 24, textAlign: 'center' },
   topSeriesCover: { width: 52, height: 72, borderRadius: 8 },
   topSeriesTitle: { color: '#fff', fontWeight: '800', fontSize: 15 },
   topSeriesChapters: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3 },
@@ -1105,7 +1147,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
 
-  midNumber: { color: '#fff', fontSize: 40, fontWeight: '900', letterSpacing: -0.5 },
+  midNumber: { fontFamily: DISPLAY, fontSize: 44 },
   statSplitRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginTop: 20 },
   statSplitCell: { alignItems: 'flex-start' },
   statSplitDivider: { width: 1, height: 44, backgroundColor: 'rgba(255,255,255,0.25)' },
@@ -1142,7 +1184,7 @@ const styles = StyleSheet.create({
 
   finaleStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6, marginBottom: 20 },
   finaleStatCell: { width: '47%', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 12 },
-  finaleStatValue: { color: '#fff', fontWeight: '900', fontSize: 22 },
+  finaleStatValue: { fontFamily: DISPLAY, fontSize: 24 },
   finaleStatLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700', marginTop: 2 },
 
   finaleActions: { flexDirection: 'row', gap: 10, marginBottom: 4 },
