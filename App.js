@@ -20,6 +20,7 @@ import { ensureGuestSession } from './utils/guestSession';
 import { NotificationsProvider, useNotifications } from './utils/NotificationsContext';
 import { loadSaved as loadSavedAmbience } from './utils/ambiencePlayer';
 import { hydrateCoverCache } from './utils/mangaCovers';
+import { hydrateLibraryBadges, prewarmLibraryBadges } from './utils/libraryBadges';
 import { checkForNewChapters } from './utils/chapterUpdates';
 import { markTouch, startPresenceHeartbeat, stopPresenceHeartbeat } from './utils/presence';
 import { light } from './utils/haptics';
@@ -583,6 +584,11 @@ export default function App() {
           AsyncStorage.getItem(LAST_SEEN_VERSION_KEY),
           AsyncStorage.getItem(LAST_SEEN_UPDATE_KEY),
           hydrateCoverCache(),
+          // Last session's resolved Library badges (new-chapter counts, site
+          // favicons) — a single AsyncStorage read, no network, so they're in
+          // memory before any screen mounts and the grid paints them on its
+          // very first render instead of popping them in seconds later.
+          hydrateLibraryBadges(),
         ]);
         // Show the intro once per app version, and again whenever a new OTA
         // update took effect since we last showed it — Updates.updateId is
@@ -619,6 +625,10 @@ export default function App() {
             setNeedsGuidelines(!accepted);
           }
           checkForNewChapters(s.user.id);
+          // Refresh badges against the live library in the background so
+          // they're already up to date by the time the Library is opened.
+          // Fire-and-forget — rate-limited network work must never gate boot.
+          prewarmLibraryBadges(s.user.id);
         }
       } catch (_) {}
       setLoading(false);

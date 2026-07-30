@@ -91,6 +91,8 @@ function SignUpGate({ onDone }) {
           />
           <TouchableOpacity
             onPress={() => setPasswordHidden((h) => !h)}
+            accessibilityRole="button"
+            accessibilityLabel={passwordHidden ? 'Show password' : 'Hide password'}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name={passwordHidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -99,11 +101,17 @@ function SignUpGate({ onDone }) {
         <TouchableOpacity
           style={[styles.ctaBtn, { backgroundColor: colors.primary }, loading && styles.ctaBtnDisabled]}
           onPress={handleRegister}
+          accessibilityRole="button"
+          accessibilityLabel="Create account"
+          accessibilityState={{ disabled: loading, busy: loading }}
           disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaBtnText}>Create Account</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setMode('prompt')}>
+        <TouchableOpacity
+          onPress={() => setMode('prompt')}
+          accessibilityRole="button"
+          accessibilityLabel="Back">
           <Text style={[styles.backLink, { color: colors.textSecondary }]}>← Back</Text>
         </TouchableOpacity>
       </View>
@@ -137,11 +145,18 @@ function SignUpGate({ onDone }) {
         ))}
       </View>
 
-      <TouchableOpacity style={[styles.ctaBtn, { backgroundColor: colors.primary }]} onPress={() => setMode('form')}>
+      <TouchableOpacity
+        style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
+        onPress={() => setMode('form')}
+        accessibilityRole="button"
+        accessibilityLabel="Sign up — it's free">
         <Text style={styles.ctaBtnText}>Sign Up — It's Free</Text>
         <Ionicons name="chevron-forward" size={16} color="#fff" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={onDone}>
+      <TouchableOpacity
+        onPress={onDone}
+        accessibilityRole="button"
+        accessibilityLabel="Skip for now and explore first">
         <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip for now, explore first</Text>
       </TouchableOpacity>
     </View>
@@ -170,6 +185,10 @@ function ScreenGenreVibe({ selected, onToggle, vibe, onVibe }) {
             <TouchableOpacity
               key={g.label}
               onPress={() => !maxed && onToggle(g.label)}
+              accessibilityRole="checkbox"
+              accessibilityLabel={g.label}
+              accessibilityHint={maxed ? 'Deselect another genre first — 3 is the maximum' : undefined}
+              accessibilityState={{ checked: active, disabled: maxed }}
               disabled={maxed}
               style={[
                 styles.genreBtn,
@@ -196,6 +215,9 @@ function ScreenGenreVibe({ selected, onToggle, vibe, onVibe }) {
             <TouchableOpacity
               key={v.id}
               onPress={() => onVibe(v.id)}
+              accessibilityRole="radio"
+              accessibilityLabel={v.label}
+              accessibilityState={{ selected: active, checked: active }}
               style={[
                 styles.vibePill,
                 { borderColor: colors.border, backgroundColor: colors.card },
@@ -361,12 +383,23 @@ export default function OnboardingScreen({ onComplete }) {
           <StarLogo size={22} />
           <Text style={[styles.logo, { color: colors.primary }]}>MangaRecs</Text>
         </View>
-        <TouchableOpacity onPress={finishOnboarding} disabled={finishing}>
+        <TouchableOpacity
+          onPress={finishOnboarding}
+          accessibilityRole="button"
+          accessibilityLabel="Skip setup"
+          accessibilityState={{ disabled: finishing, busy: finishing }}
+          disabled={finishing}>
           <Text style={[styles.skipText, { color: colors.textSecondary, marginTop: 0 }]}>Skip</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.dotsRow}>
+      {/* The dots are decorative individually — announce the row once as progress
+          so a screen reader says "step 1 of 2" instead of nothing at all. */}
+      <View
+        style={styles.dotsRow}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={`Step ${step + 1} of ${totalSteps}`}>
         {Array.from({ length: totalSteps }).map((_, i) => {
           const active = i === step;
           return (
@@ -396,6 +429,9 @@ export default function OnboardingScreen({ onComplete }) {
         <TouchableOpacity
           style={[styles.ctaBtn, { backgroundColor: colors.primary }, (!canProceed() || finishing) && styles.ctaBtnDisabled]}
           onPress={handleNext}
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel()}
+          accessibilityState={{ disabled: !canProceed() || finishing, busy: finishing }}
           disabled={!canProceed() || finishing}>
           {finishing ? (
             <ActivityIndicator color="#fff" />
@@ -407,7 +443,10 @@ export default function OnboardingScreen({ onComplete }) {
           )}
         </TouchableOpacity>
         {step > 0 && (
-          <TouchableOpacity onPress={() => setStep((s) => s - 1)}>
+          <TouchableOpacity
+            onPress={() => setStep((s) => s - 1)}
+            accessibilityRole="button"
+            accessibilityLabel="Back">
             <Text style={[styles.backLink, { color: colors.textSecondary }]}>← Back</Text>
           </TouchableOpacity>
         )}

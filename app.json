@@ -3,7 +3,7 @@
     "name": "MangaRecs",
     "slug": "inklore",
     "scheme": "mangarecs",
-    "version": "1.3.1",
+    "version": "1.4.0",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
@@ -22,6 +22,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Used to upload your profile photo.",
         "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
+        "NSMotionUsageDescription": "Used for the subtle tilt effect in your MangaRecap.",
         "UIBackgroundModes": [
           "audio"
         ]
@@ -36,7 +37,6 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.mangarecs.app",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
@@ -45,7 +45,13 @@
     },
     "plugins": [
       "expo-web-browser",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       [
         "expo-notifications",
         {

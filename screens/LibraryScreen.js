@@ -13,10 +13,12 @@ import { useTheme } from '../utils/ThemeContext';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead, syncLibraryWrite } from '../utils/readerUtils';
-import { getLatestChapter, searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
+import { searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
-import { ALL_SUPPORTED_SITES, siteFaviconUrl } from '../utils/mangaSearch';
+import {
+  getLibraryBadgesSnapshot, subscribeLibraryBadges, refreshLibraryBadges, dismissLibraryUpdate,
+} from '../utils/libraryBadges';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { isJunkTitle } from '../utils/titleValidation';
 import { maybeAskForReview } from '../utils/reviewPrompt';
@@ -36,24 +38,7 @@ const DELETE_LABEL = {
   Bookmarked: 'Delete from Bookmarked',
   Downloaded: 'Delete from Downloaded',
 };
-const UPDATE_CACHE_KEY = '@mangarecs/updates_cache';
-const UPDATE_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
-const UPDATE_DISMISSED_KEY = '@mangarecs/updates_dismissed';
 const JUST_ADDED_WINDOW = 10 * 60 * 1000; // 10 minutes — how long the "JUST ADDED" badge lingers
-
-// Resolve whatever shape a saved "site" ended up as — an object ({name,url}
-// from the normal auto-resolve flow), a bare name string (from an explicit
-// "Read Available" pick), or occasionally already a URL — into a favicon.
-function resolveSiteFavicon(site) {
-  if (!site) return null;
-  if (typeof site === 'object') return siteFaviconUrl(site.url);
-  if (typeof site === 'string') {
-    if (/^https?:\/\//i.test(site)) return siteFaviconUrl(site);
-    const match = ALL_SUPPORTED_SITES.find((s) => s.name.toLowerCase() === site.toLowerCase());
-    return match ? siteFaviconUrl(match.url) : null;
-  }
-  return null;
-}
 // v2: getMangaStatistics now returns { rating, readers } (was a bare, halved
 // rating number) and ratings are on the pool's native 0–10 scale — bump the
 // key so devices don't keep serving the old halved value for up to 7 days.
@@ -317,8 +302,14 @@ export default function LibraryScreen() {
   const [historyItems, setHistoryItems] = useState([]);
   const [openingId, setOpeningId] = useState(null);
   const [libLoading, setLibLoading] = useState(true);
-  const [updatesMap, setUpdatesMap] = useState(new Map());
-  const [siteIconMap, setSiteIconMap] = useState(new Map());
+  // Seeded from the module's already-hydrated state (loaded during app boot)
+  // rather than starting empty, so badges are correct on the very first paint
+  // of the grid instead of popping in a few seconds later.
+  const [badges, setBadges] = useState(() => getLibraryBadgesSnapshot());
+  const updatesMap = badges.updates;
+  const siteIconMap = badges.siteIcons;
+
+  useEffect(() => subscribeLibraryBadges(() => setBadges(getLibraryBadgesSnapshot())), []);
   const [newPoolIds, setNewPoolIds] = useState(new Set());
   const [ratingsMap, setRatingsMap] = useState({});
   const ratingsFetchedRef = useRef(new Set());
@@ -355,17 +346,11 @@ export default function LibraryScreen() {
       getLastRead().then((lr) => { if (lr) setLastReadEntry(lr); });
       // Which pool entries appeared recently (green NEW badge)
       getRecentlyAddedIds(JUST_ADDED_WINDOW).then(setNewPoolIds);
-      // Load full reading history for the Reading tab. The update/site-icon
-      // checks deliberately do NOT run off this list: raw history is scraped
-      // webview page titles (see the note by readingSeries below), so its keys
-      // almost never match a grid tile's key and it can't produce a badge that
-      // actually renders. It used to be kicked off here as well as from the
-      // combined-set effect below, and since both wholesale-replace
-      // updatesMap/siteIconMap, whichever finished last won — the useless
-      // history run routinely wiped the real results. They also both
-      // read-modify-write the same AsyncStorage update cache, so the loser's
-      // freshly-fetched chapters were clobbered and refetched next time.
-      // The combined-set effect is now the single owner of both.
+      // Load full reading history for the Reading tab. Badge resolution
+      // deliberately does NOT run off this list: raw history is scraped
+      // webview page titles (see the note by readingSeries below), so its
+      // keys almost never match a grid tile's key and it can't produce a
+      // badge that actually renders. utils/libraryBadges owns that instead.
       getReadingHistory().then(setHistoryItems);
 
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -622,8 +607,8 @@ export default function LibraryScreen() {
   // Note: raw reading history (historyItems, from getReadingHistory) is deliberately
   // NOT surfaced in the Reading tab grid — it's scraped webview page titles and often
   // picks up junk (cookie banners, site taglines) that isJunkTitle can't fully
-  // filter. It only feeds checkUpdatesInBackground; "Continue Reading" is the sole
-  // place recent history is shown, sourced from the single most-recent lastReadEntry.
+  // filter. "Continue Reading" is the sole place recent history is shown, sourced
+  // from the single most-recent lastReadEntry.
 
   const liveReadingValid = liveReading
     && !deletedIds.has('live')
@@ -720,10 +705,12 @@ export default function LibraryScreen() {
   // set of items changes — the arrays above are freshly rebuilt every render.
   const combinedCheckSignature = combinedCheckItems.map((s) => keyOf(s)).sort().join('|');
 
+  // Boot already prewarmed these, so this is a refresh for anything added
+  // since (or on a first-ever launch). The module serializes concurrent runs
+  // and merges results, so overlapping calls are safe.
   useEffect(() => {
     if (!combinedCheckItems.length) return;
-    checkUpdatesInBackground(combinedCheckItems);
-    loadSiteIcons(combinedCheckItems);
+    refreshLibraryBadges(combinedCheckItems);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [combinedCheckSignature]);
 
@@ -863,7 +850,7 @@ export default function LibraryScreen() {
 
   async function openReader(series) {
     setOpeningId(series.id);
-    dismissUpdateBadge(keyOf(series));
+    dismissLibraryUpdate(keyOf(series));
 
     // Offline: open directly from local filesystem without API calls
     if (series.downloadDir) {
@@ -919,147 +906,6 @@ export default function LibraryScreen() {
 
   function closeContextMenu() {
     setContextMenu({ visible: false, series: null, pos: null });
-  }
-
-  // Caches the expensive part (MangaDex's "latest chapter" lookup) but always
-  // compares it against the item's LIVE current-chapter, so a badge clears
-  // the moment the user reads up to it instead of sticking around stale
-  // until the 2-hour cache entry happens to expire.
-  async function checkUpdatesInBackground(items) {
-    if (!items?.length) return;
-    try {
-      const [cacheRaw, dismissedRaw] = await Promise.all([
-        AsyncStorage.getItem(UPDATE_CACHE_KEY),
-        AsyncStorage.getItem(UPDATE_DISMISSED_KEY),
-      ]);
-      const cache = cacheRaw ? JSON.parse(cacheRaw) : {};
-      // Chapters the user already tapped the badge for — stays suppressed
-      // until an even newer chapter comes out past this value.
-      const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : {};
-      const now = Date.now();
-      const newCounts = new Map();
-
-      for (const s of items.slice(0, 20)) {
-        const cacheKey = s.searchKey || s.title;
-        if (!cacheKey) continue;
-
-        const cached = cache[cacheKey];
-        let latest = null;
-
-        if (cached && now - cached.ts < UPDATE_CACHE_TTL) {
-          latest = cached.latest;
-        } else {
-          // Prefer the exact id the reader already resolved (resume data);
-          // fall back to a title search — same approach as the push-
-          // notification checker in utils/chapterUpdates.js — so bookmarked
-          // or never-opened-via-API series still get checked instead of
-          // being silently skipped.
-          let mangaId = cached?.mangaId || null;
-          if (!mangaId) {
-            const resumeKey = '@mangarecs/resume/' + encodeURIComponent(cacheKey);
-            const resumeRaw = await AsyncStorage.getItem(resumeKey).catch(() => null);
-            if (resumeRaw) {
-              try {
-                const resume = JSON.parse(resumeRaw);
-                if (resume?.mode === 'api' && resume?.mangaId) mangaId = resume.mangaId;
-              } catch (_) {}
-            }
-          }
-          if (!mangaId) {
-            const found = await searchMangaDex(cacheKey);
-            mangaId = found?.id || null;
-          }
-          if (mangaId) {
-            latest = await getLatestChapter(mangaId);
-            // Brief pause between API calls to respect MangaDex rate limits
-            await new Promise((r) => setTimeout(r, 500));
-          }
-          cache[cacheKey] = { ts: now, latest, mangaId };
-        }
-
-        const currentCh = s.chapter || s.currentChapter || 1;
-        const dismissedAt = dismissed[cacheKey];
-        if (latest != null && latest > currentCh && (dismissedAt == null || latest > dismissedAt)) {
-          newCounts.set(cacheKey, Math.max(1, Math.floor(latest) - Math.floor(currentCh)));
-        } else {
-          newCounts.set(cacheKey, 0); // explicitly "not new" for whatever we just checked
-        }
-      }
-
-      await AsyncStorage.setItem(UPDATE_CACHE_KEY, JSON.stringify(cache)).catch(() => {});
-      // Merge, don't replace. The combined-set effect re-fires whenever its
-      // signature changes, which happens several times during a normal load
-      // (savedItems lands, then progressRows, then profile), so two runs can
-      // easily overlap on different item sets. Replacing the whole map
-      // wholesale meant whichever run finished last wiped out badges the
-      // other had already found, for items it simply hadn't checked this
-      // round. Only touch the keys actually checked here.
-      setUpdatesMap((prev) => {
-        const next = new Map(prev);
-        for (const [k, count] of newCounts) {
-          if (count > 0) next.set(k, count);
-          else next.delete(k);
-        }
-        return next;
-      });
-    } catch (_) {}
-  }
-
-  // Tapping into a series clears its "New Chapter" badge immediately, not
-  // only once actually read up to — recorded against the currently-known
-  // latest chapter so a genuinely newer chapter later still re-shows it.
-  async function dismissUpdateBadge(cacheKey) {
-    if (!cacheKey) return;
-    setUpdatesMap((prev) => {
-      if (!prev.has(cacheKey)) return prev;
-      const next = new Map(prev);
-      next.delete(cacheKey);
-      return next;
-    });
-    try {
-      const [cacheRaw, dismissedRaw] = await Promise.all([
-        AsyncStorage.getItem(UPDATE_CACHE_KEY),
-        AsyncStorage.getItem(UPDATE_DISMISSED_KEY),
-      ]);
-      const cache = cacheRaw ? JSON.parse(cacheRaw) : {};
-      const latest = cache[cacheKey]?.latest;
-      if (latest == null) return;
-      const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : {};
-      dismissed[cacheKey] = latest;
-      await AsyncStorage.setItem(UPDATE_DISMISSED_KEY, JSON.stringify(dismissed));
-    } catch (_) {}
-  }
-
-  // Which site each series was actually read from — purely local (resume
-  // data already on-device), so unlike checkUpdatesInBackground this needs
-  // no network call and can run for every item, not just a capped subset.
-  async function loadSiteIcons(items) {
-    if (!items?.length) return;
-    try {
-      const icons = new Map();
-      for (const s of items) {
-        const cacheKey = s.searchKey || s.title;
-        if (!cacheKey) continue;
-        const resumeRaw = await AsyncStorage.getItem('@mangarecs/resume/' + encodeURIComponent(cacheKey)).catch(() => null);
-        if (!resumeRaw) continue; // no info either way — leave any existing entry alone
-        try {
-          const resume = JSON.parse(resumeRaw);
-          icons.set(cacheKey, resolveSiteFavicon(resume.site) || null);
-        } catch (_) {}
-      }
-      // Merge, don't replace — same reasoning as checkUpdatesInBackground:
-      // overlapping runs cover different item sets, and replacing the whole
-      // map wholesale wiped out icons for entries an earlier run had already
-      // resolved but this one didn't happen to check.
-      setSiteIconMap((prev) => {
-        const next = new Map(prev);
-        for (const [k, favicon] of icons) {
-          if (favicon) next.set(k, favicon);
-          else next.delete(k);
-        }
-        return next;
-      });
-    } catch (_) {}
   }
 
   // Resolve real community ratings for library items the pool doesn't cover:

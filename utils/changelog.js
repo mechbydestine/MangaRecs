@@ -2,6 +2,22 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.4.0',
+    date: 'July 30, 2026',
+    highlights: [
+      'MangaRecap has been rebuilt from the ground up into a real cinematic story — ten redesigned slides with living cover-art backgrounds, and a whole visual style generated from what YOU actually read (manga, manhwa, and manhua readers each get a structurally different look, not just a different color)',
+      'MangaRecap now shows how this half compares to your last one, where you rank among your friends, "you and @friend both read this" callouts, your single loudest comment, and a shareable reading DNA code',
+      'Share your MangaRecap as a real image now instead of plain text — choose a Stories-shaped or square crop — and compare your half side-by-side against a friend',
+      'Library badges (new-chapter counts, site icons) now show up instantly from last session instead of popping in a few seconds after the screen opens',
+      'Fixed a rare bug where a bad measurement on a tapped cover could paint a large ghost box over the whole app',
+      'Fixed message replies getting hidden behind the keyboard on some devices in Direct Messages',
+      'Fixed a tap on a Feed cover silently doing nothing on some devices',
+      'Fixed the "Adult" mood filter on For You always coming up empty and quietly falling back to general picks',
+      'Fixed manga detail pages occasionally reopening as a blank grey screen',
+      'Added screen-reader labels across sign-in, sign-up, and password fields',
+    ],
+  },
+  {
     version: '1.3.1',
     date: 'July 28, 2026',
     highlights: [

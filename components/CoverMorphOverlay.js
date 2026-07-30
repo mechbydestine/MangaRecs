@@ -9,37 +9,74 @@ import { setCoverTransitionListener } from '../utils/coverTransition';
 // (paddingHorizontal 20), paddingTop insets.top + 14 below the back button.
 const DEST = { left: 20, width: 128, height: 182, radius: 12 };
 
+const MORPH_MS = 300;
+const FADE_MS  = 160;
+
+// A measurement that came back as garbage (0/NaN/absurd) must never be turned
+// into a rendered box — an unresolved size on a view with elevation 999 paints
+// over the whole app.
+function isUsableRect(r) {
+  if (!r) return false;
+  const vals = [r.x, r.y, r.width, r.height];
+  if (!vals.every((v) => typeof v === 'number' && Number.isFinite(v))) return false;
+  return r.width > 1 && r.height > 1 && r.width < 2000 && r.height < 3000;
+}
+
 export default function CoverMorphOverlay() {
   const insets = useSafeAreaInsets();
   const [pending, setPending] = useState(null);
   const progress = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
+  const running = useRef(null);
 
   useEffect(() => {
     const unsub = setCoverTransitionListener((payload) => {
+      if (!isUsableRect(payload?.rect)) return;
+      // Never leave a previous run's animation attached to these nodes.
+      running.current?.stop?.();
       progress.setValue(0);
       fade.setValue(1);
       setPending(payload);
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false, // animating left/top/width/height — can't run on the native thread
-      }).start(() => {
-        Animated.timing(fade, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => setPending(null));
+
+      // Both animations MUST stay on the JS driver. This view animates layout
+      // props (left/top/width/height/borderRadius), which the native driver
+      // cannot handle — but `opacity` used to run with useNativeDriver: true
+      // on this same view. Mixing drivers hands the view to the native
+      // animated module, after which the JS-driven layout props silently stop
+      // applying: from the second transition onward the overlay stayed
+      // mounted at an unresolved size with elevation 999, painting an opaque
+      // slab over the entire app until it was force-quit.
+      const anim = Animated.sequence([
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: MORPH_MS,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(fade, { toValue: 0, duration: FADE_MS, useNativeDriver: false }),
+      ]);
+      running.current = anim;
+      anim.start(() => {
+        running.current = null;
+        setPending(null);
       });
     });
-    return unsub;
+    return () => {
+      unsub();
+      running.current?.stop?.();
+    };
   }, []);
 
-  // Safety net: the overlay sits at zIndex 999 above the whole app, so if its
-  // completion callback ever failed to fire (an interrupted/overlapping
-  // animation), it would otherwise cover the screen indefinitely. Never let
-  // it outlive the animation it's supposed to run (300ms + 160ms) by more
-  // than a comfortable margin.
+  // Safety net: this overlay sits above the whole app, so it must never
+  // outlive the animation it exists to run — even if a completion callback is
+  // dropped (interrupted or overlapping transition).
   useEffect(() => {
     if (!pending) return;
-    const t = setTimeout(() => setPending(null), 1000);
+    const t = setTimeout(() => {
+      running.current?.stop?.();
+      running.current = null;
+      setPending(null);
+    }, MORPH_MS + FADE_MS + 500);
     return () => clearTimeout(t);
   }, [pending]);
 

@@ -20,7 +20,7 @@ import { Bone } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
-import { useProfile, uploadMediaFile } from '../utils/ProfileContext';
+import { uploadMediaFile } from '../utils/ProfileContext';
 import * as ImagePicker from 'expo-image-picker';
 import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 import { Image as ExpoImage } from 'expo-image';
@@ -358,8 +358,13 @@ export default function DMScreen() {
   const { isTablet } = useResponsive();
   const tabBarHeight = useBottomTabBarHeight();
   const { markDmNotifsRead } = useNotifications();
-  const { profile } = useProfile();
-  const myDisplayName = profile?.display_name || profile?.username || 'Someone';
+
+  // Measured height of the custom MobileHeader. The screen runs with
+  // headerShown: false, so useHeaderHeight() would report 0 — KeyboardAvoidingView
+  // needs the real distance from the top of the window to the top of the list,
+  // which varies with insets.top across notch/Dynamic Island/iPad. Seeded with the
+  // old hardcoded 88 so the very first frame is no worse than before it measures.
+  const [headerHeight, setHeaderHeight] = useState(88);
 
   const [myId, setMyId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -647,7 +652,7 @@ export default function DMScreen() {
         type: 'direct_message',
         data: { message_type: 'text' },
       }).then(() => {});
-      sendDMPush(friendId, myDisplayName, content).catch(() => {});
+      sendDMPush(friendId, content).catch(() => {});
     } else {
       if (error) console.warn('[DM send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
@@ -710,7 +715,7 @@ export default function DMScreen() {
         type: 'direct_message',
         data: { message_type: 'recommendation', manga_title: manga.title },
       }).then(() => {});
-      sendDMPush(friendId, myDisplayName, `📚 ${manga.title}`).catch(() => {});
+      sendDMPush(friendId, `📚 ${manga.title}`).catch(() => {});
     } else {
       if (error) console.warn('[DM rec send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
@@ -751,7 +756,7 @@ export default function DMScreen() {
         type: 'direct_message',
         data: { message_type: 'gif' },
       }).then(() => {});
-      sendDMPush(friendId, myDisplayName, '🎬 GIF').catch(() => {});
+      sendDMPush(friendId, '🎬 GIF').catch(() => {});
     } else {
       if (error) console.warn('[DM gif send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
@@ -809,7 +814,7 @@ export default function DMScreen() {
         type: 'direct_message',
         data: { message_type: 'image' },
       }).then(() => {});
-      sendDMPush(friendId, myDisplayName, '📷 Photo').catch(() => {});
+      sendDMPush(friendId, '📷 Photo').catch(() => {});
     } else {
       if (error) console.warn('[DM image send error]', error.code, error.message, error.details);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, _sending: false, _failed: true, _error: error?.message } : m)));
@@ -821,21 +826,29 @@ export default function DMScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: tabBarHeight }]}>
-      <MobileHeader
-        title={friendName || 'Chat'}
-        leftContent={
-          <View style={[styles.headerAvatar, { backgroundColor: accent }]}>
-            {friendAvatarUrl
-              ? <Image source={{ uri: friendAvatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-              : <Text style={styles.headerAvatarText}>{avatarInitial}</Text>}
-          </View>
-        }
-      />
+      <View
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h > 0) setHeaderHeight(h);
+        }}>
+        <MobileHeader
+          title={friendName || 'Chat'}
+          leftContent={
+            <View style={[styles.headerAvatar, { backgroundColor: accent }]}>
+              {friendAvatarUrl
+                ? <Image source={{ uri: friendAvatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                : <Text style={styles.headerAvatarText}>{avatarInitial}</Text>}
+            </View>
+          }
+        />
+      </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
+        // Android uses softwareKeyboardLayoutMode: "resize" (app.json), so the OS
+        // already resizes the window — an offset there would double-count.
+        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}>
 
         {loading ? (
           <View style={[{ flex: 1, justifyContent: 'flex-end', paddingBottom: 16, gap: 12, paddingHorizontal: 16 }, isTablet && styles.tabletWrap]}>

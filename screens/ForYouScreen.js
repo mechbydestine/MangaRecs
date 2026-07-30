@@ -700,25 +700,37 @@ export default function ForYouScreen() {
       });
     }
 
+    // "Adult" is not a genre — it's the nsfw flag, and the Supabase query
+    // above filters on `nsfw` for exactly that reason. Matching it against
+    // genre names (there is no genre called "Adult") meant this local path
+    // always returned zero, so whenever the Supabase fetch came back short
+    // the whole shelf fell through to general recommendations.
+    if (activeMood === 'Adult') {
+      return sortByWeights(fullPool.filter((s) => s.nsfw === true)).slice(0, 10);
+    }
     if (activeMood) {
       const filtered = fullPool.filter((s) =>
-        (s.genres || []).some((g) => g.toLowerCase().includes(activeMood.toLowerCase()))
+        !s.nsfw && (s.genres || []).some((g) => g.toLowerCase().includes(activeMood.toLowerCase()))
       );
       return sortByWeights(filtered).slice(0, 10);
     }
     if (aiRecEnabled) {
-      return sortByWeights(fullPool);
+      return sortByWeights(fullPool.filter((s) => !s.nsfw));
     }
-    return fullPool;
+    return fullPool.filter((s) => !s.nsfw);
   }, [activeMood, aiRecEnabled, genreWeights, fullPool]);
 
   const displayRecs = useMemo(() => {
     // Supabase real-time mood results take priority
     if (supabaseRecs.length > 0) return supabaseRecs;
     const hasPersonalHistory = aiRecEnabled && Object.keys(genreWeights).length > 0;
-    const base = sortedRec.length > 0 ? sortedRec : fullPool.slice(0, 5);
+    // Never backfill the Adult shelf from the general pool — doing so
+    // rendered ordinary all-ages titles under an "18+ picks for you"
+    // heading. An honest empty state is the correct outcome here.
+    if (activeMood === 'Adult') return sortedRec;
+    const base = sortedRec.length > 0 ? sortedRec : fullPool.filter((s) => !s.nsfw).slice(0, 5);
     return hasPersonalHistory ? base : applyContentRatio(base);
-  }, [aiRecEnabled, genreWeights, sortedRec, fullPool, supabaseRecs]);
+  }, [aiRecEnabled, genreWeights, sortedRec, fullPool, supabaseRecs, activeMood]);
 
   // Hot Right Now — sorted by genre weight score, capped at 30, rotates hourly
   const hotRightNow = useMemo(() => {
@@ -960,6 +972,16 @@ export default function ForYouScreen() {
               activeOpacity={0.85}>
               <Text style={styles.adultLockBtnText}>Go to Settings </Text>
             </TouchableOpacity>
+          </View>
+        ) : displayRecs.filter((s) => !dismissedIds.has(s.id)).length === 0 ? (
+          <View style={[styles.adultLock, { backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 16 }]}>
+            <Ionicons name="albums-outline" size={30} color={colors.muted} />
+            <Text style={[styles.adultLockTitle, { color: colors.text }]}>Nothing here yet</Text>
+            <Text style={[styles.adultLockSub, { color: colors.muted }]}>
+              {activeMood === 'Adult'
+                ? "There aren't many 18+ titles in the catalog yet — more are being added."
+                : `No ${activeMood || ''} titles in the catalog yet. Try another mood.`}
+            </Text>
           </View>
         ) : (
           <View style={styles.recList}>
