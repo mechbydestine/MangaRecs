@@ -937,9 +937,8 @@ export default function SocialScreen() {
         type: 'friend_request',
         data: { friendship_id: newFriendship.id },
       }).then(() => {});
-      supabase.from('profiles').select('username, display_name').eq('id', currentUserId).maybeSingle().then(({ data }) => {
-        sendFriendRequestPush(userId, data?.display_name || data?.username || 'Someone');
-      });
+      // notify-user derives the requester's name from the JWT — no lookup needed.
+      sendFriendRequestPush(userId).catch(() => {});
     }
   }
 

@@ -430,22 +430,20 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
       mangaId: item.mangaId || (isMangaDexUuid ? item.id : undefined),
       chapters: item.chapters,
     };
+    // Navigation must NOT be nested inside the measure callback: on the New
+    // Architecture measureInWindow is an async round-trip that is simply
+    // never invoked if the view is already detaching, which silently turned
+    // a tap into a no-op. The morph is cosmetic, so fire it opportunistically
+    // and navigate unconditionally — CoverMorphOverlay self-clears if the
+    // rect arrives late.
     if (coverUrl && !coverError && coverCardRef.current) {
-      // measureInWindow resolves async (a native bridge round-trip) — firing
-      // navigate() outside this callback let it happen before or well after
-      // the transition was ever triggered, so a quick back-and-reopen could
-      // leave a stale morph overlay covering the next screen. Navigate right
-      // after triggering (or immediately, if the measurement comes back
-      // empty) so the two are never split by an unbounded async gap.
       coverCardRef.current.measureInWindow((x, y, width, height) => {
         if (width > 0 && height > 0) {
           startCoverTransition({ uri: coverUrl, color: item.color, rect: { x, y, width, height, radius: 18 } });
         }
-        navigation.navigate('MangaDetail', navParams);
       });
-    } else {
-      navigation.navigate('MangaDetail', navParams);
     }
+    navigation.navigate('MangaDetail', navParams);
   }
 
   // Per-card interaction state — lives here, never in the parent feed array
@@ -1461,9 +1459,9 @@ export default function FeedScreen() {
     light();
     if (currentUserId) {
       await supabase.from('comments').insert({ user_id: currentUserId, series_title: activeItem.title, text, spoiler: isSpoiler });
-      supabase.from('profiles').select('username, display_name').eq('id', currentUserId).maybeSingle().then(({ data }) => {
-        sendCommentPush(activeItem.title, data?.display_name || data?.username || 'Someone');
-      });
+      // No profile lookup needed — notify-user resolves both the commenter's
+      // name and the series owner server-side from the caller's JWT.
+      sendCommentPush(activeItem.title).catch(() => {});
     }
   }
 

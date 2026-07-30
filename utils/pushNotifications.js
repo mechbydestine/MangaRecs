@@ -101,68 +101,37 @@ export async function registerPushToken(userId) {
   return token;
 }
 
-async function sendPush(token, payload) {
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'Accept-Encoding': 'gzip, deflate' },
-    body: JSON.stringify({ to: token, sound: 'notification.mp3', ...payload }),
-  });
+// Every user-to-user push now goes through the `notify-user` Edge Function.
+//
+// These functions used to read the RECIPIENT's push_token on this device and
+// POST to Expo directly, which forced profiles.push_token to be world-readable
+// (anyone with the shipped anon key could harvest every token) and left
+// notification_prefs enforced on the *sender's* device, where it protects
+// nobody. The function owns all of it now: recipient lookup, opt-out checks,
+// block checks, and the sender's own name — which it takes from the JWT, so the
+// "from" label can no longer be spoofed by the caller.
+//
+// The senders no longer take a `fromUsername` — callers used to fetch their own
+// profile just to pass it, which was both a wasted round-trip and spoofable.
+async function notify(payload) {
+  // functions.invoke attaches the current session's access token as the
+  // Authorization header, which is what the function identifies the sender from.
+  const { error } = await supabase.functions.invoke('notify-user', { body: payload });
+  // A push that doesn't land must never break the action that triggered it —
+  // the message/comment/request itself is already committed by this point.
+  if (error) console.warn('[push] notify-user failed', error?.message || error);
 }
 
-export async function sendCommentPush(seriesTitle, commenterUsername) {
-  const { data: series } = await supabase
-    .from('series')
-    .select('creator_id')
-    .eq('title', seriesTitle)
-    .maybeSingle();
-  if (!series?.creator_id) return;
-
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('push_token, notification_prefs')
-    .eq('id', series.creator_id)
-    .maybeSingle();
-  const token = prof?.push_token;
-  if (!token) return;
-  if (prof?.notification_prefs?.comments === false) return;
-
-  await sendPush(token, {
-    title: 'New comment on your series',
-    body: `${commenterUsername} commented on ${seriesTitle}`,
-    data: { type: 'comment', series_title: seriesTitle },
-  });
+export async function sendCommentPush(seriesTitle) {
+  // The recipient is resolved from the series server-side — passing a user id
+  // from here would let a caller aim a "new comment" push at anyone.
+  await notify({ type: 'comment', seriesTitle });
 }
 
-export async function sendDMPush(toUserId, fromUsername, preview) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('push_token, notification_prefs')
-    .eq('id', toUserId)
-    .maybeSingle();
-  const token = data?.push_token;
-  if (!token) return;
-  if (data?.notification_prefs?.directMessages === false) return;
-
-  await sendPush(token, {
-    title: fromUsername,
-    body: preview || 'Sent you a message',
-    data: { type: 'direct_message' },
-  });
+export async function sendDMPush(toUserId, preview) {
+  await notify({ type: 'direct_message', recipientId: toUserId, preview });
 }
 
-export async function sendFriendRequestPush(toUserId, fromUsername) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('push_token, notification_prefs')
-    .eq('id', toUserId)
-    .maybeSingle();
-  const token = data?.push_token;
-  if (!token) return;
-  if (data?.notification_prefs?.friendActivity === false) return;
-
-  await sendPush(token, {
-    title: 'New friend request',
-    body: `${fromUsername} sent you a friend request`,
-    data: { type: 'friend_request' },
-  });
+export async function sendFriendRequestPush(toUserId) {
+  await notify({ type: 'friend_request', recipientId: toUserId });
 }

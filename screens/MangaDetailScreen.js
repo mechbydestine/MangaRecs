@@ -78,15 +78,30 @@ export default function MangaDetailScreen() {
   const recsAnim = useRef(new Animated.Value(0)).current;
   const bookmarkPop = useRef(new Animated.Value(1)).current;
 
+  // EVERY section of this screen starts at opacity 0 and is only revealed by
+  // its entrance animation. That makes an unrun/stranded animation fatal
+  // rather than cosmetic: the screen mounts fine but paints nothing except
+  // the background, which is the "grey blank screen" seen when re-opening a
+  // detail page. Native-driven values can be left stranded at 0 when a
+  // screen re-mounts mid stack-transition on the New Architecture, so every
+  // entrance is backed by a failsafe that force-commits the final visible
+  // state. Idempotent — a no-op if the animation already finished normally.
+  const allAnims = [heroAnim, synopsisAnim, detailsAnim, genresAnim, warningsAnim, charactersAnim, recsAnim];
+  const failsafeTimer = useRef(null);
+  function armEntranceFailsafe() {
+    if (failsafeTimer.current) clearTimeout(failsafeTimer.current);
+    // Longest stagger delay (220) + duration (260), plus generous headroom.
+    failsafeTimer.current = setTimeout(() => {
+      allAnims.forEach((a) => a.setValue(1));
+    }, 900);
+  }
+  useEffect(() => () => { if (failsafeTimer.current) clearTimeout(failsafeTimer.current); }, []);
+
   useEffect(() => {
     heroAnim.setValue(0);
-    const anim = Animated.timing(heroAnim, { toValue: 1, duration: 260, useNativeDriver: true });
-    anim.start();
-    // Explicitly stop rather than letting it dangle — a native-driver
-    // animation still ticking on the native side after this screen instance
-    // unmounts (e.g. a very quick back-then-reopen) is a plausible source of
-    // the reader getting stuck: it can't cleanly recover mid-navigation.
-    return () => anim.stop();
+    Animated.timing(heroAnim, { toValue: 1, duration: 260, useNativeDriver: true }).start();
+    armEntranceFailsafe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // `cancelled` is declared in the effect's own synchronous scope (not
@@ -125,6 +140,9 @@ export default function MangaDetailScreen() {
             stagger(warningsAnim, 190),
             stagger(recsAnim, 220),
           ]).start();
+          // Re-arm: these were just reset to 0, so they need their own
+          // guarantee independent of the one armed at mount.
+          armEntranceFailsafe();
         }
       }
     })();

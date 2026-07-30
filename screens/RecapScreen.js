@@ -1,72 +1,121 @@
 // ─────────────────────────────────────────────────────────────────────────
-// MangaRecap — MangaRecs' flagship half-yearly reading story.
+// MangaRecap — MangaRecs' half-yearly reading story.
 //
-// Ten slides, each with its own living background built from the reader's
-// REAL cover art (see components/RecapVisuals.js) and its own surface colour
-// derived from the real dominant colours of what they actually read (see
-// utils/recapTheme.js). There is no default theme anywhere in this file — a
-// One Piece reader and a Solo Leveling reader get structurally different
-// palettes because the palette is computed from their shelves.
+// Ten slides, and no two of them are the same shape. The old recap put every
+// beat in the same bottom-left stack over a scrim, which is why it read as a
+// statistics page no matter how the background moved; here each slide owns its
+// composition — a poster, a printed page of panels, a number that fills the
+// frame, a day/night split, a 3D card runway, a radial chart, a trading card,
+// a badge shelf, a calendar of fire, and a share poster.
+//
+// Nothing about the look is fixed. utils/recapIdentity.js derives three
+// independent axes from real reading history — print mode from where the
+// reader's stories come from, palette from the true dominant colours of their
+// covers, texture from their genre lane — so two readers get structurally
+// different recaps, not the same recap tinted differently.
+//
+// All artwork is real: official covers the app already displays, moved rather
+// than generated (components/RecapStage.js).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Animated, TouchableOpacity, Share, Dimensions,
-  Easing, ActivityIndicator, PanResponder,
+  View, Text, StyleSheet, Animated, TouchableOpacity, Share,
+  Easing, ActivityIndicator, PanResponder, useWindowDimensions, AccessibilityInfo,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Circle, G } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { DeviceMotion } from 'expo-sensors';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { supabase } from '../supabase';
 import { useProfile } from '../utils/ProfileContext';
 import { fetchMangaInfo } from '../utils/mangaCovers';
 import { getMergedDailyLog, getMergedHourLog, peakReadingWindow, localDateKey } from '../utils/readerUtils';
-import { BADGE_GRADES, ALL_BADGES, profileToBadgeStats, computeEarnedBadgeIds, highestGradeEarned } from '../utils/badges';
-import { buildIdentity, slideSurface, rgba } from '../utils/recapTheme';
 import {
-  Halftone, SpeedLines, InkSplatter, Grain,
-  BgCollage, BgFloatingCards, BgBurst, BgLightSweep, BgCarousel,
-  BgRadial, BgPanels, BgEmbers, BgConfetti, BgMosaic,
-} from '../components/RecapVisuals';
+  BADGE_GRADES, ALL_BADGES, GRADE_ORDER,
+  profileToBadgeStats, computeEarnedBadgeIds, highestGradeEarned,
+} from '../utils/badges';
+import BadgeIcon from '../components/BadgeIcon';
+import { buildIdentity, surfaceFor, rgba, RAIL_NUMERALS } from '../utils/recapIdentity';
+import { getState as ambienceState } from '../utils/ambiencePlayer';
+import {
+  TextureStack, Panel, PrintText, Bubble, VerticalRail, GhostNumeral, Stamp, TornEdge, Band, TransitionCut,
+  StageWall, StageDrift, StageImpact, StageHorizon, StageRunway,
+  StageOrbit, StagePanelGrid, StageCelebrate, StageEmber, StageFinale,
+} from '../components/RecapStage';
+import RecapExportCard from '../components/RecapExportCard';
+import RecapCompareModal from '../components/RecapCompareModal';
+import {
+  fetchPreviousSnapshot, fetchOldestSnapshot, fetchFriendsRecap, saveSnapshot,
+  readingDnaCode, ratingPersonality,
+} from '../utils/recapHistory';
 import { selection, light as hapticLight, success as hapticSuccess } from '../utils/haptics';
 
-const { width: SW, height: SH } = Dimensions.get('window');
-const AUTO_MS = 7000;
 const DISPLAY = 'MangaRecsBrand';
+const MUTE_KEY = '@mangarecs/recap-muted';
+// Per-slide autoplay pace — slides carrying more to read (top series, badge
+// shelf, time) get longer than a pure title-card beat. Index-aligned with
+// SLIDES below.
+const SLIDE_DURATIONS = [6200, 7800, 6800, 8400, 8800, 7600, 7400, 8600, 7200, 0];
 
-// ── period + stat maths (shared shape with the website recap) ────────────
+const SOUNDTRACK = {
+  night: require('../assets/sounds/night.mp3'),
+  rain: require('../assets/sounds/rain.mp3'),
+  forest: require('../assets/sounds/forest.mp3'),
+  ocean: require('../assets/sounds/ocean.mp3'),
+};
+
+// ── period + stat maths ──────────────────────────────────────────────────
 
 function getPeriod(now = new Date()) {
   const y = now.getFullYear(), m = now.getMonth();
   if (m >= 6) return { label: `First Half ${y}`, short: `Jan – Jun ${y}`, start: new Date(y, 0, 1), end: new Date(y, 6, 0, 23, 59, 59) };
   return { label: `Second Half ${y - 1}`, short: `Jul – Dec ${y - 1}`, start: new Date(y - 1, 6, 1), end: new Date(y, 0, 0, 23, 59, 59) };
 }
+
 function keysInRange(log, start, end) {
   return Object.keys(log || {}).filter((k) => { const d = new Date(`${k}T00:00:00`); return d >= start && d <= end; });
 }
+
+// Returns the run itself, not just its length — slide 9 shows the reader the
+// real dates they held the streak across.
 function longestStreak(log, start, end) {
   let cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-  let best = 0, run = 0;
+  let best = 0, run = 0, bestEnd = null, runEnd = null;
   while (cur <= endDay) {
-    run = (log[localDateKey(cur)] || 0) > 0 ? run + 1 : 0;
-    if (run > best) best = run;
+    if ((log[localDateKey(cur)] || 0) > 0) { run += 1; runEnd = new Date(cur); }
+    else { run = 0; runEnd = null; }
+    if (run > best) { best = run; bestEnd = runEnd; }
     cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
   }
-  return best;
+  const bestStart = bestEnd ? new Date(bestEnd.getFullYear(), bestEnd.getMonth(), bestEnd.getDate() - best + 1) : null;
+  return { best, start: bestStart, end: bestEnd };
 }
+
 function weekdayBreakdown(log, start, end) {
-  const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const totals = [0, 0, 0, 0, 0, 0, 0];
   let cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
   while (cur <= endDay) { totals[cur.getDay()] += log[localDateKey(cur)] || 0; cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1); }
+  const sum = totals.reduce((a, b) => a + b, 0);
   let best = 0;
   for (let i = 1; i < 7; i++) if (totals[i] > totals[best]) best = i;
-  return { totals, labels: WD, best: totals[best] > 0 ? best : -1, bestName: totals[best] > 0 ? FULL[best] : null };
+  return {
+    totals,
+    best: totals[best] > 0 ? best : -1,
+    bestName: totals[best] > 0 ? FULL[best] : null,
+    weekendShare: sum > 0 ? (totals[0] + totals[6]) / sum : 0,
+  };
 }
+
 function genreBreakdown(series) {
   const w = {}; let total = 0;
   (series || []).forEach((s) => {
@@ -76,40 +125,48 @@ function genreBreakdown(series) {
     g.forEach((x) => { w[x] = (w[x] || 0) + share; total += share; });
   });
   if (!total) return [];
-  const sorted = Object.entries(w).sort((a, b) => b[1] - a[1]);
-  const rows = sorted.slice(0, 5).map(([label, v]) => ({ label, pct: Math.round((v / total) * 100) }));
-  return rows.filter((r) => r.pct > 0);
+  return Object.entries(w)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, v]) => ({ label, pct: Math.round((v / total) * 100) }))
+    .filter((r) => r.pct > 0);
 }
 
-// Reading personality, from real signals only. Ordered by how distinctive the
-// signal is, so the rarest true statement about a reader wins.
+// Reading personality, from real signals only, ordered by how distinctive the
+// signal is — the rarest true statement about a reader wins. Every entry
+// carries its own seal glyph for the trading card on slide 7.
 function personality(d) {
   const c = [];
-  if (d.peakWindow && (d.peakWindow.startHour >= 21 || d.peakWindow.startHour < 4)) {
-    c.push({ w: 100, key: 'night', icon: 'moon', title: 'The Night Owl', desc: 'The best chapters happen after midnight.' });
-  }
-  if (d.completed >= 3) c.push({ w: 90 + d.completed, icon: 'checkmark-done', title: 'The Completionist', desc: 'You do not leave a story unfinished.' });
-  if (d.longest >= 21) c.push({ w: 85 + d.longest, icon: 'flame', title: 'The Devoted', desc: 'A streak that simply refuses to break.' });
-  if (d.chaptersPerHour >= 12) c.push({ w: 80, icon: 'flash', title: 'The Speed Reader', desc: 'You move through pages like they owe you money.' });
-  if (d.genres >= 5) c.push({ w: 70 + d.genres, icon: 'compass', title: 'The Explorer', desc: 'No single genre could ever hold you.' });
-  if (d.series >= 8) c.push({ w: 60 + d.series, icon: 'library', title: 'The Collector', desc: 'Always three stories deep, at minimum.' });
-  if (d.series > 0 && d.series <= 3 && d.chapters >= 40) c.push({ w: 55, icon: 'heart', title: 'The Loyalist', desc: 'A few worlds, known completely.' });
-  if (d.hours >= 60) c.push({ w: 50, icon: 'hourglass', title: 'The Immersed', desc: 'Time genuinely disappears when you read.' });
-  c.push({ w: 1, icon: 'sparkles', title: 'The Rising Reader', desc: 'The story is only getting started.' });
+  const night = d.peakWindow && (d.peakWindow.startHour >= 21 || d.peakWindow.startHour < 4);
+  const dawn = d.peakWindow && d.peakWindow.startHour >= 4 && d.peakWindow.startHour < 8;
+
+  if (night) c.push({ w: 100, icon: 'moon', seal: '夜', title: 'The Night Owl', desc: 'The best chapters happen after midnight.' });
+  if (dawn) c.push({ w: 96, icon: 'partly-sunny', seal: '暁', title: 'The Dawn Reader', desc: 'You get the first pages of the day, every day.' });
+  if (d.completed >= 3) c.push({ w: 90 + d.completed, icon: 'checkmark-done', seal: '完', title: 'The Completionist', desc: 'You do not leave a story unfinished.' });
+  if (d.longest >= 21) c.push({ w: 86 + d.longest, icon: 'flame', seal: '炎', title: 'The Devoted', desc: 'A streak that simply refuses to break.' });
+  if (d.comments >= 15) c.push({ w: 84, icon: 'chatbubbles', seal: '声', title: 'The Voice', desc: 'You never finish a chapter quietly.' });
+  if (d.chaptersPerHour >= 12) c.push({ w: 80, icon: 'flash', seal: '疾', title: 'The Speed Reader', desc: 'You move through pages like they owe you money.' });
+  if (d.ratings >= 10) c.push({ w: 76, icon: 'star', seal: '評', title: 'The Critic', desc: 'Nothing you read escapes a verdict.' });
+  if (d.weekendShare >= 0.5) c.push({ w: 72, icon: 'sunny', seal: '週', title: 'The Weekender', desc: 'Saturday morning belongs to the shelf.' });
+  if (d.genres >= 5) c.push({ w: 70 + d.genres, icon: 'compass', seal: '探', title: 'The Explorer', desc: 'No single genre could ever hold you.' });
+  if (d.series >= 8) c.push({ w: 60 + d.series, icon: 'library', seal: '集', title: 'The Collector', desc: 'Always three stories deep, at minimum.' });
+  if (d.series > 0 && d.series <= 3 && d.chapters >= 40) c.push({ w: 55, icon: 'heart', seal: '忠', title: 'The Loyalist', desc: 'A few worlds, known completely.' });
+  if (d.hours >= 60) c.push({ w: 50, icon: 'hourglass', seal: '没', title: 'The Immersed', desc: 'Time genuinely disappears when you read.' });
+  c.push({ w: 1, icon: 'sparkles', seal: '新', title: 'The Rising Reader', desc: 'The story is only getting started.' });
+
   c.sort((a, b) => b.w - a.w);
   return c[0];
 }
 
-// ── AniList art (batched) ────────────────────────────────────────────────
-// One aliased query for up to 10 titles instead of 10 round trips — the
-// collages need a lot of covers and 10 sequential requests would blow past
-// any sane timeout.
+// ── AniList art (one batched request) ────────────────────────────────────
+// countryOfOrigin is the axis that picks the reader's whole design language,
+// so it matters as much here as the cover URL does.
 async function fetchArtBatch(titles) {
-  const capped = (titles || []).slice(0, 10);
+  const capped = (titles || []).slice(0, 12);
   if (!capped.length) return {};
   const params = capped.map((_, i) => `$s${i}: String`).join(', ');
   const fields = capped.map((_, i) =>
-    `m${i}: Media(search: $s${i}, type: MANGA, isAdult: false) { coverImage { extraLarge large color } bannerImage genres }`
+    `m${i}: Media(search: $s${i}, type: MANGA, isAdult: false) { coverImage { extraLarge large color } genres countryOfOrigin }`
   ).join(' ');
   const variables = {};
   capped.forEach((t, i) => { variables[`s${i}`] = t; });
@@ -129,96 +186,103 @@ async function fetchArtBatch(titles) {
     return {};
   }
 }
-// Trending art, used only when a reader has no resolvable covers at all.
+
+// Only reached when a reader has no resolvable art of their own at all.
 async function fetchTrendingArt() {
   try {
     const resp = await fetch('https://graphql.anilist.co', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ query: 'query { Page(page:1, perPage:12){ media(sort:TRENDING_DESC, type:MANGA, isAdult:false){ coverImage{ extraLarge large color } } } }' }),
+      body: JSON.stringify({ query: 'query { Page(page:1, perPage:14){ media(sort:TRENDING_DESC, type:MANGA, isAdult:false){ coverImage{ extraLarge large color } countryOfOrigin } } }' }),
     });
     if (!resp.ok) return [];
     const j = await resp.json();
     return (j?.data?.Page?.media || []).map((m) => ({
       cover: m.coverImage?.extraLarge || m.coverImage?.large || null,
       color: m.coverImage?.color || null,
+      country: m.countryOfOrigin || null,
     })).filter((x) => x.cover);
   } catch (_) { return []; }
 }
+
 function withTimeout(p, ms, fb) {
   return Promise.race([p, new Promise((r) => setTimeout(() => r(fb), ms))]);
 }
 
 // ── motion primitives ────────────────────────────────────────────────────
 
-function Reveal({ delay = 0, from = 'up', style, children }) {
+function Reveal({ delay = 0, from = 'up', dist, style, children }) {
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const t = setTimeout(() => {
-      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 15, stiffness: 170, mass: 0.85 }).start();
+      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 16, stiffness: 165, mass: 0.85 }).start();
     }, delay);
     return () => clearTimeout(t);
   }, [a, delay]);
-  const dist = from === 'left' ? -34 : from === 'right' ? 34 : 22;
+  const D = dist != null ? dist : (from === 'left' || from === 'right' ? 38 : 24);
   const tf = from === 'left' || from === 'right'
-    ? [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [dist, 0] }) }]
-    : [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [dist, 0] }) }];
+    ? [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [from === 'left' ? -D : D, 0] }) }]
+    : [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [from === 'down' ? -D : D, 0] }) }];
   return (
-    <Animated.View style={[{ opacity: a, transform: [...tf, { scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }, style]}>
+    <Animated.View style={[{ opacity: a, transform: [...tf, { scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }, style]}>
       {children}
     </Animated.View>
   );
 }
 
-// Per-character kinetic headline — each glyph lands on its own spring, which
-// is what gives the titles their anime-title-card feel.
-function Kinetic({ text, style, delay = 0, stagger = 42 }) {
+// Per-character kinetic headline — each glyph lands on its own spring, which is
+// what gives the titles their anime title-card snap.
+function Kinetic({ text, style, delay = 0, stagger = 40, from = 'below' }) {
   const chars = String(text).split('');
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
       {chars.map((ch, i) => (
-        <KineticChar key={`${ch}-${i}`} ch={ch} style={style} delay={delay + i * stagger} />
+        <KineticChar key={`${ch}-${i}`} ch={ch} style={style} delay={delay + i * stagger} from={from} />
       ))}
     </View>
   );
 }
-function KineticChar({ ch, style, delay }) {
+function KineticChar({ ch, style, delay, from }) {
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const t = setTimeout(() => {
-      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 220, mass: 0.7 }).start();
+      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 13, stiffness: 210, mass: 0.7 }).start();
     }, delay);
     return () => clearTimeout(t);
   }, [a, delay]);
+  const dy = from === 'above' ? -46 : 46;
   return (
     <Animated.Text
       style={[style, {
         opacity: a,
         transform: [
-          { translateY: a.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) },
-          { scale: a.interpolate({ inputRange: [0, 1], outputRange: [1.5, 1] }) },
+          { translateY: a.interpolate({ inputRange: [0, 1], outputRange: [dy, 0] }) },
+          { scale: a.interpolate({ inputRange: [0, 1], outputRange: [1.45, 1] }) },
+          { rotate: a.interpolate({ inputRange: [0, 1], outputRange: [`${from === 'above' ? -8 : 8}deg`, '0deg'] }) },
         ],
       }]}
     >
-      {ch === ' ' ? ' ' : ch}
+      {ch === ' ' ? ' ' : ch}
     </Animated.Text>
   );
 }
 
-// Odometer digit — each digit rolls independently, so a 4-digit chapter count
-// lands like a counter rather than a single number fading in.
-function Odometer({ value, style, duration = 1700, onDone }) {
+// Odometer digit — each digit rolls on its own delay, so a four-figure chapter
+// count lands like a counter instead of a number fading in.
+function Odometer({ value, style, duration = 1800, onDone }) {
   const digits = String(Math.max(0, Math.round(value)));
   return (
     <View style={{ flexDirection: 'row' }}>
       {digits.split('').map((d, i) => (
-        <Digit key={i} target={parseInt(d, 10)} style={style} duration={duration} delay={i * 90} onDone={i === digits.length - 1 ? onDone : undefined} />
+        <Digit key={i} target={parseInt(d, 10)} style={style} duration={duration} delay={i * 110}
+          onDone={i === digits.length - 1 ? onDone : undefined} />
       ))}
     </View>
   );
 }
 function Digit({ target, style, duration, delay, onDone }) {
   const [shown, setShown] = useState(0);
+  const done = useRef(false);
   useEffect(() => {
     let raf; const start = Date.now() + delay;
     const tick = () => {
@@ -228,7 +292,7 @@ function Digit({ target, style, duration, delay, onDone }) {
       const eased = 1 - Math.pow(1 - p, 4);
       setShown(Math.round(target * eased + (1 - eased) * ((target + 7) % 10) * (1 - p)));
       if (p < 1) raf = requestAnimationFrame(tick);
-      else { setShown(target); onDone && onDone(); }
+      else { setShown(target); if (!done.current) { done.current = true; onDone && onDone(); } }
     };
     raf = requestAnimationFrame(tick);
     return () => raf && cancelAnimationFrame(raf);
@@ -236,174 +300,626 @@ function Digit({ target, style, duration, delay, onDone }) {
   return <Text style={style}>{shown}</Text>;
 }
 
-function useCountUp(target, duration = 1400) {
+function useCountUp(target, duration = 1500, delay = 0) {
   const [v, setV] = useState(0);
   const punch = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    let raf; const start = Date.now();
+    let raf; const start = Date.now() + delay;
     const tick = () => {
-      const p = Math.min(1, (Date.now() - start) / duration);
+      const now = Date.now();
+      if (now < start) { raf = requestAnimationFrame(tick); return; }
+      const p = Math.min(1, (now - start) / duration);
       setV(Math.round(target * (1 - Math.pow(1 - p, 3))));
       if (p < 1) raf = requestAnimationFrame(tick);
       else {
         Animated.sequence([
-          Animated.timing(punch, { toValue: 1.18, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.spring(punch, { toValue: 1, useNativeDriver: true, damping: 6, stiffness: 200 }),
+          Animated.timing(punch, { toValue: 1.16, duration: 110, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.spring(punch, { toValue: 1, useNativeDriver: true, damping: 6, stiffness: 210 }),
         ]).start();
       }
     };
     raf = requestAnimationFrame(tick);
     return () => raf && cancelAnimationFrame(raf);
-  }, [target, duration, punch]);
+  }, [target, duration, delay, punch]);
   return { value: v, punch };
 }
 
-// A manga speech bubble — used for the reader's callouts.
-function Bubble({ children, surface, style }) {
+// JS-driven 0→1 ramp, used where the value has to redraw real SVG geometry
+// (the genre wheel's arcs, the clock's peak-window sweep) rather than move a
+// transform — those cannot ride the native driver.
+function useProgress(duration = 1100, delay = 200) {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    let raf; const start = Date.now() + delay;
+    const tick = () => {
+      const now = Date.now();
+      if (now < start) { raf = requestAnimationFrame(tick); return; }
+      const t = Math.min(1, (now - start) / duration);
+      setP(1 - Math.pow(1 - t, 3));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => raf && cancelAnimationFrame(raf);
+  }, [duration, delay]);
+  return p;
+}
+
+// ── svg arc helper ───────────────────────────────────────────────────────
+function polar(cx, cy, r, deg) {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+function arcPath(cx, cy, r, from, to) {
+  const span = Math.max(0.01, Math.min(359.99, to - from));
+  const [x0, y0] = polar(cx, cy, r, from);
+  const [x1, y1] = polar(cx, cy, r, from + span);
+  return `M ${x0} ${y0} A ${r} ${r} 0 ${span > 180 ? 1 : 0} 1 ${x1} ${y1}`;
+}
+
+// "+123 vs last half" — only renders once a prior recap_snapshots row exists,
+// so a reader's very first MangaRecap never shows a hollow "+0".
+function DeltaPill({ value, s }) {
+  if (value == null || value === 0) return null;
+  const up = value > 0;
+  const color = up ? '#3ECB6A' : '#FF6B6B';
   return (
-    <View style={[styles.bubble, { backgroundColor: surface.light ? '#fff' : rgba(surface.ink, 0.1), borderColor: surface.ink }, style]}>
-      {children}
-      <View style={[styles.bubbleTail, { borderTopColor: surface.light ? '#fff' : rgba(surface.ink, 0.1) }]} />
+    <View style={[styles.deltaPill, { borderColor: rgba(color, 0.5), backgroundColor: rgba(color, 0.14) }]}>
+      <Ionicons name={up ? 'trending-up' : 'trending-down'} size={12} color={color} />
+      <Text style={[styles.deltaText, { color }]}>{up ? '+' : ''}{value} vs last half</Text>
     </View>
   );
 }
 
-// ── slides ───────────────────────────────────────────────────────────────
-// Each receives { d } (data) and { s } (its own surface colours).
-
-function S1Welcome({ d, s }) {
+// A reader's real 24-hour shape, from their own hourLog — replaces a bare
+// weekday caption with an actual line through the day.
+function PulseSparkline({ pulse, peak, s, width, height = 44 }) {
+  const path = useMemo(() => {
+    if (!pulse || !pulse.length) return '';
+    const n = pulse.length;
+    const step = width / (n - 1);
+    return pulse.map((v, i) => {
+      const x = i * step;
+      const y = height - (Math.min(1, v / peak) * (height - 6) + 3);
+      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(' ');
+  }, [pulse, peak, width, height]);
+  if (!path) return null;
   return (
-    <View style={styles.body}>
-      <Reveal delay={80}><Text style={[styles.kicker, { color: s.accent }]}>MANGARECS PRESENTS</Text></Reveal>
-      <Kinetic text="MANGA" style={[styles.hero, { color: s.ink }]} delay={260} />
-      <Kinetic text="RECAP" style={[styles.hero, { color: s.accent }]} delay={520} />
-      <Reveal delay={1100}>
-        <View style={[styles.rule, { backgroundColor: s.accent }]} />
-        <Text style={[styles.lede, { color: s.ink }]}>{d.period.short.toUpperCase()}</Text>
+    <Svg width={width} height={height}>
+      <Path d={path} stroke={s.accent} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+    </Svg>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 1 — THE POSTER
+// Centred title card. No stats anywhere; this is the cold open.
+// ═════════════════════════════════════════════════════════════════════════
+function S1Welcome({ d, s, id, cw }) {
+  const bob = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(bob, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(bob, { toValue: 0, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    a.start();
+    return () => a.stop();
+  }, [bob]);
+  const chev = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -9] });
+  const heroSize = Math.min(78, cw * 0.265);
+
+  return (
+    <View style={{ alignItems: 'center', width: '100%' }}>
+      <Reveal delay={60}>
+        <Band s={s} id={id}>
+          <Text style={[styles.bandText, { color: s.onAccent }]}>MANGARECS PRESENTS</Text>
+        </Band>
       </Reveal>
-      <Reveal delay={1300}><Text style={[styles.sub, { color: s.dim }]}>@{d.username}, here's your half.</Text></Reveal>
+
+      <View style={{ marginTop: 22, alignItems: 'center' }}>
+        <Kinetic text="MANGA" delay={300} stagger={52} from="above"
+          style={[styles.hero, { color: s.ink, fontSize: heroSize, lineHeight: heroSize * 1.02 }]} />
+        <View style={{ marginTop: -heroSize * 0.1 }}>
+          <Kinetic text="RECAP" delay={620} stagger={52}
+            style={[styles.hero, { color: s.accent, fontSize: heroSize, lineHeight: heroSize * 1.02 }]} />
+        </View>
+      </View>
+
+      <Reveal delay={1250} style={{ alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 }}>
+          <View style={{ width: 34, height: 2.5, backgroundColor: s.accent }} />
+          <Text style={[styles.lede, { color: s.ink }]}>{d.period.short.toUpperCase()}</Text>
+          <View style={{ width: 34, height: 2.5, backgroundColor: s.accent }} />
+        </View>
+      </Reveal>
+
+      <Reveal delay={1450}>
+        <Text style={[styles.sub, { color: s.dim, textAlign: 'center' }]}>@{d.username}, here is your half.</Text>
+      </Reveal>
+
+      <Reveal delay={1900} style={{ marginTop: 34, alignItems: 'center' }}>
+        <Animated.View style={{ alignItems: 'center', transform: [{ translateY: chev }] }}>
+          <Ionicons name="chevron-up" size={22} color={s.accent} />
+          <Text style={[styles.swipe, { color: s.dim }]}>SWIPE UP</Text>
+        </Animated.View>
+      </Reveal>
     </View>
   );
 }
 
-function S2Journey({ d, s }) {
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 2 — THE PRINTED PAGE
+// Panels with gutters, and a real six-month calendar of the days they showed
+// up, built from the actual daily log.
+// ═════════════════════════════════════════════════════════════════════════
+function S2Journey({ d, s, id }) {
   return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>YOUR JOURNEY</Text></Reveal>
-      <Reveal delay={140}><Text style={[styles.h2, { color: s.ink }]}>It started on</Text></Reveal>
-      <Kinetic text={d.firstDayLabel || 'day one'} style={[styles.h1, { color: s.accent }]} delay={340} stagger={34} />
-      <Reveal delay={900}>
-        <Bubble surface={s} style={{ marginTop: 26 }}>
-          <Text style={[styles.bubbleText, { color: s.light ? '#1A1208' : s.ink }]}>
+    <View style={{ width: '100%' }}>
+      <Reveal delay={0} from="left">
+        <Panel s={s} id={id} tilt={-1} style={{ alignSelf: 'flex-start', paddingVertical: 14 }}>
+          <Text style={[styles.kicker, { color: s.accent, marginBottom: 4 }]}>CHAPTER ONE</Text>
+          <Text style={[styles.h3, { color: s.ink }]}>It started on</Text>
+          <PrintText s={s} id={id} style={[styles.h1, { color: s.ink, marginTop: 2 }]}>
+            {d.firstDayLabel || 'day one'}
+          </PrintText>
+        </Panel>
+      </Reveal>
+
+      <Reveal delay={340} from="right" style={{ marginTop: 16 }}>
+        <MonthStrip d={d} s={s} id={id} />
+      </Reveal>
+
+      <Reveal delay={900} style={{ marginTop: 18 }}>
+        <Bubble s={s} id={id}>
+          <Text style={[styles.bubbleText, { color: s.light ? id.paperInk : s.ink }]}>
             {d.readingDays > 0
-              ? `You showed up on ${d.readingDays} different ${d.readingDays === 1 ? 'day' : 'days'} this half.`
+              ? `You showed up on ${d.readingDays} different ${d.readingDays === 1 ? 'day' : 'days'}.`
               : 'Your first chapter of the half is still waiting.'}
           </Text>
         </Bubble>
       </Reveal>
+
+      {!!d.firstEverTopSeries && (
+        <Reveal delay={1150}>
+          <Text style={[styles.subSmall, { color: s.dim, marginTop: 14 }]}>
+            Your very first MangaRecap led with {d.firstEverTopSeries} — this half it's {d.topSeries[0]?.title || 'still being written'}.
+          </Text>
+        </Reveal>
+      )}
     </View>
   );
 }
 
-function S3Chapters({ d, s }) {
+// Six mini month grids, one per month of the period, each cell shaded by the
+// real hours logged that day. Months animate in on a stagger.
+function MonthStrip({ d, s, id }) {
+  const months = useMemo(() => {
+    const out = [];
+    const cur = new Date(d.period.start.getFullYear(), d.period.start.getMonth(), 1);
+    for (let i = 0; i < 6; i++) {
+      const y = cur.getFullYear(), m = cur.getMonth();
+      const days = new Date(y, m + 1, 0).getDate();
+      const cells = [];
+      for (let day = 1; day <= days; day++) {
+        const key = localDateKey(new Date(y, m, day));
+        cells.push(d.dailyLog[key] || 0);
+      }
+      out.push({ label: new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short' }).toUpperCase(), cells, lead: new Date(y, m, 1).getDay() });
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return out;
+  }, [d.period, d.dailyLog]);
+
+  const peak = useMemo(() => Math.max(0.5, ...months.flatMap((m) => m.cells)), [months]);
+  const anims = useRef(months.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    Animated.stagger(95, anims.map((a) =>
+      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 150 })
+    )).start();
+  }, [anims]);
+
+  return (
+    <View style={styles.monthWrap}>
+      {months.map((m, i) => (
+        <Animated.View
+          key={m.label + i}
+          style={[styles.monthBlock, {
+            opacity: anims[i],
+            transform: [
+              { scale: anims[i].interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) },
+              { translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+            ],
+          }]}
+        >
+          <Text style={[styles.monthLabel, { color: s.dim }]}>{m.label}</Text>
+          <View style={styles.monthGrid}>
+            {Array.from({ length: m.lead }).map((_, k) => <View key={`p${k}`} style={styles.dayCell} />)}
+            {m.cells.map((v, k) => (
+              <View
+                key={k}
+                style={[styles.dayCell, {
+                  backgroundColor: v > 0 ? rgba(s.accent, 0.3 + Math.min(0.7, v / peak) * 0.7) : s.faint,
+                  borderRadius: id.mode.radius > 8 ? 3 : 1,
+                }]}
+              />
+            ))}
+          </View>
+        </Animated.View>
+      ))}
+    </View>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 3 — THE NUMBER
+// The chapter count IS the page: a ghost numeral bleeding off both edges, the
+// live odometer on top of it, and an impact shake when the last digit lands.
+// ═════════════════════════════════════════════════════════════════════════
+function S3Chapters({ d, s, id, w, cw }) {
   const [landed, setLanded] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
   const onDone = useCallback(() => {
     setLanded(true);
     hapticSuccess();
     Animated.sequence([
-      Animated.timing(shake, { toValue: 1, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: -1, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 0.5, duration: 50, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 0, duration: 50, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 1, duration: 55, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: -1, duration: 55, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 0.6, duration: 45, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: -0.3, duration: 45, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 0, duration: 40, useNativeDriver: true }),
     ]).start();
   }, [shake]);
-  const tx = shake.interpolate({ inputRange: [-1, 1], outputRange: [-9, 9] });
+
+  const tx = shake.interpolate({ inputRange: [-1, 1], outputRange: [-11, 11] });
+  const ty = shake.interpolate({ inputRange: [-1, 1], outputRange: [6, -6] });
+  const digits = String(Math.max(0, Math.round(d.chapters))).length;
+  const megaSize = Math.min(140, (cw / Math.max(1, digits)) * 1.45);
+  const volumes = Math.round(d.chapters / 9);
+
   return (
-    <Animated.View style={[styles.body, { transform: [{ translateX: tx }] }]}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>YOU DOVE INTO</Text></Reveal>
-      <Odometer value={d.chapters} style={[styles.mega, { color: s.ink }]} onDone={onDone} />
-      <Reveal delay={200}><Text style={[styles.h2, { color: s.accent }]}>CHAPTERS</Text></Reveal>
+    <Animated.View style={{ width: '100%', alignItems: 'center', transform: [{ translateX: tx }, { translateY: ty }] }}>
+      <GhostNumeral text={String(d.chapters)} s={s} size={w * 0.62} style={{ top: -w * 0.16, left: -w * 0.1 }} />
+
+      <Reveal delay={0}>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOU DOVE INTO</Text></Band>
+      </Reveal>
+
+      <View style={{ marginTop: 14 }}>
+        <Odometer value={d.chapters} onDone={onDone}
+          style={[styles.mega, { color: s.ink, fontSize: megaSize, lineHeight: megaSize * 1.04 }]} />
+      </View>
+
+      <Reveal delay={260}>
+        <Text style={[styles.h2, { color: s.accent, letterSpacing: 6, marginTop: -4 }]}>CHAPTERS</Text>
+      </Reveal>
+
       {landed && (
-        <Reveal delay={80}>
-          <Text style={[styles.sub, { color: s.dim }]}>across {d.series} {d.series === 1 ? 'series' : 'series'}</Text>
+        <Reveal delay={60} style={{ alignItems: 'center', marginTop: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ height: 1, width: 26, backgroundColor: s.faint }} />
+            <Text style={[styles.sub, { color: s.dim, marginTop: 0 }]}>
+              across {d.series} {d.series === 1 ? 'series' : 'series'}
+            </Text>
+            <View style={{ height: 1, width: 26, backgroundColor: s.faint }} />
+          </View>
+          {volumes >= 2 && (
+            <Text style={[styles.subSmall, { color: s.dim }]}>
+              roughly {volumes} volumes on the shelf
+            </Text>
+          )}
+          {(d.deltas?.chapters != null || d.friendRank) && (
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <DeltaPill value={d.deltas?.chapters} s={s} />
+              {!!d.friendRank && (
+                <View style={[styles.rankPill, { borderColor: rgba(s.ink, 0.3), backgroundColor: rgba(s.accent, 0.14) }]}>
+                  <Ionicons name="podium" size={12} color={s.accent} />
+                  <Text style={[styles.rankPillText, { color: s.accent }]}>#{d.friendRank} among your friends</Text>
+                </View>
+              )}
+            </View>
+          )}
         </Reveal>
       )}
     </Animated.View>
   );
 }
 
-function S4Time({ d, s }) {
-  const hrs = useCountUp(Math.round(d.hours));
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 4 — DAY AND NIGHT
+// Split composition against the horizon stage: hours above the line, the real
+// peak-reading window drawn as a swept arc on a 24-hour dial below it.
+// ═════════════════════════════════════════════════════════════════════════
+function S4Time({ d, s, id, h, cw }) {
+  const hrs = useCountUp(Math.round(d.hours), 1600, 200);
+  const p = useProgress(1200, 700);
   const night = d.peakWindow && (d.peakWindow.startHour >= 20 || d.peakWindow.startHour < 5);
+  const dialSize = Math.min(180, cw * 0.55);
+  const R = dialSize / 2 - 12;
+
   return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>TIME SPENT READING</Text></Reveal>
-      <Reveal delay={120}>
-        <Animated.Text style={[styles.mega, { color: s.ink, transform: [{ scale: hrs.punch }] }]}>{hrs.value}</Animated.Text>
-      </Reveal>
-      <Reveal delay={220}><Text style={[styles.h2, { color: s.accent }]}>HOURS</Text></Reveal>
-      {d.hours >= 24 && (
-        <Reveal delay={420}>
-          <Text style={[styles.sub, { color: s.dim }]}>That's {Math.round(d.hours / 24)} full days of nothing but story.</Text>
+    <View style={{ width: '100%', flex: 1, justifyContent: 'space-between' }}>
+      {/* upper half — the total */}
+      <View style={{ alignItems: 'flex-start', paddingTop: h * 0.06 }}>
+        <Reveal delay={0}>
+          <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>TIME SPENT READING</Text></Band>
         </Reveal>
-      )}
-      {d.peakWindow && (
-        <Reveal delay={620}>
-          <View style={[styles.pill, { borderColor: s.accent, backgroundColor: s.light ? 'rgba(255,255,255,0.6)' : rgba(s.ink, 0.08) }]}>
-            <Ionicons name={night ? 'moon' : 'sunny'} size={16} color={s.accent} />
-            <View>
-              <Text style={[styles.pillLabel, { color: s.dim }]}>PEAK READING TIME</Text>
-              <Text style={[styles.pillValue, { color: s.ink }]}>{d.peakWindow.label}</Text>
-            </View>
-            <Text style={[styles.pillPct, { color: s.accent }]}>{d.peakWindow.pct}%</Text>
+        <Reveal delay={160}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 10 }}>
+            <Animated.Text style={[styles.mega, { color: s.ink, fontSize: 96, lineHeight: 100, transform: [{ scale: hrs.punch }] }]}>
+              {hrs.value}
+            </Animated.Text>
+            <Text style={[styles.h2, { color: s.accent, marginBottom: 16, marginLeft: 10 }]}>HRS</Text>
           </View>
         </Reveal>
-      )}
-      {!d.peakWindow && d.weekday.bestName && (
-        <Reveal delay={620}><Text style={[styles.sub, { color: s.dim }]}>{d.weekday.bestName}s were your heaviest days.</Text></Reveal>
+        {d.hours >= 24 && (
+          <Reveal delay={520}>
+            <Text style={[styles.sub, { color: s.dim }]}>
+              {Math.round(d.hours / 24)} full {Math.round(d.hours / 24) === 1 ? 'day' : 'days'} of nothing but story.
+            </Text>
+          </Reveal>
+        )}
+        {(d.deltas?.hours != null || d.lateNightHours > 0.4) && (
+          <Reveal delay={600} style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <DeltaPill value={d.deltas?.hours} s={s} />
+            {d.lateNightHours > 0.4 && (
+              <View style={[styles.rankPill, { borderColor: rgba(s.ink, 0.3), backgroundColor: rgba(s.accent, 0.14) }]}>
+                <Ionicons name="moon" size={12} color={s.accent} />
+                <Text style={[styles.rankPillText, { color: s.accent }]}>{d.lateNightHours.toFixed(1)}h after midnight</Text>
+              </View>
+            )}
+          </Reveal>
+        )}
+        {d.hourPulseMax > 0.5 && (
+          <Reveal delay={660} style={{ marginTop: 16 }}>
+            <Text style={[styles.microLabel, { color: s.dim }]}>YOUR DAY, IN CHAPTERS</Text>
+            <PulseSparkline pulse={d.hourPulse} peak={d.hourPulseMax} s={s} width={cw} />
+          </Reveal>
+        )}
+      </View>
+
+      {/* lower half — the dial */}
+      {d.peakWindow ? (
+        <Reveal delay={700} from="down" style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <View style={{ width: dialSize, height: dialSize }}>
+            <Svg width={dialSize} height={dialSize}>
+              <Circle cx={dialSize / 2} cy={dialSize / 2} r={R} stroke={s.faint} strokeWidth={11} fill="none" />
+              {/* the reader's real window, swept onto a 24-hour face */}
+              <Path
+                d={arcPath(dialSize / 2, dialSize / 2, R, (d.peakWindow.startHour / 24) * 360, (d.peakWindow.startHour / 24) * 360 + 45 * p)}
+                stroke={s.accent} strokeWidth={11} fill="none" strokeLinecap="round"
+              />
+              <G opacity={0.4}>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const [x0, y0] = polar(dialSize / 2, dialSize / 2, R - 11, i * 30);
+                  const [x1, y1] = polar(dialSize / 2, dialSize / 2, R - 16, i * 30);
+                  return <Path key={i} d={`M${x0} ${y0} L${x1} ${y1}`} stroke={s.ink} strokeWidth={1.5} />;
+                })}
+              </G>
+            </Svg>
+            <View style={{ position: 'absolute', width: dialSize, height: dialSize, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={night ? 'moon' : 'sunny'} size={26} color={s.accent} />
+              <Text style={[styles.dialPct, { color: s.ink }]}>{d.peakWindow.pct}%</Text>
+            </View>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.kicker, { color: s.dim }]}>PEAK READING WINDOW</Text>
+            <PrintText s={s} id={id} offset={2} style={[styles.h2, { color: s.ink, marginTop: 4 }]}>
+              {d.peakWindow.label}
+            </PrintText>
+            {!!d.weekday.bestName && (
+              <Text style={[styles.subSmall, { color: s.dim, marginTop: 8 }]}>
+                heaviest on {d.weekday.bestName}s
+              </Text>
+            )}
+          </View>
+        </Reveal>
+      ) : (
+        <Reveal delay={700} from="down">
+          <Bubble s={s} id={id}>
+            <Text style={[styles.bubbleText, { color: s.light ? id.paperInk : s.ink }]}>
+              {d.weekday.bestName
+                ? `${d.weekday.bestName}s carried this half.`
+                : 'Keep reading and your hours will start telling their own story.'}
+            </Text>
+          </Bubble>
+        </Reveal>
       )}
     </View>
   );
 }
 
-// The hero page — big covers, animated ranking, Spotify "Top Songs" energy.
-function S5TopSeries({ d, s }) {
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 5 — TOP SERIES  (the hero page)
+// The #1 cover is a large tilted card in perspective with its rank set behind
+// it; ranks two to five deal in from the right like a hand of cards.
+// ═════════════════════════════════════════════════════════════════════════
+function S5TopSeries({ d, s, id, cw }) {
   if (!d.topSeries.length) {
     return (
-      <View style={styles.body}>
-        <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>YOUR TOP SERIES</Text></Reveal>
-        <Reveal delay={160}><Text style={[styles.h1, { color: s.ink }]}>Still writing{'\n'}this chapter</Text></Reveal>
-        <Reveal delay={340}><Text style={[styles.sub, { color: s.dim }]}>Start a series and it'll headline your next recap.</Text></Reveal>
+      <View style={{ width: '100%' }}>
+        <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOUR TOP SERIES</Text></Band></Reveal>
+        <Reveal delay={200}><Text style={[styles.h1, { color: s.ink, marginTop: 18 }]}>Still writing{'\n'}this chapter</Text></Reveal>
+        <Reveal delay={420}><Text style={[styles.sub, { color: s.dim }]}>Start a series and it will headline your next recap.</Text></Reveal>
       </View>
     );
   }
   const [lead, ...rest] = d.topSeries;
+  const leadW = Math.min(196, cw * 0.58);
+
   return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>YOUR TOP SERIES</Text></Reveal>
-      <Reveal delay={140} from="left" style={styles.leadRow}>
-        <View style={[styles.leadCover, { borderColor: s.accent }]}>
-          {!!lead.cover && <Image source={{ uri: lead.cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={300} />}
-          <View style={[styles.leadRank, { backgroundColor: s.accent }]}>
-            <Text style={styles.leadRankText}>1</Text>
-          </View>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.leadTitle, { color: s.ink }]} numberOfLines={3}>{lead.title}</Text>
-          <Text style={[styles.leadMeta, { color: s.accent }]}>{lead.chapters} chapters</Text>
-        </View>
+    <View style={{ width: '100%' }}>
+      <Reveal delay={0}>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOUR TOP SERIES</Text></Band>
       </Reveal>
-      <View style={{ marginTop: 16, width: '100%' }}>
+
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 18 }}>
+        <HeroCover uri={lead.cover} s={s} id={id} width={leadW} />
+        <View style={{ flex: 1, paddingLeft: 16, paddingBottom: 6 }}>
+          <Reveal delay={520} from="right">
+            <Text style={[styles.rankBig, { color: s.accent }]}>01</Text>
+            <PrintText s={s} id={id} offset={2} style={[styles.leadTitle, { color: s.ink }]}>
+              {lead.title.length > 34 ? `${lead.title.slice(0, 33)}…` : lead.title}
+            </PrintText>
+            <Text style={[styles.leadMeta, { color: s.accent }]}>{lead.chapters} chapters</Text>
+            {!!d.friendsReadingSame?.length && (
+              <View style={[styles.friendTag, { borderColor: rgba(s.ink, 0.3) }]}>
+                <Ionicons name="people" size={11} color={s.accent} />
+                <Text style={[styles.friendTagText, { color: s.dim }]} numberOfLines={1}>
+                  you & @{d.friendsReadingSame[0]}{d.friendsReadingSame.length > 1 ? ` +${d.friendsReadingSame.length - 1}` : ''} both read this
+                </Text>
+              </View>
+            )}
+          </Reveal>
+        </View>
+      </View>
+
+      <View style={{ marginTop: 18, width: '100%' }}>
         {rest.slice(0, 4).map((x, i) => (
-          <Reveal key={x.title + i} delay={420 + i * 120} from="right" style={styles.rankRow}>
-            <Text style={[styles.rankNum, { color: s.accent }]}>{i + 2}</Text>
-            <View style={[styles.rankCover, { borderColor: rgba(s.ink, 0.25) }]}>
-              {!!x.cover && <Image source={{ uri: x.cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={240} />}
+          <Reveal key={x.title + i} delay={780 + i * 130} from="right" dist={70}>
+            <View style={[styles.rankRow, { borderBottomColor: s.faint }]}>
+              <Text style={[styles.rankNum, { color: s.dim }]}>{String(i + 2).padStart(2, '0')}</Text>
+              <View style={[styles.rankCover, { borderColor: s.faint, borderRadius: Math.min(6, id.mode.radius + 2) }]}>
+                {!!x.cover && <Image source={{ uri: x.cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={240} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rankTitle, { color: s.ink }]} numberOfLines={1}>{x.title}</Text>
+                <Text style={[styles.rankMeta, { color: s.dim }]}>{x.chapters} chapters</Text>
+              </View>
+              <View style={{ width: 40, height: 3, backgroundColor: s.accent, opacity: Math.max(0.25, x.chapters / (lead.chapters || 1)) }} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.rankTitle, { color: s.ink }]} numberOfLines={1}>{x.title}</Text>
-              <Text style={[styles.rankMeta, { color: s.dim }]}>{x.chapters} chapters</Text>
+          </Reveal>
+        ))}
+      </View>
+
+      {d.waiting > 0 && (
+        <Reveal delay={1350}>
+          <Text style={[styles.subSmall, { color: s.dim, marginTop: 4 }]}>
+            {d.waiting} more {d.waiting === 1 ? 'series' : 'series'} waiting on your shelf.
+          </Text>
+        </Reveal>
+      )}
+    </View>
+  );
+}
+
+// The #1 cover: enters rotated in perspective and settles, with a slow float
+// so it never sits dead on the page.
+function HeroCover({ uri, s, id, width }) {
+  const enter = useRef(new Animated.Value(0)).current;
+  const float = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(enter, { toValue: 1, delay: 180, useNativeDriver: true, damping: 15, stiffness: 120, mass: 1 }).start();
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(float, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(float, { toValue: 0, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    a.start();
+    return () => a.stop();
+  }, [enter, float]);
+
+  const rotY = enter.interpolate({ inputRange: [0, 1], outputRange: ['52deg', '-9deg'] });
+  const tx = enter.interpolate({ inputRange: [0, 1], outputRange: [-70, 0] });
+  const fy = float.interpolate({ inputRange: [0, 1], outputRange: [0, -9] });
+
+  return (
+    <Animated.View
+      style={{
+        opacity: enter,
+        transform: [{ perspective: 900 }, { translateX: tx }, { translateY: fy }, { rotateY: rotY }, { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
+        shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 26, shadowOffset: { width: 8, height: 16 }, elevation: 14,
+      }}
+    >
+      <View style={{
+        width, height: width * 1.46,
+        borderRadius: Math.min(12, id.mode.radius + 4),
+        borderWidth: id.mode.border, borderColor: s.accent,
+        overflow: 'hidden', backgroundColor: rgba(s.ink, 0.08),
+      }}
+      >
+        {!!uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={320} />}
+        <LinearGradient colors={['transparent', rgba('#000000', 0.45)]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '38%' }} />
+      </View>
+    </Animated.View>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 6 — THE WHEEL
+// A radial breakdown that actually draws itself, with the reader's own ramp
+// as the segment colours and their top genre held in the middle.
+// ═════════════════════════════════════════════════════════════════════════
+function S6Genres({ d, s, id, cw }) {
+  const rows = d.genres;
+  const p = useProgress(1300, 260);
+
+  if (!rows.length) {
+    return (
+      <View style={{ width: '100%', alignItems: 'center' }}>
+        <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>GENRES YOU EXPLORED</Text></Band></Reveal>
+        <Reveal delay={200}><Text style={[styles.h1, { color: s.ink, marginTop: 18 }]}>Uncharted</Text></Reveal>
+        <Reveal delay={420}><Text style={[styles.sub, { color: s.dim, textAlign: 'center' }]}>Your map is still blank — that is the fun part.</Text></Reveal>
+      </View>
+    );
+  }
+
+  const ICONS = {
+    Action: 'flash', Adventure: 'compass', Comedy: 'happy', Drama: 'rainy', Fantasy: 'sparkles',
+    Horror: 'skull', Mystery: 'search', Romance: 'heart', 'Sci-Fi': 'planet', 'Slice of Life': 'cafe',
+    Sports: 'football', Supernatural: 'flame', Thriller: 'alert-circle', Psychological: 'eye',
+    Mecha: 'hardware-chip', Music: 'musical-notes', 'Martial Arts': 'body', Ecchi: 'flame',
+  };
+
+  const size = Math.min(250, cw * 0.86);
+  const R = size / 2 - 20;
+  const total = rows.reduce((a, r) => a + r.pct, 0) || 1;
+  let cursor = -90;
+  const arcs = rows.map((r, i) => {
+    const span = (r.pct / total) * 360;
+    const seg = { from: cursor, span, color: id.ramp[i % id.ramp.length], row: r };
+    cursor += span;
+    return seg;
+  });
+
+  return (
+    <View style={{ width: '100%', alignItems: 'center' }}>
+      <Reveal delay={0}>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>GENRES YOU EXPLORED</Text></Band>
+      </Reveal>
+
+      <View style={{ width: size, height: size, marginTop: 20 }}>
+        <Svg width={size} height={size}>
+          <Circle cx={size / 2} cy={size / 2} r={R} stroke={s.faint} strokeWidth={26} fill="none" />
+          {arcs.map((a, i) => (
+            <Path
+              key={i}
+              d={arcPath(size / 2, size / 2, R, a.from, a.from + a.span * p)}
+              stroke={a.color}
+              strokeWidth={26}
+              fill="none"
+              strokeLinecap="butt"
+              opacity={0.94}
+            />
+          ))}
+        </Svg>
+        <View style={{ position: 'absolute', width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={[styles.wheelPct, { color: s.ink }]}>{rows[0].pct}%</Text>
+          <Text style={[styles.wheelLabel, { color: s.accent }]} numberOfLines={1}>{rows[0].label.toUpperCase()}</Text>
+        </View>
+      </View>
+
+      <View style={styles.chipWrap}>
+        {rows.map((r, i) => (
+          <Reveal key={r.label} delay={500 + i * 100} from="down" dist={16}>
+            <View style={[styles.chip, {
+              borderColor: id.ramp[i % id.ramp.length],
+              backgroundColor: rgba(id.ramp[i % id.ramp.length], s.light ? 0.14 : 0.2),
+              borderRadius: id.mode.radius > 8 ? 999 : 3,
+            }]}
+            >
+              <Ionicons name={ICONS[r.label] || 'ellipse'} size={13} color={id.ramp[i % id.ramp.length]} />
+              <Text style={[styles.chipText, { color: s.ink }]}>{r.label}</Text>
+              <Text style={[styles.chipPct, { color: id.ramp[i % id.ramp.length] }]}>{r.pct}%</Text>
             </View>
           </Reveal>
         ))}
@@ -412,192 +928,401 @@ function S5TopSeries({ d, s }) {
   );
 }
 
-function S6Genres({ d, s }) {
-  const rows = d.genres;
-  const anims = useRef(rows.map(() => new Animated.Value(0))).current;
-  useEffect(() => {
-    Animated.stagger(110, anims.map((a, i) =>
-      Animated.timing(a, { toValue: 1, duration: 800, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false })
-    )).start();
-  }, [anims]);
-  if (!rows.length) {
-    return (
-      <View style={styles.body}>
-        <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>GENRES YOU EXPLORED</Text></Reveal>
-        <Reveal delay={160}><Text style={[styles.h1, { color: s.ink }]}>Uncharted</Text></Reveal>
-        <Reveal delay={320}><Text style={[styles.sub, { color: s.dim }]}>Your map is still blank — that's the fun part.</Text></Reveal>
-      </View>
-    );
-  }
-  const ICONS = {
-    Action: 'flash', Adventure: 'compass', Comedy: 'happy', Drama: 'rainy', Fantasy: 'sparkles',
-    Horror: 'skull', Mystery: 'search', Romance: 'heart', 'Sci-Fi': 'planet', 'Slice of Life': 'cafe',
-    Sports: 'football', Supernatural: 'flame', Thriller: 'alert-circle', Psychological: 'eye',
-    Mecha: 'hardware-chip', Music: 'musical-notes', Ecchi: 'flame',
-  };
-  return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>GENRES YOU EXPLORED</Text></Reveal>
-      <View style={{ marginTop: 14, width: '100%' }}>
-        {rows.map((r, i) => {
-          const w = anims[i].interpolate({ inputRange: [0, 1], outputRange: ['0%', `${Math.max(6, r.pct)}%`] });
-          const c = d.identity.palette[i % d.identity.palette.length];
-          return (
-            <Reveal key={r.label} delay={180 + i * 90} from="left" style={styles.genreRow}>
-              <View style={styles.genreHead}>
-                <View style={[styles.genreIcon, { borderColor: c, backgroundColor: s.light ? 'rgba(255,255,255,0.65)' : rgba(s.ink, 0.08) }]}>
-                  <Ionicons name={ICONS[r.label] || 'ellipse'} size={15} color={c} />
-                </View>
-                <Text style={[styles.genreName, { color: s.ink }]}>{r.label}</Text>
-                <Text style={[styles.genrePct, { color: c }]}>{r.pct}%</Text>
-              </View>
-              <View style={[styles.genreTrack, { backgroundColor: s.light ? rgba(s.ink, 0.12) : rgba(s.ink, 0.13) }]}>
-                <Animated.View style={[styles.genreFill, { width: w, backgroundColor: c }]} />
-              </View>
-            </Reveal>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-function S7Personality({ d, s }) {
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 7 — THE READER CARD
+// The personality arrives as a collectible: the reader's own #1 cover as the
+// card art, a foil sheen sweeping across it, their seal stamped in the corner.
+// ═════════════════════════════════════════════════════════════════════════
+function S7Personality({ d, s, id, h, cw }) {
   const p = d.personality;
-  const pulse = useRef(new Animated.Value(0)).current;
+  const enter = useRef(new Animated.Value(0)).current;
+  const sheen = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
+    Animated.spring(enter, { toValue: 1, delay: 140, useNativeDriver: true, damping: 14, stiffness: 110 }).start();
     const a = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 1900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0, duration: 1900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(sheen, { toValue: 1, duration: 2200, delay: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.delay(1600),
+      Animated.timing(sheen, { toValue: 0, duration: 0, useNativeDriver: true }),
     ]));
     a.start();
     return () => a.stop();
-  }, [pulse]);
-  const ring = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] });
-  const ringO = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0.05] });
-  return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>YOUR READING PERSONALITY</Text></Reveal>
-      <View style={{ alignItems: 'center', alignSelf: 'center', marginVertical: 18 }}>
-        <Animated.View style={[styles.persoRing, { borderColor: s.accent, opacity: ringO, transform: [{ scale: ring }] }]} />
-        <Reveal delay={180}>
-          <View style={[styles.persoBadge, { borderColor: s.accent, backgroundColor: rgba(s.accent, 0.14) }]}>
-            <Ionicons name={p.icon} size={44} color={s.accent} />
-          </View>
-        </Reveal>
-      </View>
-      <Kinetic text={p.title} style={[styles.h1, { color: s.ink }]} delay={420} stagger={38} />
-      <Reveal delay={1000}><Text style={[styles.sub, { color: s.dim }]}>{p.desc}</Text></Reveal>
-    </View>
-  );
-}
+  }, [enter, sheen]);
 
-function S8Achievements({ d, s }) {
-  const n = useCountUp(d.badgesEarned);
-  return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>ACHIEVEMENTS & MILESTONES</Text></Reveal>
-      <Reveal delay={140}>
-        <Animated.Text style={[styles.mega, { color: s.ink, transform: [{ scale: n.punch }] }]}>{n.value}</Animated.Text>
-      </Reveal>
-      <Reveal delay={240}><Text style={[styles.h2, { color: s.accent }]}>BADGES EARNED</Text></Reveal>
-      <Reveal delay={420}><Text style={[styles.sub, { color: s.dim }]}>out of {d.badgesTotal} in MangaRecs</Text></Reveal>
-      {!!d.tierLabel && (
-        <Reveal delay={620}>
-          <View style={[styles.tier, { borderColor: d.tierColor, backgroundColor: rgba(d.tierColor, 0.16) }]}>
-            <Ionicons name="shield" size={16} color={d.tierColor} />
-            <Text style={[styles.tierText, { color: d.tierColor }]}>{d.tierLabel} Tier</Text>
-          </View>
-        </Reveal>
-      )}
-    </View>
-  );
-}
+  // The card is the whole slide, so it is bounded by height as well as width —
+  // a short device must not push the seal or the footer off the page.
+  const cardW = Math.min(300, cw, (h * 0.52) / 1.42);
+  const cardH = cardW * 1.42;
+  const rot = enter.interpolate({ inputRange: [0, 1], outputRange: ['-16deg', '-2.5deg'] });
+  const sx = sheen.interpolate({ inputRange: [0, 1], outputRange: [-cardW, cardW * 1.4] });
 
-function S9Streak({ d, s }) {
-  const n = useCountUp(d.longest);
-  const cells = useMemo(() => Array.from({ length: 28 }, (_, i) => i < d.longest), [d.longest]);
-  const anims = useRef(cells.map(() => new Animated.Value(0))).current;
-  useEffect(() => {
-    Animated.stagger(26, anims.map((a) =>
-      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 200 })
-    )).start();
-  }, [anims]);
   return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>YOUR LONGEST STREAK</Text></Reveal>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-        <Animated.Text style={[styles.mega, { color: s.ink, transform: [{ scale: n.punch }] }]}>{n.value}</Animated.Text>
-        <Text style={[styles.h2, { color: s.accent, marginBottom: 14, marginLeft: 10 }]}>DAYS</Text>
-      </View>
-      <Reveal delay={300} style={styles.calendar}>
-        {cells.map((on, i) => (
-          <Animated.View
-            key={i}
-            style={[
-              styles.calCell,
-              {
-                backgroundColor: on ? s.accent : rgba(s.ink, 0.14),
-                opacity: anims[i],
-                transform: [{ scale: anims[i] }],
-              },
-            ]}
-          />
-        ))}
-      </Reveal>
-      <Reveal delay={700}>
-        <Text style={[styles.sub, { color: s.dim }]}>
-          {d.longest >= 7 ? 'Consistency is its own superpower.' : 'Every streak starts with day one.'}
+    <View style={{ width: '100%', alignItems: 'center' }}>
+      <Animated.View
+        style={{
+          opacity: enter,
+          transform: [
+            { perspective: 900 },
+            { rotate: rot },
+            { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) },
+          ],
+          shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 18 }, elevation: 16,
+        }}
+      >
+        <View style={{
+          width: cardW, height: cardH,
+          borderRadius: Math.min(18, id.mode.radius + 6),
+          borderWidth: Math.max(3, id.mode.border), borderColor: s.accent,
+          backgroundColor: s.light ? '#FFFFFF' : rgba('#000000', 0.62),
+          overflow: 'hidden',
+        }}
+        >
+          {/* card art — their most-read cover */}
+          <View style={{ height: cardH * 0.52, overflow: 'hidden' }}>
+            {!!d.topSeries[0]?.cover && (
+              <Image source={{ uri: d.topSeries[0].cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={300} />
+            )}
+            <LinearGradient
+              colors={[rgba(id.primary, 0.15), rgba(s.light ? '#FFFFFF' : '#000000', 0.92)]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={{ position: 'absolute', left: 16, top: 14 }}>
+              <Ionicons name={p.icon} size={44} color={s.accent} />
+            </View>
+            <View style={{ position: 'absolute', right: 12, top: 10 }}>
+              <Stamp text={p.seal} color={s.accent} size={54} />
+            </View>
+          </View>
+
+          {/* card body */}
+          <View style={{ flex: 1, paddingHorizontal: 18, paddingBottom: 16, marginTop: -cardH * 0.06 }}>
+            <Text style={[styles.cardKicker, { color: s.accent }]}>READING PERSONALITY</Text>
+            <PrintText s={s} id={id} offset={2} style={[styles.cardTitle, { color: s.ink }]}>{p.title}</PrintText>
+            <Text style={[styles.cardDesc, { color: s.dim }]}>{p.desc}</Text>
+            {!!d.ratingPersona && (
+              <Text style={[styles.cardDesc, { color: s.accent, marginTop: 2 }]}>{d.ratingPersona.label}.</Text>
+            )}
+
+            <View style={{ flex: 1 }} />
+            <View style={[styles.cardRule, { backgroundColor: s.faint }]} />
+            <View style={styles.cardFooter}>
+              <Text style={[styles.cardFooterText, { color: s.dim }]}>{d.dnaCode}</Text>
+              <Text style={[styles.cardFooterText, { color: s.dim }]}>@{d.username}</Text>
+            </View>
+          </View>
+
+          {/* foil sheen */}
+          <Animated.View style={{ position: 'absolute', top: -40, bottom: -40, width: cardW * 0.4, transform: [{ translateX: sx }, { rotate: '18deg' }] }} pointerEvents="none">
+            <LinearGradient
+              colors={['transparent', rgba(s.ink, 0.26), 'transparent']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={{ flex: 1 }}
+            />
+          </Animated.View>
+        </View>
+      </Animated.View>
+
+      <Reveal delay={1100}>
+        <Text style={[styles.sub, { color: s.dim, textAlign: 'center', marginTop: 18 }]}>
+          Out of {d.personalityPool} reader types, this half made you this one.
         </Text>
       </Reveal>
     </View>
   );
 }
 
-function S10Finale({ d, s, onShare, onDone }) {
-  const stats = [
-    { v: d.chapters, l: 'Chapters' },
-    { v: d.series, l: 'Series' },
-    { v: Math.round(d.hours), l: 'Hours' },
-    { v: d.longest, l: 'Day streak' },
-  ];
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 8 — THE SHELF
+// Real earned badges — the same shields as the profile screen — flying in on
+// arcs, highest tier first.
+// ═════════════════════════════════════════════════════════════════════════
+function S8Achievements({ d, s, id, cw }) {
+  const n = useCountUp(d.badgesEarned, 1400, 150);
+  const show = d.showcaseBadges;
+  const anims = useRef(show.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    if (!anims.length) return;
+    Animated.stagger(120, anims.map((a) =>
+      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 11, stiffness: 145, mass: 0.9 })
+    )).start();
+  }, [anims]);
+
   return (
-    <View style={styles.body}>
-      <Reveal delay={0}><Text style={[styles.kicker, { color: s.accent }]}>{d.period.short.toUpperCase()}</Text></Reveal>
-      <Kinetic text="WHAT A HALF!" style={[styles.hero2, { color: s.ink }]} delay={180} stagger={40} />
-      <Reveal delay={780}>
-        <View style={[styles.card, { borderColor: rgba(s.ink, 0.22), backgroundColor: rgba(s.light ? '#ffffff' : '#000000', s.light ? 0.5 : 0.34) }]}>
-          <View style={styles.cardHead}>
-            <Text style={[styles.cardName, { color: s.ink }]}>@{d.username}</Text>
-            <Text style={[styles.cardPerso, { color: s.accent }]}>{d.personality.title}</Text>
+    <View style={{ width: '100%', alignItems: 'center' }}>
+      <Reveal delay={0}>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>ACHIEVEMENTS UNLOCKED</Text></Band>
+      </Reveal>
+
+      {show.length > 0 && (
+        <View style={styles.badgeShelf}>
+          {show.map((b, i) => {
+            const dir = i % 2 ? 1 : -1;
+            return (
+              <Animated.View
+                key={b.id}
+                style={{
+                  opacity: anims[i],
+                  transform: [
+                    { translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [70, 0] }) },
+                    { translateX: anims[i].interpolate({ inputRange: [0, 1], outputRange: [46 * dir, 0] }) },
+                    { rotate: anims[i].interpolate({ inputRange: [0, 1], outputRange: [`${28 * dir}deg`, '0deg'] }) },
+                    { scale: anims[i] },
+                  ],
+                }}
+              >
+                <View style={styles.badgeCell}>
+                  <BadgeIcon badge={b} size={Math.min(66, cw * 0.21)} />
+                  <Text style={[styles.badgeName, { color: s.dim }]} numberOfLines={1}>{b.name}</Text>
+                </View>
+              </Animated.View>
+            );
+          })}
+        </View>
+      )}
+
+      <Reveal delay={620} style={{ alignItems: 'center', marginTop: show.length ? 8 : 24 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+          <Animated.Text style={[styles.mega, { color: s.ink, fontSize: 82, lineHeight: 86, transform: [{ scale: n.punch }] }]}>
+            {n.value}
+          </Animated.Text>
+          <Text style={[styles.h3, { color: s.dim, marginLeft: 8 }]}>/ {d.badgesTotal}</Text>
+        </View>
+        <Text style={[styles.h2, { color: s.accent, letterSpacing: 4, marginTop: -2 }]}>BADGES</Text>
+      </Reveal>
+
+      {!!d.tierLabel && (
+        <Reveal delay={900}>
+          <View style={[styles.tier, {
+            borderColor: d.tierColor,
+            backgroundColor: rgba(d.tierColor, 0.16),
+            borderRadius: id.mode.radius > 8 ? 999 : 3,
+          }]}
+          >
+            <Ionicons name="shield" size={15} color={d.tierColor} />
+            <Text style={[styles.tierText, { color: d.tierColor }]}>{d.tierLabel} Tier</Text>
           </View>
-          <View style={styles.cardGrid}>
+        </Reveal>
+      )}
+
+      {!!d.topComment && (
+        <Reveal delay={1100} style={{ marginTop: 18, width: '100%' }}>
+          <Bubble s={s} id={id}>
+            <Text style={[styles.microLabel, { color: s.accent, marginBottom: 4 }]}>YOUR LOUDEST MOMENT</Text>
+            <Text style={[styles.bubbleText, { color: s.light ? id.paperInk : s.ink }]} numberOfLines={3}>
+              "{d.topComment.text}"
+            </Text>
+            <Text style={[styles.subSmall, { color: s.dim, marginTop: 6 }]}>{d.topComment.likes} likes</Text>
+          </Bubble>
+        </Reveal>
+      )}
+    </View>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 9 — THE STREAK
+// The real run of consecutive days, drawn as a calendar that grows a cell at
+// a time, with the flame behind it scaled by how long the streak actually was.
+// ═════════════════════════════════════════════════════════════════════════
+function S9Streak({ d, s, id, cw }) {
+  const n = useCountUp(d.longest, 1400, 120);
+  const cols = 7;
+  const shown = Math.min(49, Math.max(7, d.longest));
+  const cells = useMemo(() => Array.from({ length: shown }, (_, i) => i < d.longest), [shown, d.longest]);
+  const anims = useRef(cells.map(() => new Animated.Value(0))).current;
+  const flame = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.stagger(Math.max(14, 420 / Math.max(1, cells.length)), anims.map((a) =>
+      Animated.spring(a, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 220 })
+    )).start();
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(flame, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(flame, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    a.start();
+    return () => a.stop();
+  }, [anims, flame, cells.length]);
+
+  const cell = Math.min(30, (cw - cols * 6) / cols);
+  const flick = flame.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+  const range = d.streakRange;
+
+  return (
+    <View style={{ width: '100%' }}>
+      <Reveal delay={0}>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOUR LONGEST STREAK</Text></Band>
+      </Reveal>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+        <Animated.Text style={[styles.mega, { color: s.ink, fontSize: 104, lineHeight: 108, transform: [{ scale: n.punch }] }]}>
+          {n.value}
+        </Animated.Text>
+        <View style={{ marginLeft: 12, marginBottom: 10 }}>
+          <Text style={[styles.h2, { color: s.accent }]}>DAYS</Text>
+          <Animated.View style={{ transform: [{ scale: flick }], alignSelf: 'flex-start', marginTop: 4 }}>
+            <Ionicons name={d.longest >= 30 ? 'bonfire' : 'flame'} size={26 + Math.min(16, d.longest / 2)} color={s.accent} />
+          </Animated.View>
+        </View>
+      </View>
+
+      {!!range && (
+        <Reveal delay={280}>
+          <Text style={[styles.subSmall, { color: s.dim }]}>{range}</Text>
+        </Reveal>
+      )}
+
+      <View style={[styles.streakGrid, { width: cols * (cell + 6) }]}>
+        {cells.map((on, i) => (
+          <Animated.View
+            key={i}
+            style={{
+              width: cell, height: cell, marginRight: 6, marginBottom: 6,
+              borderRadius: id.mode.radius > 8 ? cell / 3 : 2,
+              backgroundColor: on ? s.accent : s.faint,
+              opacity: anims[i],
+              transform: [{ scale: anims[i] }],
+            }}
+          />
+        ))}
+      </View>
+
+      <Reveal delay={800}>
+        <Text style={[styles.sub, { color: s.dim }]}>
+          {d.longest >= 30 ? 'A month straight. That is not a habit, that is devotion.'
+            : d.longest >= 7 ? 'Consistency is its own superpower.'
+              : 'Every streak starts with day one.'}
+        </Text>
+      </Reveal>
+      {d.deltas?.longest != null && (
+        <Reveal delay={900} style={{ marginTop: 12 }}>
+          <DeltaPill value={d.deltas.longest} s={s} />
+        </Reveal>
+      )}
+    </View>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SLIDE 10 — THE POSTER
+// Everything at once, composed as one framed card that is meant to be
+// screenshotted and posted.
+// ═════════════════════════════════════════════════════════════════════════
+function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
+  const stats = [
+    { v: d.chapters, l: 'CHAPTERS' },
+    { v: d.series, l: 'SERIES' },
+    { v: Math.round(d.hours), l: 'HOURS' },
+    { v: d.longest, l: 'DAY STREAK' },
+  ];
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(enter, { toValue: 1, delay: 320, useNativeDriver: true, damping: 16, stiffness: 120 }).start();
+  }, [enter]);
+
+  return (
+    <View style={{ width: '100%', alignItems: 'center' }}>
+      <Reveal delay={0} style={{ alignItems: 'center' }}>
+        <Kinetic text="WHAT A HALF" delay={140} stagger={44}
+          style={[styles.hero2, { color: s.ink }]} />
+      </Reveal>
+
+      <Animated.View
+        style={{
+          width: '100%', marginTop: 16, opacity: enter,
+          transform: [
+            { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) },
+            { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) },
+          ],
+        }}
+      >
+        <View style={[styles.poster, {
+          borderColor: s.accent,
+          borderWidth: Math.max(2, id.mode.border - 1),
+          borderRadius: Math.min(20, id.mode.radius + 4),
+          backgroundColor: s.light ? rgba('#FFFFFF', 0.86) : rgba('#000000', 0.6),
+        }]}
+        >
+          {id.mode.tone === 'screentone' && <TornEdge color={s.accent} height={9} />}
+
+          <View style={styles.posterHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.posterName, { color: s.ink }]} numberOfLines={1}>@{d.username}</Text>
+              <Text style={[styles.posterPerso, { color: s.accent }]}>{d.personality.title}</Text>
+            </View>
+            <Stamp text={d.personality.seal} color={s.accent} size={46} rotate={8} />
+          </View>
+
+          <View style={styles.posterGrid}>
             {stats.map((x) => (
-              <View key={x.l} style={styles.cardCell}>
-                <Text style={[styles.cardVal, { color: s.ink }]}>{x.v}</Text>
-                <Text style={[styles.cardLbl, { color: s.dim }]}>{x.l}</Text>
+              <View key={x.l} style={styles.posterCell}>
+                <Text style={[styles.posterVal, { color: s.ink }]}>{x.v}</Text>
+                <Text style={[styles.posterLbl, { color: s.dim }]}>{x.l}</Text>
               </View>
             ))}
           </View>
+
           {!!d.topSeries.length && (
-            <View style={styles.cardCovers}>
-              {d.topSeries.slice(0, 5).map((x, i) => (
-                <View key={i} style={[styles.cardCover, { borderColor: rgba(s.ink, 0.3), marginLeft: i ? -14 : 0, zIndex: 5 - i }]}>
-                  {!!x.cover && <Image source={{ uri: x.cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />}
+            <>
+              <Text style={[styles.posterSection, { color: s.dim }]}>TOP SERIES</Text>
+              <View style={styles.posterCovers}>
+                {d.topSeries.slice(0, 5).map((x, i) => (
+                  <View key={i} style={[styles.posterCover, {
+                    borderColor: s.faint,
+                    marginLeft: i ? -12 : 0,
+                    zIndex: 5 - i,
+                    borderRadius: Math.min(6, id.mode.radius + 2),
+                    transform: [{ rotate: `${(i - 2) * 2.5}deg` }],
+                  }]}
+                  >
+                    {!!x.cover && <Image source={{ uri: x.cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />}
+                  </View>
+                ))}
+                <View style={{ flex: 1, paddingLeft: 12 }}>
+                  <Text style={[styles.posterTop, { color: s.ink }]} numberOfLines={2}>{d.topSeries[0].title}</Text>
                 </View>
-              ))}
-            </View>
+              </View>
+            </>
           )}
-          <Text style={[styles.cardFoot, { color: s.dim }]}>MangaRecs · MangaRecap</Text>
+
+          <View style={[styles.posterFootRow, { borderTopColor: s.faint }]}>
+            <Text style={[styles.posterFoot, { color: s.dim }]}>{d.dnaCode}</Text>
+            <Text style={[styles.posterFoot, { color: s.accent }]}>mangarecs.net/recap/{d.username}</Text>
+          </View>
         </View>
-      </Reveal>
-      <Reveal delay={1000} style={styles.actions}>
-        <TouchableOpacity style={[styles.btnMain, { backgroundColor: s.accent }]} onPress={onShare} activeOpacity={0.86}>
-          <Ionicons name="share-social" size={17} color="#12080C" />
-          <Text style={styles.btnMainText}>Share your recap</Text>
+      </Animated.View>
+
+      <Reveal delay={1100} style={styles.actions}>
+        <TouchableOpacity
+          style={[styles.btnMain, { backgroundColor: s.accent, borderRadius: id.mode.radius > 8 ? 999 : 4 }]}
+          onPress={() => onShareImage('story')}
+          activeOpacity={0.86}
+          disabled={exporting}
+        >
+          {exporting
+            ? <ActivityIndicator size="small" color={s.onAccent} />
+            : <Ionicons name="share-social" size={17} color={s.onAccent} />}
+          <Text style={[styles.btnMainText, { color: s.onAccent }]}>{exporting ? 'Preparing…' : 'Share your recap'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.btnGhost, { borderColor: rgba(s.ink, 0.34) }]} onPress={onDone} activeOpacity={0.86}>
-          <Text style={[styles.btnGhostText, { color: s.ink }]}>Continue reading</Text>
+        <TouchableOpacity
+          style={[styles.iconSquareBtn, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]}
+          onPress={() => onShareImage('square')}
+          activeOpacity={0.86}
+          disabled={exporting}
+        >
+          <Ionicons name="square-outline" size={15} color={s.ink} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.btnGhost, styles.btnGhostRow, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]}
+          onPress={onCompare}
+          activeOpacity={0.86}
+        >
+          <Ionicons name="people-outline" size={15} color={s.ink} />
+          <Text style={[styles.btnGhostText, { color: s.ink }]}>Compare</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.btnGhost, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]} onPress={onDone} activeOpacity={0.86}>
+          <Text style={[styles.btnGhostText, { color: s.ink }]}>Done</Text>
         </TouchableOpacity>
       </Reveal>
     </View>
@@ -605,34 +1330,148 @@ function S10Finale({ d, s, onShare, onDone }) {
 }
 
 // ── slide manifest ───────────────────────────────────────────────────────
-// Ten slides, always. Each names its own surface variant, background system
-// and footer. Nothing here is conditional — a sparse reader still gets the
-// full ten-beat story, with each slide handling thin data gracefully.
+// Ten slides, always. `align` is what stops the recap reading as one template:
+// each beat is composed differently rather than stacked bottom-left.
 const SLIDES = [
-  { key: 'welcome', variant: 'deep0',  Bg: BgCollage,      Comp: S1Welcome,      foot: 'Every chapter is a new adventure' },
-  { key: 'journey', variant: 'paper0', Bg: BgFloatingCards, Comp: S2Journey,     foot: 'It all started somewhere' },
-  { key: 'chapters', variant: 'deep1', Bg: BgBurst,        Comp: S3Chapters,     foot: 'Page after page after page' },
-  { key: 'time',    variant: 'night',  Bg: BgLightSweep,   Comp: S4Time,         foot: 'Those late nights hit different' },
-  { key: 'top',     variant: 'deep2',  Bg: BgCarousel,     Comp: S5TopSeries,    foot: 'These stories made the biggest impact' },
-  { key: 'genres',  variant: 'paper1', Bg: BgRadial,       Comp: S6Genres,       foot: 'Every genre took you somewhere new' },
-  { key: 'perso',   variant: 'deep3',  Bg: BgPanels,       Comp: S7Personality,  foot: 'This half was uniquely yours' },
-  { key: 'badges',  variant: 'deep0',  Bg: BgConfetti,     Comp: S8Achievements, foot: 'Earned, never given' },
-  { key: 'streak',  variant: 'fire',   Bg: BgEmbers,       Comp: S9Streak,       foot: 'Consistency is power' },
-  { key: 'finale',  variant: 'deep1',  Bg: BgMosaic,       Comp: S10Finale,      foot: 'Never stop turning pages', isFinale: true },
+  { key: 'welcome',  Stage: StageWall,      Comp: S1Welcome,      align: 'center', foot: 'Every chapter is a new adventure' },
+  { key: 'journey',  Stage: StageDrift,     Comp: S2Journey,      align: 'end',    foot: 'It all started somewhere' },
+  { key: 'chapters', Stage: StageImpact,    Comp: S3Chapters,     align: 'center', foot: 'Page after page after page' },
+  { key: 'time',     Stage: StageHorizon,   Comp: S4Time,         align: 'fill',   foot: 'Those late nights hit different' },
+  { key: 'top',      Stage: StageRunway,    Comp: S5TopSeries,    align: 'end',    foot: 'These stories made the biggest impact' },
+  { key: 'genres',   Stage: StageOrbit,     Comp: S6Genres,       align: 'center', foot: 'Every genre took you somewhere new' },
+  { key: 'perso',    Stage: StagePanelGrid, Comp: S7Personality,  align: 'center', foot: 'This half was uniquely yours' },
+  { key: 'badges',   Stage: StageCelebrate, Comp: S8Achievements, align: 'center', foot: 'Earned, never given' },
+  { key: 'streak',   Stage: StageEmber,     Comp: S9Streak,       align: 'end',    foot: 'Consistency is power' },
+  { key: 'finale',   Stage: StageFinale,    Comp: S10Finale,      align: 'center', foot: 'Never stop turning pages', isFinale: true },
 ];
 
-// ── screen ───────────────────────────────────────────────────────────────
+// A reader's identity isn't known yet at this point — nothing to personalize
+// against — but the wait itself can still feel like the app's world rather
+// than a bare spinner: a slowly closing ink ring on newsprint.
+function LoadingStage() {
+  const spin = useRef(new Animated.Value(0)).current;
+  const close = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(Animated.timing(spin, { toValue: 1, duration: 2600, easing: Easing.linear, useNativeDriver: true })).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(close, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(close, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ])).start();
+  }, [spin, close]);
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const scale = close.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1.04] });
+  return (
+    <View style={[styles.root, styles.center]}>
+      <Animated.View style={{ transform: [{ rotate }, { scale }] }}>
+        <Svg width={64} height={64} viewBox="0 0 100 100">
+          <Circle cx="50" cy="50" r="40" stroke="#B0362F" strokeWidth="6" fill="none" strokeDasharray="180 70" strokeLinecap="round" />
+        </Svg>
+      </Animated.View>
+      <Text style={styles.loadingText}>PRINTING YOUR RECAP…</Text>
+    </View>
+  );
+}
 
+// ═════════════════════════════════════════════════════════════════════════
+// SCREEN
+// ═════════════════════════════════════════════════════════════════════════
 export default function RecapScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { width: W, height: H } = useWindowDimensions();
   const { profile, userId, loading: profileLoading } = useProfile();
 
   const [status, setStatus] = useState('loading');
   const [data, setData] = useState(null);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportRatio, setExportRatio] = useState('story');
 
+  // ── accessibility: reduce motion ────────────────────────────────────────
+  useEffect(() => {
+    let dead = false;
+    AccessibilityInfo.isReduceMotionEnabled?.().then((v) => { if (!dead) setReduced(!!v); }).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => setReduced(!!v));
+    return () => { dead = true; sub?.remove?.(); };
+  }, []);
+
+  // ── tilt parallax ────────────────────────────────────────────────────────
+  // A few degrees of device tilt nudges the background, on top of its own
+  // drift — skipped entirely under reduce-motion, and any sensor failure
+  // (denied permission, no hardware) just leaves the stage static.
+  const tiltX = useRef(new Animated.Value(0)).current;
+  const tiltY = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reduced) { tiltX.setValue(0); tiltY.setValue(0); return; }
+    let sub;
+    try {
+      DeviceMotion.setUpdateInterval(60);
+      sub = DeviceMotion.addListener(({ rotation }) => {
+        if (!rotation) return;
+        Animated.timing(tiltX, { toValue: Math.max(-1, Math.min(1, rotation.gamma / 0.6)) * 10, duration: 220, useNativeDriver: true }).start();
+        Animated.timing(tiltY, { toValue: Math.max(-1, Math.min(1, rotation.beta / 0.6)) * 8, duration: 220, useNativeDriver: true }).start();
+      });
+    } catch (_) {}
+    return () => { try { sub?.remove(); } catch (_) {} };
+  }, [reduced, tiltX, tiltY]);
+
+  // ── image export (finale + per-slide share) ─────────────────────────────
+  const posterShotRef = useRef(null);
+  const slideShotRef = useRef(null);
+
+  const shareUri = useCallback(async (uri, dialogTitle) => {
+    try {
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle });
+      } else {
+        // expo-sharing covers both platforms in practice; this only runs on
+        // some exotic device with no share sheet at all, where a raw file
+        // URI has nowhere good to go either way — best effort, not a promise.
+        await Share.share({ url: uri });
+      }
+    } catch (_) {}
+  }, []);
+
+  const onShareImage = useCallback(async (ratio) => {
+    if (!data || exporting) return;
+    hapticSuccess();
+    setExporting(true);
+    setExportRatio(ratio);
+    try {
+      // One frame for the ratio change to land before the shot fires.
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 60)));
+      const uri = await posterShotRef.current?.capture?.();
+      if (uri) await shareUri(uri, 'Share your MangaRecap');
+      else throw new Error('capture failed');
+    } catch (_) {
+      // Native capture unavailable (e.g. no new build yet) — text still works.
+      const lines = [
+        `My MangaRecap — ${data.period.short}`,
+        `${data.chapters} chapters · ${data.series} series · ${Math.round(data.hours)} hours`,
+        `${data.longest}-day streak · ${data.personality.title}`,
+        data.topSeries[0] ? `Top series: ${data.topSeries[0].title}` : null,
+        `Get yours on MangaRecs — mangarecs.net/recap/${data.username}`,
+      ].filter(Boolean);
+      Share.share({ message: lines.join('\n') }).catch(() => {});
+    } finally {
+      setExporting(false);
+    }
+  }, [data, exporting, shareUri]);
+
+  const onShareSlide = useCallback(async () => {
+    if (exporting) return;
+    hapticLight();
+    try {
+      const uri = await slideShotRef.current?.capture?.();
+      if (uri) await shareUri(uri, 'Share this moment');
+    } catch (_) {}
+  }, [exporting, shareUri]);
+
+  // ── data ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (profileLoading) return;
     if (!userId) { setStatus('signedout'); return; }
@@ -647,37 +1486,54 @@ export default function RecapScreen() {
         const [progRes, cmtRes, ratRes, dailyLog, hourLog] = await Promise.all([
           supabase.from('reading_progress').select('series_title,status,current_chapter,updated_at').eq('user_id', userId).gte('updated_at', sIso).lte('updated_at', eIso),
           supabase.from('comments').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', sIso).lte('created_at', eIso),
-          supabase.from('series_ratings').select('series_title', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', sIso).lte('created_at', eIso),
+          supabase.from('series_ratings').select('series_title,stars').eq('user_id', userId).gte('created_at', sIso).lte('created_at', eIso),
           getMergedDailyLog(profile?.daily_log),
           getMergedHourLog(profile?.hour_log),
         ]);
         if (dead) return;
 
         const rows = progRes.data || [];
+        const myRatings = ratRes.data || [];
         const inRange = keysInRange(dailyLog, period.start, period.end);
         const hours = inRange.reduce((a, k) => a + (dailyLog[k] || 0), 0);
         const badgeStats = profileToBadgeStats(profile);
         const earned = computeEarnedBadgeIds(badgeStats);
         const grade = highestGradeEarned(earned);
 
-        const ranked = [...rows].sort((a, b) => (b.current_chapter || 0) - (a.current_chapter || 0)).slice(0, 10);
-        const art = await withTimeout(fetchArtBatch(ranked.map((r) => r.series_title)), 7000, {});
+        const ranked = [...rows].sort((a, b) => (b.current_chapter || 0) - (a.current_chapter || 0)).slice(0, 12);
+        const ratingTitles = [...new Set(myRatings.map((r) => r.series_title))];
+
+        // Everything below is independent of everything else in this batch —
+        // AniList art, cross-period history, friend totals, the loudest
+        // comment, and the community's own ratings on the same titles all
+        // resolve in parallel rather than as a waterfall.
+        const [art, prevSnap, oldestSnap, friendsRecap, topCommentRes, communityRes] = await Promise.all([
+          withTimeout(fetchArtBatch(ranked.map((r) => r.series_title)), 7000, {}),
+          fetchPreviousSnapshot(userId, period),
+          fetchOldestSnapshot(userId),
+          fetchFriendsRecap(period),
+          supabase.from('comments').select('text,likes').eq('user_id', userId).gte('created_at', sIso).lte('created_at', eIso).order('likes', { ascending: false }).limit(1),
+          ratingTitles.length
+            ? supabase.from('series_ratings').select('series_title,stars').in('series_title', ratingTitles)
+            : Promise.resolve({ data: [] }),
+        ]);
         if (dead) return;
 
-        let topSeries = ranked.map((r) => {
+        const topSeries = ranked.map((r) => {
           const m = art[r.series_title];
           return {
             title: r.series_title,
             chapters: r.current_chapter || 0,
             cover: m?.coverImage?.extraLarge || m?.coverImage?.large || null,
             color: m?.coverImage?.color || null,
+            country: m?.countryOfOrigin || null,
             genres: m?.genres || [],
           };
         });
 
-        // Backfill any title AniList couldn't resolve using the app's own
-        // 5-source cover pipeline, so collages stay full.
-        const missing = topSeries.filter((x) => !x.cover).slice(0, 4);
+        // Backfill anything AniList could not resolve through the app's own
+        // five-source cover pipeline, so the collages never run thin.
+        const missing = topSeries.filter((x) => !x.cover).slice(0, 5);
         if (missing.length) {
           await Promise.all(missing.map(async (x) => {
             const info = await withTimeout(fetchMangaInfo(x.title).catch(() => null), 5000, null);
@@ -687,24 +1543,76 @@ export default function RecapScreen() {
         if (dead) return;
 
         let covers = topSeries.map((x) => x.cover).filter(Boolean);
-        let paletteSeeds = topSeries.filter((x) => x.color);
+        let seeds = topSeries
+          .filter((x) => x.color || x.country)
+          .map((x) => ({ color: x.color, weight: Math.max(1, x.chapters), country: x.country }));
 
         // Only when a reader has literally no resolvable art of their own.
         if (!covers.length) {
           const trend = await withTimeout(fetchTrendingArt(), 6000, []);
           covers = trend.map((t) => t.cover);
-          if (!paletteSeeds.length) paletteSeeds = trend;
+          if (!seeds.length) seeds = trend.map((t) => ({ color: t.color, weight: 1, country: t.country }));
         }
         if (dead) return;
 
         const genres = genreBreakdown(topSeries);
-        const dominantGenre = genres[0]?.label || profile?.favorite_genre || null;
-        const identity = buildIdentity(paletteSeeds, dominantGenre);
+        const identity = buildIdentity(seeds, {
+          genre: genres[0]?.label || profile?.favorite_genre || null,
+          genres: genres.map((g) => g.label),
+        });
 
         const sortedKeys = inRange.slice().sort();
         const firstDay = sortedKeys.length ? new Date(`${sortedKeys[0]}T00:00:00`) : null;
         const chapters = rows.reduce((a, r) => a + (r.current_chapter || 0), 0);
         const peak = peakReadingWindow(hourLog);
+        const weekday = weekdayBreakdown(dailyLog, period.start, period.end);
+        const streak = longestStreak(dailyLog, period.start, period.end);
+
+        // Highest-tier earned badges first — the shelf should lead with the
+        // hardest things the reader actually did.
+        const showcase = ALL_BADGES
+          .filter((b) => earned.has(b.id))
+          .sort((a, b) => GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade))
+          .slice(0, 6);
+
+        const fmtDay = (dt) => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        // "Bookmarked" is this app's real plan-to-read status — the honest
+        // read of "series waiting on your shelf", not an invented dropped/
+        // paused state the schema doesn't have.
+        const waiting = rows.filter((r) => r.status === 'bookmarked').length;
+
+        const hourPulse = Array.from({ length: 24 }, (_, h) => hourLog?.[String(h)] || 0);
+        const hourPulseMax = Math.max(0.5, ...hourPulse);
+        const lateNightHours = [23, 0, 1, 2].reduce((a, h) => a + (hourLog?.[String(h)] || 0), 0);
+
+        const topComment = (topCommentRes?.data?.[0] && topCommentRes.data[0].likes > 0) ? topCommentRes.data[0] : null;
+        const ratingPersona = ratingPersonality(myRatings, communityRes?.data || []);
+
+        // Friends: rank among mutual friends by chapters this period, and who
+        // else independently landed on the same #1 series. Both silently
+        // absent when the friend RPCs (supabase_migrations.sql §57) aren't
+        // applied yet or the reader has no accepted friends.
+        let friendRank = null, friendsReadingSame = [];
+        if (friendsRecap.length) {
+          const standings = [...friendsRecap.map((f) => f.chapters || 0), chapters].sort((a, b) => b - a);
+          friendRank = standings.indexOf(chapters) + 1;
+          if (topSeries[0]) {
+            const leadNorm = topSeries[0].title.trim().toLowerCase();
+            friendsReadingSame = friendsRecap
+              .filter((f) => (f.top_series || '').trim().toLowerCase() === leadNorm)
+              .map((f) => f.username)
+              .filter(Boolean);
+          }
+        }
+
+        const deltas = prevSnap ? {
+          chapters: chapters - (prevSnap.chapters || 0),
+          hours: Math.round(hours - (prevSnap.hours || 0)),
+          longest: streak.best - (prevSnap.longest || 0),
+        } : null;
+
+        const dnaCode = readingDnaCode(identity, genres);
 
         const base = {
           username: profile?.username || 'reader',
@@ -713,31 +1621,63 @@ export default function RecapScreen() {
           covers,
           topSeries,
           genres,
+          dailyLog,
           chapters,
           series: rows.length,
           completed: rows.filter((r) => r.status === 'completed').length,
           hours,
           readingDays: inRange.length,
-          longest: longestStreak(dailyLog, period.start, period.end),
-          weekday: weekdayBreakdown(dailyLog, period.start, period.end),
+          longest: streak.best,
+          streakRange: streak.start && streak.end ? `${fmtDay(streak.start)} → ${fmtDay(streak.end)}` : null,
+          weekday,
           peakWindow: peak,
           firstDayLabel: firstDay ? firstDay.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : null,
           badgesEarned: earned.size,
           badgesTotal: ALL_BADGES.length,
+          showcaseBadges: showcase,
           tierLabel: grade ? BADGE_GRADES[grade].label : null,
           tierColor: grade ? BADGE_GRADES[grade].color : identity.accent,
           comments: cmtRes.count || 0,
-          ratings: ratRes.count || 0,
+          ratings: myRatings.length,
+          personalityPool: 13,
+          waiting,
+          hourPulse,
+          hourPulseMax,
+          lateNightHours,
+          topComment,
+          ratingPersona,
+          friendRank,
+          friendsReadingSame,
+          firstEverTopSeries: oldestSnap?.topSeriesTitle || null,
+          deltas,
+          dnaCode,
         };
         base.chaptersPerHour = base.hours > 0 ? base.chapters / base.hours : 0;
         base.personality = personality({
           peakWindow: peak, completed: base.completed, longest: base.longest,
           chaptersPerHour: base.chaptersPerHour, genres: genres.length,
           series: base.series, chapters: base.chapters, hours: base.hours,
+          comments: base.comments, ratings: base.ratings,
+          weekendShare: weekday.weekendShare,
         });
 
         setData(base);
         setStatus('ready');
+
+        // Fire-and-forget — never blocks the render, and silently a no-op
+        // until recap_snapshots (supabase_migrations.sql §57) is applied.
+        saveSnapshot(userId, period, {
+          chapters: base.chapters,
+          series: base.series,
+          hours: base.hours,
+          longest: base.longest,
+          badgesEarned: base.badgesEarned,
+          personalityTitle: base.personality.title,
+          topSeriesTitle: base.topSeries[0]?.title || null,
+          topSeriesCover: base.topSeries[0]?.cover || null,
+          topSeriesColor: base.topSeries[0]?.color || null,
+          dnaCode: base.dnaCode,
+        });
       } catch (e) {
         if (!dead) setStatus('error');
       }
@@ -745,6 +1685,62 @@ export default function RecapScreen() {
 
     return () => { dead = true; };
   }, [profileLoading, userId, profile]);
+
+  // ── soundtrack ─────────────────────────────────────────────────────────
+  // A dedicated player, never the shared ambience singleton — hijacking that
+  // would overwrite the soundscape the user picked for reading. If their
+  // ambience is already running we stay silent and let it carry the recap.
+  const audio = useRef(null);
+  useEffect(() => {
+    if (!data) return;
+    let dead = false;
+
+    (async () => {
+      let startMuted = false;
+      try {
+        const saved = await AsyncStorage.getItem(MUTE_KEY);
+        startMuted = saved === '1';
+      } catch (_) {}
+      if (dead) return;
+      setMuted(startMuted);
+      if (startMuted) return;
+      if (ambienceState().presetId) return;
+
+      const peakHour = data.peakWindow?.startHour;
+      const track = (peakHour != null && (peakHour >= 20 || peakHour < 5)) ? 'night'
+        : data.identity.lane === 'dread' ? 'rain'
+          : (data.identity.lane === 'calm' || data.identity.lane === 'heart') ? 'forest'
+            : 'ocean';
+      try {
+        await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'mixWithOthers' });
+        if (dead) return;
+        const p = createAudioPlayer(SOUNDTRACK[track]);
+        p.loop = true;
+        p.volume = 0.18;
+        p.play();
+        audio.current = p;
+      } catch (_) {}
+    })();
+
+    return () => {
+      dead = true;
+      if (audio.current) {
+        try { audio.current.pause(); audio.current.remove(); } catch (_) {}
+        audio.current = null;
+      }
+    };
+  }, [data]);
+
+  const toggleMute = useCallback(() => {
+    setMuted((m) => {
+      const next = !m;
+      if (audio.current) {
+        try { audio.current.volume = next ? 0 : 0.18; } catch (_) {}
+      }
+      AsyncStorage.setItem(MUTE_KEY, next ? '1' : '0').catch(() => {});
+      return next;
+    });
+  }, []);
 
   // ── story engine ───────────────────────────────────────────────────────
   const bars = useMemo(() => SLIDES.map(() => new Animated.Value(0)), []);
@@ -758,17 +1754,26 @@ export default function RecapScreen() {
     return () => bars.forEach((v, i) => v.removeListener(ids[i]));
   }, [bars]);
 
+  // Cut transition — a hard wipe plus a flash of the incoming slide's accent,
+  // so slides change like a page turn instead of cross-fading.
+  const wipe = useRef(new Animated.Value(1)).current;
+  const runWipe = useCallback(() => {
+    wipe.setValue(0);
+    Animated.timing(wipe, { toValue: 1, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [wipe]);
+
   const go = useCallback((next) => {
     if (next < 0 || next >= SLIDES.length) return;
     if (running.current) running.current.stop();
     bars.forEach((v, i) => v.setValue(i < next ? 1 : 0));
     setIdx(next);
     setPaused(false);
+    runWipe();
     if (SLIDES[next].isFinale) return;
-    const a = Animated.timing(bars[next], { toValue: 1, duration: AUTO_MS, easing: Easing.linear, useNativeDriver: false });
+    const a = Animated.timing(bars[next], { toValue: 1, duration: SLIDE_DURATIONS[next], easing: Easing.linear, useNativeDriver: false });
     running.current = a;
     a.start(({ finished }) => { if (finished) go(next + 1); });
-  }, [bars]);
+  }, [bars, runWipe]);
 
   const advance = useCallback((dir) => {
     const t = idxRef.current + dir;
@@ -787,10 +1792,11 @@ export default function RecapScreen() {
     if (running.current) running.current.stop();
     setPaused(true);
   }, []);
+
   const resume = useCallback(() => {
     if (SLIDES[idxRef.current].isFinale) return;
     const i = idxRef.current;
-    const remain = Math.max(60, AUTO_MS * (1 - progressAt.current));
+    const remain = Math.max(60, SLIDE_DURATIONS[i] * (1 - progressAt.current));
     const a = Animated.timing(bars[i], { toValue: 1, duration: remain, easing: Easing.linear, useNativeDriver: false });
     running.current = a;
     a.start(({ finished }) => { if (finished) go(i + 1); });
@@ -807,35 +1813,22 @@ export default function RecapScreen() {
     onPanResponderRelease: (e, g) => {
       clearTimeout(holdTimer.current);
       if (didHold.current) { resume(); return; }
-      // Vertical swipe drives the story; horizontal taps do too, Stories-style.
       if (g.dy < -60) { advance(1); return; }
       if (g.dy > 60) { advance(-1); return; }
       const x = e.nativeEvent.locationX;
-      advance(x < SW * 0.3 ? -1 : 1);
+      advance(x < W * 0.3 ? -1 : 1);
     },
     onPanResponderTerminate: () => { clearTimeout(holdTimer.current); if (didHold.current) resume(); },
-  }), [advance, pause, resume]);
+  }), [advance, pause, resume, W]);
 
   const close = useCallback(() => {
     if (running.current) running.current.stop();
     navigation.goBack();
   }, [navigation]);
 
-  const onShare = useCallback(() => {
-    if (!data) return;
-    const lines = [
-      `My MangaRecap — ${data.period.short}`,
-      `${data.chapters} chapters · ${data.series} series · ${Math.round(data.hours)} hours`,
-      `${data.longest}-day streak · ${data.personality.title}`,
-      data.topSeries[0] ? `Top series: ${data.topSeries[0].title}` : null,
-      'Get yours on MangaRecs.',
-    ].filter(Boolean);
-    Share.share({ message: lines.join('\n') }).catch(() => {});
-  }, [data]);
-
   // ── states ─────────────────────────────────────────────────────────────
   if (profileLoading || status === 'loading') {
-    return <View style={[styles.root, styles.center]}><ActivityIndicator color="#fff" /></View>;
+    return <LoadingStage />;
   }
   if (status === 'signedout' || status === 'error' || !data) {
     return (
@@ -851,39 +1844,89 @@ export default function RecapScreen() {
   }
 
   const slide = SLIDES[idx];
-  const s = slideSurface(data.identity, slide.variant);
-  const Bg = slide.Bg;
+  const id = data.identity;
+  const s = surfaceFor(id, idx);
+  const Stage = slide.Stage;
   const Comp = slide.Comp;
-  const night = slide.key === 'time' && data.peakWindow && (data.peakWindow.startHour >= 20 || data.peakWindow.startHour < 5);
+  const night = data.peakWindow && (data.peakWindow.startHour >= 20 || data.peakWindow.startHour < 5);
+  const streakIntensity = Math.min(1, data.longest / 30);
+
+  const align = slide.align === 'center' ? 'center' : slide.align === 'fill' ? 'stretch' : 'flex-end';
+  const contentJustify = slide.align === 'center' ? 'center' : slide.align === 'fill' ? 'flex-start' : 'flex-end';
+  // Centred slides need symmetric gutters or they read as shifted left; the
+  // right gutter always has to clear the vertical page rail.
+  const padL = slide.align === 'center' ? 46 : 26;
+  const padR = slide.align === 'center' ? 46 : 50;
+  const contentW = W - padL - padR;
+
+  const slideIn = wipe.interpolate({ inputRange: [0, 1], outputRange: [26, 0] });
+  const slideScale = wipe.interpolate({ inputRange: [0, 1], outputRange: [1.05, 1] });
 
   return (
-    <View style={styles.root}>
-      {/* colour field → living cover background → texture → scrim → content */}
-      <LinearGradient colors={[s.from, s.to]} style={StyleSheet.absoluteFill} />
-      <View key={`bg-${slide.key}`} style={StyleSheet.absoluteFill}>
-        <Bg covers={data.covers} surface={s} palette={data.identity.palette} night={night} />
+    // The pan handlers live on the ROOT, not on an absolute sibling layer:
+    // responder negotiation bubbles from the touched view upward, so a sibling
+    // underneath the content would never be offered taps that land on a slide's
+    // own type. Chrome buttons still win because they sit deeper in the tree.
+    <View style={[styles.root, { backgroundColor: s.to }]} {...pan.panHandlers}>
+      {/* per-slide export target — captures stage + content, excludes chrome */}
+      <ViewShot ref={slideShotRef} options={{ format: 'png', quality: 1 }} style={StyleSheet.absoluteFill}>
+        {/* colour field → living cover stage → the reader's texture stack */}
+        <LinearGradient colors={[s.from, s.to]} style={StyleSheet.absoluteFill} />
+
+        <Animated.View
+          key={`bg-${slide.key}`}
+          style={[StyleSheet.absoluteFill, { transform: [{ translateX: tiltX }, { translateY: tiltY }, { scale: slideScale }] }]}
+        >
+          <Stage
+            covers={data.covers}
+            s={s}
+            id={id}
+            w={W}
+            h={H}
+            night={night}
+            intensity={streakIntensity}
+            reduced={reduced}
+          />
+        </Animated.View>
+
+        <TextureStack id={id} s={s} w={W} h={H} seed={idx + 1} focal={{ x: 50, y: slide.align === 'center' ? 46 : 62 }} />
+
+        {/* content */}
+        <Animated.View
+          key={`c-${slide.key}`}
+          style={[
+            styles.content,
+            {
+              justifyContent: contentJustify,
+              alignItems: align,
+              paddingTop: insets.top + 76,
+              paddingBottom: insets.bottom + 58,
+              paddingLeft: padL,
+              paddingRight: padR,
+              opacity: wipe,
+              transform: [{ translateY: slideIn }],
+            },
+          ]}
+          pointerEvents="box-none"
+        >
+          <Comp
+            d={data} s={s} id={id} w={W} h={H} cw={contentW}
+            onShareImage={onShareImage} onCompare={() => setCompareOpen(true)} exporting={exporting}
+            onDone={close}
+          />
+        </Animated.View>
+      </ViewShot>
+
+      {/* vertical page rail — a printed volume numbers its pages */}
+      <View style={[styles.rail, { top: insets.top + 96 }]} pointerEvents="none">
+        <VerticalRail s={s} id={id} numeral={RAIL_NUMERALS[idx]} label={slide.key === 'welcome' ? null : id.laneLabel} />
       </View>
-
-      {data.identity.texture === 'speed' && <SpeedLines color={s.ink} opacity={s.light ? 0.07 : 0.1} spin={120000} />}
-      {data.identity.texture === 'ink' && <InkSplatter color={s.light ? s.ink : '#000'} opacity={s.light ? 0.06 : 0.22} seed={idx + 2} />}
-      <Halftone color={s.light ? s.ink : '#fff'} opacity={s.light ? 0.07 : 0.08} />
-      <Grain opacity={s.light ? 0.03 : 0.05} />
-
-      <LinearGradient
-        colors={[rgba(s.from, s.light ? 0.5 : 0.42), rgba(s.to, s.light ? 0.75 : 0.72), rgba(s.to, s.light ? 0.97 : 0.96)]}
-        locations={[0, 0.55, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
-      {/* gesture surface — tap zones, vertical swipe, hold-to-pause */}
-      <View style={StyleSheet.absoluteFill} {...pan.panHandlers} />
 
       {/* chrome */}
       <View style={[styles.chrome, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
         <View style={styles.bars}>
           {SLIDES.map((x, i) => (
-            <View key={x.key} style={[styles.barTrack, { backgroundColor: rgba(s.ink, 0.28) }]}>
+            <View key={x.key} style={[styles.barTrack, { backgroundColor: rgba(s.ink, 0.26) }]}>
               <Animated.View
                 style={[styles.barFill, {
                   backgroundColor: s.ink,
@@ -896,30 +1939,76 @@ export default function RecapScreen() {
         <View style={styles.topRow}>
           <Text style={[styles.brand, { color: s.ink }]}>MangaRecap</Text>
           <View style={styles.topBtns}>
+            {!slide.isFinale && <ChromeBtn s={s} icon="share-outline" onPress={onShareSlide} />}
+            <ChromeBtn s={s} icon={muted ? 'volume-mute' : 'volume-medium'} onPress={toggleMute} />
             {!slide.isFinale && (
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: rgba(s.ink, 0.16) }]} onPress={() => (paused ? resume() : pause())} hitSlop={10}>
-                <Ionicons name={paused ? 'play' : 'pause'} size={15} color={s.ink} />
-              </TouchableOpacity>
+              <ChromeBtn s={s} icon={paused ? 'play' : 'pause'} onPress={() => (paused ? resume() : pause())} />
             )}
-            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: rgba(s.ink, 0.16) }]} onPress={() => go(0)} hitSlop={10}>
-              <Ionicons name="refresh" size={15} color={s.ink} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: rgba(s.ink, 0.16) }]} onPress={close} hitSlop={10}>
-              <Ionicons name="close" size={18} color={s.ink} />
-            </TouchableOpacity>
+            <ChromeBtn s={s} icon="refresh" onPress={() => go(0)} />
+            {!slide.isFinale && <ChromeBtn s={s} icon="play-skip-forward" onPress={() => go(SLIDES.length - 1)} />}
+            <ChromeBtn s={s} icon="close" size={18} onPress={close} />
           </View>
         </View>
       </View>
 
-      {/* content */}
-      <View key={`c-${slide.key}`} style={[styles.content, { paddingBottom: insets.bottom + 54 }]} pointerEvents="box-none">
-        <Comp d={data} s={s} onShare={onShare} onDone={close} />
+      <View style={[styles.footWrap, { bottom: insets.bottom + 18 }]} pointerEvents="none">
+        <Reveal delay={800}>
+          <Text style={[styles.foot, { color: s.dim }]}>{slide.foot}</Text>
+        </Reveal>
       </View>
 
-      <View style={[styles.footWrap, { bottom: insets.bottom + 18 }]} pointerEvents="none">
-        <Reveal delay={900}><Text style={[styles.foot, { color: s.dim }]}>{slide.foot}</Text></Reveal>
+      {/* the cut — a mode-aware transition, fired on every slide change */}
+      <TransitionCut id={id} s={s} wipe={wipe} w={W} h={H} />
+
+      <RecapCompareModal
+        visible={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        d={data}
+        id={id}
+        s={s}
+        period={data.period}
+      />
+
+      {/* off-screen export target — a static twin of the finale, captured for
+          the real image share. Laid out three screens to the right so native
+          view-shot has real, painted pixels to grab without ever being seen. */}
+      <View style={{ position: 'absolute', left: W * 3, top: 0 }} pointerEvents="none">
+        {/*
+          `capture()` rasterizes at native pixel density, not dp — laying
+          this out at literal 1080x1920 dp would be a view several phone-
+          widths wide. Instead the view is sized at a normal on-screen dp
+          (matching device width), and `options.width/height` on ViewShot
+          asks the native side to resize the OUTPUT to real Stories/feed
+          pixel dimensions, per the library's own guidance for this exact
+          dp-vs-pixel mismatch.
+        */}
+        <ViewShot
+          ref={posterShotRef}
+          options={{ format: 'png', quality: 1, width: 1080, height: exportRatio === 'square' ? 1080 : 1920 }}
+        >
+          <RecapExportCard
+            d={data}
+            id={id}
+            s={surfaceFor(id, 9)}
+            width={W}
+            height={exportRatio === 'square' ? W : W * (16 / 9)}
+          />
+        </ViewShot>
       </View>
     </View>
+  );
+}
+
+function ChromeBtn({ s, icon, onPress, size = 15 }) {
+  return (
+    <TouchableOpacity
+      style={[styles.iconBtn, { backgroundColor: rgba(s.ink, 0.16) }]}
+      onPress={onPress}
+      hitSlop={10}
+      activeOpacity={0.7}
+    >
+      <Ionicons name={icon} size={size} color={s.ink} />
+    </TouchableOpacity>
   );
 }
 
@@ -927,6 +2016,15 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#08050C' },
   center: { alignItems: 'center', justifyContent: 'center', gap: 18, paddingHorizontal: 34 },
   fallbackText: { color: 'rgba(255,255,255,0.85)', fontSize: 15, textAlign: 'center', lineHeight: 21 },
+  loadingText: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '900', letterSpacing: 2 },
+
+  microLabel: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1.4 },
+  deltaPill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5 },
+  deltaText: { fontSize: 11.5, fontWeight: '900' },
+  rankPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1.5 },
+  rankPillText: { fontSize: 11.5, fontWeight: '900' },
+  friendTag: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, alignSelf: 'flex-start' },
+  friendTagText: { fontSize: 10.5, fontWeight: '800', maxWidth: 180 },
 
   chrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, zIndex: 30 },
   bars: { flexDirection: 'row', gap: 4 },
@@ -934,83 +2032,97 @@ const styles = StyleSheet.create({
   barFill: { height: '100%' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   brand: { fontFamily: DISPLAY, fontSize: 15, letterSpacing: 0.4 },
-  topBtns: { flexDirection: 'row', gap: 7 },
-  iconBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  topBtns: { flexDirection: 'row', gap: 5, flexShrink: 1 },
+  iconBtn: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 
-  content: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 26, zIndex: 20 },
-  body: { width: '100%' },
+  content: { flex: 1, zIndex: 20 },
+  rail: { position: 'absolute', right: 14, zIndex: 22 },
 
-  kicker: { fontSize: 11.5, fontWeight: '900', letterSpacing: 2, marginBottom: 12 },
-  hero: { fontFamily: DISPLAY, fontSize: 62, lineHeight: 64, letterSpacing: -1 },
-  hero2: { fontFamily: DISPLAY, fontSize: 46, lineHeight: 50, letterSpacing: -0.5 },
-  h1: { fontFamily: DISPLAY, fontSize: 40, lineHeight: 44 },
-  h2: { fontFamily: DISPLAY, fontSize: 26, letterSpacing: 0.5 },
-  mega: { fontFamily: DISPLAY, fontSize: 96, lineHeight: 100, letterSpacing: -3 },
-  lede: { fontFamily: DISPLAY, fontSize: 19, letterSpacing: 1.4, marginTop: 10 },
+  kicker: { fontSize: 10.5, fontWeight: '900', letterSpacing: 2 },
+  bandText: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
+  hero: { fontFamily: DISPLAY, letterSpacing: -1.5, textAlign: 'center' },
+  hero2: { fontFamily: DISPLAY, fontSize: 42, lineHeight: 46, letterSpacing: -0.5, textAlign: 'center' },
+  h1: { fontFamily: DISPLAY, fontSize: 38, lineHeight: 42 },
+  h2: { fontFamily: DISPLAY, fontSize: 25, letterSpacing: 0.5 },
+  h3: { fontFamily: DISPLAY, fontSize: 20, letterSpacing: 0.3 },
+  mega: { fontFamily: DISPLAY, letterSpacing: -4 },
+  lede: { fontFamily: DISPLAY, fontSize: 17, letterSpacing: 1.6 },
   sub: { fontSize: 15, lineHeight: 22, marginTop: 10, fontWeight: '600' },
-  rule: { width: 62, height: 4, borderRadius: 2, marginTop: 18 },
+  subSmall: { fontSize: 12.5, lineHeight: 18, marginTop: 6, fontWeight: '700', letterSpacing: 0.2 },
+  swipe: { fontSize: 10, fontWeight: '900', letterSpacing: 2.5, marginTop: 2 },
 
-  bubble: { borderWidth: 2, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 13, alignSelf: 'flex-start', maxWidth: '96%' },
   bubbleText: { fontSize: 15, fontWeight: '700', lineHeight: 21 },
-  bubbleTail: {
-    position: 'absolute', bottom: -11, left: 26, width: 0, height: 0,
-    borderLeftWidth: 9, borderRightWidth: 9, borderTopWidth: 12,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent',
-  },
 
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 11, alignSelf: 'flex-start', marginTop: 20, paddingHorizontal: 15, paddingVertical: 11, borderRadius: 15, borderWidth: 1.5 },
-  pillLabel: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1 },
-  pillValue: { fontFamily: DISPLAY, fontSize: 17, marginTop: 2 },
-  pillPct: { fontFamily: DISPLAY, fontSize: 16, marginLeft: 6 },
+  // slide 2 — month strip
+  monthWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  monthBlock: { width: 86 },
+  monthLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2, marginBottom: 4 },
+  monthGrid: { flexDirection: 'row', flexWrap: 'wrap', width: 84 },
+  dayCell: { width: 10, height: 10, margin: 1 },
 
-  leadRow: { flexDirection: 'row', gap: 16, alignItems: 'center', marginTop: 8 },
-  leadCover: { width: 118, height: 172, borderRadius: 12, borderWidth: 2.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)' },
-  leadRank: { position: 'absolute', top: -1, left: -1, width: 34, height: 34, borderBottomRightRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  leadRankText: { fontFamily: DISPLAY, fontSize: 20, color: '#12080C' },
-  leadTitle: { fontFamily: DISPLAY, fontSize: 25, lineHeight: 28 },
-  leadMeta: { fontSize: 13.5, fontWeight: '800', marginTop: 7 },
+  // slide 4 — dial
+  dialPct: { fontFamily: DISPLAY, fontSize: 26, marginTop: 2 },
 
-  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 9 },
-  rankNum: { fontFamily: DISPLAY, fontSize: 20, width: 20, textAlign: 'center' },
-  rankCover: { width: 36, height: 52, borderRadius: 5, borderWidth: 1, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)' },
-  rankTitle: { fontSize: 14.5, fontWeight: '800' },
-  rankMeta: { fontSize: 11.5, fontWeight: '600', marginTop: 2 },
+  // slide 5 — top series
+  rankBig: { fontFamily: DISPLAY, fontSize: 34, letterSpacing: -1, marginBottom: 2 },
+  leadTitle: { fontFamily: DISPLAY, fontSize: 22, lineHeight: 25 },
+  leadMeta: { fontSize: 13, fontWeight: '800', marginTop: 6 },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1 },
+  rankNum: { fontFamily: DISPLAY, fontSize: 17, width: 24 },
+  rankCover: { width: 34, height: 50, borderWidth: 1, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.07)' },
+  rankTitle: { fontSize: 14, fontWeight: '800' },
+  rankMeta: { fontSize: 11, fontWeight: '600', marginTop: 2 },
 
-  genreRow: { marginBottom: 13 },
-  genreHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  genreIcon: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  genreName: { flex: 1, fontSize: 14.5, fontWeight: '800' },
-  genrePct: { fontFamily: DISPLAY, fontSize: 16 },
-  genreTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  genreFill: { height: '100%', borderRadius: 4 },
+  // slide 6 — wheel
+  wheelPct: { fontFamily: DISPLAY, fontSize: 44, letterSpacing: -1.5 },
+  wheelLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 1.6, marginTop: -2 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, justifyContent: 'center', marginTop: 20 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1.5 },
+  chipText: { fontSize: 12, fontWeight: '800' },
+  chipPct: { fontSize: 11.5, fontWeight: '900' },
 
-  persoRing: { position: 'absolute', width: 104, height: 104, borderRadius: 52, borderWidth: 2, top: -2 },
-  persoBadge: { width: 100, height: 100, borderRadius: 50, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  // slide 7 — reader card
+  cardKicker: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1.8 },
+  cardTitle: { fontFamily: DISPLAY, fontSize: 30, lineHeight: 34, marginTop: 4 },
+  cardDesc: { fontSize: 13, lineHeight: 19, fontWeight: '600', marginTop: 8 },
+  cardRule: { height: 1, marginBottom: 9 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
+  cardFooterText: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 
-  tier: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', marginTop: 18, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, borderWidth: 1.5 },
+  // slide 8 — badge shelf
+  badgeShelf: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 22 },
+  badgeCell: { width: 78, alignItems: 'center', gap: 5 },
+  badgeName: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3, textAlign: 'center' },
+  tier: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingHorizontal: 15, paddingVertical: 8, borderWidth: 1.5 },
   tierText: { fontFamily: DISPLAY, fontSize: 15 },
 
-  calendar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 20, maxWidth: 300 },
-  calCell: { width: 26, height: 26, borderRadius: 6 },
+  // slide 9 — streak
+  streakGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 },
 
-  card: { borderWidth: 1.5, borderRadius: 20, padding: 18, marginTop: 20, width: '100%' },
-  cardHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  cardName: { fontFamily: DISPLAY, fontSize: 19 },
-  cardPerso: { fontSize: 12.5, fontWeight: '900' },
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 14 },
-  cardCell: { width: '50%', marginBottom: 12 },
-  cardVal: { fontFamily: DISPLAY, fontSize: 27 },
-  cardLbl: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginTop: 1 },
-  cardCovers: { flexDirection: 'row', marginTop: 2, marginBottom: 12 },
-  cardCover: { width: 40, height: 58, borderRadius: 6, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.1)' },
-  cardFoot: { fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
+  // slide 10 — poster
+  poster: { padding: 18, width: '100%', overflow: 'hidden' },
+  posterHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  posterName: { fontFamily: DISPLAY, fontSize: 22 },
+  posterPerso: { fontSize: 12.5, fontWeight: '900', letterSpacing: 0.5, marginTop: 1 },
+  posterGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 14 },
+  posterCell: { width: '50%', marginBottom: 12 },
+  posterVal: { fontFamily: DISPLAY, fontSize: 30, letterSpacing: -1 },
+  posterLbl: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1.2, marginTop: -1 },
+  posterSection: { fontSize: 9, fontWeight: '900', letterSpacing: 1.6, marginTop: 2, marginBottom: 8 },
+  posterCovers: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  posterCover: { width: 40, height: 58, borderWidth: 1.5, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.1)' },
+  posterTop: { fontSize: 12.5, fontWeight: '800', lineHeight: 16 },
+  posterFootRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, paddingTop: 10 },
+  posterFoot: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 
-  actions: { flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap' },
-  btnMain: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 13, borderRadius: 999 },
-  btnMainText: { color: '#12080C', fontWeight: '900', fontSize: 14.5 },
-  btnGhost: { paddingHorizontal: 20, paddingVertical: 13, borderRadius: 999, borderWidth: 1.5 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' },
+  btnMain: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 13 },
+  btnMainText: { fontWeight: '900', fontSize: 14.5 },
+  btnGhost: { paddingHorizontal: 20, paddingVertical: 13, borderWidth: 1.5 },
+  btnGhostRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   btnGhostText: { fontWeight: '900', fontSize: 14.5 },
+  iconSquareBtn: { width: 47, height: 47, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
 
   footWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 20 },
-  foot: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  foot: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.3 },
 });

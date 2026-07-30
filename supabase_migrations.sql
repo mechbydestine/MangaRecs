@@ -1845,3 +1845,106 @@ END; $$;
 GRANT EXECUTE ON FUNCTION merge_hour_log(JSONB) TO authenticated;
 -- hour_log is intentionally absent from the GRANT UPDATE list in 36f, so this
 -- RPC is the only write path — same lockdown daily_log has.
+
+-- ── 57. MangaRecap history + friend comparison ────────────────────────────
+-- NOT YET RUN. Paste into the Supabase SQL editor when ready — the app
+-- degrades gracefully without it (utils/recapHistory.js catches every error
+-- and returns null/[] until these exist), so there is no rush and no risk in
+-- shipping the client code first.
+--
+-- recap_snapshots: one row per user per half-year, written by the client the
+-- moment a MangaRecap finishes loading. Two things read it: (a) the app
+-- itself, to show "+340 chapters vs last half" deltas and the Recap Vault,
+-- and (b) the public mangarecs.net/recap/<username> share page, server-
+-- rendered by cloudflare/share-preview-worker.js with no auth — so, same as
+-- `profiles`, it is public-read. Nothing stored here is more sensitive than
+-- what a profile already shows (chapter counts, top series, badges earned).
+CREATE TABLE IF NOT EXISTS recap_snapshots (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  period_start DATE NOT NULL,
+  period_end   DATE NOT NULL,
+  period_label TEXT NOT NULL,
+  stats        JSONB NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  updated_at   TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, period_start)
+);
+CREATE INDEX IF NOT EXISTS idx_recap_snapshots_user ON recap_snapshots(user_id, period_start DESC);
+ALTER TABLE recap_snapshots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public read recap snapshots" ON recap_snapshots;
+DROP POLICY IF EXISTS "Own write recap snapshots"   ON recap_snapshots;
+DROP POLICY IF EXISTS "Own update recap snapshots"  ON recap_snapshots;
+CREATE POLICY "Public read recap snapshots" ON recap_snapshots FOR SELECT USING (true);
+CREATE POLICY "Own write recap snapshots"   ON recap_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Own update recap snapshots"  ON recap_snapshots FOR UPDATE USING (auth.uid() = user_id);
+
+-- get_friends_recap_totals: each of the CALLER's accepted friends' chapter
+-- total + top series for one period. SECURITY DEFINER because reading_progress
+-- is locked to its own owner (see policy "Own read progress" above) — this is
+-- the same bypass-with-a-narrow-purpose pattern as count_creator_readers.
+-- Always scoped to auth.uid() internally; a friend id is never accepted as a
+-- parameter here, so there is no way to query someone you are not friends with.
+CREATE OR REPLACE FUNCTION public.get_friends_recap_totals(p_start DATE, p_end DATE)
+RETURNS TABLE(friend_id UUID, username TEXT, avatar_url TEXT, chapters BIGINT, top_series TEXT)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  RETURN QUERY
+  WITH mutual AS (
+    SELECT CASE WHEN requester_id = auth.uid() THEN addressee_id ELSE requester_id END AS fid
+    FROM friendships
+    WHERE status = 'accepted' AND (requester_id = auth.uid() OR addressee_id = auth.uid())
+  ),
+  totals AS (
+    SELECT rp.user_id AS fid, SUM(rp.current_chapter) AS chapters
+    FROM reading_progress rp
+    WHERE rp.user_id IN (SELECT fid FROM mutual)
+      AND rp.updated_at::date BETWEEN p_start AND p_end
+    GROUP BY rp.user_id
+  ),
+  top AS (
+    SELECT DISTINCT ON (rp.user_id) rp.user_id AS fid, rp.series_title
+    FROM reading_progress rp
+    WHERE rp.user_id IN (SELECT fid FROM mutual)
+      AND rp.updated_at::date BETWEEN p_start AND p_end
+    ORDER BY rp.user_id, rp.current_chapter DESC
+  )
+  SELECT m.fid, p.username, p.avatar_url, COALESCE(t.chapters, 0), top.series_title
+  FROM mutual m
+  JOIN profiles p ON p.id = m.fid
+  LEFT JOIN totals t ON t.fid = m.fid
+  LEFT JOIN top ON top.fid = m.fid;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.get_friends_recap_totals(DATE, DATE) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_friends_recap_totals(DATE, DATE) TO authenticated;
+
+-- get_friend_reading_stats: one specific friend's raw in-period reading rows,
+-- for the "compare with a friend" screen (genres/covers are then resolved
+-- client-side against AniList, which needs no auth). Verifies an ACCEPTED
+-- friendship between auth.uid() and p_friend_id before returning anything —
+-- querying a non-friend's reading_progress this way returns zero rows.
+CREATE OR REPLACE FUNCTION public.get_friend_reading_stats(p_friend_id UUID, p_start DATE, p_end DATE)
+RETURNS TABLE(series_title TEXT, current_chapter INTEGER, status TEXT)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM friendships
+    WHERE status = 'accepted'
+      AND ((requester_id = auth.uid() AND addressee_id = p_friend_id)
+        OR (requester_id = p_friend_id AND addressee_id = auth.uid()))
+  ) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT rp.series_title, rp.current_chapter, rp.status
+  FROM reading_progress rp
+  WHERE rp.user_id = p_friend_id
+    AND rp.updated_at::date BETWEEN p_start AND p_end
+  ORDER BY rp.current_chapter DESC
+  LIMIT 12;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.get_friend_reading_stats(UUID, DATE, DATE) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_friend_reading_stats(UUID, DATE, DATE) TO authenticated;

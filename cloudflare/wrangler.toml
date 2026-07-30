@@ -3,5 +3,11 @@ main = "share-preview-worker.js"
 compatibility_date = "2024-09-23"
 
 routes = [
-  { pattern = "mangarecs.net/catalog/title/*", zone_name = "mangarecs.net" }
+  { pattern = "mangarecs.net/catalog/title/*", zone_name = "mangarecs.net" },
+  # NOT YET DEPLOYED — serves the public MangaRecap share card (see the
+  # /recap/<username> branch in share-preview-worker.js). Requires
+  # recap_snapshots (supabase_migrations.sql §57) to be applied first, or
+  # every recap link 404s. Uncomment once both are ready and redeploy with
+  # `wrangler deploy` from this directory.
+  # { pattern = "mangarecs.net/recap/*", zone_name = "mangarecs.net" }
 ]
