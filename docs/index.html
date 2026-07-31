@@ -484,6 +484,7 @@
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
 <link rel="stylesheet" href="/assets/motion.css?v=2" />
+<script src="/assets/i18n.js?v=1" defer></script>
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
 
@@ -503,17 +504,17 @@
       <span class="brand-word">Manga<b>Recs</b></span>
     </a>
     <div class="nav-actions">
-      <a class="nav-link" href="/catalog/">Browse Catalog</a>
-      <a class="nav-link" href="/features/">Features</a>
+      <a class="nav-link" href="/catalog/" data-i18n="nav.catalog">Browse Catalog</a>
+      <a class="nav-link" href="/features/" data-i18n="nav.features">Features</a>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
-      <a class="nav-link" id="libraryNavLink" href="/catalog/#/library" style="display:none;">Library</a>
+      <a class="nav-link" id="libraryNavLink" href="/catalog/#/library" style="display:none;" data-i18n="nav.library">Library</a>
       <div class="account-wrap">
         <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </button>
         <div class="account-panel" id="accountPanel"></div>
       </div>
-      <a class="nav-cta" href="#download">Coming Soon</a>
+      <a class="nav-cta" href="#download" data-i18n="nav.cta">Coming Soon</a>
     </div>
   </div>
 </nav>
@@ -542,20 +543,20 @@
       </svg>
       </div>
       <h1 class="display">Manga<span class="accent">Recs</span></h1>
-      <p class="hero-tag">Your manga & manhwa library, but social. Track what you're reading, Rec it to friends, and talk chapters as a community instead of scattered across a dozen group chats.</p>
+      <p class="hero-tag" data-i18n="hero.tag">Your manga & manhwa library, but social. Track what you're reading, Rec it to friends, and talk chapters as a community instead of scattered across a dozen group chats.</p>
       <div class="hero-actions">
         <a class="btn-primary" href="#download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
           Coming Soon
         </a>
-        <a class="btn-ghost" href="/catalog/">Browse the Catalog</a>
+        <a class="btn-ghost" href="/catalog/" data-i18n="hero.browse">Browse the Catalog</a>
       </div>
-      <p class="hero-fineprint">Not on the stores yet — MangaRecs is heading to the App Store and Google Play.</p>
+      <p class="hero-fineprint" data-i18n="hero.fineprint">Not on the stores yet — MangaRecs is heading to the App Store and Google Play.</p>
     </div>
 
     <div class="demo">
       <div class="demo-stack" id="demoStack"></div>
-      <p class="demo-hint">← swipe away · swipe right to save →</p>
+      <p class="demo-hint" data-i18n="demo.hint">← swipe away · swipe right to save →</p>
     </div>
   </section>
 
@@ -575,24 +576,24 @@
   </section>
 
   <section class="trending-home">
-    <p class="eyebrow" style="margin:0;">Live from the catalog</p>
-    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Trending Right Now</h2>
+    <p class="eyebrow" style="margin:0;" data-i18n="trending.eyebrow">Live from the catalog</p>
+    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;" data-i18n="trending.title">Trending Right Now</h2>
     <div class="format-pills" id="formatPills"></div>
     <div class="format-pills" id="moodPills" style="margin-top:-8px;"></div>
     <div class="grid" id="trendingGrid"></div>
     <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
-    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/">See the full catalog</a></div>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
   </section>
 
   <section class="chapter" id="collect" data-reveal="stagger">
     <div class="chapter-copy">
-      <p class="eyebrow">Chapter 1</p>
-      <h2 class="chapter-title display">Collect</h2>
-      <p class="chapter-desc">Add it once and it's yours everywhere — reading, completed, bookmarked, downloaded, all on shelves your friends can actually see. Lose your phone tomorrow and none of it's gone; sign in on the new one and it's all still there.</p>
+      <p class="eyebrow" data-i18n="ch1.eyebrow">Chapter 1</p>
+      <h2 class="chapter-title display" data-i18n="ch1.title">Collect</h2>
+      <p class="chapter-desc" data-i18n="ch1.desc">Add it once and it's yours everywhere — reading, completed, bookmarked, downloaded, all on shelves your friends can actually see. Lose your phone tomorrow and none of it's gone; sign in on the new one and it's all still there.</p>
       <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Download chapters and read with the wifi off</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Custom sort per shelf, progress tracked series by series</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Tied to your account, not your device</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li1">Download chapters and read with the wifi off</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li2">Custom sort per shelf, progress tracked series by series</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li3">Tied to your account, not your device</span></li>
       </ul>
     </div>
     <div class="chapter-visual">
@@ -604,8 +605,8 @@
 
   <section class="chapter flip" id="connect" data-reveal="stagger">
     <div class="chapter-copy">
-      <p class="eyebrow">Chapter 2</p>
-      <h2 class="chapter-title display">Connect</h2>
+      <p class="eyebrow" data-i18n="ch2.eyebrow">Chapter 2</p>
+      <h2 class="chapter-title display" data-i18n="ch2.title">Connect</h2>
       <p class="chapter-desc">See what your friends are actually reading right now, not just what they finished months ago. Send them the chapter that wrecked you, or "Rec" them a whole series straight into their library. Threads are spoiler-tagged by chapter, so someone three behind can still scroll through without getting burned.</p>
       <ul class="chapter-list">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Rec a title straight to a friend's library — not just a link, an actual save</li>
@@ -622,8 +623,8 @@
 
   <section class="chapter" id="progress" data-reveal="stagger">
     <div class="chapter-copy">
-      <p class="eyebrow">Chapter 3</p>
-      <h2 class="chapter-title display">Progress</h2>
+      <p class="eyebrow" data-i18n="ch3.eyebrow">Chapter 3</p>
+      <h2 class="chapter-title display" data-i18n="ch3.title">Progress</h2>
       <p class="chapter-desc">250 badges to actually chase, not one trophy icon that just changes color. Climb Bronze to Mythic, keep a streak alive, and unlock relics — original weapon art we drew ourselves, not stock icon-pack junk. It's also the foundation for the community modes we're building next: think server-wide events, not just a personal streak counter.</p>
       <ul class="chapter-list">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Bronze → Silver → Gold → Mythic, a real ladder, not a progress bar</li>
@@ -648,8 +649,8 @@
 
   <section class="chapter flip" id="discover" data-reveal="stagger">
     <div class="chapter-copy">
-      <p class="eyebrow">Chapter 4</p>
-      <h2 class="chapter-title display">Discover</h2>
+      <p class="eyebrow" data-i18n="ch4.eyebrow">Chapter 4</p>
+      <h2 class="chapter-title display" data-i18n="ch4.title">Discover</h2>
       <p class="chapter-desc">Once your library's got a shape, the feed uses it. Swipe right to save, left to skip — it keeps adjusting instead of asking you to fill out a genre survey once and forget it. Tap a mood chip and it reshuffles on the spot.</p>
       <ul class="chapter-list">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Like, comment, and share straight from the card — no tab-switching</li>
@@ -669,8 +670,8 @@
 
   <section class="chapter" id="read" data-reveal="stagger">
     <div class="chapter-copy">
-      <p class="eyebrow">Chapter 5</p>
-      <h2 class="chapter-title display">Read</h2>
+      <p class="eyebrow" data-i18n="ch5.eyebrow">Chapter 5</p>
+      <h2 class="chapter-title display" data-i18n="ch5.title">Read</h2>
       <p class="chapter-desc">However you found it — your library, a friend's Rec, or the feed — read it right in the app. Scroll it like a webtoon or flip it like paged manga, your call per series. Ambient sound, a screen dimmer, and auto-scroll for the chapters you're reading at 1am and don't want to keep tapping.</p>
       <ul class="chapter-list">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Works as a clean, ad-blocked reader on other sites too — not just the ones we've built native support for</li>
@@ -702,34 +703,34 @@
 
   <section class="showcase" id="screenshots">
     <div class="showcase-head">
-      <p class="eyebrow">See it in action</p>
-      <h2>Straight From the App</h2>
-      <p>No mockups — this is what's actually on your phone.</p>
+      <p class="eyebrow" data-i18n="shots.eyebrow">See it in action</p>
+      <h2 data-i18n="shots.title">Straight From the App</h2>
+      <p data-i18n="shots.sub">No mockups — this is what's actually on your phone.</p>
     </div>
     <div class="showcase-strip">
       <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="360" height="780" /></div>
-        <p class="shot-label">Library</p>
+        <p class="shot-label" data-i18n="shots.library">Library</p>
       </div>
       <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="360" height="780" /></div>
-        <p class="shot-label">Community</p>
+        <p class="shot-label" data-i18n="shots.community">Community</p>
       </div>
       <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="360" height="780" /></div>
-        <p class="shot-label">Discussions</p>
+        <p class="shot-label" data-i18n="shots.discussions">Discussions</p>
       </div>
       <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="360" height="780" /></div>
-        <p class="shot-label">Profile</p>
+        <p class="shot-label" data-i18n="shots.profile">Profile</p>
       </div>
       <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="360" height="780" /></div>
-        <p class="shot-label">Home</p>
+        <p class="shot-label" data-i18n="shots.home">Home</p>
       </div>
       <div class="shot" data-reveal>
         <div class="shot-frame"><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="360" height="780" /></div>
-        <p class="shot-label">For You</p>
+        <p class="shot-label" data-i18n="shots.forYou">For You</p>
       </div>
     </div>
   </section>
@@ -737,7 +738,7 @@
   <section class="download" id="download">
     <div class="mascot-pop mascot-slot"></div>
     <p class="eyebrow">Launching soon</p>
-    <h2>Coming to the App Store and Google Play</h2>
+    <h2 data-i18n="download.title">Coming to the App Store and Google Play</h2>
     <p>MangaRecs is in final testing before submission. Check back here for the store links the moment it's live.</p>
     <p class="platform-note">iOS and Android, at launch.</p>
     <form class="notify-form" id="notifyForm">
@@ -749,7 +750,7 @@
 
   <section class="faq" id="faq">
     <p class="eyebrow">FAQ</p>
-    <h2 class="display">Questions, Answered</h2>
+    <h2 class="display" data-i18n="faq.title">Questions, Answered</h2>
     <details class="faq-item" open>
       <summary>Is MangaRecs an app or a website?</summary>
       <p>MangaRecs is a mobile app for iOS and Android. This website is its companion — browse the catalog, and once you sign in here, your library stays in sync with the app.</p>
@@ -802,7 +803,7 @@
   </div>
   <div class="footer-bottom">
     <span>© 2026 MangaRecs. Built solo. Catalog data via <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.</span>
-    <span><a href="/catalog/">Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
+    <span><a href="/catalog/" data-i18n="footer.catalog">Catalog</a> · <a href="/features/" data-i18n="nav.features">Features</a> · <a href="/about/">About</a> · <a href="/privacy/" data-i18n="footer.privacy">Privacy</a> · <a href="/terms/" data-i18n="footer.terms">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
   </div>
 </footer>
 

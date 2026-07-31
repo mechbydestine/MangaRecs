@@ -93,3 +93,31 @@
 .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
 .icon-btn svg { width: 17px; height: 17px; }
 .icon-btn.signed-in { color: var(--accent); border-color: var(--accent); background: var(--accent-wash); }
+
+/* ── Language switcher (assets/i18n.js) ──────────────────────────────────── */
+.lang-wrap { position: relative; display: inline-flex; }
+.lang-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--line, rgba(128,128,140,0.3));
+  color: inherit; font: inherit; font-size: 0.82rem;
+  padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  line-height: 1;
+}
+.lang-btn:hover { border-color: currentColor; }
+.lang-btn svg { width: 15px; height: 15px; flex: none; }
+.lang-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+  display: none; flex-direction: column; min-width: 152px; padding: 6px;
+  background: var(--surface, #14121c); border: 1px solid var(--line, rgba(128,128,140,0.3));
+  border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+}
+.lang-wrap.open .lang-menu { display: flex; }
+.lang-opt {
+  background: none; border: 0; color: inherit; font: inherit; font-size: 0.86rem;
+  text-align: left; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+}
+.lang-opt:hover { background: rgba(128,128,140,0.14); }
+.lang-opt[aria-checked="true"] { color: var(--accent, #9B70FF); font-weight: 600; }
+/* The switcher is nav chrome; on narrow screens the label goes and the globe
+   carries it, so it never wraps the nav onto a second line. */
+@media (max-width: 560px) { .lang-btn #langCurrent { display: none; } }
