@@ -276,6 +276,7 @@ export default {
   },
 
   settings: {
+    importPartial: "追踪服务中断，部分作品可能缺失——请再运行一次以补齐",
     importFromAnilist: "从 AniList 导入",
     importFromMal: "从 MyAnimeList 导入",
     importDesc: "将系列添加到你的书库，绝不会降低已有进度。",

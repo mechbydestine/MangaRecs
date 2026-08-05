@@ -553,10 +553,15 @@ export default function SettingsScreen({ navigation }) {
 
     setImportState((p) => ({ ...p, message: t('settings.importSaving', { count: result.entries.length }) }));
     const { added, updated, skipped } = await applyLibraryImport(uid, result.entries);
+    // `partial` means the tracker stopped answering part-way through. What did
+    // arrive is real and worth keeping, but say so — a truncated import that
+    // reports success looks identical to a complete one, and the user would
+    // never know to re-run it.
+    const done = t('settings.importDone', { added, updated, skipped });
     setImportState({
       busy: false,
       source,
-      message: t('settings.importDone', { added, updated, skipped }),
+      message: result.partial ? `${done} · ${t('settings.importPartial')}` : done,
       error: false,
     });
     hapticSuccess();

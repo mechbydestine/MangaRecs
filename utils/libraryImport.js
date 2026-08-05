@@ -28,6 +28,11 @@ const JIKAN_API = 'https://api.jikan.moe/v4';
 // statement is a request big enough to time out on mobile data.
 const UPSERT_CHUNK = 200;
 
+// Per-page retry budget for Jikan, which returns 429 and 5xx often enough
+// that one attempt per page loses imports for real users.
+const MAX_PAGE_ATTEMPTS = 4;
+const RETRY_BASE_MS = 1200;
+
 // Both services use their own status vocabulary. reading_progress stores the
 // app's own set, which the Library tabs read directly.
 const ANILIST_STATUS = {
@@ -119,18 +124,29 @@ export async function fetchMalLibrary(username, { onPage } = {}) {
   const out = [];
   try {
     for (let page = 1; page <= 20; page++) {
-      const resp = await fetch(`${JIKAN_API}/users/${encodeURIComponent(name)}/mangalist?page=${page}`, {
-        headers: { Accept: 'application/json' },
-      });
-      if (resp.status === 404) return { ok: false, reason: 'not-found' };
-      // Jikan answers 429 when the per-second budget is exceeded. Back off
-      // once rather than failing the whole import.
-      if (resp.status === 429) {
-        await new Promise((r) => setTimeout(r, 1500));
-        page--;
-        continue;
+      // Jikan is a free community mirror and is genuinely unreliable — a live
+      // probe returned 504 on a trivial query. Aborting the whole import on
+      // one transient 5xx would strand a user halfway through their library,
+      // so retry the page with backoff and only give up after several tries.
+      let resp = null;
+      let attempt = 0;
+      for (; attempt < MAX_PAGE_ATTEMPTS; attempt++) {
+        resp = await fetch(`${JIKAN_API}/users/${encodeURIComponent(name)}/mangalist?page=${page}`, {
+          headers: { Accept: 'application/json' },
+        });
+        // 404 is a real answer ("no such user"), not a blip — don't retry it.
+        if (resp.status === 404) return { ok: false, reason: 'not-found' };
+        // 429 = per-second budget exceeded, 5xx = the mirror is struggling.
+        // Both are worth waiting out; anything else is decided immediately.
+        if (resp.status !== 429 && resp.status < 500) break;
+        await new Promise((r) => setTimeout(r, RETRY_BASE_MS * (attempt + 1)));
       }
-      if (!resp.ok) return { ok: false, reason: 'unavailable' };
+      if (!resp || !resp.ok) {
+        // Pages already fetched are still good data. Returning them beats
+        // discarding a mostly-complete import because page 7 of 9 timed out.
+        if (out.length) return { ok: true, entries: dedupe(out), partial: true };
+        return { ok: false, reason: 'unavailable' };
+      }
       const json = await resp.json();
       const rows = json?.data || [];
       for (const r of rows) {

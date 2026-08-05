@@ -275,6 +275,7 @@ export default {
   },
 
   settings: {
+    importPartial: "el rastreador dejó de responder, puede que falten series: vuelve a ejecutarlo",
     importFromAnilist: "Importar desde AniList",
     importFromMal: "Importar desde MyAnimeList",
     importDesc: "Añade series a tu biblioteca. Nunca reduce el progreso que ya tienes.",

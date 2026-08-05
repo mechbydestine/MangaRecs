@@ -275,6 +275,7 @@ export default {
   },
 
   settings: {
+    importPartial: "le service a cessé de répondre, des séries peuvent manquer — relancez pour terminer",
     importFromAnilist: "Importer depuis AniList",
     importFromMal: "Importer depuis MyAnimeList",
     importDesc: "Ajoute des séries à votre bibliothèque. Ne réduit jamais votre progression.",
