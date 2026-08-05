@@ -278,6 +278,7 @@ export default {
   },
 
   settings: {
+    importPartial: "the tracker stopped responding, so some series may be missing — run it again to finish",
     importFromAnilist: "Import from AniList",
     importFromMal: "Import from MyAnimeList",
     importDesc: "Adds series to your library. Never lowers progress you already have.",

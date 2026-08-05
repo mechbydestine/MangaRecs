@@ -275,6 +275,7 @@ export default {
   },
 
   settings: {
+    importPartial: "트래커가 응답을 멈춰 일부 작품이 빠졌을 수 있습니다. 다시 실행해 마무리하세요",
     importFromAnilist: "AniList에서 가져오기",
     importFromMal: "MyAnimeList에서 가져오기",
     importDesc: "시리즈를 라이브러리에 추가합니다. 기존 진행도는 절대 낮아지지 않습니다.",

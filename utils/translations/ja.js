@@ -275,6 +275,7 @@ export default {
   },
 
   settings: {
+    importPartial: "トラッカーが応答しなくなったため一部の作品が抜けている可能性があります。再実行してください",
     importFromAnilist: "AniList から取り込む",
     importFromMal: "MyAnimeList から取り込む",
     importDesc: "作品をライブラリに追加します。既存の進捗が戻ることはありません。",

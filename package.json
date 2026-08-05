@@ -52,6 +52,10 @@
     "react-native-webview": "13.15.0"
   },
   "private": true,
+  "overridesComment": "jest-expo nests jsdom@20, which declares an OPTIONAL peer canvas@^2.5.0. The root canvas is 3.x (used by scripts/fetchIntroPanels.js) and does not satisfy that range. npm 11 skips the unsatisfiable optional peer; the older npm on the EAS builder resolves canvas@2.11.2 nested instead and then fails `npm ci` with 'Missing: canvas@2.11.2 from lock file'. Pinning every canvas request to the root version makes the tree resolve identically on both.",
+  "overrides": {
+    "canvas": "$canvas"
+  },
   "devDependencies": {
     "@types/react": "~19.1.10",
     "canvas": "^3.2.3",
