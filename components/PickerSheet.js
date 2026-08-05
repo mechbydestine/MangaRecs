@@ -29,10 +29,10 @@ export default function PickerSheet({ visible, onClose, title, options, value, o
                   style={[styles.option, { borderBottomColor: colors.border }]}
                   onPress={() => { onSelect(item.value); onClose(); }}
                   activeOpacity={0.65}>
-                  <Text style={[styles.optionText, { color: selected ? '#7B5CFF' : colors.text }]}>
+                  <Text style={[styles.optionText, { color: selected ? colors.primary : colors.text }]}>
                     {item.label}
                   </Text>
-                  {selected && <Ionicons name="checkmark" size={18} color="#7B5CFF" />}
+                  {selected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                 </TouchableOpacity>
               );
             }}

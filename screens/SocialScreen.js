@@ -1,14 +1,19 @@
 ﻿import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
-  Animated, Easing, RefreshControl,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Animated, Easing, RefreshControl,
 } from 'react-native';
+import { profileAccent } from '../utils/profileThemes';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigation, useRoute, useScrollToTop, useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { supabase } from '../supabase';
 import { sendFriendRequestPush } from '../utils/pushNotifications';
 import { showAppToast } from '../utils/appToast';
@@ -23,6 +28,7 @@ import { computePresenceStatus, PRESENCE_COLORS, PRESENCE_LABELS } from '../util
 import { light } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useResponsive } from '../utils/responsive';
+import { HIT_SLOP } from '../utils/tokens';
 
 // Persisted map of partnerId → last time the user opened that DM thread.
 // Survives restarts so unread badges stay cleared even if the server-side
@@ -47,13 +53,7 @@ function formatTime(hours) {
 }
 
 // Profile color is stored as a theme ID ('default','rose',…), not a hex value
-const THEME_COLORS = {
-  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
-};
-function themeColor(colorId) {
-  return THEME_COLORS[colorId] || '#7B5CFF';
-}
+const themeColor = profileAccent;
 
 // Strip known garbage values that get written to currently_reading
 const JUNK_READING = /do not sell|privacy policy|terms of|cookie|gdpr|opt.out/i;
@@ -145,6 +145,7 @@ const lbFeaturedStyles = StyleSheet.create({
 // "Friends Reading" list with a compact strip that scales to any friend count.
 function FriendAvatarStatus({ friend, onPeek, onOpenProfile }) {
   const { colors } = useTheme();
+  const t = useT();
   const scale = useRef(new Animated.Value(1)).current;
   const status = friend.presenceStatus;
   const dotColor = PRESENCE_COLORS[status];
@@ -209,7 +210,7 @@ function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote,
         onPress={handlePress}
         activeOpacity={0.75}
         disabled={loading}
-        style={[styles.pollOption, { borderColor: isSelected ? '#7B5CFF' : colors.border }]}
+        style={[styles.pollOption, { borderColor: isSelected ? colors.primary : colors.border }]}
       >
         {hasVoted && (
           <Animated.View
@@ -225,14 +226,14 @@ function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote,
         )}
         <View style={styles.pollOptionContent}>
           {isSelected
-            ? <Ionicons name="checkmark-circle" size={16} color="#7B5CFF" style={{ marginRight: 10 }} />
+            ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={{ marginRight: 10 }} />
             : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(123,92,255,0.5)' }]} />
           }
           <Text style={[styles.pollOptionLabel, { color: isSelected ? '#A09CE0' : colors.text }]} numberOfLines={1}>
             {opt.label}
           </Text>
           {hasVoted && (
-            <Text style={[styles.pollPct, { color: isSelected ? '#7B5CFF' : colors.muted }]}>{pct}%</Text>
+            <Text style={[styles.pollPct, { color: isSelected ? colors.primary : colors.muted }]}>{pct}%</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -242,6 +243,7 @@ function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote,
 
 function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justVoted }) {
   const { colors } = useTheme();
+  const t = useT();
   const options = Array.isArray(poll?.options) ? poll.options : [];
   const hasVoted = myVote != null;
   const cardScale = useRef(new Animated.Value(0.97)).current;
@@ -269,7 +271,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
         {justVoted ? (
           <View style={[styles.liveChip, { backgroundColor: 'rgba(29,158,117,0.15)', borderColor: 'rgba(29,158,117,0.3)' }]}>
             <Ionicons name="checkmark-circle" size={11} color="#1D9E75" />
-            <Text style={[styles.liveText, { color: '#1D9E75', marginLeft: 3 }]}>VOTED</Text>
+            <Text style={[styles.liveText, { color: '#1D9E75', marginLeft: 3 }]}>{t('community.voted')}</Text>
           </View>
         ) : (
           <View style={[styles.liveChip, endingSoon && { backgroundColor: 'rgba(239,159,39,0.15)', borderColor: 'rgba(239,159,39,0.3)' }]}>
@@ -281,7 +283,7 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
 
       <Text style={[styles.pollQuestion, { color: colors.text }]}>{poll.question}</Text>
       {!hasVoted && (
-        <Text style={[styles.pollHint, { color: colors.muted }]}>Tap an option to cast your vote</Text>
+        <Text style={[styles.pollHint, { color: colors.muted }]}>{t('community.tapToVote')}</Text>
       )}
 
       {options.map((opt) => (
@@ -313,11 +315,26 @@ function PollCard({ poll, voteCounts, totalVotes, myVote, onVote, loading, justV
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
+// One screen, two surfaces.
+//
+// The old Social tab mixed a public square (discussions, the weekly poll,
+// leaderboard) with a private inbox (friend requests, friends, DMs). Those are
+// different behaviours — a community space is browsed, an inbox is checked — and
+// merging them made the unread badge ambiguous: you couldn't tell whether
+// someone messaged you or a poll closed.
+//
+// They're now two destinations driven by `mode`, sharing one component because
+// they share loaders, realtime channels and modals:
+//   'community' (default) → the Community tab
+//   'messages'            → pushed from the Home header's ✉ icon, and from Profile
 export default function SocialScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const isMessages = route?.params?.mode === 'messages';
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { isTablet: IS_TABLET } = useResponsive();
   const scrollRef = useRef(null);
   const uidRef = useRef(null);
@@ -409,7 +426,6 @@ export default function SocialScreen() {
   // DM conversations state
   const [dmConvos, setDmConvos] = useState([]);
   const [friendsError, setFriendsError] = useState(false);
-  const [showMessages, setShowMessages] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [peekFriendId, setPeekFriendId] = useState(null);
 
@@ -965,11 +981,6 @@ export default function SocialScreen() {
     navigation.navigate('FriendProfile', { id: friend.id });
   }
 
-  function openMessages() {
-    setShowMessages(true);
-    if (uidRef.current) loadDMConvos(uidRef.current);
-  }
-
   async function onRefresh() {
     setRefreshing(true);
     logoRef.current?.spin();
@@ -1034,6 +1045,10 @@ export default function SocialScreen() {
     .filter((e) => leaderboardScope === 'global' || e.isMe || friendIdSet.has(e.id))
     .sort((a, b) => b[LB_METRIC_KEY[leaderboardMetric]] - a[LB_METRIC_KEY[leaderboardMetric]]);
 
+  const totalDmUnread = dmConvos.reduce((n, c) => n + c.unread, 0);
+  const dmFriendIdSet = new Set(dmConvos.map((c) => c.friendId));
+  const friendsWithoutThread = friends.filter((f) => !dmFriendIdSet.has(f.id));
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -1043,31 +1058,46 @@ export default function SocialScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}>
 
         <Animated.View style={[IS_TABLET ? styles.tabletWrap : null, { opacity: contentAnim, transform: [{ translateY: contentTranslateY }] }]}>
-        {/* Header */}
+        {/* Header. This was a tab root until the 4-tab restructure; it now opens
+            as a pushed screen from Profile, so it needs its own way back. */}
         <View style={styles.header}>
-          <StarLogo ref={logoRef} size={32} />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Community</Text>
-          <View style={styles.headerButtons}>
-            <TouchableOpacity style={styles.addFriendBtn} onPress={() => setShowAddFriend(true)}>
-              <Ionicons name="person-add-outline" size={13} color="#7B5CFF" />
-              <Text style={styles.addFriendText}>Add Friend</Text>
+          {navigation.canGoBack() ? (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="chevron-back" size={26} color={colors.text} />
             </TouchableOpacity>
+          ) : (
+            <StarLogo ref={logoRef} size={32} />
+          )}
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isMessages ? 'Messages' : 'Community'}</Text>
+          <View style={styles.headerButtons}>
+            {isMessages && (
+            <TouchableOpacity style={styles.addFriendBtn} onPress={() => setShowAddFriend(true)}>
+              <Ionicons name="person-add-outline" size={13} color={colors.primary} />
+              <Text style={styles.addFriendText}>{t('community.addAFriend')}</Text>
+            </TouchableOpacity>
+            )}
+            {!isMessages && (
             <TouchableOpacity style={styles.leaderboardBtn} onPress={() => setShowLeaderboard(true)}>
               <Ionicons name="trophy-outline" size={13} color="#FFD700" />
-              <Text style={styles.leaderboardText}>Leaderboard</Text>
+              <Text style={styles.leaderboardText}>{t('community.leaderboard')}</Text>
             </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* Friend Requests */}
-        {pendingRequests.length > 0 && (
+        {/* Friend Requests — inbox, so Messages only */}
+        {isMessages && pendingRequests.length > 0 && (
           <View style={styles.requestsSection}>
             <View style={styles.requestsHeader}>
-              <Ionicons name="people" size={14} color="#7B5CFF" />
-              <Text style={[styles.requestsTitle, { color: colors.text }]}>Friend Requests</Text>
+              <Ionicons name="people" size={14} color={colors.primary} />
+              <Text style={[styles.requestsTitle, { color: colors.text }]}>{t('messages.friendRequests')}</Text>
               <View style={styles.requestsBadge}>
                 <Text style={styles.requestsBadgeText}>{pendingRequests.length}</Text>
               </View>
@@ -1083,9 +1113,9 @@ export default function SocialScreen() {
                 </View>
                 <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptRequest(req.friendshipId)}>
                   <Ionicons name="checkmark" size={14} color="#1D9E75" />
-                  <Text style={styles.acceptBtnText}>Accept</Text>
+                  <Text style={styles.acceptBtnText}>{t('messages.accept')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                <TouchableOpacity hitSlop={HIT_SLOP}
                   style={[styles.declineBtn, { borderColor: colors.border }]}
                   onPress={() => handleDeclineRequest(req.friendshipId)}
                   accessibilityRole="button"
@@ -1100,17 +1130,18 @@ export default function SocialScreen() {
         {friendsError && (
           <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Ionicons name="cloud-offline-outline" size={13} color={colors.muted} />
-            <Text style={[styles.errorBannerText, { color: colors.muted }]}>Couldn't load friends</Text>
+            <Text style={[styles.errorBannerText, { color: colors.muted }]}>{t('messages.couldntLoadFriends')}</Text>
             <TouchableOpacity onPress={() => uidRef.current && loadFriends(uidRef.current)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.errorBannerRetry}>Retry</Text>
+              <Text style={styles.errorBannerRetry}>{t('common.retry')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* ── Friends ── compact avatar strip, replaces the old always-expanded list */}
+        {/* ── Friends ── inbox-side, so Messages only */}
+        {isMessages && (<>
         {friends.length > 0 ? (
           <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Friends</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('messages.friends')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1138,42 +1169,109 @@ export default function SocialScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* ── Messages ── single entry point instead of an always-open list */}
-        <TouchableOpacity
-          style={[styles.msgEntryBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={openMessages}
-          activeOpacity={0.82}>
-          <View style={styles.msgEntryIconWrap}>
-            <Ionicons name="chatbubble-ellipses" size={20} color="#7B5CFF" />
-            {dmConvos.reduce((n, c) => n + c.unread, 0) > 0 && (
-              <View style={styles.dmTotalBadge}>
-                <Text style={styles.dmTotalBadgeText}>{dmConvos.reduce((n, c) => n + c.unread, 0)}</Text>
-              </View>
-            )}
-          </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={[styles.msgEntryTitle, { color: colors.text }]}>Messages</Text>
-            <Text style={[styles.msgEntrySub, { color: colors.muted }]} numberOfLines={1}>
-              {dmConvos[0]
-                ? `${dmConvos[0].friend.name}: ${dmConvos[0].preview}`
-                : 'Tap to start a conversation'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-        </TouchableOpacity>
+        {/* ── Direct Messages ── listed inline, Discord-style. This screen IS
+            the inbox, so hiding every thread behind one row and a bottom sheet
+            cost a tap and buried the unread state that matters most. */}
+        <View style={styles.dmSectionHeader}>
+          <Text style={[styles.dmSectionTitle, { color: colors.muted }]}>{t('messages.directMessages')}</Text>
+          {totalDmUnread > 0 && (
+            <View style={styles.dmTotalBadge}>
+              <Text style={styles.dmTotalBadgeText}>{totalDmUnread}</Text>
+            </View>
+          )}
+        </View>
 
-        {/* ── Discussions ── */}
+        <View style={styles.dmList}>
+          {dmConvos.map((convo) => (
+            <TouchableOpacity
+              key={convo.friendId}
+              style={styles.dmRow}
+              onPress={() => {
+                // Opening the thread — clear its unread badge immediately
+                recordDmOpened(convo.friendId);
+                setDmConvos((prev) => prev.map((c) => c.friendId === convo.friendId ? { ...c, unread: 0 } : c));
+                navigation.navigate('DM', {
+                  friendId: convo.friendId,
+                  friendName: convo.friend.name,
+                  friendColor: convo.friend.color,
+                  friendAvatarUrl: convo.friend.avatarUrl || null,
+                });
+              }}
+              activeOpacity={0.6}>
+              <View>
+                <AvatarCircle
+                  username={convo.friend.name}
+                  avatarUrl={convo.friend.avatarUrl}
+                  color={convo.friend.color}
+                  size={44}
+                />
+                {convo.unread > 0 && <View style={[styles.dmUnreadDot, { borderColor: colors.background }]} />}
+              </View>
+              <View style={styles.dmConvoContent}>
+                <View style={styles.dmConvoTopRow}>
+                  <Text style={[styles.dmConvoName, { color: colors.text }, convo.unread > 0 && styles.dmConvoNameBold]} numberOfLines={1}>
+                    {convo.friend.name}
+                  </Text>
+                  <Text style={[styles.dmConvoTime, { color: colors.muted }]}>{convo.lastTime}</Text>
+                </View>
+                <Text
+                  style={[styles.dmConvoPreview, { color: convo.unread > 0 ? colors.text : colors.muted }, convo.unread > 0 && styles.dmConvoPreviewBold]}
+                  numberOfLines={1}>
+                  {convo.preview}
+                </Text>
+              </View>
+              {convo.unread > 0 && (
+                <View style={styles.dmUnreadBadge}>
+                  <Text style={styles.dmUnreadText}>{convo.unread > 9 ? '9+' : convo.unread}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+
+          {/* Friends with no history yet, below the real threads. Without these
+              a user with friends but no messages lands on an empty inbox and
+              has no way out of it. */}
+          {friendsWithoutThread.map((friend) => (
+            <TouchableOpacity
+              key={friend.id}
+              style={styles.dmRow}
+              onPress={() => navigation.navigate('DM', {
+                friendId: friend.id,
+                friendName: friend.name,
+                friendColor: friend.color,
+                friendAvatarUrl: friend.avatarUrl || null,
+              })}
+              activeOpacity={0.6}>
+              <AvatarCircle username={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={44} />
+              <View style={styles.dmConvoContent}>
+                <Text style={[styles.dmConvoName, { color: colors.text }]} numberOfLines={1}>{friend.name}</Text>
+                <Text style={[styles.dmConvoPreview, { color: colors.muted }]} numberOfLines={1}>{t('messages.sayHello')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={colors.border} />
+            </TouchableOpacity>
+          ))}
+
+          {dmConvos.length === 0 && friendsWithoutThread.length === 0 && (
+            <Text style={[styles.emptyHint, { color: colors.muted }]}>{t('messages.noMessages')}</Text>
+          )}
+        </View>
+
+        </>)}
+
+        {/* ── Discussions ── the seed content that makes Community feel alive on
+            day one, rather than shipping an empty tab and waiting for events. */}
+        {!isMessages && (<>
         <TouchableOpacity
           style={styles.discHeaderRow}
           onPress={() => navigation.navigate('AllDiscussions')}
           activeOpacity={0.7}>
           <View style={styles.actTitleRow}>
-            <Ionicons name="chatbubbles" size={16} color="#7B5CFF" />
-            <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>Discussions </Text>
+            <Ionicons name="chatbubbles" size={16} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>{t('community.discussions')} </Text>
           </View>
           <View style={styles.seeAllChip}>
-            <Text style={styles.seeAllChipText}>See all</Text>
-            <Ionicons name="chevron-forward" size={12} color="#7B5CFF" />
+            <Text style={styles.seeAllChipText}>{t('common.seeAll')}</Text>
+            <Ionicons name="chevron-forward" size={12} color={colors.primary} />
           </View>
         </TouchableOpacity>
         <View style={styles.discList}>
@@ -1196,7 +1294,7 @@ export default function SocialScreen() {
                 <Text style={[styles.discTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.discChap, { color: colors.muted }]}>Ch. {item.latestChapter} · Latest</Text>
                 <View style={styles.discCountRow}>
-                  <Ionicons name="chatbubble-ellipses" size={11} color="#7B5CFF" />
+                  <Ionicons name="chatbubble-ellipses" size={11} color={colors.primary} />
                   <Text style={styles.discCount}>{item.discussing.toLocaleString()} discussing</Text>
                 </View>
               </View>
@@ -1216,15 +1314,15 @@ export default function SocialScreen() {
         {/* ── Poll of the Week ── */}
         <View style={[styles.actHeaderRow, { marginBottom: 10, marginTop: 8 }]}>
           <View style={styles.actTitleRow}>
-            <Ionicons name="bar-chart-outline" size={14} color="#7B5CFF" />
+            <Ionicons name="bar-chart-outline" size={14} color={colors.primary} />
             <Text style={[styles.sectionTitle, { color: colors.text, paddingHorizontal: 0, marginBottom: 0, marginLeft: 6 }]}>
-              Poll of the Week </Text>
+              {t('community.pollOfTheWeek')} </Text>
           </View>
         </View>
 
         {pollLoading ? (
           <View style={[styles.pollCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <ActivityIndicator size="small" color="#7B5CFF" style={styles.actLoader} />
+            <ActivityIndicator size="small" color={colors.primary} style={styles.actLoader} />
           </View>
         ) : poll ? (
           <PollCard
@@ -1237,127 +1335,11 @@ export default function SocialScreen() {
             justVoted={justVoted}
           />
         ) : null}
+        </>)}
 
-        <View style={{ height: 88 }} />
+        <View style={{ height: tabBarHeight + 8 }} />
         </Animated.View>
       </ScrollView>
-
-      {/* ── Messages Modal ── */}
-      <Modal visible={showMessages} animationType="slide" transparent onRequestClose={() => setShowMessages(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowMessages(false)}>
-          <View style={[styles.msgModalSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
-            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Messages</Text>
-              <TouchableOpacity onPress={() => setShowMessages(false)} accessibilityRole="button" accessibilityLabel="Close">
-                <Ionicons name="close" size={20} color={colors.muted} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-              {pendingRequests.length > 0 && (
-                <View style={styles.msgPendingSection}>
-                  <Text style={[styles.msgPendingLabel, { color: colors.muted }]}>
-                    {pendingRequests.length} pending friend request{pendingRequests.length > 1 ? 's' : ''}
-                  </Text>
-                  {pendingRequests.map((req) => (
-                    <View key={req.friendshipId} style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                      <AvatarCircle username={req.display_name || req.username} avatarUrl={req.avatar_url} color={req.color} size={40} />
-                      <View style={styles.dmConvoContent}>
-                        <Text style={[styles.dmConvoName, { color: colors.text }]} numberOfLines={1}>{req.display_name || req.username}</Text>
-                        <Text style={[styles.dmConvoPreview, { color: colors.muted }]} numberOfLines={1}>wants to be friends</Text>
-                      </View>
-                      <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptRequest(req.friendshipId)}>
-                        <Ionicons name="checkmark" size={14} color="#1D9E75" />
-                        <Text style={styles.acceptBtnText}>Accept</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.declineBtn, { borderColor: colors.border }]}
-                        onPress={() => handleDeclineRequest(req.friendshipId)}
-                        accessibilityRole="button"
-                        accessibilityLabel="Decline friend request">
-                        <Ionicons name="close" size={14} color={colors.muted} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-              {dmConvos.length > 0 ? (
-                dmConvos.map((convo) => (
-                  <TouchableOpacity
-                    key={convo.friendId}
-                    style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}
-                    onPress={() => {
-                      // Opening the thread — clear its unread badge immediately
-                      recordDmOpened(convo.friendId);
-                      setDmConvos((prev) => prev.map((c) => c.friendId === convo.friendId ? { ...c, unread: 0 } : c));
-                      setShowMessages(false);
-                      navigation.navigate('DM', {
-                        friendId: convo.friendId,
-                        friendName: convo.friend.name,
-                        friendColor: convo.friend.color,
-                        friendAvatarUrl: convo.friend.avatarUrl || null,
-                      });
-                    }}
-                    activeOpacity={0.82}>
-                    <View>
-                      <AvatarCircle
-                        username={convo.friend.name}
-                        avatarUrl={convo.friend.avatarUrl}
-                        color={convo.friend.color}
-                        size={44}
-                      />
-                      {convo.unread > 0 && <View style={styles.dmUnreadDot} />}
-                    </View>
-                    <View style={styles.dmConvoContent}>
-                      <View style={styles.dmConvoTopRow}>
-                        <Text style={[styles.dmConvoName, { color: colors.text }, convo.unread > 0 && styles.dmConvoNameBold]} numberOfLines={1}>
-                          {convo.friend.name}
-                        </Text>
-                        <Text style={[styles.dmConvoTime, { color: colors.muted }]}>{convo.lastTime}</Text>
-                      </View>
-                      <Text
-                        style={[styles.dmConvoPreview, { color: convo.unread > 0 ? colors.text : colors.muted }, convo.unread > 0 && styles.dmConvoPreviewBold]}
-                        numberOfLines={1}>
-                        {convo.preview}
-                      </Text>
-                    </View>
-                    {convo.unread > 0 && (
-                      <View style={styles.dmUnreadBadge}>
-                        <Text style={styles.dmUnreadText}>{convo.unread > 9 ? '9+' : convo.unread}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))
-              ) : friends.length > 0 ? (
-                friends.map((friend) => (
-                  <TouchableOpacity
-                    key={friend.id}
-                    style={[styles.dmConvoRow, { backgroundColor: colors.background, borderColor: colors.border }]}
-                    onPress={() => {
-                      setShowMessages(false);
-                      navigation.navigate('DM', {
-                        friendId: friend.id,
-                        friendName: friend.name,
-                        friendColor: friend.color,
-                        friendAvatarUrl: friend.avatarUrl || null,
-                      });
-                    }}
-                    activeOpacity={0.82}>
-                    <AvatarCircle username={friend.name} avatarUrl={friend.avatarUrl} color={friend.color} size={44} />
-                    <View style={styles.dmConvoContent}>
-                      <Text style={[styles.dmConvoName, { color: colors.text }]}>{friend.name}</Text>
-                      <Text style={[styles.dmConvoPreview, { color: colors.muted }]}>Say hello 👋</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={14} color={colors.border} />
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={[styles.emptyHint, { color: colors.muted }]}>Add friends to start messaging.</Text>
-              )}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/* ── Add Friend Modal ── */}
       <Modal visible={showAddFriend} animationType="slide" transparent onRequestClose={closeAddFriend}>
@@ -1366,17 +1348,17 @@ export default function SocialScreen() {
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Add a Friend</Text>
-              <TouchableOpacity onPress={closeAddFriend} accessibilityRole="button" accessibilityLabel="Close">
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('community.addAFriend')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={closeAddFriend} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.modalSub, { color: colors.muted }]}>Search by username to find MangaRecs readers</Text>
+            <Text style={[styles.modalSub, { color: colors.muted }]}>{t('community.searchHint')}</Text>
 
             <View style={styles.searchRow}>
               <TextInput
                 style={[styles.searchInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
-                placeholder="@username"
+                placeholder={t('placeholder.username')}
                 placeholderTextColor={colors.muted}
                 value={searchQuery}
                 onChangeText={(t) => { setSearchQuery(t); setSearchError(''); }}
@@ -1405,7 +1387,7 @@ export default function SocialScreen() {
                 <TouchableOpacity
                   style={styles.viewBtn}
                   onPress={() => { closeAddFriend(); navigation.navigate('FriendProfile', { id: result.id }); }}>
-                  <Text style={styles.viewBtnText}>Profile</Text>
+                  <Text style={styles.viewBtnText}>{t('tabs.profile')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.addBtn, requestSentTo[result.id] && styles.addBtnSent]}
@@ -1413,7 +1395,7 @@ export default function SocialScreen() {
                   <Ionicons
                     name={requestSentTo[result.id] ? 'checkmark' : 'person-add'}
                     size={14}
-                    color={requestSentTo[result.id] ? '#1D9E75' : '#7B5CFF'}
+                    color={requestSentTo[result.id] ? '#1D9E75' : colors.primary}
                   />
                   <Text style={[styles.addBtnText, requestSentTo[result.id] && styles.addBtnTextSent]}>
                     {getAddLabel(result.id)}
@@ -1424,7 +1406,7 @@ export default function SocialScreen() {
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-            <Text style={[styles.suggestedTitle, { color: colors.muted }]}>Suggested</Text>
+            <Text style={[styles.suggestedTitle, { color: colors.muted }]}>{t('community.suggested')}</Text>
             {suggestedFriends.map((f) => (
               <View key={f.id} style={styles.suggestedRow}>
                 <AvatarCircle username={f.display_name || f.username} avatarUrl={f.avatar_url} color={f.color} size={40} />
@@ -1432,15 +1414,15 @@ export default function SocialScreen() {
                 <TouchableOpacity
                   style={[styles.suggestedProfileBtn, { borderColor: colors.border }]}
                   onPress={() => { closeAddFriend(); navigation.navigate('FriendProfile', { id: f.id }); }}>
-                  <Text style={[styles.suggestedProfileText, { color: colors.muted }]}>Profile</Text>
+                  <Text style={[styles.suggestedProfileText, { color: colors.muted }]}>{t('tabs.profile')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                <TouchableOpacity hitSlop={HIT_SLOP}
                   style={[styles.suggestedAddBtn, requestSentTo[f.id] && styles.suggestedAddBtnSent]}
                   onPress={() => handleAddFriend(f.id)}>
                   <Ionicons
                     name={requestSentTo[f.id] ? 'checkmark' : 'add'}
                     size={16}
-                    color={requestSentTo[f.id] ? '#1D9E75' : '#7B5CFF'}
+                    color={requestSentTo[f.id] ? '#1D9E75' : colors.primary}
                   />
                 </TouchableOpacity>
               </View>
@@ -1455,8 +1437,8 @@ export default function SocialScreen() {
         <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setReportItem(null)}>
           <View style={[styles.reportSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.reportTitle, { color: colors.text }]}>Report Content</Text>
-            <Text style={[styles.reportSub, { color: colors.muted }]}>Why are you reporting this?</Text>
+            <Text style={[styles.reportTitle, { color: colors.text }]}>{t('community.reportContent')}</Text>
+            <Text style={[styles.reportSub, { color: colors.muted }]}>{t('discussion.whyReport')}</Text>
             {REPORT_REASONS.map((reason) => (
               <TouchableOpacity
                 key={reason}
@@ -1466,7 +1448,7 @@ export default function SocialScreen() {
                 activeOpacity={0.75}>
                 <Text style={[styles.reportOptionText, { color: colors.text }]}>{reason}</Text>
                 {reportSubmitting
-                  ? <ActivityIndicator size="small" color="#7B5CFF" />
+                  ? <ActivityIndicator size="small" color={colors.primary} />
                   : <Ionicons name="chevron-forward" size={14} color={colors.muted} />}
               </TouchableOpacity>
             ))}
@@ -1478,7 +1460,7 @@ export default function SocialScreen() {
       {reportToast && (
         <View style={styles.toast} pointerEvents="none">
           <Ionicons name="checkmark-circle" size={16} color="#1D9E75" />
-          <Text style={styles.toastText}>Reported</Text>
+          <Text style={styles.toastText}>{t('community.reported')}</Text>
         </View>
       )}
 
@@ -1491,13 +1473,13 @@ export default function SocialScreen() {
             <View style={styles.lbHeader}>
               <View style={styles.lbHeaderLeft}>
                 <Ionicons name="trophy" size={18} color="#FFD700" />
-                <Text style={[styles.lbTitle, { color: colors.text }]}>Live Leaderboard</Text>
+                <Text style={[styles.lbTitle, { color: colors.text }]}>{t('community.liveLeaderboard')}</Text>
                 <View style={styles.liveChip}>
                   <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>LIVE</Text>
+                  <Text style={styles.liveText}>{t('community.live')}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setShowLeaderboard(false)} style={styles.lbCloseBtn} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowLeaderboard(false)} style={styles.lbCloseBtn} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={16} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1507,13 +1489,13 @@ export default function SocialScreen() {
                 style={[styles.lbTab, leaderboardScope === 'global' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
                 onPress={() => setLeaderboardScope('global')}>
                 <Ionicons name="globe-outline" size={11} color={leaderboardScope === 'global' ? colors.text : colors.muted} />
-                <Text style={[styles.lbTabText, { color: leaderboardScope === 'global' ? colors.text : colors.muted }]}>Global</Text>
+                <Text style={[styles.lbTabText, { color: leaderboardScope === 'global' ? colors.text : colors.muted }]}>{t('community.global')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.lbTab, leaderboardScope === 'friends' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
                 onPress={() => setLeaderboardScope('friends')}>
                 <Ionicons name="people-outline" size={11} color={leaderboardScope === 'friends' ? colors.text : colors.muted} />
-                <Text style={[styles.lbTabText, { color: leaderboardScope === 'friends' ? colors.text : colors.muted }]}>Friends</Text>
+                <Text style={[styles.lbTabText, { color: leaderboardScope === 'friends' ? colors.text : colors.muted }]}>{t('messages.friends')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1539,9 +1521,9 @@ export default function SocialScreen() {
             <View style={[styles.lbDivider, { backgroundColor: colors.border }]} />
 
             {leaderboardLoading ? (
-              <ActivityIndicator size="small" color="#7B5CFF" style={{ marginVertical: 24 }} />
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 24 }} />
             ) : sortedLeaderboard.length === 0 ? (
-              <Text style={[styles.emptyHint, { textAlign: 'center', paddingVertical: 32 }]}>No rankings yet. Start reading to appear on the leaderboard!</Text>
+              <Text style={[styles.emptyHint, { textAlign: 'center', paddingVertical: 32 }]}>{t('community.noRankings')}</Text>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28, paddingTop: 4 }}>
                 {sortedLeaderboard.map((entry, idx) => (
@@ -1572,7 +1554,7 @@ export default function SocialScreen() {
                     </View>
                     <View style={styles.lbInfo}>
                       <View style={styles.lbNameRow}>
-                        <Text style={[styles.lbName, { color: entry.isMe ? '#7B5CFF' : colors.text }]} numberOfLines={1}>
+                        <Text style={[styles.lbName, { color: entry.isMe ? colors.primary : colors.text }]} numberOfLines={1}>
                           {entry.name}
                         </Text>
                         {entry.isMe && (
@@ -1658,15 +1640,16 @@ const styles = StyleSheet.create({
 
   // Friends
   // Messages section
-  msgSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 8, marginBottom: 10 },
-  msgSectionLeft: { flexDirection: 'row', alignItems: 'center' },
   dmTotalBadge: { backgroundColor: '#7B5CFF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   dmTotalBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
-  dmList: { paddingHorizontal: 20, marginBottom: 24 },
+  dmSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginTop: 4, marginBottom: 6 },
+  dmSectionTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+  dmList: { marginBottom: 24 },
 
-  // Real conversation row
-  dmConvoRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 1 },
+  // Flat, full-bleed conversation row — Discord lists threads, it doesn't card them
+  dmRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 9 },
+
   dmConvoContent: { flex: 1, marginLeft: 12 },
   dmConvoTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
   dmConvoName: { fontSize: 14, fontWeight: '500', flex: 1 },
@@ -1701,13 +1684,6 @@ const styles = StyleSheet.create({
   },
   friendAvatarName: { fontSize: 11, fontWeight: '500', marginTop: 6, textAlign: 'center' },
 
-  // Messages entry button
-  msgEntryBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 24, padding: 14, borderRadius: 16, borderWidth: 1 },
-  msgEntryIconWrap: { position: 'relative', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(123,92,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  msgEntryTitle: { fontSize: 14, fontWeight: '700' },
-  msgEntrySub: { fontSize: 12, marginTop: 2 },
-  msgModalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36, maxHeight: '82%' },
-
   // Discussions
   discHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
   seeAllChip: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -1740,8 +1716,6 @@ const styles = StyleSheet.create({
   modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '85%' },
   modalHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  msgPendingSection: { marginBottom: 14, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(155,154,163,0.2)' },
-  msgPendingLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 },
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
   modalSub: { fontSize: 12, marginBottom: 16 },
 

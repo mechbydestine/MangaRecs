@@ -68,7 +68,14 @@
         }
       ],
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "@sentry/react-native",
+        {
+          "organization": "lucky-gqu",
+          "project": "react-native"
+        }
+      ]
     ],
     "extra": {
       "eas": {

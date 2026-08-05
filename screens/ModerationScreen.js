@@ -1,9 +1,17 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
+} from 'react-native';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { supabase } from '../supabase';
+import { useResponsive } from '../utils/responsive';
 
 const CONTENT_TYPE_LABELS = {
   discussion_comment: 'Comment',
@@ -12,6 +20,7 @@ const CONTENT_TYPE_LABELS = {
 };
 
 function ReportsTab({ colors, insets }) {
+  const t = useT();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -42,12 +51,12 @@ function ReportsTab({ colors, insets }) {
         <Text style={[styles.subHeaderText, { color: colors.muted }]}>
           {pendingCount} pending
         </Text>
-        <TouchableOpacity onPress={() => setShowResolved((v) => !v)}>
+        <TouchableOpacity onPress={() => setShowResolved((v) => !v)} accessibilityRole="button" accessibilityLabel={showResolved ? 'Hide resolved reports' : 'Show resolved reports'}>
           <Text style={styles.toggleText}>{showResolved ? 'Hide resolved' : 'Show resolved'}</Text>
         </TouchableOpacity>
       </View>
       {loading ? (
-        <ActivityIndicator color="#7B5CFF" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : error ? (
         <Text style={[styles.emptyText, { color: colors.muted }]}>Couldn't load reports — admin access only.</Text>
       ) : visible.length === 0 ? (
@@ -55,7 +64,7 @@ function ReportsTab({ colors, insets }) {
           {pendingCount === 0 ? 'No pending reports. All clear.' : 'Nothing here.'}
         </Text>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[isTablet && styles.tabletWrap, { padding: 16, paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
           {visible.map((r) => (
             <View key={r.id} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.cardHeader}>
@@ -74,14 +83,16 @@ function ReportsTab({ colors, insets }) {
                 </Text>
               )}
               <Text style={[styles.reason, { color: colors.muted }]}>
-                Reported for: <Text style={{ fontWeight: '700', color: colors.text }}>{r.reason}</Text>
+                {t('moderation.reportedFor')} <Text style={{ fontWeight: '700', color: colors.text }}>{r.reason}</Text>
               </Text>
               <Text style={[styles.reporter, { color: colors.muted }]}>
                 Reported by {r.reporter_username || 'unknown user'}
               </Text>
               <TouchableOpacity
                 style={[styles.resolveBtn, r.resolved && styles.reopenBtn]}
-                onPress={() => resolve(r.id, !r.resolved)}>
+                onPress={() => resolve(r.id, !r.resolved)}
+                accessibilityRole="button"
+                accessibilityLabel={r.resolved ? 'Reopen this report' : 'Mark this report resolved'}>
                 <Ionicons name={r.resolved ? 'refresh-outline' : 'checkmark-circle-outline'} size={15} color="#fff" />
                 <Text style={styles.resolveBtnText}>{r.resolved ? 'Reopen' : 'Mark Resolved'}</Text>
               </TouchableOpacity>
@@ -94,6 +105,7 @@ function ReportsTab({ colors, insets }) {
 }
 
 function TrendingTab({ colors, insets }) {
+  const t = useT();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -130,12 +142,12 @@ function TrendingTab({ colors, insets }) {
         <Text style={[styles.subHeaderText, { color: colors.muted }]}>
           {pendingCount} awaiting review
         </Text>
-        <TouchableOpacity onPress={() => setShowReviewed((v) => !v)}>
+        <TouchableOpacity onPress={() => setShowReviewed((v) => !v)} accessibilityRole="button" accessibilityLabel={showReviewed ? 'Hide reviewed items' : 'Show reviewed items'}>
           <Text style={styles.toggleText}>{showReviewed ? 'Hide reviewed' : 'Show reviewed'}</Text>
         </TouchableOpacity>
       </View>
       {loading ? (
-        <ActivityIndicator color="#7B5CFF" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : error ? (
         <Text style={[styles.emptyText, { color: colors.muted }]}>Couldn't load candidates — admin access only.</Text>
       ) : visible.length === 0 ? (
@@ -143,7 +155,7 @@ function TrendingTab({ colors, insets }) {
           {pendingCount === 0 ? 'No pending trending titles right now.' : 'Nothing here.'}
         </Text>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[isTablet && styles.tabletWrap, { padding: 16, paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
           {visible.map((c) => (
             <View key={c.id} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.trendingRow}>
@@ -170,16 +182,20 @@ function TrendingTab({ colors, insets }) {
                   <TouchableOpacity
                     style={[styles.resolveBtn, { flex: 1 }]}
                     disabled={busyId === c.id}
-                    onPress={() => act(c.id, 'approve')}>
+                    onPress={() => act(c.id, 'approve')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Approve">
                     <Ionicons name="checkmark-circle-outline" size={15} color="#fff" />
-                    <Text style={styles.resolveBtnText}>Approve</Text>
+                    <Text style={styles.resolveBtnText}>{t('moderation.approve')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.resolveBtn, styles.reopenBtn, { flex: 1 }]}
                     disabled={busyId === c.id}
-                    onPress={() => act(c.id, 'reject')}>
+                    onPress={() => act(c.id, 'reject')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reject">
                     <Ionicons name="close-circle-outline" size={15} color="#fff" />
-                    <Text style={styles.resolveBtnText}>Reject</Text>
+                    <Text style={styles.resolveBtnText}>{t('moderation.reject')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -198,28 +214,41 @@ function TrendingTab({ colors, insets }) {
 export default function ModerationScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+
+  const { isTablet } = useResponsive();
+  const t = useT();
   const [tab, setTab] = useState('reports'); // 'reports' | 'trending'
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.close')}>
           <Ionicons name="close" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Moderation</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('moderation.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.tabRow}>
         <TouchableOpacity
-          style={[styles.tabBtn, tab === 'reports' && { borderBottomColor: '#7B5CFF', borderBottomWidth: 2 }]}
-          onPress={() => setTab('reports')}>
-          <Text style={[styles.tabText, { color: tab === 'reports' ? colors.text : colors.muted }]}>Reports</Text>
+          style={[styles.tabBtn, tab === 'reports' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+          onPress={() => setTab('reports')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tab === 'reports' }}
+          accessibilityLabel={t('moderation.reports')}>
+          <Text style={[styles.tabText, { color: tab === 'reports' ? colors.text : colors.muted }]}>{t('moderation.reports')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabBtn, tab === 'trending' && { borderBottomColor: '#7B5CFF', borderBottomWidth: 2 }]}
-          onPress={() => setTab('trending')}>
-          <Text style={[styles.tabText, { color: tab === 'trending' ? colors.text : colors.muted }]}>Trending</Text>
+          style={[styles.tabBtn, tab === 'trending' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+          onPress={() => setTab('trending')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tab === 'trending' }}
+          accessibilityLabel={t('moderation.trending')}>
+          <Text style={[styles.tabText, { color: tab === 'trending' ? colors.text : colors.muted }]}>{t('moderation.trending')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -229,6 +258,9 @@ export default function ModerationScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // Caps the reading measure on iPad — full-width body text at 1024pt is
+  // unreadable. Matches the 640 used by every other screen.
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   root: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   title: { fontSize: 17, fontWeight: '700' },

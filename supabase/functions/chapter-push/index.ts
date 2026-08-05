@@ -60,12 +60,13 @@ Deno.serve(async () => {
   const userIds = [...new Set(pushes.map((p) => p.user_id))];
   let tokenMap = new Map<string, string>();
   if (userIds.length) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, push_token")
-      .in("id", userIds);
+    // Moved out of profiles in migration 62 — profiles is world-readable.
+    const { data: settings } = await supabase
+      .from("user_push_settings")
+      .select("user_id, push_token")
+      .in("user_id", userIds);
     tokenMap = new Map(
-      (profiles ?? []).filter((p) => p.push_token).map((p) => [p.id, p.push_token as string]),
+      (settings ?? []).filter((p) => p.push_token).map((p) => [p.user_id, p.push_token as string]),
     );
   }
 

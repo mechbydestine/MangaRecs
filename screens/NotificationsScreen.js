@@ -1,40 +1,46 @@
 ﻿import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { profileAccent } from '../utils/profileThemes';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useNotifications } from '../utils/NotificationsContext';
 import StarLogo from '../components/StarLogo';
 import { RowSkeleton } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
+import { HIT_SLOP } from '../utils/tokens';
 
-const TYPE_META = {
-  friend_request:  { icon: 'person-add',           color: '#7B5CFF' },
+// Takes the theme rather than freezing the brand purple: the accent types
+// here (friend request, reply, DM) are app chrome and must follow the palette
+// the user picked, the same as every other accent.
+const typeMeta = (colors) => ({
+  friend_request:  { icon: 'person-add',           color: colors.primary },
   friend_accepted: { icon: 'people',               color: '#1D9E75' },
   follow:          { icon: 'person-add',           color: '#378ADD' },
   like:            { icon: 'heart',                color: '#E8527A' },
   comment:         { icon: 'chatbubble',           color: '#1D9E75' },
-  reply:           { icon: 'chatbubble-ellipses',  color: '#7B5CFF' },
+  reply:           { icon: 'chatbubble-ellipses',  color: colors.primary },
   badge:           { icon: 'trophy',               color: '#f59e0b' },
   system:          { icon: 'notifications',        color: '#EF9F27' },
-  direct_message:  { icon: 'chatbubble-ellipses',  color: '#7B5CFF' },
-};
+  direct_message:  { icon: 'chatbubble-ellipses',  color: colors.primary },
+});
 
 // Same palette as ProfileScreen/FriendProfileScreen's theme picker — resolves a
 // profile's stored `color` (a theme id like 'rose', or a raw hex for older
 // accounts) down to an actual hex value for the avatar fallback background.
-const THEME_HEX = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD' };
-function resolveAvatarColor(color) {
-  if (!color) return THEME_HEX.default;
-  if (color.startsWith('#')) return color;
-  return THEME_HEX[color] || THEME_HEX.default;
-}
+const resolveAvatarColor = profileAccent;
 
 function NotifAvatar({ item }) {
+  const { colors } = useTheme();
   // App-generated notifications (badge unlocks, MangaRecs-branded recs):
   // just the glowy star, no background shape of any kind.
   if (item.isMangaRec) {
@@ -58,7 +64,8 @@ function NotifAvatar({ item }) {
     );
   }
   // No actor and not app-branded (e.g. new-chapter alerts) — generic type icon.
-  const meta = TYPE_META[item.type] || TYPE_META.system;
+  const META = typeMeta(colors);
+  const meta = META[item.type] || META.system;
   return (
     <View style={[styles.iconWrap, { backgroundColor: `${meta.color}22` }]}>
       <Ionicons name={meta.icon} size={18} color={meta.color} />
@@ -67,6 +74,7 @@ function NotifAvatar({ item }) {
 }
 
 function NotifItem({ item, onAccept, onNavigate, colors }) {
+  const t = useT();
   return (
     <TouchableOpacity
       style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(123,92,255,0.08)', borderBottomColor: colors.border }]}
@@ -83,9 +91,9 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
         {item.type === 'friend_request' && !item.read && item.friendshipId && (
           <View style={styles.actions}>
             <TouchableOpacity
-              style={[styles.acceptBtn, { backgroundColor: '#7B5CFF' }]}
+              style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
               onPress={() => onAccept(item.friendshipId)}>
-              <Text style={styles.acceptText}>Accept</Text>
+              <Text style={styles.acceptText}>{t('messages.accept')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -97,10 +105,20 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
 export default function NotificationsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
   const tabBarHeight = useBottomTabBarHeight();
-  const { items, loading, load, clearAll: handleClearAll, acceptFriendRequest: handleAccept, markOneRead, markAllSeen, deleteNotification } = useNotifications();
+  const { items, loading, loadingMore, hasMore, load, loadMore, clearAll: handleClearAll, acceptFriendRequest: handleAccept, markOneRead, markAllSeen, deleteNotification } = useNotifications();
+
+  // Pull-to-refresh. `loading` drives the full-screen skeleton, so it can't
+  // double as the spinner state here — that would swap the list out for
+  // skeletons mid-pull instead of showing the pull indicator.
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await load(); } finally { setRefreshing(false); }
+  }, [load]);
 
   // Leaving the screen means everything on it has been seen — clear the badge
   // (pending friend requests stay unread so their Accept button survives)
@@ -112,16 +130,19 @@ export default function NotificationsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
+        <TouchableOpacity hitSlop={HIT_SLOP} style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('notifications.title')}</Text>
         <TouchableOpacity onPress={handleClearAll} style={styles.clearBtn}>
-          <Text style={[styles.clearBtnText, { color: colors.muted }]}>Clear all</Text>
+          <Text style={[styles.clearBtnText, { color: colors.muted }]}>{t('notifications.clearAll')}</Text>
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {/* `load()` flips the context's `loading`, so without the `!refreshing`
+          guard a pull-to-refresh would replace the list with skeletons and
+          unmount the RefreshControl mid-gesture. */}
+      {loading && !refreshing ? (
         <View style={[{ paddingTop: 12 }, isTablet && styles.tabletWrap]}>
           <RowSkeleton count={6} />
         </View>
@@ -130,6 +151,14 @@ export default function NotificationsScreen() {
           style={isTablet ? styles.tabletWrap : null}
           data={items}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.muted}
+              colors={[colors.primary]}
+            />
+          }
           renderItem={({ item }) => (
             <NotifItem
               item={item}
@@ -175,11 +204,20 @@ export default function NotificationsScreen() {
           )}
           contentContainerStyle={{ paddingBottom: tabBarHeight + 8 }}
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoading}>
+                <ActivityIndicator size="small" color={colors.muted} />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="notifications-off-outline" size={40} color={colors.muted} style={{ marginBottom: 12 }} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>All caught up</Text>
-              <Text style={[styles.emptySub, { color: colors.muted }]}>Friend requests, comments, and messages will show here</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('notifications.allCaughtUp')}</Text>
+              <Text style={[styles.emptySub, { color: colors.muted }]}>{t('notifications.emptySub')}</Text>
             </View>
           }
         />
@@ -204,6 +242,7 @@ const styles = StyleSheet.create({
   clearBtnText: { fontSize: 12, fontWeight: '500' },
   title:   { fontSize: 17, fontWeight: '600' },
   center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  footerLoading: { paddingVertical: 18, alignItems: 'center' },
   empty:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   emptySub:   { fontSize: 13, textAlign: 'center', lineHeight: 18 },

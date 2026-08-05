@@ -9,12 +9,16 @@ import { supabase } from '../supabase';
 import { signInWithGoogle } from '../utils/googleAuth';
 import { useKeyboardPadding } from '../utils/keyboard';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import StarLogo from '../components/StarLogo';
 import { GoogleButton, AuthDivider } from '../components/AuthButtons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../utils/responsive';
 
 function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
   const [hidden, setHidden] = useState(true);
   const { colors } = useTheme();
+  const t = useT();
   return (
     <View style={[styles.fieldWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
       <Ionicons name={icon} size={16} color={colors.textSecondary} style={styles.fieldIcon} />
@@ -68,6 +72,7 @@ export function useUsernameAvailability(username) {
 
 export function UsernameStatusIcon({ status }) {
   const { colors } = useTheme();
+  const t = useT();
   if (status === 'checking') return <ActivityIndicator size="small" color={colors.textSecondary} />;
   if (status === 'available') return <Ionicons name="checkmark-circle" size={18} color={colors.accent} />;
   if (status === 'taken') return <Ionicons name="close-circle" size={18} color={colors.error} />;
@@ -76,6 +81,9 @@ export function UsernameStatusIcon({ status }) {
 
 export default function AuthScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { isTablet } = useResponsive();
+  const t = useT();
   const [mode, setMode] = useState('login');
 
   const [email, setEmail] = useState('');
@@ -243,9 +251,9 @@ export default function AuthScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: 24 + keyboardPadding }]}
+        contentContainerStyle={[styles.scroll, isTablet && styles.tabletWrap, { paddingBottom: 24 + keyboardPadding }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
@@ -260,12 +268,12 @@ export default function AuthScreen() {
           <Text style={[styles.wordmarkWhite, { color: colors.text }]}>Manga</Text>
           <Text style={[styles.wordmarkPurple, { color: colors.primary, textShadowColor: colors.primary }]}>Recs</Text>
         </View>
-        <Text style={[styles.tagline, { color: colors.textSecondary }]}>Your next story, recommended.</Text>
+        <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('auth.tagline')}</Text>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.primary + '2E' }]}>
           {mode === 'login' && (
             <>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Welcome back</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('auth.signInTitle')}</Text>
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <AuthDivider />
 
@@ -291,7 +299,7 @@ export default function AuthScreen() {
                 onPress={() => switchMode('forgot-email')}
                 accessibilityRole="button"
                 accessibilityLabel="Forgot password">
-                <Text style={[styles.forgotLink, { color: colors.primary }]}>Forgot password?</Text>
+                <Text style={[styles.forgotLink, { color: colors.primary }]}>{t('auth.forgotPassword')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -301,7 +309,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Log in"
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Log In</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('auth.logIn')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -309,7 +317,7 @@ export default function AuthScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Create an account">
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
-                  Don't have an account? <Text style={[styles.switchLink, { color: colors.primary }]}>Create one</Text>
+                  {t('auth.noAccount')} <Text style={[styles.switchLink, { color: colors.primary }]}>{t('auth.createOne')}</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -317,7 +325,7 @@ export default function AuthScreen() {
 
           {mode === 'register' && (
             <>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Create your account</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('auth.signUpTitle')}</Text>
               <GoogleButton onPress={handleGoogle} loading={googleLoading} />
               <AuthDivider />
 
@@ -341,7 +349,7 @@ export default function AuthScreen() {
               )}
               <IconField
                 icon="mail-outline"
-                placeholder="Email"
+                placeholder={t('placeholder.email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -355,7 +363,7 @@ export default function AuthScreen() {
               />
               <IconField
                 icon="lock-closed-outline"
-                placeholder="Confirm password"
+                placeholder={t('placeholder.confirmPassword')}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secure
@@ -368,7 +376,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Create account"
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create Account</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('onboarding.createAccount')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -376,7 +384,7 @@ export default function AuthScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Log in to an existing account">
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
-                  Already have an account? <Text style={[styles.switchLink, { color: colors.primary }]}>Log in</Text>
+                  {t('auth.haveAccount')} <Text style={[styles.switchLink, { color: colors.primary }]}>{t('auth.logIn')}</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -384,14 +392,14 @@ export default function AuthScreen() {
 
           {mode === 'forgot-email' && (
             <>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Reset your password</Text>
-              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>We'll send a 6-digit code to your email.</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('auth.resetYourPassword')}</Text>
+              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>{t('auth.codeSentHint')}</Text>
 
               {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
               <IconField
                 icon="mail-outline"
-                placeholder="Email"
+                placeholder={t('placeholder.email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -404,7 +412,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Send reset code"
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send code</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('auth.sendCode')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -412,7 +420,7 @@ export default function AuthScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Back to log in">
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
-                  <Text style={[styles.switchLink, { color: colors.primary }]}>Back to log in</Text>
+                  <Text style={[styles.switchLink, { color: colors.primary }]}>{t('auth.backToLogIn')}</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -420,14 +428,14 @@ export default function AuthScreen() {
 
           {mode === 'forgot-code' && (
             <>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Check your email</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('auth.checkEmail')}</Text>
               <Text style={[styles.cardSub, { color: colors.textSecondary }]}>Enter the 6-digit code we sent to {email}, then choose a new password.</Text>
 
               {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
               <IconField
                 icon="key-outline"
-                placeholder="6-digit code"
+                placeholder={t('placeholder.sixDigitCode')}
                 value={resetCode}
                 onChangeText={setResetCode}
                 keyboardType="number-pad"
@@ -435,7 +443,7 @@ export default function AuthScreen() {
               />
               <IconField
                 icon="lock-closed-outline"
-                placeholder="New password"
+                placeholder={t('placeholder.newPassword')}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 secure
@@ -448,7 +456,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Reset password"
                 accessibilityState={{ disabled: loading || resetCode.length < 6 || !newPassword, busy: loading }}
                 disabled={loading || resetCode.length < 6 || !newPassword}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Reset password</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('auth.resetPassword')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -458,7 +466,7 @@ export default function AuthScreen() {
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
-                  Didn't get a code? <Text style={[styles.switchLink, { color: colors.primary }, loading && { opacity: 0.4 }]}>Resend</Text>
+                  {t('auth.noCode')} <Text style={[styles.switchLink, { color: colors.primary }, loading && { opacity: 0.4 }]}>{t('auth.resend')}</Text>
                 </Text>
               </TouchableOpacity>
             </>
@@ -470,6 +478,9 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Caps the reading measure on iPad — full-width body text at 1024pt is
+  // unreadable. Matches the 640 used by every other screen.
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   container: {
     flex: 1,
   },

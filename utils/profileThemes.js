@@ -12,3 +12,21 @@ export const PROFILE_THEMES = [
   { id: 'violet',  label: 'Violet',  ring: '#7F77DD', gradient: ['#7F77DD', '#D4537E'], banner: ['#7F77DD', '#0D0D0F'], minGrade: 'purple', gradeLabel: 'Diamond' },
   { id: 'crimson', label: 'Crimson', ring: '#FF5C7A', gradient: ['#FF5C7A', '#7A0F2E'], banner: ['#FF5C7A', '#0D0D0F'], minGrade: 'gold',   gradeLabel: 'Master' },
 ];
+
+// id → accent hex, derived from the table above rather than restated. Five
+// screens (Feed, Social, DM, Discussion, Notifications) each carried their own
+// hand-copied version of this map; Notifications' copy had silently drifted and
+// was missing 'crimson', so Master-tier users rendered with the default purple
+// there but their real colour everywhere else.
+export const PROFILE_ACCENTS = Object.fromEntries(
+  PROFILE_THEMES.map((t) => [t.id, t.ring]),
+);
+
+export const DEFAULT_PROFILE_ACCENT = PROFILE_ACCENTS.default;
+
+// Accepts a theme id ('rose'), a raw hex from older accounts, or null.
+export function profileAccent(color) {
+  if (!color) return DEFAULT_PROFILE_ACCENT;
+  if (typeof color === 'string' && color.startsWith('#')) return color;
+  return PROFILE_ACCENTS[color] || DEFAULT_PROFILE_ACCENT;
+}

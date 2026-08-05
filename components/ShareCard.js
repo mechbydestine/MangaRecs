@@ -2,6 +2,8 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Share } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
+import { HIT_SLOP } from '../utils/tokens';
 
 const SHARE_CARDS = [
   { id: 'progress', label: 'Reading Progress', emoji: '📖' },
@@ -15,6 +17,8 @@ const SHARE_CARDS = [
 // hardcoded app.
 export default function ShareCard({ open, onClose, series, chapter, progress }) {
   const { colors } = useTheme();
+
+  const t = useT();
   const [selectedCard, setSelectedCard] = useState('progress');
   const [shared, setShared] = useState(false);
 
@@ -55,8 +59,8 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: colors.text }]}>Share as Card</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Text style={[styles.title, { color: colors.text }]}>{t('share.asCard')}</Text>
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={18} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -69,7 +73,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
                 style={[
                   styles.cardOption,
                   {
-                    borderColor: selectedCard === c.id ? '#7B5CFF' : colors.border,
+                    borderColor: selectedCard === c.id ? colors.primary : colors.border,
                     backgroundColor: selectedCard === c.id
                       ? 'rgba(123,92,255,0.1)'
                       : 'rgba(255,255,255,0.03)',
@@ -101,7 +105,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
               <View style={styles.storyContent}>
                 {selectedCard === 'progress' && (
                   <>
-                    <Text style={styles.storySubLabel}>Currently reading</Text>
+                    <Text style={styles.storySubLabel}>{t('share.currentlyReading')}</Text>
                     <Text style={styles.storyTitle} numberOfLines={2}>
                       {series?.title || 'Series Title'}
                     </Text>
@@ -116,7 +120,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
                   <>
                     <View style={styles.storyRow}>
                       <Ionicons name="sparkles" size={8} color="#facc15" />
-                      <Text style={[styles.storySubLabel, { marginLeft: 3 }]}>Favorite panel</Text>
+                      <Text style={[styles.storySubLabel, { marginLeft: 3 }]}>{t('share.favoritePanel')}</Text>
                     </View>
                     <Text style={styles.storyTitle} numberOfLines={2}>
                       {series?.title || 'Series Title'}
@@ -126,7 +130,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
                 )}
                 {selectedCard === 'rating' && (
                   <>
-                    <Text style={styles.storySubLabel}>I rated this</Text>
+                    <Text style={styles.storySubLabel}>{t('share.iRatedThis')}</Text>
                     <Text style={styles.storyTitle} numberOfLines={2}>
                       {series?.title || 'Series Title'}
                     </Text>
@@ -167,7 +171,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
 
             <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
               <Ionicons name="share-social-outline" size={16} color="#fff" />
-              <Text style={styles.shareBtnText}>Share</Text>
+              <Text style={styles.shareBtnText}>{t('share.action')}</Text>
             </TouchableOpacity>
           </View>
 

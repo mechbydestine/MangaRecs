@@ -1,11 +1,12 @@
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { supabase } from '../supabase';
 import { MangaCover } from '../utils/mangaCovers';
 import { MANGA_POOL } from '../utils/mangaPool';
@@ -17,6 +18,7 @@ const MAX_TRENDING = 10;
 export default function AllDiscussionsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
 
@@ -28,6 +30,9 @@ export default function AllDiscussionsScreen() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef(null);
+  // `loading` swaps the list for skeletons, so pull-to-refresh needs its own
+  // flag or the list vanishes mid-pull.
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadTrending = useCallback(async (uid) => {
     setLoading(true);
@@ -129,14 +134,22 @@ export default function AllDiscussionsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
-          <Ionicons name="chatbubbles" size={16} color="#7B5CFF" />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Discussions</Text>
+          <Ionicons name="chatbubbles" size={16} color={colors.primary} />
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('community.discussions')}</Text>
         </View>
-        <TouchableOpacity onPress={toggleSearch} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={toggleSearch}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={searchOpen ? t('common.close') : t('common.search')}>
           <Ionicons name={searchOpen ? 'close' : 'search'} size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -147,28 +160,43 @@ export default function AllDiscussionsScreen() {
           <TextInput
             ref={inputRef}
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search any series to discuss..."
+            placeholder={t('placeholder.searchSeries')}
             placeholderTextColor={colors.muted}
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
           />
-          {searching && <ActivityIndicator size="small" color="#7B5CFF" />}
+          {searching && <ActivityIndicator size="small" color={colors.primary} />}
         </View>
       )}
 
       {!showingSearch && (
         <View style={styles.trendingHint}>
-          <Ionicons name="sparkles" size={12} color="#7B5CFF" />
+          <Ionicons name="sparkles" size={12} color={colors.primary} />
           <Text style={[styles.trendingHintText, { color: colors.muted }]}>
             Ranked by what's trending, recently active, and matches your taste
           </Text>
         </View>
       )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              try { await loadTrending(userId); } finally { setRefreshing(false); }
+            }}
+            tintColor={colors.muted}
+            colors={[colors.primary]}
+          />
+        }>
         <View style={isTablet ? styles.tabletWrap : null}>
-        {loading && !showingSearch ? (
+        {/* !refreshing: loadTrending sets `loading`, which would otherwise swap
+            the list for skeletons and kill the pull gesture. */}
+        {loading && !refreshing && !showingSearch ? (
           <View style={{ marginTop: 16, marginHorizontal: -20 }}>
             <RowSkeleton count={6} />
           </View>
@@ -185,13 +213,20 @@ export default function AllDiscussionsScreen() {
               key={item.id}
               style={[styles.discCard, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={() => openDiscussion(item)}
-              activeOpacity={0.82}>
+              activeOpacity={0.82}
+              accessibilityRole="button"
+              accessibilityLabel={item.title}
+              accessibilityHint={t('allDiscussions.openHint')}>
               {!showingSearch && idx < 3 && (
                 <View style={styles.rankBadge}>
                   <Text style={styles.rankBadgeText}>{idx + 1}</Text>
                 </View>
               )}
-              <TouchableOpacity onPress={() => openReader(item)} activeOpacity={0.82}>
+              <TouchableOpacity
+                onPress={() => openReader(item)}
+                activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel={t('allDiscussions.readHint', { title: item.title })}>
                 <MangaCover title={item.title} searchKey={item.searchKey} lang={item.lang} color={item.color} style={styles.discCover} />
               </TouchableOpacity>
               <View style={styles.discInfo}>
@@ -200,12 +235,12 @@ export default function AllDiscussionsScreen() {
                   {item.latestChapter > 0 ? `Ch. ${item.latestChapter} · Latest` : 'Tap to discuss'}
                 </Text>
                 <View style={styles.discCountRow}>
-                  <Ionicons name="chatbubble-ellipses" size={11} color="#7B5CFF" />
+                  <Ionicons name="chatbubble-ellipses" size={11} color={colors.primary} />
                   <Text style={styles.discCount}>{item.discussing.toLocaleString()} discussing</Text>
                   {item.recentCount > 0 && (
                     <View style={styles.hotChip}>
                       <Ionicons name="flame" size={10} color="#EF9F27" />
-                      <Text style={styles.hotChipText}>Hot</Text>
+                      <Text style={styles.hotChipText}>{t('discussion.hot')}</Text>
                     </View>
                   )}
                 </View>

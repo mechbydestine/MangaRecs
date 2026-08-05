@@ -17,12 +17,15 @@ Deno.serve(async () => {
   const today = new Date().toISOString().slice(0, 10);
   const startOfToday = `${today}T00:00:00.000Z`;
 
+  // push_token and notification_prefs left `profiles` in migration 62 (profiles
+  // is world-readable), so this is now two queries joined in memory rather than
+  // one. profiles and user_push_settings both FK to auth.users rather than to
+  // each other, so there's no PostgREST relationship to embed through.
   const { data: atRisk, error } = await supabase
     .from("profiles")
-    .select("id, streak_count, push_token, notification_prefs, last_streak_reminder_sent")
+    .select("id, streak_count, last_streak_reminder_sent")
     .gt("streak_count", 0)
     .lt("last_active_at", startOfToday)
-    .not("push_token", "is", null)
     .limit(2000);
 
   if (error || !atRisk?.length) {
@@ -31,14 +34,26 @@ Deno.serve(async () => {
     });
   }
 
+  const { data: settings } = await supabase
+    .from("user_push_settings")
+    .select("user_id, push_token, notification_prefs")
+    .in("user_id", atRisk.map((p) => p.id))
+    .not("push_token", "is", null);
+
+  const settingsByUser = new Map(
+    (settings ?? []).map((s) => [s.user_id as string, s]),
+  );
+
   // Closest existing opt-out toggle (SettingsScreen has no dedicated "streak
   // reminder" preference yet) — skip anyone who explicitly turned off
   // recommendation-style nudges, and anyone already reminded today.
-  const eligible = atRisk.filter((p) =>
-    p.notification_prefs?.recommendations !== false &&
-    p.last_streak_reminder_sent !== today &&
-    !!p.push_token
-  );
+  const eligible = atRisk
+    .map((p) => ({ ...p, ...(settingsByUser.get(p.id) ?? {}) }))
+    .filter((p) =>
+      p.notification_prefs?.recommendations !== false &&
+      p.last_streak_reminder_sent !== today &&
+      !!p.push_token
+    );
 
   if (!eligible.length) {
     return new Response(JSON.stringify({ checked: atRisk.length, notified: 0 }), {

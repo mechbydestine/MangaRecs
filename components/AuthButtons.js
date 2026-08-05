@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import GoogleLogo from './GoogleLogo';
+import { useT } from '../utils/LanguageContext';
 
 // Shared OAuth button row + divider for AuthScreen.js and OnboardingScreen.js's
 // SignUpGate — both screens offer the same Google sign-in, so a single
@@ -9,6 +10,7 @@ import GoogleLogo from './GoogleLogo';
 // whenever that's set up.)
 
 export function GoogleButton({ onPress, loading }) {
+  const t = useT();
   return (
     <TouchableOpacity
       style={styles.googleBtn}
@@ -16,12 +18,12 @@ export function GoogleButton({ onPress, loading }) {
       disabled={loading}
       activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel="Continue with Google"
+      accessibilityLabel={t('auth.continueWithGoogle')}
       accessibilityState={{ disabled: loading, busy: loading }}>
       <View style={styles.iconSlot}>
         {loading ? <ActivityIndicator size="small" color="#fff" /> : <GoogleLogo size={18} />}
       </View>
-      <Text style={styles.googleBtnText} numberOfLines={1} adjustsFontSizeToFit>Continue with Google</Text>
+      <Text style={styles.googleBtnText} numberOfLines={1} adjustsFontSizeToFit>{t('auth.continueWithGoogle')}</Text>
       <View style={styles.iconSlot} />
     </TouchableOpacity>
   );

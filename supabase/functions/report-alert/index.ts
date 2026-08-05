@@ -45,10 +45,11 @@ Deno.serve(async (req) => {
     },
   });
 
+  // Moved out of profiles in migration 62 — profiles is world-readable.
   const { data: admin } = await supabase
-    .from("profiles")
+    .from("user_push_settings")
     .select("push_token")
-    .eq("id", ADMIN_USER_ID)
+    .eq("user_id", ADMIN_USER_ID)
     .maybeSingle();
 
   if (admin?.push_token) {

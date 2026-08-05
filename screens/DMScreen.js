@@ -3,6 +3,7 @@
   KeyboardAvoidingView, Platform, Image, ActivityIndicator, Modal,
   ScrollView, Animated,
 } from 'react-native';
+import { profileAccent } from '../utils/profileThemes';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -11,6 +12,7 @@ import { useNotifications } from '../utils/NotificationsContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { supabase } from '../supabase';
 import MobileHeader from '../components/MobileHeader';
 import { MangaCover } from '../utils/mangaCovers';
@@ -26,7 +28,9 @@ import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 import { Image as ExpoImage } from 'expo-image';
 import { searchGifs } from '../utils/tenor';
 import { sendDMPush } from '../utils/pushNotifications';
+import { reportError } from '../utils/crashReporting';
 import { light, medium } from '../utils/haptics';
+import { HIT_SLOP } from '../utils/tokens';
 
 // Same key SocialScreen reads — records when this thread was last viewed so
 // its unread badge stays cleared even across app restarts
@@ -41,11 +45,7 @@ async function recordThreadOpened(friendId) {
   } catch (_) {}
 }
 
-const THEME_COLORS = {
-  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
-};
-function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
+const themeColor = profileAccent;
 
 function timeLabel(ts) {
   const d = new Date(ts);
@@ -62,6 +62,10 @@ function timeLabel(ts) {
 
 const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 const SWIPE_REPLY_THRESHOLD = 46;
+
+// One screenful plus headroom. Small enough that a cold open of a 5,000-message
+// thread is instant, large enough that most conversations never paginate.
+const MESSAGE_PAGE_SIZE = 40;
 
 function TypingDots({ color }) {
   const dots = useRef([0, 1, 2].map(() => new Animated.Value(0.3))).current;
@@ -105,6 +109,7 @@ const QUICK_PICKS = [
 ];
 
 function RecommendationCard({ manga, isOwn, onOpen, colors }) {
+  const t = useT();
   return (
     <View style={[styles.recCard, { backgroundColor: isOwn ? 'rgba(123,92,255,0.18)' : colors.card, borderColor: isOwn ? 'rgba(123,92,255,0.35)' : colors.border }]}>
       <View style={styles.recRow}>
@@ -136,8 +141,8 @@ function RecommendationCard({ manga, isOwn, onOpen, colors }) {
             <Text style={[styles.recMetaText, { color: colors.muted }]}>{manga.chapters} ch</Text>
           </View>
           <TouchableOpacity style={styles.recOpenBtn} onPress={() => onOpen(manga)} activeOpacity={0.8}>
-            <Ionicons name="play-circle" size={13} color="#7B5CFF" />
-            <Text style={styles.recOpenText}>Read it</Text>
+            <Ionicons name="play-circle" size={13} color={colors.primary} />
+            <Text style={styles.recOpenText}>{t('dm.readIt')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -146,7 +151,8 @@ function RecommendationCard({ manga, isOwn, onOpen, colors }) {
 }
 
 function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry }) {
-  const bgOwn = '#7B5CFF';
+  const t = useT();
+  const bgOwn = colors.primary;
   const bgOther = colors.card;
   const isSending = !!msg._sending;
   const hasFailed = !!msg._failed;
@@ -165,7 +171,7 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
           {hasFailed && onRetry && (
             <TouchableOpacity onPress={() => onRetry(msg)} style={styles.retryBtn}>
               <Ionicons name="refresh" size={10} color="#FF453A" />
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>{t('common.retry')}</Text>
             </TouchableOpacity>
           )}
           <Text style={[styles.bubbleTime, { color: hasFailed ? '#FF453A' : colors.muted }]}>
@@ -201,7 +207,7 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
           {hasFailed && onRetry && (
             <TouchableOpacity onPress={() => onRetry(msg)} style={styles.retryBtn}>
               <Ionicons name="refresh" size={10} color="#FF453A" />
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>{t('common.retry')}</Text>
             </TouchableOpacity>
           )}
           <Text style={[styles.bubbleTime, { color: hasFailed ? '#FF453A' : colors.muted }]}>
@@ -227,7 +233,7 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
         {hasFailed && onRetry && (
           <TouchableOpacity onPress={() => onRetry(msg)} style={styles.retryBtn}>
             <Ionicons name="refresh" size={10} color="#FF453A" />
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         )}
         <Text style={[styles.bubbleTime, { color: hasFailed ? '#FF453A' : colors.muted }]}>
@@ -256,7 +262,7 @@ function quotedPreviewText(quotedMsg) {
 function SwipeableMessageRow({ msg, isOwn, friendColor, colors, navigation, onRetry, quotedMsg, reactions, onToggleReaction, onSwipeReply }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const [pickerOpen, setPickerOpen] = useState(false);
-  const accent = isOwn ? '#7B5CFF' : themeColor(friendColor);
+  const accent = isOwn ? colors.primary : themeColor(friendColor);
 
   const replyIconOpacity = translateX.interpolate({
     inputRange: isOwn ? [-SWIPE_REPLY_THRESHOLD, 0] : [0, SWIPE_REPLY_THRESHOLD],
@@ -331,7 +337,7 @@ function SwipeableMessageRow({ msg, isOwn, friendColor, colors, navigation, onRe
           isOwn ? { right: '100%', marginRight: 8 } : { left: '100%', marginLeft: 8 },
           { opacity: replyIconOpacity },
         ]}>
-        <Ionicons name="arrow-undo" size={18} color="#7B5CFF" />
+        <Ionicons name="arrow-undo" size={18} color={colors.primary} />
       </Animated.View>
 
       <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
@@ -354,6 +360,7 @@ export default function DMScreen() {
   const { friendId, friendName, friendColor, friendAvatarUrl } = params || {};
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
   const tabBarHeight = useBottomTabBarHeight();
@@ -369,6 +376,8 @@ export default function DMScreen() {
   const [myId, setMyId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [text, setText] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [pickerItems, setPickerItems] = useState(QUICK_PICKS);
@@ -391,6 +400,11 @@ export default function DMScreen() {
     messages.forEach((m) => { map[m.id] = m; });
     return map;
   }, [messages]);
+
+  // `messages` stays oldest-first — every append/patch below depends on that.
+  // The list itself renders `inverted`, which needs newest-first, so it gets a
+  // reversed view rather than the state being reordered.
+  const messagesNewestFirst = useMemo(() => [...messages].reverse(), [messages]);
   // Realtime callbacks below are set up once per (myId, friendId) and would
   // otherwise close over a stale, empty messagesById from before messages
   // finished loading — read through this ref instead so they see the latest.
@@ -455,7 +469,6 @@ export default function DMScreen() {
           // User is looking at this thread: mark read + clear its notification immediately
           markRead(myId);
           markDmNotifsRead(friendId);
-          setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
         }
       )
       .subscribe();
@@ -539,6 +552,10 @@ export default function DMScreen() {
     };
   }, [myId, friendId]));
 
+  // Pagination is keyset (`created_at` < oldest loaded), not `.range()` offsets.
+  // A DM thread grows at the end while you're reading it, and every new message
+  // shifts an offset window by one — so offset paging in a live chat silently
+  // duplicates or skips rows. A cursor doesn't move.
   async function loadMessages(uid) {
     const { data } = await supabase
       .from('direct_messages')
@@ -547,11 +564,49 @@ export default function DMScreen() {
         `and(sender_id.eq.${uid},recipient_id.eq.${friendId}),` +
         `and(sender_id.eq.${friendId},recipient_id.eq.${uid})`
       )
-      .order('created_at', { ascending: true });
-    setMessages(data || []);
+      // Newest page first, then flipped — `messages` state stays oldest-first,
+      // which every append/patch below depends on.
+      .order('created_at', { ascending: false })
+      .limit(MESSAGE_PAGE_SIZE);
+    const page = (data || []).slice().reverse();
+    setMessages(page);
+    setHasMoreMessages((data || []).length === MESSAGE_PAGE_SIZE);
     setLoading(false);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 80);
-    if (data?.length) loadReactions(data.map((m) => m.id), uid);
+    if (page.length) loadReactions(page.map((m) => m.id), uid);
+  }
+
+  // The list is inverted, so onEndReached fires when the user reaches the *top*
+  // of the thread — which is exactly where "load older" belongs.
+  async function loadOlderMessages() {
+    if (!myId || loadingOlder || !hasMoreMessages || messages.length === 0) return;
+    setLoadingOlder(true);
+    try {
+      const oldest = messages[0];
+      const { data } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(
+          `and(sender_id.eq.${myId},recipient_id.eq.${friendId}),` +
+          `and(sender_id.eq.${friendId},recipient_id.eq.${myId})`
+        )
+        .lt('created_at', oldest.created_at)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
+      const older = (data || []).slice().reverse();
+      setHasMoreMessages((data || []).length === MESSAGE_PAGE_SIZE);
+      if (older.length) {
+        // Guard against a race with the realtime insert handler re-adding a row.
+        setMessages((prev) => {
+          const seen = new Set(prev.map((m) => m.id));
+          return [...older.filter((m) => !seen.has(m.id)), ...prev];
+        });
+        loadReactions(older.map((m) => m.id), myId);
+      }
+    } catch (e) {
+      reportError(e, 'dm.loadOlderMessages');
+    } finally {
+      setLoadingOlder(false);
+    }
   }
 
   async function loadReactions(messageIds, uid) {
@@ -616,7 +671,7 @@ export default function DMScreen() {
     if (!myId || !text.trim()) return;
     const content = text.trim();
     if (containsBlockedLanguage(content)) {
-      showAppToast('That message contains language that isn\'t allowed here');
+      showAppToast(t('toast.badLanguage'));
       return;
     }
     light();
@@ -636,7 +691,6 @@ export default function DMScreen() {
       _sending: true,
     };
     setMessages((prev) => [...prev, optimistic]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
 
     const { data, error } = await supabase
       .from('direct_messages')
@@ -699,7 +753,6 @@ export default function DMScreen() {
       _sending: true,
     };
     setMessages((prev) => [...prev, optimistic]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
 
     const { data, error } = await supabase
       .from('direct_messages')
@@ -739,7 +792,6 @@ export default function DMScreen() {
       _sending: true,
     };
     setMessages((prev) => [...prev, optimistic]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
 
     // Tenor URLs are already publicly hosted — no upload needed, just store the link.
     const { data, error } = await supabase
@@ -790,7 +842,6 @@ export default function DMScreen() {
       _sending: true,
     };
     setMessages((prev) => [...prev, optimistic]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
 
     const { url: mediaUrl, error: uploadError } = await uploadMediaFile(
       localUri, 'dm-media', `${myId}/${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -867,15 +918,29 @@ export default function DMScreen() {
             </Text>
           </View>
         ) : (
+          // Inverted, like every other chat app: "newest at the bottom" is the
+          // list's natural resting state, so no scrolling is needed when a
+          // message arrives. The previous version scrolled manually from six
+          // different setTimeouts, which raced with image and quoted-reply
+          // layout and visibly jumped on open.
           <FlatList
             ref={listRef}
-            data={messages}
+            inverted
+            data={messagesNewestFirst}
             keyExtractor={(m) => m.id}
             contentContainerStyle={[styles.msgList, isTablet && styles.tabletWrap]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
-            onContentSizeChange={null}
+            onEndReached={loadOlderMessages}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              loadingOlder ? (
+                <View style={styles.olderLoading}>
+                  <ActivityIndicator size="small" color={colors.muted} />
+                </View>
+              ) : null
+            }
             renderItem={({ item }) => (
               <SwipeableMessageRow
                 msg={item}
@@ -903,9 +968,9 @@ export default function DMScreen() {
 
         {replyingTo && (
           <View style={[styles.replyingToBar, { backgroundColor: colors.card, borderTopColor: colors.border }, isTablet && styles.tabletWrap]}>
-            <Ionicons name="return-down-forward-outline" size={13} color="#7B5CFF" />
+            <Ionicons name="return-down-forward-outline" size={13} color={colors.primary} />
             <Text style={[styles.replyingToText, { color: colors.muted }]} numberOfLines={1}>
-              Replying to <Text style={{ color: '#7B5CFF', fontWeight: '600' }}>
+              {t('discussion.replyingTo')} <Text style={{ color: colors.primary, fontWeight: '600' }}>
                 {replyingTo.sender_id === myId ? 'yourself' : friendName}
               </Text>: {quotedPreviewText(replyingTo)}
             </Text>
@@ -921,7 +986,7 @@ export default function DMScreen() {
 
         {/* Input bar */}
         <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }, isTablet && styles.tabletWrap]}>
-          <TouchableOpacity
+          <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
             onPress={() => { light(); setPickerTab('manga'); setShowPicker(true); }}
             activeOpacity={0.7}
@@ -929,7 +994,7 @@ export default function DMScreen() {
             accessibilityLabel="Recommend a manga">
             <Ionicons name="book" size={17} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
             onPress={() => { light(); pickAndSendImage(); }}
             activeOpacity={0.7}
@@ -937,7 +1002,7 @@ export default function DMScreen() {
             accessibilityLabel="Send a photo">
             <Ionicons name="image" size={17} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
             onPress={() => { light(); setPickerTab('gif'); setShowPicker(true); }}
             activeOpacity={0.7}
@@ -948,7 +1013,7 @@ export default function DMScreen() {
 
           <TextInput
             style={[styles.textInput, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
-            placeholder="Message..."
+            placeholder={t('placeholder.message')}
             placeholderTextColor={colors.muted}
             value={text}
             onChangeText={handleTextChange}
@@ -958,7 +1023,7 @@ export default function DMScreen() {
             accessibilityLabel="Message input"
           />
 
-          <TouchableOpacity
+          <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
             onPress={sendText}
             disabled={!text.trim()}
@@ -979,12 +1044,12 @@ export default function DMScreen() {
 
             <View style={styles.pickerTabRow}>
               <TouchableOpacity
-                style={[styles.pickerTabBtn, pickerTab === 'manga' && { borderBottomColor: '#7B5CFF', borderBottomWidth: 2 }]}
+                style={[styles.pickerTabBtn, pickerTab === 'manga' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
                 onPress={() => setPickerTab('manga')}>
                 <Text style={[styles.pickerTabText, { color: pickerTab === 'manga' ? colors.text : colors.muted }]}>Manga</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.pickerTabBtn, pickerTab === 'gif' && { borderBottomColor: '#7B5CFF', borderBottomWidth: 2 }]}
+                style={[styles.pickerTabBtn, pickerTab === 'gif' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
                 onPress={() => setPickerTab('gif')}>
                 <Text style={[styles.pickerTabText, { color: pickerTab === 'gif' ? colors.text : colors.muted }]}>GIF</Text>
               </TouchableOpacity>
@@ -1020,7 +1085,7 @@ export default function DMScreen() {
                   <Ionicons name="search-outline" size={14} color={colors.muted} />
                   <TextInput
                     style={[styles.gifSearchInput, { color: colors.text }]}
-                    placeholder="Search GIFs…"
+                    placeholder={t('placeholder.searchGifs')}
                     placeholderTextColor={colors.muted}
                     value={gifQuery}
                     onChangeText={setGifQuery}
@@ -1030,7 +1095,7 @@ export default function DMScreen() {
                 </View>
                 {gifLoading ? (
                   <View style={styles.gifLoadingWrap}>
-                    <ActivityIndicator color="#7B5CFF" />
+                    <ActivityIndicator color={colors.primary} />
                   </View>
                 ) : gifResults.length === 0 ? (
                   <Text style={[styles.pickerSub, { color: colors.muted, textAlign: 'center', marginTop: 20 }]}>
@@ -1064,7 +1129,12 @@ const styles = StyleSheet.create({
   headerAvatarText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
 
   // Messages
-  msgList: { paddingHorizontal: 16, paddingVertical: 12, flexGrow: 1, justifyContent: 'flex-end' },
+  // No flexGrow/justifyContent here: those existed to shove a short thread down
+  // to the bottom of a non-inverted list. An inverted list already grows from
+  // the bottom, and those two properties fight the inversion transform.
+  msgList: { paddingHorizontal: 16, paddingVertical: 12 },
+  // Footer of an inverted list renders at the *top* — where older messages load.
+  olderLoading: { paddingVertical: 14, alignItems: 'center' },
 
   bubbleWrap: { marginBottom: 10, maxWidth: '80%' },
   bubbleWrapOwn: { alignSelf: 'flex-end', alignItems: 'flex-end' },

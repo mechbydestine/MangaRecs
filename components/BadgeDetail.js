@@ -1,4 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { badgeName, badgeDesc } from '../utils/badgeText';
+import { useT } from '../utils/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import BadgeIcon from './BadgeIcon';
 import { BADGE_GRADES, PROGRESS_GRADES, badgeProgress, formatRarity } from '../utils/badges';
@@ -11,6 +13,7 @@ export default function BadgeDetail({
   pinned = false, onTogglePin = null, canPin = true,
   onClose,
 }) {
+  const t = useT();
   if (!badge) return null;
   const grade = BADGE_GRADES[badge.grade] || BADGE_GRADES.grey;
   const rarity = formatRarity(badge);
@@ -24,12 +27,12 @@ export default function BadgeDetail({
 
       <BadgeIcon badge={badge} size={96} locked={!earned} />
 
-      <Text style={[styles.name, { color: earned ? grade.color : colors.text }]}>{badge.name}</Text>
+      <Text style={[styles.name, { color: earned ? grade.color : colors.text }]}>{badgeName(badge)}</Text>
       <View style={[styles.tierChip, { backgroundColor: grade.bg, borderColor: grade.border }]}>
         <Text style={[styles.tierChipText, { color: grade.color }]}>{grade.label}</Text>
       </View>
 
-      <Text style={[styles.desc, { color: colors.muted }]}>{badge.desc}</Text>
+      <Text style={[styles.desc, { color: colors.muted }]}>{badgeDesc(badge)}</Text>
 
       {rarity && (
         <View style={styles.rarityRow}>
@@ -52,13 +55,13 @@ export default function BadgeDetail({
       {earned && onTogglePin && (
         <TouchableOpacity
           style={[styles.pinBtn, pinned
-            ? { backgroundColor: 'rgba(123,92,255,0.14)', borderColor: '#7B5CFF' }
+            ? { backgroundColor: 'rgba(123,92,255,0.14)', borderColor: colors.primary }
             : { backgroundColor: grade.bg, borderColor: grade.border },
             !pinned && !canPin && { opacity: 0.45 }]}
           onPress={() => (pinned || canPin) && onTogglePin(badge)}
           activeOpacity={0.8}>
-          <Ionicons name={pinned ? 'remove-circle-outline' : 'add-circle-outline'} size={15} color={pinned ? '#7B5CFF' : grade.color} />
-          <Text style={[styles.pinBtnText, { color: pinned ? '#7B5CFF' : grade.color }]}>
+          <Ionicons name={pinned ? 'remove-circle-outline' : 'add-circle-outline'} size={15} color={pinned ? colors.primary : grade.color} />
+          <Text style={[styles.pinBtnText, { color: pinned ? colors.primary : grade.color }]}>
             {pinned ? 'Remove from profile' : canPin ? 'Add to profile' : 'Showcase full (3/3)'}
           </Text>
         </TouchableOpacity>
@@ -66,7 +69,7 @@ export default function BadgeDetail({
       {!earned && (
         <View style={styles.lockedRow}>
           <Ionicons name="lock-closed" size={11} color={colors.muted} />
-          <Text style={[styles.lockedText, { color: colors.muted }]}>Not earned yet</Text>
+          <Text style={[styles.lockedText, { color: colors.muted }]}>{t('badge.notEarned')}</Text>
         </View>
       )}
     </View>

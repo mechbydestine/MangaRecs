@@ -260,6 +260,43 @@ export const SEARCH_WATCHDOG_JS = `
 })();
 `;
 
+// Fires 'blankPage' when a load finished but painted nothing.
+//
+// A page that renders empty is normally a load that got aborted part-way —
+// most often because a second navigation landed on top of the first. The
+// WebView reports that as ERR_ABORTED, which is deliberately ignored (it's
+// benign in every other case), so nothing recovers and the user is left
+// staring at white until they reload by hand. This is the safety net for that:
+// it reports the empty document and the native side reloads once.
+//
+// The bar for "blank" is deliberately high — no meaningful text AND no visual
+// element of any kind — so a legitimately sparse page never trips it.
+export const BLANK_PAGE_WATCHDOG_JS = `
+(function() {
+  if (window.__inkloreBlankWatch) return true;
+  window.__inkloreBlankWatch = true;
+  var fired = false;
+  function check() {
+    if (fired) return;
+    var b = document.body;
+    if (!b) return;
+    var text = (b.innerText || '').trim();
+    if (text.length >= 40) { fired = true; return; }
+    if (b.querySelector('img, canvas, video, svg, picture, iframe')) { fired = true; return; }
+    // A body that has laid out real height is rendering something we simply
+    // can't read as text (background images, custom elements) — leave it be.
+    if ((b.scrollHeight || 0) > window.innerHeight * 0.6) { fired = true; return; }
+    fired = true;
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'blankPage', url: window.location.href }));
+    }
+  }
+  setTimeout(check, 1400);
+  setTimeout(check, 4000);
+  true;
+})();
+`;
+
 // Fires 'siteHomepage' when the search URL redirected to the site root.
 export const HOMEPAGE_DETECT_JS = `
 (function() {

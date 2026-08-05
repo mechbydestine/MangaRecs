@@ -15,8 +15,8 @@
 //   • blocks are honoured in both directions
 //   • push_token is read with service_role, so the column can be locked down
 //
-// Once this is deployed and the client is repointed at it, revoke public SELECT
-// on profiles.push_token (see AUDIT_BEYOND_UI.md §A1).
+// Deploy order matters: this function and the client that calls it must both be
+// live BEFORE migration 62 drops profiles.push_token / notification_prefs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 type NotifyType = "direct_message" | "comment" | "friend_request";
@@ -109,10 +109,11 @@ Deno.serve(async (req) => {
   if (blocks?.length) return json({ skipped: "blocked" });
 
   // ── Recipient's token + preferences ──────────────────────────────────────
+  // user_push_settings is owner-only under RLS; service_role bypasses it.
   const { data: recipient } = await admin
-    .from("profiles")
+    .from("user_push_settings")
     .select("push_token, notification_prefs")
-    .eq("id", recipientId)
+    .eq("user_id", recipientId)
     .maybeSingle();
 
   const token = recipient?.push_token;

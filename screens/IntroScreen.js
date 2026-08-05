@@ -3,6 +3,11 @@ import { View, Text, Image, Animated, StyleSheet, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import PANELS from '../assets/intro/panels';
+// The non-hook `t`, not useT(): the intro renders in App.js *outside*
+// LanguageProvider (it plays while the session is still resolving), so there
+// is no context to read. translate() falls back to English until
+// loadLanguage() has resolved, which is the same thing this showed before.
+import { t } from '../utils/i18n';
 
 // Riffle through famous B&W manga/manhwa panels (assets/intro/panels.js, built by
 // scripts/fetchIntroPanels.js from curated assets/intro-src), landing on the real
@@ -142,6 +147,9 @@ export default function IntroScreen({ onComplete }) {
   const backOpacity  = flip.interpolate({ inputRange: [0, 0.499, 0.5, 1], outputRange: [0, 0, 1, 1] });
 
   return (
+    // No safe-area insets on purpose: this is a full-bleed black splash whose
+    // only content is centred in the viewport. Padding the notch in would move
+    // the icon off-centre for no benefit — nothing here sits near an edge.
     <View style={styles.container}>
       {/* Off-screen decode warm-up so the riffle never catches an undecoded frame */}
       <View style={styles.preload} pointerEvents="none">
@@ -197,7 +205,7 @@ export default function IntroScreen({ onComplete }) {
           <Text style={styles.titlePurple}>Recs</Text>
         </Animated.View>
         <Animated.Text style={[styles.slogan, { opacity: sloganOpacity, transform: [{ translateY: sloganY }] }]}>
-          Your next story, recommended.
+          {t('intro.tagline')}
         </Animated.Text>
       </Animated.View>
     </View>

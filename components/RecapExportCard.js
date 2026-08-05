@@ -85,8 +85,8 @@ export default function RecapExportCard({ d, id, s, width, height }) {
         )}
 
         <View style={[styles.footRow, { borderTopColor: rgba(s.ink, 0.22) }]}>
-          <Text style={[styles.foot, { color: s.dim }]}>{d.dnaCode || 'MANGARECS'}</Text>
-          <Text style={[styles.foot, { color: s.accent }]}>mangarecs.net/recap/{d.username}</Text>
+          <Text style={[styles.foot, { color: s.dim, flex: 1, marginRight: 8 }]} numberOfLines={1}>{d.dnaCode || 'MANGARECS'}</Text>
+          <Text style={[styles.foot, { color: s.accent }]} numberOfLines={1}>mangarecs.net</Text>
         </View>
       </View>
     </View>

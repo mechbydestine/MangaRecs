@@ -1,13 +1,18 @@
 ﻿import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, ActivityIndicator, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../utils/ThemeContext';
+import { rgba } from '../utils/recapIdentity';
+import { useT } from '../utils/LanguageContext';
 import { supabase } from '../supabase';
 import MobileHeader from '../components/MobileHeader';
 import PickerSheet from '../components/PickerSheet';
@@ -16,9 +21,11 @@ import { useResponsive } from '../utils/responsive';
 import { showAppToast } from '../utils/appToast';
 import { showAppAlert } from '../utils/appAlert';
 import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
+import { HIT_SLOP } from '../utils/tokens';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const STAT_META = [
-  { icon: 'book',   label: 'Series Published', color: '#7B5CFF', key: 'count' },
+const statMeta = (colors) => [
+  { icon: 'book',   label: 'Series Published', color: colors.primary, key: 'count' },
   { icon: 'eye',    label: 'Total Reads',       color: '#1D9E75', key: 'views' },
   { icon: 'people', label: 'Followers',         color: '#EF9F27', key: 'followers' },
 ];
@@ -41,12 +48,13 @@ function getLast7DayLabels() {
 }
 
 function MiniBarChart({ data, labels }) {
+  const { colors } = useTheme();
   const max = Math.max(...data, 1);
   return (
     <View style={styles.chartWrap}>
       {data.map((val, i) => (
         <View key={i} style={styles.barCol}>
-          <View style={[styles.bar, { height: (val / max) * 64, backgroundColor: i === data.length - 1 ? '#7B5CFF' : 'rgba(123,92,255,0.35)' }]} />
+          <View style={[styles.bar, { height: (val / max) * 64, backgroundColor: i === data.length - 1 ? colors.primary : rgba(colors.primary, 0.35) }]} />
           <Text style={styles.barLabel}>{labels[i]}</Text>
         </View>
       ))}
@@ -56,6 +64,9 @@ function MiniBarChart({ data, labels }) {
 
 export default function CreatorDashboardScreen() {
   const { colors } = useTheme();
+
+  const insets = useSafeAreaInsets();
+  const t = useT();
   const navigation = useNavigation();
   const { isTablet } = useResponsive();
 
@@ -72,6 +83,11 @@ export default function CreatorDashboardScreen() {
   const [addChapterSeries, setAddChapterSeries] = useState(null);
   const [chapterTitle, setChapterTitle]   = useState('');
   const [chapterPages, setChapterPages]   = useState([]); // { uri, name }
+  // Vertical whitespace between pages, in px. Webtoon's pacing grammar is
+  // gutters — tight for action, wide for an emotional beat — but readers there
+  // can't control it and creators bake it into the art. Here it's a property of
+  // the chapter, so the same pages can be re-paced without re-exporting.
+  const [pageGap, setPageGap] = useState(0);
   const [uploadingChapter, setUploadingChapter] = useState(false);
   const [chapterProgress, setChapterProgress]   = useState(0); // 0-1
   const [chapterDone, setChapterDone]     = useState(false);
@@ -269,6 +285,7 @@ export default function CreatorDashboardScreen() {
         chapter_number: chapterNumber,
         title: chapterTitle.trim() || `Chapter ${chapterNumber}`,
         pages: pageUrls,
+        page_gap: pageGap,
       });
       if (chErr) throw chErr;
 
@@ -283,7 +300,7 @@ export default function CreatorDashboardScreen() {
         loadMySeries(currentUserId);
       }, 1800);
     } catch (err) {
-      showAppToast(err.message || 'Upload failed — something went wrong, try again');
+      showAppToast(err.message || t('toast.uploadFailed'));
     }
     setUploadingChapter(false);
   }
@@ -291,13 +308,13 @@ export default function CreatorDashboardScreen() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <MobileHeader
         title="Creator Dashboard"
         right={
           <View style={[styles.proBadge, { borderColor: 'rgba(123,92,255,0.3)' }]}>
-            <Ionicons name="diamond" size={11} color="#7B5CFF" />
-            <Text style={styles.proBadgeText}>Creator</Text>
+            <Ionicons name="diamond" size={11} color={colors.primary} />
+            <Text style={styles.proBadgeText}>{t('creator.title')}</Text>
           </View>
         }
       />
@@ -307,7 +324,7 @@ export default function CreatorDashboardScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          {STAT_META.map((s) => {
+          {statMeta(colors).map((s) => {
             let value;
             if (s.key === 'count') value = String(mySeries.length);
             else if (s.key === 'views') {
@@ -330,15 +347,15 @@ export default function CreatorDashboardScreen() {
             <Ionicons name="add" size={22} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.uploadTitle, { color: colors.text }]}>Upload New Series</Text>
-            <Text style={[styles.uploadSub, { color: colors.muted }]}>Publish a new manga or webtoon series</Text>
+            <Text style={[styles.uploadTitle, { color: colors.text }]}>{t('creator.uploadNewSeries')}</Text>
+            <Text style={[styles.uploadSub, { color: colors.muted }]}>{t('creator.publishHint')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.muted} />
         </TouchableOpacity>
 
         {/* Weekly Reads */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Weekly Reads</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('creator.weeklyReads')}</Text>
           <View style={[styles.analyticsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.analyticsHeader}>
               <View>
@@ -353,7 +370,7 @@ export default function CreatorDashboardScreen() {
         {/* My Series */}
         <View style={styles.section}>
           <View style={styles.sectionRow}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>My Series</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('creator.mySeries')}</Text>
             <Text style={[styles.seriesCount, { color: colors.muted }]}>{mySeries.length} series</Text>
           </View>
           {mySeries.length === 0 && !seriesLoading ? (
@@ -390,14 +407,14 @@ export default function CreatorDashboardScreen() {
                 </View>
                 <View style={[styles.seriesActions, { borderTopColor: colors.border }]}>
                   <TouchableOpacity style={styles.seriesActionBtn} onPress={() => openAddChapter(s)}>
-                    <Ionicons name="add-circle-outline" size={14} color="#7B5CFF" />
-                    <Text style={styles.seriesActionText}>Add Chapter</Text>
+                    <Ionicons name="add-circle-outline" size={14} color={colors.primary} />
+                    <Text style={styles.seriesActionText}>{t('creator.addChapter')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.seriesActionBtn}
                     onPress={() => navigation.navigate('Reader', { creatorSeriesId: s.id, title: s.title })}>
                     <Ionicons name="book-outline" size={14} color="#EF9F27" />
-                    <Text style={[styles.seriesActionText, { color: '#EF9F27' }]}>Read</Text>
+                    <Text style={[styles.seriesActionText, { color: '#EF9F27' }]}>{t('creator.readLabel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.seriesActionBtn}
@@ -407,7 +424,7 @@ export default function CreatorDashboardScreen() {
                       [{ text: 'OK' }]
                     )}>
                     <Ionicons name="analytics-outline" size={14} color="#1D9E75" />
-                    <Text style={[styles.seriesActionText, { color: '#1D9E75' }]}>Analytics</Text>
+                    <Text style={[styles.seriesActionText, { color: '#1D9E75' }]}>{t('creator.analytics')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -422,15 +439,15 @@ export default function CreatorDashboardScreen() {
             activeOpacity={0.82}
             onPress={() => showAppAlert(
               'Monetization',
-              'Earn from your stories with Pro subscriptions and tips. This feature is coming soon — your series will be automatically enrolled when it launches.',
+              t('creator.monetizationSoon'),
               [{ text: 'Got it' }]
             )}>
             <View style={styles.monetizationIcon}>
-              <Ionicons name="diamond" size={20} color="#7B5CFF" />
+              <Ionicons name="diamond" size={20} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.monetizationTitle, { color: colors.text }]}>Enable Monetization</Text>
-              <Text style={[styles.monetizationSub, { color: colors.muted }]}>Earn from your stories with Pro subscriptions and tips.</Text>
+              <Text style={[styles.monetizationTitle, { color: colors.text }]}>{t('creator.enableMonetization')}</Text>
+              <Text style={[styles.monetizationSub, { color: colors.muted }]}>{t('creator.monetizationTagline')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </TouchableOpacity>
@@ -444,8 +461,8 @@ export default function CreatorDashboardScreen() {
           <View style={[styles.sheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: colors.text }]}>New Series</Text>
-              <TouchableOpacity onPress={() => setShowUpload(false)} accessibilityRole="button" accessibilityLabel="Close">
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('creator.newSeries')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowUpload(false)} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -453,7 +470,7 @@ export default function CreatorDashboardScreen() {
             {uploadDone ? (
               <View style={styles.successWrap}>
                 <Ionicons name="checkmark-circle" size={40} color="#1D9E75" />
-                <Text style={styles.successText}>Series created!</Text>
+                <Text style={styles.successText}>{t('creator.seriesCreated')}</Text>
               </View>
             ) : (
               <>
@@ -461,7 +478,7 @@ export default function CreatorDashboardScreen() {
                   <Ionicons name="text" size={14} color={colors.muted} style={{ marginRight: 8 }} />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
-                    placeholder="Series title"
+                    placeholder={t('placeholder.seriesTitle')}
                     placeholderTextColor={colors.muted}
                     value={title}
                     onChangeText={setTitle}
@@ -499,7 +516,7 @@ export default function CreatorDashboardScreen() {
                     ? <ActivityIndicator color="#fff" />
                     : <>
                         <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
-                        <Text style={styles.submitBtnText}>Create Series</Text>
+                        <Text style={styles.submitBtnText}>{t('creator.createSeries')}</Text>
                       </>}
                 </TouchableOpacity>
               </>
@@ -522,7 +539,7 @@ export default function CreatorDashboardScreen() {
                   {addChapterSeries?.title}
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeChapterSheet} disabled={uploadingChapter} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={closeChapterSheet} disabled={uploadingChapter} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -530,7 +547,7 @@ export default function CreatorDashboardScreen() {
             {chapterDone ? (
               <View style={styles.successWrap}>
                 <Ionicons name="checkmark-circle" size={44} color="#1D9E75" />
-                <Text style={styles.successText}>Chapter uploaded!</Text>
+                <Text style={styles.successText}>{t('creator.chapterUploaded')}</Text>
                 <Text style={[styles.successSub, { color: colors.muted }]}>
                   {chapterPages.length} pages published
                 </Text>
@@ -554,7 +571,7 @@ export default function CreatorDashboardScreen() {
                   style={[styles.pagePickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
                   onPress={pickPages}
                   activeOpacity={0.8}>
-                  <Ionicons name="images-outline" size={20} color="#7B5CFF" />
+                  <Ionicons name="images-outline" size={20} color={colors.primary} />
                   <Text style={styles.pagePickerText}>
                     {chapterPages.length === 0 ? 'Select pages (images)' : `${chapterPages.length} pages selected — add more`}
                   </Text>
@@ -568,7 +585,7 @@ export default function CreatorDashboardScreen() {
                         <View key={page.uri} style={styles.thumbWrap}>
                           <Image source={{ uri: page.uri }} style={styles.thumb} resizeMode="cover" />
                           <Text style={styles.thumbLabel}>{i + 1}</Text>
-                          <TouchableOpacity style={styles.thumbRemove} onPress={() => removePage(i)}>
+                          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.thumbRemove} onPress={() => removePage(i)}>
                             <Ionicons name="close-circle" size={18} color="#FF3B30" />
                           </TouchableOpacity>
                         </View>
@@ -576,6 +593,32 @@ export default function CreatorDashboardScreen() {
                     </View>
                   </ScrollView>
                 )}
+
+                {/* Page pacing — the gutter between pages in the reader. */}
+                <Text style={[styles.gapSectionLabel, { color: colors.muted }]}>{t('creator.pageSpacing')}</Text>
+                <View style={styles.gapRow}>
+                  {[
+                    { v: 0,  label: 'Flush',     hint: 'Continuous art' },
+                    { v: 12, label: 'Standard',  hint: 'Normal pacing' },
+                    { v: 40, label: 'Breath',    hint: 'Emotional beats' },
+                    { v: 96, label: 'Cliffhang', hint: 'Big pause' },
+                  ].map((opt) => {
+                    const active = pageGap === opt.v;
+                    return (
+                      <TouchableOpacity
+                        key={opt.v}
+                        style={[styles.gapOpt, { borderColor: active ? colors.primary : colors.border,
+                                                 backgroundColor: active ? colors.primary + '22' : 'transparent' }]}
+                        onPress={() => setPageGap(opt.v)}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${opt.label} page spacing — ${opt.hint}`}
+                        accessibilityState={{ selected: active, checked: active }}>
+                        <Text style={[styles.gapOptLabel, { color: active ? colors.primary : colors.text }]}>{opt.label}</Text>
+                        <Text style={[styles.gapOptHint, { color: colors.muted }]}>{opt.hint}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
                 {/* Upload progress */}
                 {uploadingChapter && (
@@ -692,6 +735,11 @@ const styles = StyleSheet.create({
   pagePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, padding: 16, marginBottom: 14 },
   pagePickerText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', flex: 1 },
 
+  gapSectionLabel: { fontSize: 11, fontWeight: '600', marginBottom: 7, letterSpacing: 0.2 },
+  gapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  gapOpt: { flexGrow: 1, minWidth: 74, borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10 },
+  gapOptLabel: { fontSize: 12.5, fontWeight: '700' },
+  gapOptHint: { fontSize: 9.5, marginTop: 1 },
   thumbRow: { flexDirection: 'row', paddingBottom: 4 },
   thumbWrap: { width: 72, height: 96, borderRadius: 8, overflow: 'visible', marginRight: 10, position: 'relative' },
   thumb: { width: 72, height: 96, borderRadius: 8, backgroundColor: '#1A1A1F' },

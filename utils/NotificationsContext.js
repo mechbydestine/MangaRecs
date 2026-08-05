@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../supabase';
 import { syncBadgeCount } from './pushNotifications';
+import { reportError } from './crashReporting';
 
 const NotificationsContext = createContext(null);
 
@@ -69,10 +70,60 @@ function buildNotification(row) {
   };
 }
 
+// One screenful of notifications, plus enough headroom that most users never
+// paginate at all. Raised from a flat .limit(40) with no way to see anything
+// older — a busy week of chapter updates used to push friend requests off the
+// end of the list permanently.
+const NOTIF_PAGE_SIZE = 40;
+
+// Raw rows in, display rows out. Kept separate from the fetch so a second page
+// can be appended and the whole set re-derived: both the chapter-update dedupe
+// and the unread-first sort have to run across everything loaded, not per page.
+function buildList(rows) {
+  // Badge unlocks are hidden until the badge system rework ships.
+  // buildNotification returns null for rows with nothing meaningful to say —
+  // those are dropped rather than shown as filler.
+  const all = rows
+    .filter((row) => row.type !== 'badge')
+    .map(buildNotification)
+    .filter(Boolean);
+
+  // One row per series for chapter updates. The checker inserts one per new
+  // chapter, so a series that dropped several at once (or while the user was
+  // away) would otherwise bury everything else under near-identical lines.
+  // `rows` is ordered newest-first, so the one kept is the latest chapter.
+  const seenChapterSeries = new Set();
+  const built = all.filter((n) => {
+    if (!n.isChapterUpdate) return true;
+    const key = (n.seriesTitle || '').toLowerCase();
+    if (!key) return true;
+    if (seenChapterSeries.has(key)) return false;
+    seenChapterSeries.add(key);
+    return true;
+  });
+  built.sort((a, b) => Number(a.read) - Number(b.read));
+  return built;
+}
+
 export function NotificationsProvider({ children }) {
-  const [items, setItems] = useState([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [userId, setUserId] = useState(null);
+
+  const items = useMemo(() => {
+    const built = buildList(rows);
+    if (built.length === 0) {
+      return [{
+        id: 'welcome', type: 'system', user: 'MangaRecs', avatar: 'M', isMangaRec: true,
+        text: 'Welcome! Friend requests and comments will appear here.',
+        time: 'just now', read: true,
+        friendshipId: null, actorId: null, seriesTitle: null, badgeIcon: null,
+      }];
+    }
+    return built;
+  }, [rows]);
 
   const unreadCount = items.filter(n => !n.read).length;
 
@@ -91,51 +142,46 @@ export function NotificationsProvider({ children }) {
       .select('id, type, actor_id, data, read, created_at, actor:actor_id(username, display_name, color, avatar_url)')
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
-      .limit(40);
+      .range(0, NOTIF_PAGE_SIZE - 1);
 
     setLoading(false);
     if (error || !data) return;
-
-    // Badge unlocks are hidden until the badge system rework ships.
-    // buildNotification returns null for rows with nothing meaningful to say —
-    // those are dropped rather than shown as filler.
-    const all = data
-      .filter((row) => row.type !== 'badge')
-      .map(buildNotification)
-      .filter(Boolean);
-
-    // One row per series for chapter updates. The checker inserts one per new
-    // chapter, so a series that dropped several at once (or while the user was
-    // away) would otherwise bury everything else under near-identical lines.
-    // `data` is ordered newest-first, so the one kept is the latest chapter.
-    const seenChapterSeries = new Set();
-    const built = all.filter((n) => {
-      if (!n.isChapterUpdate) return true;
-      const key = (n.seriesTitle || '').toLowerCase();
-      if (!key) return true;
-      if (seenChapterSeries.has(key)) return false;
-      seenChapterSeries.add(key);
-      return true;
-    });
-    built.sort((a, b) => Number(a.read) - Number(b.read));
-
-    if (built.length === 0) {
-      built.push({
-        id: 'welcome', type: 'system', user: 'MangaRecs', avatar: 'M', isMangaRec: true,
-        text: 'Welcome! Friend requests and comments will appear here.',
-        time: 'just now', read: true,
-        friendshipId: null, actorId: null, seriesTitle: null, badgeIcon: null,
-      });
-    }
-
-    setItems(built);
+    setRows(data);
+    setHasMore(data.length === NOTIF_PAGE_SIZE);
   }, []);
+
+  // Offset paging is right here (unlike DMs): notifications are read
+  // newest-first and new ones arrive at the head, so a shifted window at worst
+  // repeats a row — and the id-dedupe below drops it.
+  const loadMore = useCallback(async () => {
+    if (!userId || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, type, actor_id, data, read, created_at, actor:actor_id(username, display_name, color, avatar_url)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(rows.length, rows.length + NOTIF_PAGE_SIZE - 1);
+      setHasMore((data || []).length === NOTIF_PAGE_SIZE);
+      if (data?.length) {
+        setRows((prev) => {
+          const seen = new Set(prev.map((r) => r.id));
+          return [...prev, ...data.filter((r) => !seen.has(r.id))];
+        });
+      }
+    } catch (e) {
+      reportError(e, 'notifications.loadMore');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [userId, loadingMore, hasMore, rows.length]);
 
   useEffect(() => {
     load();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.id) load();
-      else { setItems([]); setUserId(null); }
+      else { setRows([]); setHasMore(false); setUserId(null); }
     });
     return () => subscription.unsubscribe();
   }, [load]);
@@ -157,7 +203,7 @@ export function NotificationsProvider({ children }) {
   }, [userId, load]);
 
   async function markAllRead() {
-    setItems(prev => prev.map(n => ({ ...n, read: true })));
+    setRows(prev => prev.map(r => ({ ...r, read: true })));
     if (!userId) return;
     supabase.from('notifications').update({ read: true }).eq('user_id', userId).then(() => {});
   }
@@ -166,7 +212,7 @@ export function NotificationsProvider({ children }) {
   // Marks everything read EXCEPT friend requests that still need an action,
   // so the unread badge clears but the Accept button stays available.
   async function markAllSeen() {
-    setItems(prev => prev.map(n => n.type === 'friend_request' ? n : { ...n, read: true }));
+    setRows(prev => prev.map(r => r.type === 'friend_request' ? r : { ...r, read: true }));
     let uid = userId;
     if (!uid) {
       const { data: { session } } = await supabase.auth.getSession();
@@ -181,14 +227,14 @@ export function NotificationsProvider({ children }) {
   }
 
   async function markOneRead(id) {
-    setItems(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setRows(prev => prev.map(r => r.id === id ? { ...r, read: true } : r));
     if (userId) supabase.from('notifications').update({ read: true }).eq('id', id).then(() => {});
   }
 
   // Fully removes a notification (used once the user has actually acted on it,
   // e.g. opened the DM thread it points to) rather than just flagging it read.
   async function deleteNotification(id) {
-    setItems(prev => prev.filter(n => n.id !== id));
+    setRows(prev => prev.filter(r => r.id !== id));
     if (!userId) return;
     supabase.from('notifications').delete().eq('id', id).then(() => {});
   }
@@ -197,7 +243,7 @@ export function NotificationsProvider({ children }) {
   // the user opens (or leaves) that DM thread so the badge clears immediately.
   async function markDmNotifsRead(actorId) {
     if (!actorId) return;
-    setItems(prev => prev.filter(n => !(n.type === 'direct_message' && n.actorId === actorId)));
+    setRows(prev => prev.filter(r => !(r.type === 'direct_message' && r.actor_id === actorId)));
     if (!userId) return;
     supabase
       .from('notifications')
@@ -209,7 +255,8 @@ export function NotificationsProvider({ children }) {
   }
 
   async function clearAll() {
-    setItems([]);
+    setRows([]);
+    setHasMore(false);
     if (!userId) return;
     supabase.from('notifications').delete().eq('user_id', userId).then(() => {});
   }
@@ -239,13 +286,11 @@ export function NotificationsProvider({ children }) {
     if (notifId) {
       supabase.from('notifications').update({ read: true }).eq('id', notifId).then(() => {});
     }
-    setItems(prev => prev.map(item =>
-      item.friendshipId === friendshipId ? { ...item, read: true } : item
-    ));
+    if (notifId) setRows(prev => prev.map(r => (r.id === notifId ? { ...r, read: true } : r)));
   }
 
   return (
-    <NotificationsContext.Provider value={{ items, unreadCount, loading, load, markAllRead, markAllSeen, markOneRead, deleteNotification, markDmNotifsRead, clearAll, acceptFriendRequest }}>
+    <NotificationsContext.Provider value={{ items, unreadCount, loading, loadingMore, hasMore, load, loadMore, markAllRead, markAllSeen, markOneRead, deleteNotification, markDmNotifsRead, clearAll, acceptFriendRequest }}>
       {children}
     </NotificationsContext.Provider>
   );

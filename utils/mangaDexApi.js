@@ -1,4 +1,6 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import { currentLanguage, mangadexLangFor } from './language';
+import { reportError } from './crashReporting';
 
 const BASE = 'https://api.mangadex.org';
 const TIMEOUT = 5000;
@@ -75,7 +77,8 @@ export async function searchMangaDexList(query, { limit = 8, allowNsfw = false }
         contentRating: manga.attributes?.contentRating || 'safe',
       };
     });
-  } catch (_) {
+  } catch (e) {
+    reportError(e, 'mangadex.searchList', { query });
     return [];
   }
 }
@@ -114,14 +117,28 @@ export async function searchMangaDex(query, { lang, allowNsfw = false } = {}) {
     const title = titleObj.en || Object.values(titleObj)[0] || query;
 
     return { id: manga.id, title, coverUrl, contentRating: manga.attributes?.contentRating || 'safe' };
-  } catch (_) {
+  } catch (e) {
+    reportError(e, 'mangadex.search');
     return null;
   }
 }
 
 // Returns array of { id, chapter, title, volume, pages }
-// English only, sorted ascending by chapter number, deduped, full pagination.
-export async function getMangaChapters(mangaId) {
+// Sorted ascending by chapter number, deduped, full pagination.
+//
+// Translation language follows the app's language setting — that's most of
+// what "the app knows I'm a Japanese reader" should mean in the reader itself.
+// Falls back to English when a series has no chapters in that language, since
+// an empty chapter list reads as a broken series rather than a missing
+// translation.
+export async function getMangaChapters(mangaId, lang) {
+  const wanted = mangadexLangFor(lang || currentLanguage());
+  const rows = await fetchChapterFeed(mangaId, wanted);
+  if (rows.length || wanted === 'en') return rows;
+  return fetchChapterFeed(mangaId, 'en');
+}
+
+async function fetchChapterFeed(mangaId, translatedLanguage) {
   try {
     const all = [];
     let offset = 0;
@@ -129,7 +146,7 @@ export async function getMangaChapters(mangaId) {
     while (true) {
       const resp = await withTimeout(
         fetch(
-          `${BASE}/manga/${mangaId}/feed?translatedLanguage[]=en&order[chapter]=asc&limit=${batchSize}&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic`,
+          `${BASE}/manga/${mangaId}/feed?translatedLanguage[]=${encodeURIComponent(translatedLanguage)}&order[chapter]=asc&limit=${batchSize}&offset=${offset}&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic`,
           { headers: { Accept: 'application/json' } }
         ),
         TIMEOUT
@@ -200,8 +217,12 @@ export async function getMangaStatistics(ids) {
 const CHAPTER_LIST_CACHE_PFX = '@mangarecs/chlist/';
 const CHAPTER_LIST_TTL = 6 * 60 * 60 * 1000;
 
-export async function getMangaChaptersCached(mangaId) {
-  const key = CHAPTER_LIST_CACHE_PFX + mangaId;
+export async function getMangaChaptersCached(mangaId, lang) {
+  // Language belongs in the key: the same series has a different chapter list
+  // per translation, and a shared key would serve the previous language's list
+  // for six hours after the setting changed.
+  const wanted = mangadexLangFor(lang || currentLanguage());
+  const key = `${CHAPTER_LIST_CACHE_PFX}${wanted}/${mangaId}`;
   try {
     const raw = await AsyncStorage.getItem(key);
     if (raw) {
@@ -209,7 +230,7 @@ export async function getMangaChaptersCached(mangaId) {
       if (Date.now() - ts < CHAPTER_LIST_TTL && Array.isArray(data)) return data;
     }
   } catch (_) {}
-  const fresh = await getMangaChapters(mangaId);
+  const fresh = await getMangaChapters(mangaId, wanted);
   if (fresh.length > 0) {
     AsyncStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: fresh })).catch(() => {});
   }
@@ -445,7 +466,9 @@ const DEMOGRAPHIC_LABELS = { shounen: 'Shōnen', shoujo: 'Shōjo', seinen: 'Sein
 // content-warning tags, status, demographic, alt titles, publication year.
 // Detail-cache is separate from the card-list cache (different shape, longer TTL —
 // this data changes rarely once a series exists).
-const DETAIL_CACHE_PFX = '@mangarecs/mdex_detail/';
+// v2: adds `links` (MangaDex's per-title official-source map) — cached v1
+// entries don't carry it, and a stale hit would render an empty source row.
+const DETAIL_CACHE_PFX = '@mangarecs/mdex_detail_v2/';
 const DETAIL_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 export async function getMangaFullDetails(mangaId) {
@@ -515,6 +538,11 @@ export async function getMangaFullDetails(mangaId) {
       contentRating: attrs.contentRating || 'safe',
       lastChapter: attrs.lastChapter ? parseFloat(attrs.lastChapter) : null,
       lastVolume: attrs.lastVolume || null,
+      // Per-title official links, moderator-maintained: `engtl` (official
+      // English release), `raw` (official Japanese), plus store keys
+      // amz/ebj/cdj/bw. This is the only source-availability data we get that
+      // is actually verified for THIS series rather than guessed from a search.
+      links: attrs.links || null,
     };
 
     AsyncStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })).catch(() => {});
@@ -538,7 +566,11 @@ export async function getChapterPages(chapterId) {
     const { baseUrl, chapter } = json || {};
     if (!baseUrl || !chapter?.hash || !chapter?.data?.length) return [];
     return chapter.data.map((f) => `${baseUrl}/data/${chapter.hash}/${f}`);
-  } catch (_) {
+  } catch (e) {
+    // The reader turns an empty list into "Pages unavailable". Without this the
+    // user sees that message and nothing anywhere says whether it was a
+    // timeout, a 404, or MangaDex rate-limiting the whole user base.
+    reportError(e, 'mangadex.chapterPages', { chapterId });
     return [];
   }
 }

@@ -1,8 +1,9 @@
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar,
-  Modal, Animated, ScrollView, TextInput, Dimensions, ActivityIndicator, Image, FlatList, Platform, Share, Pressable,
+  Modal, Animated, ScrollView, TextInput, Dimensions, ActivityIndicator, FlatList, Platform, Share, Pressable,
   useWindowDimensions, PanResponder,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { PinchGestureHandler, PanGestureHandler, State as GHState } from 'react-native-gesture-handler';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,18 +13,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { TOP_SITES, buildSearchUrl, getDefaultSite, getReadingSiteForLang } from '../utils/mangaSearch';
 import { getFaviconUrl } from '../utils/mangaCovers';
-import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_JS, HOMEPAGE_DETECT_JS, SEARCH_WATCHDOG_JS, MANGADEX_CHAPTER_NAV_JS, getLibraryImportConfig } from '../utils/siteResolver';
+import { clearResumeCache, buildDirectUrl, AUTO_NAV_SEARCH_JS, AUTO_NAV_CHAPTER_JS, HOMEPAGE_DETECT_JS, SEARCH_WATCHDOG_JS, BLANK_PAGE_WATCHDOG_JS, MANGADEX_CHAPTER_NAV_JS, getLibraryImportConfig } from '../utils/siteResolver';
 import { findPoolEntry } from '../utils/mangaPool';
 import { searchMangaDex, getMangaChaptersCached, getChapterPages } from '../utils/mangaDexApi';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
+import { reportError } from '../utils/crashReporting';
 import { updateDailyLog, setLastRead, incrementSharesCount, localDateKey, syncLibraryWrite } from '../utils/readerUtils';
+import { maybePrimePushPermission } from '../utils/pushNotifications';
 import { PRESETS as AMBIENCE_PRESETS, play as ambiencePlay, stop as ambienceStop, setVolume as ambienceSetVolume, subscribe as ambienceSubscribe, getState as ambienceGetState } from '../utils/ambiencePlayer';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useResponsive } from '../utils/responsive';
 import { isJunkTitle } from '../utils/titleValidation';
+import { HIT_SLOP } from '../utils/tokens';
 
 const SAVED_SITES_KEY  = '@mangarecs/savedSites';
 const LAST_SITE_KEY    = '@mangarecs/lastSite';
@@ -69,6 +74,7 @@ const FEATURED_SITES = MANGA_SITES.filter((s) => s.featured);
 // ── Mode icons ────────────────────────────────────────────────────────────
 
 function WebtoonIcon({ active }) {
+  const { colors } = useTheme();
   const arrowY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (active) {
@@ -79,15 +85,16 @@ function WebtoonIcon({ active }) {
     } else { arrowY.setValue(0); }
   }, [active]);
   return (
-    <View style={[modeIconStyles.webtoonBox, { borderColor: active ? '#7B5CFF' : '#5C5B63' }]}>
+    <View style={[modeIconStyles.webtoonBox, { borderColor: active ? colors.primary : '#5C5B63' }]}>
       <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
-        <View style={[modeIconStyles.triangleDown, { borderTopColor: active ? '#7B5CFF' : '#5C5B63' }]} />
+        <View style={[modeIconStyles.triangleDown, { borderTopColor: active ? colors.primary : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
 }
 
 function MangaIcon({ active }) {
+  const { colors } = useTheme();
   const arrowX = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (active) {
@@ -99,9 +106,9 @@ function MangaIcon({ active }) {
   }, [active]);
   return (
     <View style={modeIconStyles.mangaRow}>
-      <View style={[modeIconStyles.mangaBox, { borderColor: active ? '#7B5CFF' : '#5C5B63' }]} />
+      <View style={[modeIconStyles.mangaBox, { borderColor: active ? colors.primary : '#5C5B63' }]} />
       <Animated.View style={{ transform: [{ translateX: arrowX }] }}>
-        <View style={[modeIconStyles.triangleRight, { borderLeftColor: active ? '#7B5CFF' : '#5C5B63' }]} />
+        <View style={[modeIconStyles.triangleRight, { borderLeftColor: active ? colors.primary : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
@@ -115,6 +122,7 @@ const READER_MODES = [
 // ── Ambience preset button — springs on tap, icon pulses while playing ─────
 
 function AmbienceButton({ preset, active, onPress }) {
+  const t = useT();
   const { isDark } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const pulse = useRef(new Animated.Value(1)).current;
@@ -169,7 +177,7 @@ function AmbienceButton({ preset, active, onPress }) {
             color={active ? preset.color : '#9B9AA3'}
           />
         </Animated.View>
-        <Text style={[styles.ambienceBtnLabel, active && { color: preset.color }]}>{preset.label}</Text>
+        <Text style={[styles.ambienceBtnLabel, active && { color: preset.color }]}>{t(`ambience.${preset.id}`)}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -829,28 +837,26 @@ function searchSites(query) {
   });
 }
 
-// ── PageImage — auto aspect ratio via Image.getSize ───────────────────────
+// ── PageImage — auto aspect ratio from the decoded image ─────────────────
 
-function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth }) {
+function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth, gutter = 0 }) {
   const { width: fullW } = useWindowDimensions();
   const winW = renderWidth || fullW; // half-width in double-page spread mode
   const [height, setHeight] = useState(winW * 1.5);
   const lastTapRef = useRef(0);
   const singleTimerRef = useRef(null);
 
-  useEffect(() => {
-    Image.getSize(
-      uri,
-      (w, h) => {
-        if (w > 0) {
-          const next = (h / w) * winW;
-          setHeight(next);
-          onLayout?.(next);
-        }
-      },
-      () => {}
-    );
-  }, [uri, winW]);
+  // Height starts at a 1.5 guess and corrects once the real dimensions are
+  // known — same two-step as before, but the size now comes from the image
+  // expo-image just decoded rather than a separate Image.getSize() request.
+  // getSize used React Native's image loader, a different cache from the one
+  // expo-image renders out of, so every page was being fetched twice.
+  const applySize = useCallback((w, h) => {
+    if (!w || !h) return;
+    const next = (h / w) * winW;
+    setHeight(next);
+    onLayout?.(next);
+  }, [winW, onLayout]);
 
   useEffect(() => () => { if (singleTimerRef.current) clearTimeout(singleTimerRef.current); }, []);
 
@@ -870,12 +876,18 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth }) {
   }
 
   return (
-    <Pressable onPress={handlePress}>
+    // gutter is the vertical whitespace AFTER this page. Webtoon treats that
+    // space as a pacing instrument — tight for action, wide for an emotional
+    // beat — so it's per-chapter and creator-controlled rather than a constant.
+    <Pressable onPress={handlePress} style={gutter ? { marginBottom: gutter } : null}>
       <Image
-        source={{ uri, cache: 'force-cache' }}
+        source={{ uri }}
         style={{ width: winW, height }}
-        resizeMode="cover"
-        fadeDuration={0}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={0}
+        recyclingKey={uri}
+        onLoad={(e) => applySize(e?.source?.width, e?.source?.height)}
       />
     </Pressable>
   );
@@ -888,15 +900,12 @@ function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
   const lastTapRef = useRef(0);
   const singleTimerRef = useRef(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    pair.forEach((uri) => {
-      Image.getSize(uri, (w, h) => {
-        if (!cancelled && w > 0) setSizes((prev) => ({ ...prev, [uri]: h / w }));
-      }, () => {});
-    });
-    return () => { cancelled = true; };
-  }, [pair]);
+  // Ratios arrive from each image's own onLoad (see PageImage) instead of a
+  // second round of Image.getSize fetches.
+  const noteRatio = useCallback((uri, w, h) => {
+    if (!w || !h) return;
+    setSizes((prev) => (prev[uri] ? prev : { ...prev, [uri]: h / w }));
+  }, []);
   useEffect(() => () => { if (singleTimerRef.current) clearTimeout(singleTimerRef.current); }, []);
 
   const ratios = pair.map((uri) => sizes[uri]).filter(Boolean);
@@ -922,10 +931,13 @@ function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
       {pair.map((uri) => (
         <Pressable key={uri} onPress={() => handlePress(uri)} style={{ width: renderWidth, height: rowHeight }}>
           <Image
-            source={{ uri, cache: 'force-cache' }}
+            source={{ uri }}
             style={{ width: renderWidth, height: rowHeight }}
-            resizeMode="contain"
-            fadeDuration={0}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            transition={0}
+            recyclingKey={uri}
+            onLoad={(e) => noteRatio(uri, e?.source?.width, e?.source?.height)}
           />
         </Pressable>
       ))}
@@ -935,14 +947,21 @@ function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
 
 // ── Zoom viewer — full-screen pinch/pan/double-tap, isolated from the list ──
 
+// Animated.Image is React Native's own image, which caches separately from
+// expo-image — using it here re-downloaded a page the reader had already
+// fetched. Wrapping expo-image instead keeps the zoom view on the same disk
+// cache as the page list.
+const AnimatedImage = Animated.createAnimatedComponent(Image);
+
 function ZoomViewer({ uri, onClose }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const [imgH, setImgH] = useState(winH * 0.8);
-  useEffect(() => {
-    Image.getSize(uri, (w, h) => {
-      if (w > 0) setImgH(Math.min((h / w) * winW, winH));
-    }, () => {});
-  }, [uri, winW, winH]);
+  // Dimensions come from the decoded image (expo-image has no getSize).
+  const onImageLoad = useCallback((e) => {
+    const w = e?.source?.width;
+    const h = e?.source?.height;
+    if (w > 0 && h > 0) setImgH(Math.min((h / w) * winW, winH));
+  }, [winW, winH]);
 
   const pinchRef = useRef(null);
   const panRef   = useRef(null);
@@ -1032,14 +1051,17 @@ function ZoomViewer({ uri, onClose }) {
             onHandlerStateChange={onPinchStateChange}>
             <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Pressable onPress={handleTap}>
-                <Animated.Image
-                  source={{ uri, cache: 'force-cache' }}
+                <AnimatedImage
+                  source={{ uri }}
                   style={{
                     width: winW,
                     height: imgH,
                     transform: [{ translateX }, { translateY }, { scale }],
                   }}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  transition={0}
+                  onLoad={onImageLoad}
                 />
               </Pressable>
             </Animated.View>
@@ -1070,7 +1092,7 @@ function SiteCard({ site, active, onPress, onRemove }) {
         style={[siteCardStyles.card, active && siteCardStyles.cardActive]}
         onPress={onPress}
         activeOpacity={0.75}>
-        <Image source={{ uri: faviconUri }} style={siteCardStyles.favicon} defaultSource={null} />
+        <Image source={{ uri: faviconUri }} style={siteCardStyles.favicon} contentFit="contain" cachePolicy="disk" />
         <View style={siteCardStyles.info}>
           <Text style={siteCardStyles.name} numberOfLines={1}>{site.name}</Text>
           <Text style={siteCardStyles.domain} numberOfLines={1}>{domain}</Text>
@@ -1103,6 +1125,7 @@ const siteCardStyles = StyleSheet.create({
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function ReaderScreen({ route, navigation }) {
+  const t = useT();
   const {
     url: paramUrl,
     searchQuery,
@@ -1119,7 +1142,7 @@ export default function ReaderScreen({ route, navigation }) {
   } = route.params || {};
 
   const { profile, userId, updateProfile, refreshProfile } = useProfile();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -1243,6 +1266,10 @@ export default function ReaderScreen({ route, navigation }) {
 
   // next-chapter prefetch cache: chapterId → page URLs
   const prefetchedPagesRef = useRef({});
+  // Vertical gap between pages, in px. 0 keeps MangaDex-sourced chapters flush
+  // (their pages are drawn to butt together); creator chapters carry their own
+  // value from chapters.page_gap.
+  const [pageGap, setPageGap] = useState(0);
 
   // toast
   const [savedToast,         setSavedToast]         = useState(false);
@@ -1257,6 +1284,38 @@ export default function ReaderScreen({ route, navigation }) {
   const nextChapterX      = useRef(new Animated.Value(0)).current;
   const chapterTransAnim  = useRef(new Animated.Value(1)).current;
   const webviewRef        = useRef(null);
+
+  // The WebView's `source` is driven by `navUrl`, which ONLY ever changes when
+  // the app decides to navigate. `currentUrl` tracks wherever the page actually
+  // is and is fed by onNavigationStateChange.
+  //
+  // These have to be separate. Feeding navState.url back into `source` means
+  // any in-page navigation — including a history.replaceState that a site does
+  // to itself while booting — changes the source prop, and react-native-webview
+  // answers a changed source with a fresh loadUrl(). That second load lands on
+  // top of the one still in flight, the first is aborted (ERR_ABORTED / -3,
+  // which onError deliberately ignores), and the user is left on a white page
+  // that only a manual reload fixes. MangaFire's /filter search page does
+  // exactly this, which is why it reliably came up blank.
+  const [navUrl, setNavUrl] = useState(paramUrl || 'https://mangadex.org');
+  const navUrlRef = useRef(paramUrl || 'https://mangadex.org');
+  // Last URL BLANK_PAGE_WATCHDOG_JS made us reload, so a page that renders
+  // empty every time can't put us in a reload loop.
+  const blankRetriedRef = useRef(null);
+
+  function navigateTo(url) {
+    if (!url) return;
+    setCurrentUrl(url);
+    if (navUrlRef.current === url && webviewRef.current) {
+      // Already the last app-driven target, so the source prop wouldn't change
+      // and nothing would happen — the page has almost certainly navigated away
+      // since (that's why we're re-issuing it). Drive it from inside instead.
+      webviewRef.current.injectJavaScript(`window.location.href=${JSON.stringify(url)};true;`);
+      return;
+    }
+    navUrlRef.current = url;
+    setNavUrl(url);
+  }
 
   const sessionStartRef   = useRef(null);
   const bottomTimerRef    = useRef(null);
@@ -1339,13 +1398,14 @@ export default function ReaderScreen({ route, navigation }) {
           try {
             const { data: chapRows } = await supabase
               .from('chapters')
-              .select('id, chapter_number, title, pages')
+              .select('id, chapter_number, title, pages, page_gap')
               .eq('series_id', creatorSeriesId)
               .order('chapter_number', { ascending: true });
 
             if (chapRows && chapRows.length > 0) {
               const chapList = chapRows.map((ch) => ({
                 id: ch.id,
+                pageGap: ch.page_gap ?? 0,
                 chapter: ch.chapter_number,
                 title: ch.title || `Chapter ${ch.chapter_number}`,
                 pages: Array.isArray(ch.pages) ? ch.pages : [],
@@ -1374,7 +1434,7 @@ export default function ReaderScreen({ route, navigation }) {
         // overrode it below, so tapping a specific site never actually
         // landed there if the series had been opened before.
         if (paramResumeUrl) {
-          setCurrentUrl(paramResumeUrl);
+          navigateTo(paramResumeUrl);
           if (paramResumeSite) setActiveSite(paramResumeSite);
           if (routeTitle && routeTitle !== 'Reader') animateTitle(routeTitle, '');
           if (resumeKey) {
@@ -1417,7 +1477,17 @@ export default function ReaderScreen({ route, navigation }) {
                   let idx = resume.chapterIdx ?? 0;
                   // Chapter list may have grown/shifted since save — re-find by id
                   const byId = chapterList.findIndex((c) => c.id === resume.chapterId);
-                  if (byId >= 0) idx = byId;
+                  if (byId >= 0) {
+                    idx = byId;
+                  } else if (resume.chapter) {
+                    // No such chapter id in this list. Usually means the app's
+                    // language changed since the save, so this is a different
+                    // translation entirely and the stored index points at an
+                    // unrelated chapter. Chapter numbers survive the switch;
+                    // indexes don't.
+                    const byNumber = chapterList.findIndex((c) => Math.ceil(c.chapter) >= Math.ceil(resume.chapter));
+                    idx = byNumber >= 0 ? byNumber : 0;
+                  }
                   const ok = await enterApiMode(resume.mangaId, chapterList, idx, resume.mangaTitle || routeTitle, resume.page);
                   if (ok) return;
                 }
@@ -1426,7 +1496,7 @@ export default function ReaderScreen({ route, navigation }) {
 
               if (resume?.mode === 'webview' && resume?.url) {
                 setResuming(true);
-                setCurrentUrl(resume.url);
+                navigateTo(resume.url);
                 if (resume.chapter) setCurrentChapter(resume.chapter);
                 if (resume.mangaTitle) animateTitle(resume.mangaTitle, resume.chapterLabel || '');
                 if (resume.site) setActiveSite(resume.site);
@@ -1447,7 +1517,7 @@ export default function ReaderScreen({ route, navigation }) {
               // Legacy resume (no mode field)
               if (resume?.url) {
                 setResuming(true);
-                setCurrentUrl(resume.url);
+                navigateTo(resume.url);
                 if (resume.chapter) setCurrentChapter(resume.chapter);
                 if (resume.mangaTitle) animateTitle(resume.mangaTitle, resume.chapterLabel || '');
                 if (resume.site) setActiveSite(resume.site);
@@ -1529,7 +1599,7 @@ export default function ReaderScreen({ route, navigation }) {
             chain.push(`https://mangadex.org/search?q=${encodeURIComponent(webTitle)}`);
           }
 
-          setCurrentUrl(targetUrl);
+          navigateTo(targetUrl);
           setFallbackChain(chain);
           setActiveSite(defSite);
           if (webTitle && webTitle !== 'Reader') animateTitle(webTitle, '');
@@ -1544,9 +1614,9 @@ export default function ReaderScreen({ route, navigation }) {
           ]);
           if (lastRaw) {
             const last = JSON.parse(lastRaw);
-            if (last?.url) { setCurrentUrl(last.url); setActiveSite(last); }
+            if (last?.url) { navigateTo(last.url); setActiveSite(last); }
           } else {
-            setCurrentUrl(defSite.url);
+            navigateTo(defSite.url);
             setActiveSite(defSite);
           }
           setReaderMode('webview');
@@ -1692,6 +1762,20 @@ export default function ReaderScreen({ route, navigation }) {
     if (!mangaTitle) return;
     updateProfile({ currently_reading: mangaTitle, current_chapter: currentChapter });
   }, [currentChapter, mangaTitle]);
+
+  // Notification permission is asked for HERE, not at app launch. Advancing to a
+  // new chapter is the first moment "tell me when the next one drops" means
+  // something concrete — and the OS dialog is a one-shot, so it has to be spent
+  // at a moment the user would say yes to. The first render of any reader
+  // session isn't an advance, so it's skipped.
+  const chapterAdvancedRef = useRef(false);
+  useEffect(() => {
+    if (!userId || !mangaTitle) return;
+    if (!chapterAdvancedRef.current) { chapterAdvancedRef.current = true; return; }
+    // Let the page settle before putting a dialog over it.
+    const t = setTimeout(() => { maybePrimePushPermission(userId, 'chapter'); }, 1200);
+    return () => clearTimeout(t);
+  }, [currentChapter, userId, mangaTitle]);
 
   useEffect(() => {
     if (!mangaTitle || !userId) return;
@@ -1872,7 +1956,7 @@ export default function ReaderScreen({ route, navigation }) {
     const [nextUrl, ...rest] = chain;
     fallbackChainRef.current = rest;
     setFallbackChain(rest);
-    setCurrentUrl(nextUrl);
+    navigateTo(nextUrl);
     const siteName = nextUrl.includes('mangadex')     ? 'MangaDex'
                    : nextUrl.includes('mangafire')    ? 'MangaFire'
                    : nextUrl.includes('asurascans')   ? 'Asura Scans'
@@ -1887,7 +1971,7 @@ export default function ReaderScreen({ route, navigation }) {
   // ── Login intercept — prompt user to pick a different site ──────────────
 
   function handleLoginIntercepted() {
-    showToast('This site requires sign-in. Try another source.');
+    showToast(t('reader.loginRequired'));
     setShowSitePicker(true);
   }
 
@@ -1927,10 +2011,10 @@ export default function ReaderScreen({ route, navigation }) {
     const knownTitle = keepTitle && (mangaTitle || (routeTitle !== 'Reader' ? routeTitle : ''));
     if (knownTitle) {
       animateTitle(knownTitle, '');
-      setCurrentUrl(buildSearchUrl(site.url, knownTitle));
+      navigateTo(buildSearchUrl(site.url, knownTitle));
     } else {
       animateTitle('', '');
-      setCurrentUrl(site.url);
+      navigateTo(site.url);
     }
     setFallbackChain([]);
     AsyncStorage.setItem(LAST_SITE_KEY, JSON.stringify(site)).catch(() => {});
@@ -2010,7 +2094,7 @@ export default function ReaderScreen({ route, navigation }) {
     setLibraryImportLoading(true);
     setLibraryImportItems(null);
     setAwaitingLibraryScrape(true);
-    setCurrentUrl(libraryImportConfig.listUrl);
+    navigateTo(libraryImportConfig.listUrl);
   }
 
   async function handleLibraryImportResult(items) {
@@ -2070,6 +2154,7 @@ export default function ReaderScreen({ route, navigation }) {
       pageUrls = await getChapterPages(ch.id);
     }
     setPages(pageUrls);
+    setPageGap(Number(ch?.pageGap) || 0);
     setPagesLoading(false);
 
     // Background: prefetch the NEXT chapter's page list + warm its first images
@@ -2078,15 +2163,17 @@ export default function ReaderScreen({ route, navigation }) {
       getChapterPages(nextCh.id).then((urls) => {
         if (!urls?.length) return;
         prefetchedPagesRef.current[nextCh.id] = urls;
-        urls.slice(0, 3).forEach((u) => Image.prefetch(u).catch(() => {}));
-      }).catch(() => {});
+        // expo-image's prefetch, so it warms the cache the pages actually
+        // render from — RN's Image.prefetch filled a different one.
+        urls.slice(0, 3).forEach((u) => Image.prefetch(u, 'memory-disk').catch(() => {}));
+      }).catch((e) => reportError(e, 'reader.prefetchNextChapter', { chapterId: nextCh.id }));
     }
     if (pageAnim !== 'none') {
       chapterTransAnim.setValue(0);
       Animated.timing(chapterTransAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
     }
     if (pageUrls.length === 0) {
-      showToast('Pages unavailable — tap the globe icon to switch to browser mode');
+      showToast(t('toast.pagesUnavailable'));
     }
   }
 
@@ -2097,7 +2184,7 @@ export default function ReaderScreen({ route, navigation }) {
     setBookmarked(next);
     const seriesTitle = mangaTitle || activeSite?.name || routeTitle;
     if (next) {
-      showToast('Saved to Library');
+      showToast(t('toast.savedToLibrary'));
       try {
         const existing = await AsyncStorage.getItem(LIBRARY_KEY);
         const saved = existing ? JSON.parse(existing) : [];
@@ -2113,7 +2200,7 @@ export default function ReaderScreen({ route, navigation }) {
           siteEmoji: activeSite?.emoji || '📚',
           rating: 'N/A',
           chapters,
-          color: '#7B5CFF',
+          color: colors.primary,
           bookmarked: true,
           savedAt: Date.now(),
         };
@@ -2129,7 +2216,7 @@ export default function ReaderScreen({ route, navigation }) {
         }, { onConflict: 'user_id,series_title', ignoreDuplicates: true }), 'add bookmark');
       }
     } else {
-      showToast('Removed from Library');
+      showToast(t('toast.removedFromLibrary'));
       try {
         const existing = await AsyncStorage.getItem(LIBRARY_KEY);
         if (existing) {
@@ -2312,7 +2399,7 @@ export default function ReaderScreen({ route, navigation }) {
 
   async function executeChapterDownload(images) {
     if (!images || images.length === 0) {
-      showToast('No pages found — try scrolling to load them first');
+      showToast(t('toast.noPagesScroll'));
       return;
     }
     setDlLabel(`${mangaTitle || activeSite?.name || 'Chapter'} — Ch. ${currentChapter}`);
@@ -2322,7 +2409,7 @@ export default function ReaderScreen({ route, navigation }) {
     if (saved > 0) {
       showToast(`${saved} of ${images.length} pages saved`);
     } else {
-      showToast('Download failed — the site may block external downloads');
+      showToast(t('toast.downloadFailed'));
     }
   }
 
@@ -2351,7 +2438,7 @@ export default function ReaderScreen({ route, navigation }) {
       if (saved > 0) done++;
     }
     setDownloading(false);
-    showToast(done > 0 ? `${done} chapter${done === 1 ? '' : 's'} saved for offline` : 'Download failed');
+    showToast(done > 0 ? t('toast.chaptersSaved', { count: done }) : t('toast.downloadFailedShort'));
   }
 
   // ── Misc settings ─────────────────────────────────────────────────────────
@@ -2360,14 +2447,14 @@ export default function ReaderScreen({ route, navigation }) {
     if (readerMode === 'api') {
       loadApiChapter(currentChapterIdx);
       setShowReaderSettings(false);
-      showToast('Chapter reloaded');
+      showToast(t('toast.chapterReloaded'));
       return;
     }
     webviewRef.current?.injectJavaScript(CLEAR_STORAGE_JS);
     webviewRef.current?.clearCache?.(true);
     webviewRef.current?.reload();
     setShowReaderSettings(false);
-    showToast('Cache cleared');
+    showToast(t('toast.cacheCleared'));
   }
 
   async function handleStartFromBeginning() {
@@ -2408,7 +2495,7 @@ export default function ReaderScreen({ route, navigation }) {
       if (!targetUrl.includes('mangadex.org/search')) {
         chain.push(`https://mangadex.org/search?q=${encodeURIComponent(searchQuery)}`);
       }
-      setCurrentUrl(targetUrl);
+      navigateTo(targetUrl);
       setFallbackChain(chain);
       setActiveSite(defSite);
       setReaderMode('webview');
@@ -2496,11 +2583,11 @@ export default function ReaderScreen({ route, navigation }) {
         pointerEvents={showUI ? 'auto' : 'none'}>
         <View style={[styles.topRow, { paddingTop: insets.top + 6 }]}>
           <View style={styles.topBarLeft}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close reader">
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close reader">
               <Ionicons name="home-outline" size={20} color={hudText} />
             </TouchableOpacity>
             {readerMode === 'webview' && (
-              <TouchableOpacity
+              <TouchableOpacity hitSlop={HIT_SLOP}
                 style={[styles.backBtn, !webCanGoBack && { opacity: 0.3 }]}
                 onPress={() => webviewRef.current?.goBack()}
                 disabled={!webCanGoBack}
@@ -2511,7 +2598,7 @@ export default function ReaderScreen({ route, navigation }) {
               </TouchableOpacity>
             )}
             {readerMode === 'webview' && (
-              <TouchableOpacity
+              <TouchableOpacity hitSlop={HIT_SLOP}
                 style={[styles.backBtn, !webCanGoForward && { opacity: 0.3 }]}
                 onPress={() => webviewRef.current?.goForward()}
                 disabled={!webCanGoForward}
@@ -2529,8 +2616,8 @@ export default function ReaderScreen({ route, navigation }) {
                   <Ionicons name="cloud-offline-outline" size={13} color="#1D9E75" />
                 </View>
               ) : (
-                <TouchableOpacity onPress={() => setShowSitePicker(true)} style={styles.reloadBtn} accessibilityRole="button" accessibilityLabel="Choose reading source">
-                  <Ionicons name="globe-outline" size={15} color={readerMode === 'api' ? '#7B5CFF' : activeSite ? '#7B5CFF' : hudMuted} />
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowSitePicker(true)} style={styles.reloadBtn} accessibilityRole="button" accessibilityLabel="Choose reading source">
+                  <Ionicons name="globe-outline" size={15} color={readerMode === 'api' ? colors.primary : activeSite ? colors.primary : hudMuted} />
                 </TouchableOpacity>
               )}
               <Animated.View style={{ opacity: titleFade, alignItems: 'center' }}>
@@ -2538,7 +2625,7 @@ export default function ReaderScreen({ route, navigation }) {
                 <Text style={[styles.chapterLabel, { color: hudMuted }]}>{isOffline ? 'Offline' : displayChapter}</Text>
               </Animated.View>
               {!isOffline && (
-                <TouchableOpacity
+                <TouchableOpacity hitSlop={HIT_SLOP}
                   onPress={() => readerMode === 'api' ? loadApiChapter(currentChapterIdx) : webviewRef.current?.reload()}
                   style={styles.reloadBtn}
                   accessibilityRole="button"
@@ -2550,10 +2637,10 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
           </View>
           <View style={styles.topRightIcons}>
-            <TouchableOpacity onPress={() => setShowAmbience(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Ambience sounds">
-              <Ionicons name="headset-outline" size={18} color={ambienceState.presetId ? '#7B5CFF' : hudMuted} />
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAmbience(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Ambience sounds">
+              <Ionicons name="headset-outline" size={18} color={ambienceState.presetId ? colors.primary : hudMuted} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Reader settings">
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Reader settings">
               <Ionicons name="settings-outline" size={18} color={hudMuted} />
             </TouchableOpacity>
           </View>
@@ -2570,8 +2657,8 @@ export default function ReaderScreen({ route, navigation }) {
           ]}>
           {pagesLoading ? (
             <View style={styles.pagesLoadingWrap}>
-              <ActivityIndicator size="large" color="#7B5CFF" />
-              <Text style={styles.pagesLoadingText}>Loading pages…</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.pagesLoadingText}>{t('reader.loadingPages')}</Text>
             </View>
           ) : (
             <>
@@ -2595,6 +2682,7 @@ export default function ReaderScreen({ route, navigation }) {
                   return (
                     <PageImage
                       uri={item}
+                      gutter={index < pages.length - 1 ? pageGap : 0}
                       onSingleTap={() => setShowUI((v) => !v)}
                       onDoubleTap={(u) => setZoomUri(u)}
                     />
@@ -2618,9 +2706,9 @@ export default function ReaderScreen({ route, navigation }) {
                 ListEmptyComponent={() => (
                   <View style={styles.noPages}>
                     <Ionicons name="book-outline" size={40} color="#5C5B63" />
-                    <Text style={styles.noPagesText}>No pages found for this chapter</Text>
+                    <Text style={styles.noPagesText}>{t('reader.noPages')}</Text>
                     <TouchableOpacity style={styles.openInBrowserBtn} onPress={() => setShowSitePicker(true)}>
-                      <Text style={styles.openInBrowserText}>Open in Browser</Text>
+                      <Text style={styles.openInBrowserText}>{t('reader.openInBrowser')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -2641,7 +2729,7 @@ export default function ReaderScreen({ route, navigation }) {
         <View style={styles.webtoonWrapper}>
           <WebView
             ref={webviewRef}
-            source={{ uri: currentUrl }}
+            source={{ uri: navUrl }}
             style={styles.webview}
             containerStyle={{ backgroundColor: '#0D0D0F' }}
             injectedJavaScript={AD_BLOCK_JS + TAP_TOGGLE_JS}
@@ -2706,6 +2794,9 @@ export default function ReaderScreen({ route, navigation }) {
               // chapter count. The script's own guards (window.__inkloreChCounted,
               // reader/search URL checks) keep it a no-op on irrelevant pages.
               webviewRef.current?.injectJavaScript(EXTRACT_CHAPTER_COUNT_JS);
+              // Runs on every load, search or not — an aborted load paints
+              // nothing regardless of how we got there.
+              webviewRef.current?.injectJavaScript(BLANK_PAGE_WATCHDOG_JS);
               if (pendingImagesRef.current === 'requested') {
                 pendingImagesRef.current = 'collecting';
                 webviewRef.current?.injectJavaScript(COLLECT_IMAGES_JS);
@@ -2753,6 +2844,18 @@ export default function ReaderScreen({ route, navigation }) {
                   const msg = JSON.parse(data);
                   if (msg.type === 'siteHomepage' || msg.type === 'searchFailed') {
                     popAndNavigateFallback(null);
+                  } else if (msg.type === 'blankPage') {
+                    // One reload per URL, ever. If the page comes back empty a
+                    // second time it isn't an aborted load, it's a site we
+                    // can't render — hand it to the fallback chain instead of
+                    // reloading forever.
+                    const u = msg.url || currentUrl;
+                    if (blankRetriedRef.current === u) {
+                      if (fallbackChainRef.current.length > 0) popAndNavigateFallback('Blank page');
+                      return;
+                    }
+                    blankRetriedRef.current = u;
+                    webviewRef.current?.reload();
                   } else if (msg.type === 'pageInfo') {
                     if (NON_CHAPTER_URL_RE.test(msg.url || '')) return;
                     const { manga, chapter } = parseMangaInfo(msg.title, msg.heading);
@@ -2789,7 +2892,7 @@ export default function ReaderScreen({ route, navigation }) {
                     // window.open() called in-page — follow only same-site /
                     // known-site targets; off-site opens are popunder ads
                     const u = msg.url || '';
-                    if (u.startsWith('http') && isTrustedPopup(u, currentUrl)) setCurrentUrl(u);
+                    if (u.startsWith('http') && isTrustedPopup(u, currentUrl)) navigateTo(u);
                   }
                 } catch (_) {}
               }
@@ -2801,7 +2904,7 @@ export default function ReaderScreen({ route, navigation }) {
               if (!targetUrl || !targetUrl.startsWith('http')) return;
               if (AD_NETWORK_PATTERNS.some((p) => targetUrl.toLowerCase().includes(p))) return;
               if (!isTrustedPopup(targetUrl, currentUrl)) return;
-              setCurrentUrl(targetUrl);
+              navigateTo(targetUrl);
             }}
             onShouldStartLoadWithRequest={(req) => {
               const url = (req.url || '').toLowerCase();
@@ -2902,7 +3005,7 @@ export default function ReaderScreen({ route, navigation }) {
         pointerEvents={showUI ? 'auto' : 'none'}>
         <View style={styles.chapterNavGroup}>
           <Animated.View style={{ transform: [{ translateX: prevChapterX }] }}>
-            <TouchableOpacity
+            <TouchableOpacity hitSlop={HIT_SLOP}
               onPress={goToPrevChapter}
               disabled={readerMode === 'api' ? currentChapterIdx <= 0 : currentChapter <= 1}
               style={[styles.chapterArrowBtn, (readerMode === 'api' ? currentChapterIdx <= 0 : currentChapter <= 1) && styles.chapterArrowDisabled]}>
@@ -2919,7 +3022,7 @@ export default function ReaderScreen({ route, navigation }) {
             <Ionicons name="chevron-up" size={14} color={hudMuted} style={{ marginLeft: 4 }} />
           </TouchableOpacity>
           <Animated.View style={{ transform: [{ translateX: nextChapterX }] }}>
-            <TouchableOpacity
+            <TouchableOpacity hitSlop={HIT_SLOP}
               onPress={goToNextChapter}
               disabled={readerMode === 'api' && currentChapterIdx >= apiChapters.length - 1}
               style={[styles.chapterArrowBtn, readerMode === 'api' && currentChapterIdx >= apiChapters.length - 1 && styles.chapterArrowDisabled]}>
@@ -2929,30 +3032,30 @@ export default function ReaderScreen({ route, navigation }) {
         </View>
         <View style={styles.bottomActions}>
           {readerMode !== 'api' && mode === 'webtoon' && (
-            <TouchableOpacity
+            <TouchableOpacity hitSlop={HIT_SLOP}
               style={[styles.bottomIconBtn, autoScroll && styles.bottomIconBtnActive]}
               onPress={() => setAutoScroll((v) => !v)}>
               <Ionicons name={autoScroll ? 'pause' : 'play'} size={20} color={autoScroll ? '#1D9E75' : hudMuted} />
             </TouchableOpacity>
           )}
           {readerMode !== 'api' && (
-            <TouchableOpacity
+            <TouchableOpacity hitSlop={HIT_SLOP}
               style={[styles.bottomIconBtn, mode === 'manga' && styles.modeToggleActive]}
               onPress={() => setMode((m) => m === 'webtoon' ? 'manga' : 'webtoon')}>
-              <Ionicons name={mode === 'webtoon' ? 'reader-outline' : 'albums-outline'} size={20} color={mode === 'manga' ? '#7B5CFF' : hudMuted} />
+              <Ionicons name={mode === 'webtoon' ? 'reader-outline' : 'albums-outline'} size={20} color={mode === 'manga' ? colors.primary : hudMuted} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.bottomIconBtn} onPress={handleBookmark}>
-            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#7B5CFF' : hudMuted} />
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bottomIconBtn} onPress={handleBookmark}>
+            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? colors.primary : hudMuted} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomIconBtn} onPress={() => setShowUI((v) => !v)}>
-            <Ionicons name={showUI ? 'eye-outline' : 'eye-off-outline'} size={20} color={showUI ? hudMuted : '#7B5CFF'} />
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bottomIconBtn} onPress={() => setShowUI((v) => !v)}>
+            <Ionicons name={showUI ? 'eye-outline' : 'eye-off-outline'} size={20} color={showUI ? hudMuted : colors.primary} />
           </TouchableOpacity>
         </View>
       </Animated.View>
 
       {!showUI && (
-        <TouchableOpacity style={[styles.eyeBtn, { backgroundColor: isDark ? 'rgba(13,13,15,0.7)' : 'rgba(255,255,255,0.85)', borderColor: hudBorder }]} onPress={() => { setShowUI(true); setReaderHidden(false); }}>
+        <TouchableOpacity hitSlop={HIT_SLOP} style={[styles.eyeBtn, { backgroundColor: isDark ? 'rgba(13,13,15,0.7)' : 'rgba(255,255,255,0.85)', borderColor: hudBorder }]} onPress={() => { setShowUI(true); setReaderHidden(false); }}>
           <Ionicons name="eye-outline" size={18} color={hudMuted} />
         </TouchableOpacity>
       )}
@@ -3018,7 +3121,7 @@ export default function ReaderScreen({ route, navigation }) {
                   ) : null}
                 </View>
                 {item.active
-                  ? <Ionicons name="play" size={11} color="#7B5CFF" />
+                  ? <Ionicons name="play" size={11} color={colors.primary} />
                   : item.isRead
                     ? <Ionicons name="checkmark" size={13} color="#1D9E75" />
                     : null}
@@ -3034,8 +3137,8 @@ export default function ReaderScreen({ route, navigation }) {
           <View style={[styles.siteSheet, sheetC.sheet]}>
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, sheetC.title]}>Reading Browser</Text>
-              <TouchableOpacity onPress={() => { setShowSitePicker(false); setSiteSearch(''); }}>
+              <Text style={[styles.sheetTitle, sheetC.title]}>{t('reader.readingBrowser')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => { setShowSitePicker(false); setSiteSearch(''); }}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3046,7 +3149,7 @@ export default function ReaderScreen({ route, navigation }) {
                 value={siteSearch}
                 onChangeText={setSiteSearch}
                 onSubmitEditing={submitSiteInput}
-                placeholder="Search sites or paste URL…"
+                placeholder={t('placeholder.searchSites')}
                 placeholderTextColor="rgba(155,154,163,0.5)"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -3083,9 +3186,9 @@ export default function ReaderScreen({ route, navigation }) {
                 style={styles.reportPageRow}
                 activeOpacity={0.7}>
                 {libraryImportLoading
-                  ? <ActivityIndicator size="small" color="#7B5CFF" />
-                  : <Ionicons name="download-outline" size={13} color="#7B5CFF" />}
-                <Text style={[styles.reportPageText, { color: '#7B5CFF' }]}>
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <Ionicons name="download-outline" size={13} color={colors.primary} />}
+                <Text style={[styles.reportPageText, { color: colors.primary }]}>
                   {libraryImportLoading ? `Checking your ${libraryImportConfig.name} library…` : `Import Library from ${libraryImportConfig.name}`}
                 </Text>
               </TouchableOpacity>
@@ -3108,9 +3211,9 @@ export default function ReaderScreen({ route, navigation }) {
                   {savedSites.length > 0 && (
                     <>
                       <View style={styles.siteSectionRow}>
-                        <Text style={styles.siteSectionLabel}>Recent</Text>
+                        <Text style={styles.siteSectionLabel}>{t('reader.recent')}</Text>
                         <TouchableOpacity onPress={clearAllRecents} style={styles.clearAllBtn}>
-                          <Text style={styles.clearAllText}>Clear All</Text>
+                          <Text style={styles.clearAllText}>{t('reader.clearAll')}</Text>
                         </TouchableOpacity>
                       </View>
                       <View style={styles.sitesGrid}>
@@ -3126,7 +3229,7 @@ export default function ReaderScreen({ route, navigation }) {
                       </View>
                     </>
                   )}
-                  <Text style={styles.siteSectionLabel}>Quick Picks</Text>
+                  <Text style={styles.siteSectionLabel}>{t('reader.quickPicks')}</Text>
                   <View style={styles.sitesGrid}>
                     {FEATURED_SITES.map((site) => (
                       <SiteCard key={site.url} site={site} active={activeSite?.url === site.url} onPress={() => openSite(site)} />
@@ -3148,7 +3251,7 @@ export default function ReaderScreen({ route, navigation }) {
               <Text style={[styles.sheetTitle, sheetC.title]}>
                 {libraryImportItems?.length ? `Found ${libraryImportItems.length} series` : 'Nothing found'}
               </Text>
-              <TouchableOpacity onPress={() => setLibraryImportItems(null)}>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setLibraryImportItems(null)}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3164,7 +3267,7 @@ export default function ReaderScreen({ route, navigation }) {
                         style={styles.libraryImportRow}
                         onPress={() => setLibraryImportSelected((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                         activeOpacity={0.7}>
-                        <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={20} color={checked ? '#7B5CFF' : '#9B9AA3'} />
+                        <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={20} color={checked ? colors.primary : '#9B9AA3'} />
                         <Text style={styles.libraryImportRowText} numberOfLines={1}>{item.title}</Text>
                       </TouchableOpacity>
                     );
@@ -3196,11 +3299,11 @@ export default function ReaderScreen({ route, navigation }) {
           <View style={[styles.sheet, sheetC.sheet]}>
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, sheetC.title]}>Ambience</Text>
+              <Text style={[styles.sheetTitle, sheetC.title]}>{t('reader.ambience')}</Text>
               {ambienceState.presetId && (
-                <View style={styles.playingBadge}><Text style={styles.playingText}>Playing</Text></View>
+                <View style={styles.playingBadge}><Text style={styles.playingText}>{t('reader.playing')}</Text></View>
               )}
-              <TouchableOpacity onPress={() => setShowAmbience(false)}>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAmbience(false)}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3217,14 +3320,14 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
 
             {ambienceState.presetId && (() => {
-              const activeColor = AMBIENCE_PRESETS.find((p) => p.id === ambienceState.presetId)?.color || '#7B5CFF';
+              const activeColor = AMBIENCE_PRESETS.find((p) => p.id === ambienceState.presetId)?.color || colors.primary;
               return (
                 <View style={styles.ambienceVolRow}>
-                  <TouchableOpacity style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume - 0.1)}>
+                  <TouchableOpacity hitSlop={HIT_SLOP} style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume - 0.1)}>
                     <Ionicons name="volume-low-outline" size={16} color="#9B9AA3" />
                   </TouchableOpacity>
                   <AmbienceVolumeSlider volume={ambienceState.volume} color={activeColor} />
-                  <TouchableOpacity style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume + 0.1)}>
+                  <TouchableOpacity hitSlop={HIT_SLOP} style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume + 0.1)}>
                     <Ionicons name="volume-high-outline" size={16} color="#9B9AA3" />
                   </TouchableOpacity>
                   <Text style={[styles.ambienceVolPct, { color: activeColor }]}>{Math.round(ambienceState.volume * 100)}%</Text>
@@ -3241,12 +3344,12 @@ export default function ReaderScreen({ route, navigation }) {
           <View style={[styles.sheet, sheetC.sheet]}>
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, sheetC.title]}>Reader Settings</Text>
-              <TouchableOpacity onPress={() => setShowReaderSettings(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
+              <Text style={[styles.sheetTitle, sheetC.title]}>{t('reader.readerSettings')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowReaderSettings(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
             </View>
             {readerMode !== 'api' && (
               <>
-                <Text style={styles.modeSectionLabel}>Reading mode</Text>
+                <Text style={styles.modeSectionLabel}>{t('reader.readingMode')}</Text>
                 <View style={styles.readerRow}>
                   {READER_MODES.map((m) => {
                     const active = mode === m.id;
@@ -3269,7 +3372,7 @@ export default function ReaderScreen({ route, navigation }) {
               <View style={[styles.settingsRow, sheetC.rowBorder]}>
                 <Ionicons name="play-forward-outline" size={18} color="#9B9AA3" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Auto-scroll speed</Text>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.autoScrollSpeed')}</Text>
                 </View>
                 {AUTO_SCROLL_SPEEDS.map((s) => (
                   <TouchableOpacity
@@ -3286,9 +3389,9 @@ export default function ReaderScreen({ route, navigation }) {
             )}
             {readerMode === 'webview' && (
               <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleForceDark}>
-                <Ionicons name={forceDarkSites ? 'moon' : 'moon-outline'} size={18} color={forceDarkSites ? '#7B5CFF' : '#9B9AA3'} />
+                <Ionicons name={forceDarkSites ? 'moon' : 'moon-outline'} size={18} color={forceDarkSites ? colors.primary : '#9B9AA3'} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Force dark on websites</Text>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.forceDark')}</Text>
                   <Text style={styles.settingsRowSub}>Inverts page colors — manga pages stay normal</Text>
                 </View>
                 <View style={[styles.settingsToggle, forceDarkSites && styles.settingsToggleOn]}>
@@ -3297,10 +3400,10 @@ export default function ReaderScreen({ route, navigation }) {
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleLandscape}>
-              <Ionicons name={allowLandscape ? 'phone-landscape' : 'phone-portrait-outline'} size={18} color={allowLandscape ? '#7B5CFF' : '#9B9AA3'} />
+              <Ionicons name={allowLandscape ? 'phone-landscape' : 'phone-portrait-outline'} size={18} color={allowLandscape ? colors.primary : '#9B9AA3'} />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.settingsRowText, sheetC.rowText]}>Allow landscape</Text>
-                <Text style={styles.settingsRowSub}>Rotate your device to read in landscape</Text>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.allowLandscape')}</Text>
+                <Text style={styles.settingsRowSub}>{t('reader.rotateHint')}</Text>
               </View>
               <View style={[styles.settingsToggle, allowLandscape && styles.settingsToggleOn]}>
                 <View style={[styles.settingsToggleDot, allowLandscape && styles.settingsToggleDotOn]} />
@@ -3308,9 +3411,9 @@ export default function ReaderScreen({ route, navigation }) {
             </TouchableOpacity>
             {readerMode === 'api' && (
               <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleDoublePage}>
-                <Ionicons name="book-outline" size={18} color={doublePageMode ? '#7B5CFF' : '#9B9AA3'} />
+                <Ionicons name="book-outline" size={18} color={doublePageMode ? colors.primary : '#9B9AA3'} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Double-page spread</Text>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.doublePage')}</Text>
                   <Text style={styles.settingsRowSub}>
                     {isWideLayout ? 'Two pages side by side' : 'Needs a tablet or landscape orientation'}
                   </Text>
@@ -3323,7 +3426,7 @@ export default function ReaderScreen({ route, navigation }) {
             <View style={[styles.settingsRow, sheetC.rowBorder]}>
               <Ionicons name="sunny-outline" size={18} color="#EF9F27" />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.settingsRowText, sheetC.rowText]}>Screen dimmer</Text>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.screenDimmer')}</Text>
                 <Text style={styles.settingsRowSub}>{dimmer === 0 ? 'Off' : `${Math.round(dimmer / 0.7 * 100)}% dim`}</Text>
               </View>
               <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
@@ -3339,7 +3442,7 @@ export default function ReaderScreen({ route, navigation }) {
             <View style={[styles.settingsRow, sheetC.rowBorder]}>
               <Ionicons name="flame-outline" size={18} color="#EF9F27" />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.settingsRowText, sheetC.rowText]}>Night reading filter</Text>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.nightFilter')}</Text>
                 <Text style={styles.settingsRowSub}>{nightFilter === 0 ? 'Off' : `${Math.round(nightFilter / 0.5 * 100)}% warm`}</Text>
               </View>
               <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
@@ -3355,8 +3458,8 @@ export default function ReaderScreen({ route, navigation }) {
             <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={requestChapterDownload}>
               <Ionicons name="cloud-download-outline" size={18} color="#1D9E75" />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.settingsRowText, sheetC.rowText]}>Download Chapter</Text>
-                <Text style={styles.settingsRowSub}>Save pages to your Library for offline reading</Text>
+                <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.downloadChapter')}</Text>
+                <Text style={styles.settingsRowSub}>{t('reader.downloadDesc')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={14} color="#9B9AA3" />
             </TouchableOpacity>
@@ -3365,8 +3468,8 @@ export default function ReaderScreen({ route, navigation }) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                   <Ionicons name="albums-outline" size={18} color="#1D9E75" />
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.settingsRowText, sheetC.rowText]}>Batch download</Text>
-                    <Text style={styles.settingsRowSub}>Save several chapters at once, starting here</Text>
+                    <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.batchDownload')}</Text>
+                    <Text style={styles.settingsRowSub}>{t('reader.batchDownloadDesc')}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -3379,7 +3482,7 @@ export default function ReaderScreen({ route, navigation }) {
                     style={styles.batchDlChip}
                     onPress={() => downloadNextChapters(apiChapters.length - currentChapterIdx)}
                     disabled={downloading}>
-                    <Text style={styles.batchDlChipText}>Rest of series</Text>
+                    <Text style={styles.batchDlChipText}>{t('reader.restOfSeries')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -3396,8 +3499,8 @@ export default function ReaderScreen({ route, navigation }) {
               <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={handleStartFromBeginning}>
                 <Ionicons name="refresh-circle-outline" size={18} color="#E8527A" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.settingsRowText, sheetC.rowText]}>Start from beginning</Text>
-                  <Text style={styles.settingsRowSub}>Clear resume and go to Chapter 1</Text>
+                  <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.startFromBeginning')}</Text>
+                  <Text style={styles.settingsRowSub}>{t('reader.startFromBeginningDesc')}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -3411,13 +3514,13 @@ export default function ReaderScreen({ route, navigation }) {
           <View style={[styles.sheet, sheetC.sheet]}>
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, sheetC.title]}>Share</Text>
-              <TouchableOpacity onPress={() => setShowShare(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
+              <Text style={[styles.sheetTitle, sheetC.title]}>{t('share.action')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowShare(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
             </View>
             <View style={styles.sharePreview}>
               <Text style={styles.sharePreviewLogo}>MangaRecs</Text>
               <View style={{ flex: 1 }} />
-              <Text style={styles.sharePreviewLabel}>Currently reading</Text>
+              <Text style={styles.sharePreviewLabel}>{t('reader.currentlyReading')}</Text>
               <Text style={styles.sharePreviewTitle}>{displayTitle}</Text>
               <Text style={styles.sharePreviewChapter}>{displayChapter}</Text>
               <View style={styles.sharePreviewBar}>
@@ -3437,7 +3540,7 @@ export default function ReaderScreen({ route, navigation }) {
                   .catch(() => {});
               }}>
                 <Ionicons name="copy-outline" size={16} color="#fff" />
-                <Text style={styles.copyLinkText}>Copy Link</Text>
+                <Text style={styles.copyLinkText}>{t('reader.copyLink')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.shareStoryBtn} onPress={() => {
                 const msg = `Check out "${displayTitle}" on MangaRecs — the best manga reader app!\nmangarecs://series/${encodeURIComponent(displayTitle)}`;
@@ -3451,7 +3554,7 @@ export default function ReaderScreen({ route, navigation }) {
                   .catch(() => {});
               }}>
                 <Ionicons name="logo-instagram" size={16} color="#fff" />
-                <Text style={styles.shareStoryText}>Share Story</Text>
+                <Text style={styles.shareStoryText}>{t('reader.shareStory')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3461,10 +3564,10 @@ export default function ReaderScreen({ route, navigation }) {
       {/* ── Resolving overlay ───────────────────────────────────────────── */}
       {resolving && (
         <View style={styles.resolvingOverlay}>
-          <TouchableOpacity style={styles.resolvingBackBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.resolvingBackBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.6)" />
           </TouchableOpacity>
-          <ActivityIndicator size="large" color="#7B5CFF" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.resolvingTitle} numberOfLines={2}>
             {routeTitle || searchQuery || 'Finding manga…'}
           </Text>
@@ -3487,7 +3590,7 @@ export default function ReaderScreen({ route, navigation }) {
             <View style={styles.dlIconWrap}>
               <ActivityIndicator size="large" color="#1D9E75" />
             </View>
-            <Text style={styles.dlTitle}>Downloading…</Text>
+            <Text style={styles.dlTitle}>{t('reader.downloading')}</Text>
             <Text style={styles.dlSub} numberOfLines={1}>{dlLabel}</Text>
             <View style={styles.dlBarBg}>
               <View style={[styles.dlBarFill, { width: dlTotal > 0 ? `${(dlProgress / dlTotal) * 100}%` : '0%' }]} />

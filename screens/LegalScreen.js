@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
+import { useResponsive } from '../utils/responsive';
 
 const LAST_UPDATED = 'July 3, 2026';
 
@@ -85,6 +87,8 @@ export default function LegalScreen() {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { isTablet } = useResponsive();
+  const t = useT();
   const [tab, setTab] = useState(route.params?.tab === 'terms' ? 'terms' : 'privacy');
 
   const sections = tab === 'privacy' ? PRIVACY_SECTIONS : TERMS_SECTIONS;
@@ -92,11 +96,15 @@ export default function LegalScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {tab === 'privacy' ? 'Privacy Policy' : 'Terms of Use'}
+          {tab === 'privacy' ? t('legal.privacy') : t('legal.terms')}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -104,17 +112,23 @@ export default function LegalScreen() {
       <View style={[styles.tabRow, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'privacy' && [styles.tabBtnActive, { backgroundColor: colors.background }]]}
-          onPress={() => setTab('privacy')}>
-          <Text style={[styles.tabText, { color: tab === 'privacy' ? colors.text : colors.muted }]}>Privacy Policy</Text>
+          onPress={() => setTab('privacy')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tab === 'privacy' }}
+          accessibilityLabel={t('legal.privacy')}>
+          <Text style={[styles.tabText, { color: tab === 'privacy' ? colors.text : colors.muted }]}>{t('legal.privacy')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'terms' && [styles.tabBtnActive, { backgroundColor: colors.background }]]}
-          onPress={() => setTab('terms')}>
-          <Text style={[styles.tabText, { color: tab === 'terms' ? colors.text : colors.muted }]}>Terms of Use</Text>
+          onPress={() => setTab('terms')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tab === 'terms' }}
+          accessibilityLabel={t('legal.terms')}>
+          <Text style={[styles.tabText, { color: tab === 'terms' ? colors.text : colors.muted }]}>{t('legal.terms')}</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[isTablet && styles.tabletWrap, { padding: 20, paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.updated, { color: colors.muted }]}>Last updated {LAST_UPDATED}</Text>
         {sections.map((s) => (
           <View key={s.title} style={styles.section}>
@@ -128,6 +142,9 @@ export default function LegalScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Caps the reading measure on iPad — full-width body text at 1024pt is
+  // unreadable. Matches the 640 used by every other screen.
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
   headerTitle: { fontSize: 16, fontWeight: '700' },

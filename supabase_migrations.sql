@@ -1847,18 +1847,15 @@ GRANT EXECUTE ON FUNCTION merge_hour_log(JSONB) TO authenticated;
 -- RPC is the only write path — same lockdown daily_log has.
 
 -- ── 57. MangaRecap history + friend comparison ────────────────────────────
--- NOT YET RUN. Paste into the Supabase SQL editor when ready — the app
--- degrades gracefully without it (utils/recapHistory.js catches every error
--- and returns null/[] until these exist), so there is no rush and no risk in
--- shipping the client code first.
+-- APPLIED. The RLS policy below was tightened from public-read to owner-only
+-- after the web recap page that needed public access was removed — re-paste
+-- this block if the policy ever needs correcting; it's idempotent either way.
 --
 -- recap_snapshots: one row per user per half-year, written by the client the
--- moment a MangaRecap finishes loading. Two things read it: (a) the app
--- itself, to show "+340 chapters vs last half" deltas and the Recap Vault,
--- and (b) the public mangarecs.net/recap/<username> share page, server-
--- rendered by cloudflare/share-preview-worker.js with no auth — so, same as
--- `profiles`, it is public-read. Nothing stored here is more sensitive than
--- what a profile already shows (chapter counts, top series, badges earned).
+-- moment a MangaRecap finishes loading. Read back by the app itself only, to
+-- show "+340 chapters vs last half" deltas and the first-ever-recap
+-- comparison (utils/recapHistory.js) — there is no public web page reading
+-- this, so unlike `profiles` it stays locked to its own owner.
 CREATE TABLE IF NOT EXISTS recap_snapshots (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -1873,11 +1870,12 @@ CREATE TABLE IF NOT EXISTS recap_snapshots (
 CREATE INDEX IF NOT EXISTS idx_recap_snapshots_user ON recap_snapshots(user_id, period_start DESC);
 ALTER TABLE recap_snapshots ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read recap snapshots" ON recap_snapshots;
+DROP POLICY IF EXISTS "Own read recap snapshots"    ON recap_snapshots;
 DROP POLICY IF EXISTS "Own write recap snapshots"   ON recap_snapshots;
 DROP POLICY IF EXISTS "Own update recap snapshots"  ON recap_snapshots;
-CREATE POLICY "Public read recap snapshots" ON recap_snapshots FOR SELECT USING (true);
-CREATE POLICY "Own write recap snapshots"   ON recap_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Own update recap snapshots"  ON recap_snapshots FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Own read recap snapshots"   ON recap_snapshots FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Own write recap snapshots"  ON recap_snapshots FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Own update recap snapshots" ON recap_snapshots FOR UPDATE USING (auth.uid() = user_id);
 
 -- get_friends_recap_totals: each of the CALLER's accepted friends' chapter
 -- total + top series for one period. SECURITY DEFINER because reading_progress
@@ -1948,3 +1946,99 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.get_friend_reading_stats(UUID, DATE, DATE) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_friend_reading_stats(UUID, DATE, DATE) TO authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 62. Push credentials moved out of the public profiles row ------------------
+-- `profiles` is world-readable by design (policy "Public profiles are viewable
+-- by everyone", section 21) so that anyone can render anyone's profile card.
+-- push_token and notification_prefs were sitting in that same row, which meant:
+--
+--   1. Anyone holding the app's anon key — which ships inside every install —
+--      could `select push_token from profiles` and harvest an Expo push token
+--      for the entire userbase. Expo's send API does not verify token
+--      ownership, so that is arbitrary push notifications to every user.
+--   2. notification_prefs was only ever enforced on the SENDING client, so a
+--      harvested token could be pushed to even after its owner had switched
+--      every notification off.
+--
+-- RLS cannot fix this in place: it filters ROWS, not columns, and these rows
+-- have to stay publicly visible. Column-level GRANTs can't either — they are
+-- not row-aware, so revoking push_token would also hide it from its own owner.
+-- So the private fields move to their own table, and `profiles` goes back to
+-- containing only things that are safe to show the world.
+--
+-- Server-side senders (chapter-push, streak-reminder, report-alert,
+-- notify-user) use the service_role key, which bypasses RLS, so they read this
+-- table directly. The client only ever touches its own row.
+CREATE TABLE IF NOT EXISTS user_push_settings (
+  user_id            UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  push_token         TEXT,
+  notification_prefs JSONB DEFAULT '{}',
+  updated_at         TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE user_push_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Own push settings read"   ON user_push_settings;
+DROP POLICY IF EXISTS "Own push settings write"  ON user_push_settings;
+DROP POLICY IF EXISTS "Own push settings insert" ON user_push_settings;
+
+CREATE POLICY "Own push settings read"
+  ON user_push_settings FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Own push settings insert"
+  ON user_push_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Own push settings write"
+  ON user_push_settings FOR UPDATE
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Backfill before dropping, so nobody loses their registration or their opt-outs.
+INSERT INTO user_push_settings (user_id, push_token, notification_prefs)
+SELECT id, push_token, COALESCE(notification_prefs, '{}'::jsonb)
+FROM profiles
+WHERE push_token IS NOT NULL OR notification_prefs IS NOT NULL
+ON CONFLICT (user_id) DO NOTHING;
+
+-- ── APPLIED 2026-07-30 up to this point ─────────────────────────────────────
+-- Everything above (table, RLS, policies, backfill) is live on
+-- jlzsnmwyyjefjekscvgs. Backfill moved 6/6 profiles; 0 of them had a
+-- push_token, so no registration data was at stake.
+--
+-- The notify-user / chapter-push / report-alert / streak-reminder functions are
+-- deployed and reading user_push_settings, and the client OTA that writes to it
+-- is published on the `preview` channel.
+--
+-- ── NOT YET RUN: the destructive half ───────────────────────────────────────
+-- Point of no return. After this the old columns are gone and any client still
+-- reading them gets a 400 — which is every install that hasn't picked up the
+-- OTA yet. Old clients degrade rather than crash (push silently stops; every
+-- call site null-checks), and since no user currently has a push_token there is
+-- nothing live to break. Run it once OTA adoption looks reasonable.
+--
+-- Until this runs, push_token no longer exists in new writes but the OLD
+-- columns are still present and still world-readable — the hole is not closed
+-- until these two statements execute.
+ALTER TABLE profiles DROP COLUMN IF EXISTS push_token;
+ALTER TABLE profiles DROP COLUMN IF EXISTS notification_prefs;
+
+-- The UPDATE grant from section 36f named both columns; re-issue it without
+-- them so the grant doesn't reference dropped columns.
+REVOKE UPDATE ON profiles FROM anon, authenticated;
+GRANT UPDATE (
+  username, bio, color, avatar_url, banner_url, favorites, showcase_badges,
+  genre_weights, genres_count, favorite_genre,
+  currently_reading, current_chapter, online, is_busy, show_activity, last_active_at,
+  accepted_guidelines, guidelines_accepted_at,
+  mal_username, anilist_username, default_site
+) ON profiles TO authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 63. Creator-controlled page gutters (APPLIED 2026-07-30) -------------------
+-- Vertical whitespace between pages is the pacing instrument of the vertical-
+-- scroll format — tight gaps for an action beat, wide ones to let a panel land,
+-- a near-full screen before a cliffhanger. Webtoon creators can only get this by
+-- baking the whitespace into the art itself, which means re-exporting to change
+-- it. Storing it per chapter makes pacing editable after upload.
+--
+-- Default 0 keeps every existing chapter exactly as it renders today, and
+-- MangaDex-sourced chapters (which never touch this table) are unaffected.
+ALTER TABLE chapters ADD COLUMN IF NOT EXISTS page_gap INTEGER NOT NULL DEFAULT 0;

@@ -1,23 +1,27 @@
 ﻿import {
-  View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, useWindowDimensions, TouchableOpacity,
   Modal, TextInput, RefreshControl, KeyboardAvoidingView,
   Platform, Animated, Image, ActivityIndicator, ScrollView, Share, Linking,
 } from 'react-native';
+import { profileAccent } from '../utils/profileThemes';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchMangaInfo, getCachedCoverUrl, getFaviconUrl, AI_REC_KEY, prewarmCoverCache, NSFW_KEY, isRatingGated } from '../utils/mangaCovers';
 import { fetchPopularManga } from '../utils/mangaDexApi';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useCoachmarkTarget } from '../utils/CoachmarkContext';
 import StarLogo from '../components/StarLogo';
 import ShareCard from '../components/ShareCard';
 import { supabase } from '../supabase';
 import { syncReadOpen, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
+import { requireAccount } from '../utils/guestGate';
 import { useNotifications } from '../utils/NotificationsContext';
 
 import { MANGA_POOL, COMPLETED_IDS } from '../utils/mangaPool';
@@ -26,31 +30,46 @@ import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
 import { light, medium, selection } from '../utils/haptics';
 import { startCoverTransition } from '../utils/coverTransition';
+import { HIT_SLOP } from '../utils/tokens';
 
 // Plain FlatList can't take a native-driven onScroll — RN throws
 // "must be wrapped with Animated.createAnimatedComponent" without this.
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-const { height, width } = Dimensions.get('window');
-const NOTIF_H    = Math.round(height * 0.40);
-const COMMENTS_H = Math.round(height * 0.88);
-// Cover/text sizing is derived from a capped content width, not the raw
-// screen width — on a tablet the card background still fills edge-to-edge
-// but the cover art and text stay phone-proportioned instead of ballooning.
-const CARD_CONTENT_W = Math.min(width, 480);
-const COVER_W    = Math.round(CARD_CONTENT_W * 0.66);
-const COVER_H    = Math.round(COVER_W * 1.44);
+// Every dimension here is reactive. `Dimensions.get('window')` at module scope
+// is captured once, at import, and never updates — which broke the feed on
+// rotation, on foldables and in split-screen, because the frozen height drove
+// snapToInterval and getItemLayout while the cards themselves resized.
+//
+// Cover/text sizing is derived from a capped content width, not the raw screen
+// width — on a tablet the card background still fills edge-to-edge but the
+// cover art and text stay phone-proportioned instead of ballooning.
+function useFeedMetrics() {
+  const { width, height } = useWindowDimensions();
+  return useMemo(() => {
+    const contentW = Math.min(width, 480);
+    const coverW   = Math.round(contentW * 0.66);
+    return {
+      width,
+      height,
+      notifH:    Math.round(height * 0.40),
+      commentsH: Math.round(height * 0.88),
+      contentW,
+      coverW,
+      coverH: Math.round(coverW * 1.44),
+    };
+  }, [width, height]);
+}
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(ExpoImage);
+
+// Comments per page in the feed's comment sheet.
+const FEED_COMMENT_PAGE_SIZE = 30;
 
 // Matches the palette used everywhere else a user's chosen profile color
 // shows up (SocialScreen/DMScreen) — comment avatars were a flat purple
 // placeholder regardless of the commenter's real avatar/chroma.
-const THEME_COLORS = {
-  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
-};
-function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
+const themeColor = profileAccent;
 
 
 // ── Module-level feed state ──────────────────────────────────────────────────
@@ -359,8 +378,10 @@ function notifIconName(type) {
   if (type === 'system')          return 'notifications';
   return 'heart';
 }
-function notifIconColor(type) {
-  if (type === 'friend_request')  return '#7B5CFF';
+// Takes the palette rather than freezing it — these dots are app chrome and
+// have to follow the theme like every other accent.
+function notifIconColor(type, colors) {
+  if (type === 'friend_request')  return colors.primary;
   if (type === 'friend_accepted') return '#1D9E75';
   if (type === 'comment')         return '#1D9E75';
   if (type === 'badge')           return '#f59e0b';
@@ -379,6 +400,8 @@ function notifIconBg(type) {
 // ── SkeletonFeed ─────────────────────────────────────────────────────────────
 
 function SkeletonFeed() {
+  const { colors } = useTheme();
+  const { coverW, coverH } = useFeedMetrics();
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -392,11 +415,11 @@ function SkeletonFeed() {
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.65] });
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24 }}>
-      <Animated.View style={{ width: COVER_W, height: COVER_H, borderRadius: 18, backgroundColor: '#7B5CFF', opacity }} />
-      <Animated.View style={{ width: COVER_W * 0.65, height: 22, borderRadius: 8, backgroundColor: '#A09CE0', opacity, marginTop: 8 }} />
-      <Animated.View style={{ width: COVER_W * 0.45, height: 14, borderRadius: 6, backgroundColor: '#7B5CFF', opacity }} />
-      <Animated.View style={{ width: COVER_W * 0.9, height: 36, borderRadius: 10, backgroundColor: '#2D2A4A', opacity }} />
-      <Animated.View style={{ width: COVER_W * 0.55, height: 12, borderRadius: 6, backgroundColor: '#3B3672', opacity }} />
+      <Animated.View style={{ width: coverW, height: coverH, borderRadius: 18, backgroundColor: colors.primary, opacity }} />
+      <Animated.View style={{ width: coverW * 0.65, height: 22, borderRadius: 8, backgroundColor: '#A09CE0', opacity, marginTop: 8 }} />
+      <Animated.View style={{ width: coverW * 0.45, height: 14, borderRadius: 6, backgroundColor: colors.primary, opacity }} />
+      <Animated.View style={{ width: coverW * 0.9, height: 36, borderRadius: 10, backgroundColor: '#2D2A4A', opacity }} />
+      <Animated.View style={{ width: coverW * 0.55, height: 12, borderRadius: 6, backgroundColor: '#3B3672', opacity }} />
     </View>
   );
 }
@@ -408,7 +431,13 @@ function SkeletonFeed() {
 // still reaches the correct card.
 
 const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBookmark, onComment, onShare, onOpen }) {
+  const t = useT();
   const navigation = useNavigation();
+  const metrics = useFeedMetrics();
+  // The tab bar floats over the card, so the card's own bottom padding is what
+  // keeps the title/description clear of it. A hardcoded 88 was short of the
+  // real bar height on gesture-nav Android and any home-indicator device.
+  const tabBarHeight = useBottomTabBarHeight();
   const { isDark } = useTheme();
   const cardOverlay   = isDark ? 'rgba(4,3,14,0.72)'      : 'rgba(245,245,250,0.78)';
   const cardText      = isDark ? '#FFFFFF'                  : '#0D0D0F';
@@ -420,7 +449,9 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
   const coverCardRef = useRef(null);
 
   function openDetail() {
-    if (item.creatorSeriesId) return;
+    // Creator series have no MangaDetail page — their content lives in-app, so
+    // the reader IS the detail view for them.
+    if (item.creatorSeriesId) { onOpen(item); return; }
     const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
     const navParams = {
       title: item.title,
@@ -444,6 +475,10 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
       });
     }
     navigation.navigate('MangaDetail', navParams);
+    // Opening detail is a real interest signal. It used to be picked up by
+    // handleOpenReader, which the card tap no longer goes through — weight it
+    // once here, against the double weight an actual read still gets.
+    if (item.genres?.length) trackGenreInteraction(item.genres);
   }
 
   // Per-card interaction state — lives here, never in the parent feed array
@@ -520,6 +555,48 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
     pulse(likeScale, () => onLike(item.id, next));
   }
 
+  // Double-tap to like — the baseline gesture on Instagram, TikTok and Webtoon,
+  // and the one place a tap on the card body shouldn't just open the reader.
+  // A single tap still opens; it's held back only long enough to see whether a
+  // second tap follows, which is the same 280ms window DMScreen already uses.
+  const lastTapRef = useRef(0);
+  const singleTapTimer = useRef(null);
+  const burst = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => () => { if (singleTapTimer.current) clearTimeout(singleTapTimer.current); }, []);
+
+  function handleCardTap() {
+    const now = Date.now();
+    if (now - lastTapRef.current < 280) {
+      lastTapRef.current = 0;
+      if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
+      // Double-tap only ever likes — never unlikes. Instagram behaves the same
+      // way, because an accidental double-tap that removed a like would be
+      // silent and unrecoverable.
+      if (!liked) {
+        setLiked(true);
+        setLikeCount((c) => c + 1);
+        onLike(item.id, true);
+      }
+      medium();
+      burst.setValue(0);
+      Animated.sequence([
+        Animated.spring(burst, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 12 }),
+        Animated.timing(burst, { toValue: 0, duration: 260, delay: 260, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
+    lastTapRef.current = now;
+    singleTapTimer.current = setTimeout(() => {
+      singleTapTimer.current = null;
+      // Detail, not the reader. Tapping the card used to jump straight into
+      // whatever source auto-resolved (usually MangaDex) — which is a hard
+      // commit to one site that may not even carry the series. Detail shows
+      // the synopsis and the verified source list, so the reader is a choice.
+      openDetail();
+    }, 285);
+  }
+
   function handleBookmarkTap() {
     const next = !bookmarked;
     setBookmarked(next);
@@ -534,21 +611,30 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
   // Momentum: as the card scrolls away from center (either direction) it eases
   // down in scale/opacity, so a swipe feels like it has weight instead of an
   // instant cut — same idea as TikTok's page transition.
-  const focusRange   = [(index - 1) * height, index * height, (index + 1) * height];
+  const focusRange   = [(index - 1) * metrics.height, index * metrics.height, (index + 1) * metrics.height];
   const focusScale   = scrollY.interpolate({ inputRange: focusRange, outputRange: [0.92, 1, 0.92], extrapolate: 'clamp' });
   const focusOpacity = scrollY.interpolate({ inputRange: focusRange, outputRange: [0.5, 1, 0.5], extrapolate: 'clamp' });
   const cardOpacity  = Animated.multiply(entryOpacity, focusOpacity);
   const cardScale    = Animated.multiply(entryScale, focusScale);
 
   return (
-    <Animated.View style={{ height, opacity: cardOpacity, transform: [{ scale: cardScale }, { translateY: cardTranslate }] }}>
+    <Animated.View style={{ height: metrics.height, opacity: cardOpacity, transform: [{ scale: cardScale }, { translateY: cardTranslate }] }}>
     <TouchableOpacity
-      style={[styles.card, { height }]}
+      style={[styles.card, { width: metrics.width, height: metrics.height }]}
       activeOpacity={0.98}
-      onPress={() => onOpen(item)}>
+      onPress={handleCardTap}>
 
       {/* ── Background: color base + blurred cover + dark overlay ── */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: item.color || '#0D1A2D' }]} />
+      {/* Double-tap burst. pointerEvents none so it never eats a later tap. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.burstWrap, {
+          opacity: burst,
+          transform: [{ scale: burst.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.15] }) }],
+        }]}>
+        <Ionicons name="heart" size={96} color="rgba(255,255,255,0.92)" />
+      </Animated.View>
       {coverUrl && !coverError && (
         <ExpoImage
           source={{ uri: coverUrl }}
@@ -562,7 +648,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
       <View style={[styles.cardBgOverlay, { backgroundColor: cardOverlay }]} />
 
       {/* ── Main layout ── */}
-      <View style={styles.cardLayout}>
+      <View style={[styles.cardLayout, { paddingBottom: tabBarHeight + 8 }]}>
 
         {/* Centered manga cover with curved border */}
         <View style={styles.coverSection}>
@@ -570,7 +656,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
             ref={coverCardRef}
             onPress={openDetail}
             activeOpacity={0.85}
-            style={[styles.coverCard, { width: COVER_W, height: COVER_H }]}>
+            style={[styles.coverCard, { width: metrics.coverW, height: metrics.coverH }]}>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: item.color || '#0D1A2D' }]} />
             {coverUrl && !coverError ? (
               <AnimatedExpoImage
@@ -596,16 +682,16 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
             {item.comingSoon && (
               <View style={styles.feedComingSoonOverlay}>
                 <View style={styles.feedComingSoonChip}>
-                  <Text style={styles.feedComingSoonLabel}>UNRELEASED</Text>
+                  <Text style={styles.feedComingSoonLabel}>{t('feed.unreleased')}</Text>
                 </View>
-                <Text style={styles.feedComingSoonText}>Coming Soon</Text>
+                <Text style={styles.feedComingSoonText}>{t('feed.comingSoon')}</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
         {/* Info below cover */}
-        <View style={styles.cardInfo}>
+        <View style={[styles.cardInfo, { maxWidth: metrics.contentW }]}>
           {item._section && item._section !== 'creator' && (
             <View style={[
               styles.sectionBadge,
@@ -621,7 +707,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
           {item._section === 'creator' && (
             <View style={[styles.sectionBadge, styles.sectionBadgeCreator]}>
               <Text style={styles.sectionBadgeIcon}>✨</Text>
-              <Text style={styles.sectionBadgeText}>MangaRecs Creator</Text>
+              <Text style={styles.sectionBadgeText}>{t('feed.creatorLabel')}</Text>
             </View>
           )}
           <View style={styles.genres}>
@@ -729,6 +815,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
 // ── CommentItem ─────────────────────────────────────────────────────────────
 
 function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
+  const t = useT();
   const likeScale = useRef(new Animated.Value(1)).current;
   const [repliesExpanded, setRepliesExpanded] = useState(false);
   const [replies, setReplies] = useState([]);
@@ -786,7 +873,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
           <Text style={[styles.commentUser, { color: colors.text }]}>{item.user}</Text>
           {item.spoiler && (
             <View style={styles.spoilerBadge}>
-              <Text style={styles.spoilerBadgeText}>SPOILER</Text>
+              <Text style={styles.spoilerBadgeText}>{t('feed.spoiler')}</Text>
             </View>
           )}
           <Text style={[styles.commentTime, { color: colors.muted }]}>{item.time}</Text>
@@ -797,7 +884,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
             style={[styles.spoilerReveal, { borderColor: colors.border }]}
             onPress={() => onReveal(item.id)}>
             <Ionicons name="eye-off-outline" size={13} color={colors.muted} />
-            <Text style={[styles.spoilerRevealText, { color: colors.muted }]}>Tap to reveal spoiler</Text>
+            <Text style={[styles.spoilerRevealText, { color: colors.muted }]}>{t('feed.tapToReveal')}</Text>
           </TouchableOpacity>
         ) : (
           <Text style={[styles.commentText, { color: colors.text }]}>{item.text}</Text>
@@ -805,7 +892,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
 
         <View style={styles.commentFooter}>
           <TouchableOpacity style={styles.replyBtn} onPress={() => onReply?.(item.user)}>
-            <Text style={[styles.replyBtnText, { color: colors.muted }]}>Reply</Text>
+            <Text style={[styles.replyBtnText, { color: colors.muted }]}>{t('feed.reply')}</Text>
           </TouchableOpacity>
           {item.replyCount > 0 && (
             <TouchableOpacity onPress={toggleReplies}>
@@ -820,7 +907,7 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
 
         {repliesExpanded && (
           repliesLoading ? (
-            <ActivityIndicator size="small" color="#7B5CFF" style={{ marginTop: 8 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 8 }} />
           ) : (
             <View style={styles.replyThread}>
               {replies.map((r) => (
@@ -867,7 +954,9 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
 export default function FeedScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
+  const metrics = useFeedMetrics();
   const route = useRoute();
   const searchCoachTarget = useCoachmarkTarget('header-search');
 
@@ -882,11 +971,14 @@ export default function FeedScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const { items: notifications, unreadCount, load: reloadNotifs, clearAll: handleClearAllNotif, markAllSeen, acceptFriendRequest } = useNotifications();
+
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUsername, setCurrentUsername] = useState('Reader');
   const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState(null);
   const [currentUserColor, setCurrentUserColor] = useState(null);
   const [commentFetching, setCommentFetching] = useState(false);
+  const [commentLoadingMore, setCommentLoadingMore] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(false);
   const [notifOpen, setNotifOpen]     = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -912,7 +1004,13 @@ export default function FeedScreen() {
   const [siteInput, setSiteInput]     = useState('');
   const [refreshing, setRefreshing]   = useState(false);
 
-  const notifY    = useRef(new Animated.Value(-NOTIF_H)).current;
+  const notifY    = useRef(new Animated.Value(-metrics.notifH)).current;
+  // The panel's resting position is "one panel-height above the top", which
+  // changes when the window does. The Animated.Value is created once, so a
+  // rotation while the panel is closed would otherwise leave it peeking in.
+  useEffect(() => {
+    if (!notifOpen) notifY.setValue(-metrics.notifH);
+  }, [metrics.notifH, notifOpen]);
   const notifFade = useRef(new Animated.Value(0)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
   const commentInputRef = useRef(null);
@@ -927,7 +1025,7 @@ export default function FeedScreen() {
   ).current;
   const lastSnapIndexRef = useRef(0);
   function onFeedMomentumEnd(e) {
-    const idx = Math.round(e.nativeEvent.contentOffset.y / height);
+    const idx = Math.round(e.nativeEvent.contentOffset.y / metrics.height);
     if (idx !== lastSnapIndexRef.current) {
       lastSnapIndexRef.current = idx;
       selection();
@@ -1140,7 +1238,7 @@ export default function FeedScreen() {
 
   function handleOpenReader(item) {
     if (item.comingSoon) {
-      showAppToast(`${item.title} hasn't been released yet — check back soon`, 'info');
+      showAppToast(t('toast.notReleased', { title: item.title }), 'info');
       return;
     }
     const isMangaDexUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
@@ -1242,6 +1340,22 @@ export default function FeedScreen() {
   function handleBookmark(id, isNowSaved) {
     const item = feed.find((i) => i.id === id);
     if (!item) return;
+
+    // Reading is free; keeping is what needs an account. A guest saving here
+    // would build a library tied to an anonymous session that dies with the
+    // install — so this is the moment the signup ask actually justifies itself.
+    if (isNowSaved) {
+      requireAccount({
+        what: 'save this series',
+        onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
+        action: () => applyBookmark(id, item, true),
+      });
+      return;
+    }
+    applyBookmark(id, item, false);
+  }
+
+  function applyBookmark(id, item, isNowSaved) {
 
     setFeed((prev) => prev.map((i) => {
       if (i.id !== id) return i;
@@ -1432,7 +1546,7 @@ export default function FeedScreen() {
     const text = commentInput.trim();
     if (!text || !activeItem) return;
     if (containsBlockedLanguage(text)) {
-      showAppToast('That comment contains language that isn\'t allowed here');
+      showAppToast(t('toast.badLanguage'));
       return;
     }
     const isSpoiler = commentSpoiler;
@@ -1467,8 +1581,12 @@ export default function FeedScreen() {
 
   // ── Post comments (Supabase) ──────────────────────────────────────────────
 
-  async function loadPostComments(item) {
-    setCommentFetching(true);
+  // `append` pages the comment sheet. The sheet used to stop dead at 30 with no
+  // way to see any further, which on a popular series means most of the
+  // conversation is unreachable.
+  async function loadPostComments(item, { append = false } = {}) {
+    if (append) setCommentLoadingMore(true); else setCommentFetching(true);
+    const offset = append ? (comments[item.id]?.length || 0) : 0;
 
     // Fetch real counts so the displayed numbers reflect actual DB state
     const [{ count: realCommentCount }, { count: realLikeCount }] = await Promise.all([
@@ -1483,12 +1601,15 @@ export default function FeedScreen() {
       .eq('series_title', item.title)
       .is('parent_id', null)
       .order('created_at', { ascending: false })
-      .limit(30);
+      .range(offset, offset + FEED_COMMENT_PAGE_SIZE - 1);
     if (error || !data || data.length === 0) {
-      setComments((prev) => ({ ...prev, [item.id]: [] }));
+      if (!append) setComments((prev) => ({ ...prev, [item.id]: [] }));
+      setHasMoreComments(false);
       setCommentFetching(false);
+      setCommentLoadingMore(false);
       return;
     }
+    setHasMoreComments(data.length === FEED_COMMENT_PAGE_SIZE);
 
     // Fetch reply counts and liked set in parallel
     const parentIds = data.map((c) => c.id);
@@ -1519,8 +1640,14 @@ export default function FeedScreen() {
         spoiler: row.spoiler || false, replyCount: replyCountMap[row.id] || 0,
       };
     });
-    setComments((prev) => ({ ...prev, [item.id]: mapped }));
+    setComments((prev) => {
+      if (!append) return { ...prev, [item.id]: mapped };
+      const existing = prev[item.id] || [];
+      const seen = new Set(existing.map((c) => c.id));
+      return { ...prev, [item.id]: [...existing, ...mapped.filter((c) => !seen.has(c.id))] };
+    });
     setCommentFetching(false);
+    setCommentLoadingMore(false);
   }
 
   // ── Notification panel ────────────────────────────────────────────────────
@@ -1538,7 +1665,7 @@ export default function FeedScreen() {
     // (pending friend requests stay unread so their Accept button survives)
     markAllSeen();
     Animated.parallel([
-      Animated.timing(notifY,    { toValue: -NOTIF_H, duration: 260, useNativeDriver: true }),
+      Animated.timing(notifY,    { toValue: -metrics.notifH, duration: 260, useNativeDriver: true }),
       Animated.timing(notifFade, { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start(() => setNotifOpen(false));
   }
@@ -1638,7 +1765,11 @@ export default function FeedScreen() {
           <TouchableOpacity ref={searchCoachTarget} style={styles.headerBtn} onPress={() => setSearchOpen(true)}>
             <Ionicons name="search-outline" size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerBtn} onPress={openNotif}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={openNotif}
+            accessibilityRole="button"
+            accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
             {unreadCount > 0 && (
               <View style={styles.badge}>
@@ -1667,7 +1798,7 @@ export default function FeedScreen() {
         )}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={height}
+        snapToInterval={metrics.height}
         snapToAlignment="start"
         decelerationRate="fast"
         overScrollMode="always"
@@ -1675,7 +1806,7 @@ export default function FeedScreen() {
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
         onMomentumScrollEnd={onFeedMomentumEnd}
-        getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
+        getItemLayout={(_, index) => ({ length: metrics.height, offset: metrics.height * index, index })}
         removeClippedSubviews={true}
         windowSize={5}
         maxToRenderPerBatch={2}
@@ -1685,13 +1816,13 @@ export default function FeedScreen() {
         onEndReachedThreshold={4}
         ListFooterComponent={
           loadingMore ? (
-            <View style={styles.loadingMore}>
+            <View style={[styles.loadingMore, { height: metrics.height }]}>
               <Text style={styles.loadingMoreDot}>· · ·</Text>
             </View>
           ) : null
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
       />
 
@@ -1700,7 +1831,7 @@ export default function FeedScreen() {
         pointerEvents="none"
         style={[styles.saveToast, { opacity: toastAnim, transform: [{ translateY: toastTranslateY }] }]}>
         <Ionicons name="bookmark" size={14} color="#A09CE0" />
-        <Text style={styles.saveToastText}>Saved to Library</Text>
+        <Text style={styles.saveToastText}>{t('feed.savedToLibrary')}</Text>
       </Animated.View>
 
       {/* TikTok-style Comments */}
@@ -1710,7 +1841,7 @@ export default function FeedScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCommentsOpen(false)} />
 
-          <View style={[styles.commentsSheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.commentsSheet, { height: metrics.commentsH, backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
             <View style={[styles.commentsHeader, { borderBottomColor: colors.border }]}>
@@ -1730,9 +1861,9 @@ export default function FeedScreen() {
                       discussing: activeItem?.commentCount,
                     });
                   }}>
-                  <Text style={{ color: '#7B5CFF', fontSize: 12, fontWeight: '600' }}>Full discussion</Text>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('feed.fullDiscussion')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                <TouchableOpacity hitSlop={HIT_SLOP}
                   style={[styles.commentsCloseBtn, { backgroundColor: colors.inputBg }]}
                   onPress={() => setCommentsOpen(false)}>
                   <Ionicons name="close" size={14} color={colors.muted} />
@@ -1759,11 +1890,20 @@ export default function FeedScreen() {
                   colors={colors}
                 />
               )}
+              onEndReached={() => { if (activeItem && hasMoreComments && !commentLoadingMore) loadPostComments(activeItem, { append: true }); }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={
+                commentLoadingMore ? (
+                  <View style={styles.commentsEmpty}>
+                    <ActivityIndicator size="small" color={colors.muted} />
+                  </View>
+                ) : null
+              }
               ListEmptyComponent={
                 <View style={styles.commentsEmpty}>
                   {commentFetching
-                    ? <ActivityIndicator size="small" color="#7B5CFF" />
-                    : <Text style={[styles.commentsEmptyText, { color: colors.muted }]}>No comments yet. Be first!</Text>}
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Text style={[styles.commentsEmptyText, { color: colors.muted }]}>{t('feed.noComments')}</Text>}
                 </View>
               }
             />
@@ -1784,7 +1924,7 @@ export default function FeedScreen() {
                 multiline
                 maxLength={300}
               />
-              <TouchableOpacity
+              <TouchableOpacity hitSlop={HIT_SLOP}
                 style={[
                   styles.commentSpoilerBtn,
                   { backgroundColor: colors.inputBg },
@@ -1795,7 +1935,7 @@ export default function FeedScreen() {
                 accessibilityState={{ selected: commentSpoiler }}>
                 <Ionicons name={commentSpoiler ? 'eye-off' : 'eye-off-outline'} size={16} color={commentSpoiler ? '#FF3B30' : colors.muted} />
               </TouchableOpacity>
-              <TouchableOpacity
+              <TouchableOpacity hitSlop={HIT_SLOP}
                 style={[styles.commentSendBtn, { opacity: commentInput.trim() ? 1 : 0.35 }]}
                 onPress={handleSendComment}
                 disabled={!commentInput.trim()}>
@@ -1814,14 +1954,14 @@ export default function FeedScreen() {
 
             {/* Header: search · title · close — Snapchat-style "Send to" bar */}
             <View style={feedSendStyles.headerRow}>
-              <TouchableOpacity
+              <TouchableOpacity hitSlop={HIT_SLOP}
                 style={feedSendStyles.headerIconBtn}
                 onPress={() => setFriendSearchOpen((o) => !o)}
                 activeOpacity={0.7}>
                 <Ionicons name="search" size={20} color={colors.text} />
               </TouchableOpacity>
-              <Text style={[feedSendStyles.headerTitle, { color: colors.text }]}>Send to</Text>
-              <TouchableOpacity
+              <Text style={[feedSendStyles.headerTitle, { color: colors.text }]}>{t('feed.sendTo')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP}
                 style={feedSendStyles.headerIconBtn}
                 onPress={() => setShareSheetOpen(false)}
                 activeOpacity={0.7}>
@@ -1836,7 +1976,7 @@ export default function FeedScreen() {
                 <Ionicons name="search" size={14} color={colors.muted} />
                 <TextInput
                   style={[feedSendStyles.searchInput, { color: colors.text }]}
-                  placeholder="Search friends"
+                  placeholder={t('placeholder.searchFriends')}
                   placeholderTextColor={colors.muted}
                   value={friendSearchQuery}
                   onChangeText={setFriendSearchQuery}
@@ -1850,7 +1990,7 @@ export default function FeedScreen() {
               <View style={feedSendStyles.noFriends}>
                 <Ionicons name="people-outline" size={28} color={colors.muted} />
                 <Text style={[feedSendStyles.noFriendsText, { color: colors.muted }]}>
-                  Add friends first to send recommendations.
+                  {t('feed.addFriendsFirst')}
                 </Text>
               </View>
             ) : (
@@ -1862,8 +2002,7 @@ export default function FeedScreen() {
                   .filter((f) => f.name.toLowerCase().includes(friendSearchQuery.trim().toLowerCase()))
                   .map((friend) => {
                     const status = sendSentTo[friend.id];
-                    const THEME_COLORS = { default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD', emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A' };
-                    const accent = THEME_COLORS[friend.color] || '#7B5CFF';
+                    const accent = profileAccent(friend.color);
                     return (
                       <TouchableOpacity
                         key={friend.id}
@@ -1897,7 +2036,7 @@ export default function FeedScreen() {
             )}
 
             <View style={[feedShareStyles.divider, { backgroundColor: colors.border }]} />
-            <Text style={[feedShareStyles.sectionTitle, { color: colors.muted }]}>Share to</Text>
+            <Text style={[feedShareStyles.sectionTitle, { color: colors.muted }]}>{t('feed.shareTo')}</Text>
 
             {/* External destinations — individual deep links where we can hand off
                 a pre-filled message, plus a catch-all "More" to the real OS share
@@ -1910,10 +2049,10 @@ export default function FeedScreen() {
                 style={feedSendStyles.destItem}
                 onPress={() => { setShareSheetOpen(false); setCardShareOpen(true); }}
                 activeOpacity={0.75}>
-                <View style={[feedSendStyles.destIcon, { backgroundColor: '#7B5CFF' }]}>
+                <View style={[feedSendStyles.destIcon, { backgroundColor: colors.primary }]}>
                   <Ionicons name="albums-outline" size={20} color="#fff" />
                 </View>
-                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>Card</Text>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>{t('feed.card')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={feedSendStyles.destItem} onPress={handleCopyLink} activeOpacity={0.75}>
                 <View style={[feedSendStyles.destIcon, { backgroundColor: '#4A90D9' }]}>
@@ -1951,13 +2090,13 @@ export default function FeedScreen() {
                 <View style={[feedSendStyles.destIcon, { backgroundColor: '#5C8DE8' }]}>
                   <Ionicons name="mail" size={20} color="#fff" />
                 </View>
-                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>Email</Text>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>{t('feed.destEmail')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={feedSendStyles.destItem} onPress={handleNativeShare} activeOpacity={0.75}>
                 <View style={[feedSendStyles.destIcon, { backgroundColor: '#3A3A42' }]}>
                   <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                 </View>
-                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>More</Text>
+                <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>{t('feed.more')}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1980,15 +2119,15 @@ export default function FeedScreen() {
           style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.48)', opacity: notifFade }]}
         />
         <TouchableOpacity
-          style={[StyleSheet.absoluteFill, { top: NOTIF_H }]}
+          style={[StyleSheet.absoluteFill, { top: metrics.notifH }]}
           activeOpacity={1}
           onPress={closeNotif}
         />
-        <Animated.View style={[styles.notifPanel, { transform: [{ translateY: notifY }] }]}>
+        <Animated.View style={[styles.notifPanel, { height: metrics.notifH, transform: [{ translateY: notifY }] }]}>
           <View style={[styles.notifInner, { paddingTop: insets.top + 14 }]}>
             <View style={styles.notifHeader}>
-              <Text style={styles.notifHeaderTitle}>Notifications</Text>
-              <TouchableOpacity style={styles.notifCloseBtn} onPress={closeNotif}>
+              <Text style={styles.notifHeaderTitle}>{t('notifications.title')}</Text>
+              <TouchableOpacity hitSlop={HIT_SLOP} style={styles.notifCloseBtn} onPress={closeNotif}>
                 <Ionicons name="close" size={16} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -2005,7 +2144,7 @@ export default function FeedScreen() {
                       <Text style={styles.notifAvatarTxt}>{n.avatar}</Text>
                     </View>
                     <View style={[styles.notifTypeBadge, { backgroundColor: notifIconBg(n.type) }]}>
-                      <Ionicons name={notifIconName(n.type)} size={8} color={notifIconColor(n.type)} />
+                      <Ionicons name={notifIconName(n.type)} size={8} color={notifIconColor(n.type, colors)} />
                     </View>
                   </View>
                   <View style={styles.notifContent}>
@@ -2039,7 +2178,7 @@ export default function FeedScreen() {
                       <TouchableOpacity
                         style={styles.notifAcceptBtn}
                         onPress={() => acceptFriendRequest(n.friendshipId)}>
-                        <Text style={styles.notifAcceptBtnText}>Accept</Text>
+                        <Text style={styles.notifAcceptBtnText}>{t('messages.accept')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -2050,11 +2189,11 @@ export default function FeedScreen() {
 
             <View style={styles.notifFooter}>
               <TouchableOpacity onPress={() => { closeNotif(); navigation.navigate('Notifications'); }}>
-                <Text style={styles.notifViewAll}>View older</Text>
+                <Text style={styles.notifViewAll}>{t('feed.viewOlder')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.notifClearBtn} onPress={handleClearAllNotif}>
-                <Ionicons name="checkmark-done-outline" size={13} color="#7B5CFF" />
-                <Text style={styles.notifClearBtnText}>Clear all</Text>
+                <Ionicons name="checkmark-done-outline" size={13} color={colors.primary} />
+                <Text style={styles.notifClearBtnText}>{t('notifications.clearAll')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2071,7 +2210,7 @@ export default function FeedScreen() {
                 value={siteInput}
                 onChangeText={setSiteInput}
                 onSubmitEditing={handleGo}
-                placeholder="Enter website or URL..."
+                placeholder={t('placeholder.enterUrl')}
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -2083,7 +2222,7 @@ export default function FeedScreen() {
                 </TouchableOpacity>
               ) : null}
             </View>
-            <Text style={[styles.searchLabel, { color: colors.muted }]}>Recommended Sites</Text>
+            <Text style={[styles.searchLabel, { color: colors.muted }]}>{t('feed.recommendedSites')}</Text>
             <View style={styles.bookmarksGrid}>
               {BOOKMARKS.map((b) => (
                 <TouchableOpacity
@@ -2121,13 +2260,14 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 
   // Feed card
-  card: { width, position: 'relative' },
+  burstWrap: { alignItems: 'center', justifyContent: 'center' },
+  card: { position: 'relative' },
   cardBgImage: { ...StyleSheet.absoluteFillObject, opacity: 0.22 },
   cardBgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4,3,14,0.72)' },
   cardLayout: {
     flex: 1,
     paddingTop: 70,
-    paddingBottom: 88,
+    // paddingBottom is applied inline from useBottomTabBarHeight()
     paddingLeft: 18,
     paddingRight: 74,
   },
@@ -2159,7 +2299,7 @@ const styles = StyleSheet.create({
   sideActions: { position: 'absolute', right: 14, bottom: 110, alignItems: 'center', justifyContent: 'space-between', height: 220 },
   actionBtn: { alignItems: 'center', justifyContent: 'center', width: 44 },
   actionCount: { fontSize: 12, fontWeight: '600', marginTop: 4 },
-  cardInfo: { paddingTop: 14, width: '100%', maxWidth: CARD_CONTENT_W, alignSelf: 'center' },
+  cardInfo: { paddingTop: 14, width: '100%', alignSelf: 'center' },
   sectionBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 8, borderWidth: 1, gap: 5 },
   sectionBadgeHot:      { backgroundColor: 'rgba(255, 86, 24, 0.27)', borderColor: 'rgba(255, 81, 1, 0.57)' },
   sectionBadgeTrending: { backgroundColor: 'rgba(46, 31, 212, 0.49)',  borderColor: 'rgba(10, 0, 104, 0.81)' },
@@ -2186,14 +2326,14 @@ const styles = StyleSheet.create({
   author: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontStyle: 'italic' },
 
   // Save toast
-  loadingMore: { height, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D12' },
+  loadingMore: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D12' },
   loadingMoreDot: { color: '#7B5CFF', fontSize: 32, letterSpacing: 8 },
   saveToast: { position: 'absolute', bottom: 100, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,28,50,0.92)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(160,156,224,0.35)' },
   saveToastText: { color: '#A09CE0', fontSize: 13, fontWeight: '600', marginLeft: 7, paddingRight: 2 },
 
   // Comments sheet (TikTok style)
   commentsWrap: { flex: 1, justifyContent: 'flex-end' },
-  commentsSheet: { height: COMMENTS_H, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  commentsSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22 },
   handle: { width: 38, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
   commentsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   commentsTitle: { fontSize: 16, fontWeight: '700' },
@@ -2241,7 +2381,7 @@ const styles = StyleSheet.create({
   commentSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 
   // Notification panel
-  notifPanel: { position: 'absolute', top: 0, left: 0, right: 0, height: NOTIF_H, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: 'hidden' },
+  notifPanel: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: 'hidden' },
   notifInner: { flex: 1, backgroundColor: 'rgba(14,14,20,0.97)' },
   notifHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 14 },
   notifHeaderTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: 'bold' },

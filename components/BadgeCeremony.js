@@ -5,6 +5,7 @@ import { BADGE_GRADES, GRADE_ORDER, ensureBadgeRarity, formatRarity } from '../u
 import { useProfile } from '../utils/ProfileContext';
 import { medium as hapticMedium, heavy as hapticHeavy, success as hapticSuccess } from '../utils/haptics';
 import { maybeAskForReview } from '../utils/reviewPrompt';
+import { useT } from '../utils/LanguageContext';
 
 // Full-screen unlock ceremony. The spectacle scales with the tier: Bronze gets
 // a clean pop, Diamond+ adds a particle burst, Mythic gets the full show.
@@ -48,6 +49,7 @@ function ParticleBurst({ color, count, radius }) {
 
 export default function BadgeCeremony() {
   const { newBadges, clearNewBadges, setCeremonyActive } = useProfile();
+  const t = useT();
   const [queue, setQueue] = useState([]);
   const [index, setIndex] = useState(0);
   const [, setRarityReady] = useState(false);
@@ -162,7 +164,7 @@ export default function BadgeCeremony() {
         </View>
 
         <Animated.View style={[styles.textBlock, { opacity: textFade }]}>
-          <Text style={styles.unlockedLabel}>BADGE UNLOCKED</Text>
+          <Text style={styles.unlockedLabel}>{t('badge.unlocked')}</Text>
           <Text style={[styles.badgeName, { color: grade.color }]}>{badge.name}</Text>
           <Text style={styles.badgeDesc}>{badge.desc}</Text>
           <View style={[styles.tierChip, { backgroundColor: grade.bg, borderColor: grade.border }]}>

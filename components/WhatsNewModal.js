@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useProfile } from '../utils/ProfileContext';
 import { CHANGELOG } from '../utils/changelog';
 
@@ -16,6 +17,8 @@ const SEEN_KEY = '@mangarecs/whatsnew_auto_shown_version';
 // once, only once the user is actually inside the app (past onboarding/auth).
 export default function WhatsNewModal() {
   const { colors } = useTheme();
+
+  const t = useT();
   const { ceremonyActive } = useProfile();
   const [pendingEntry, setPendingEntry] = useState(null);
   const [entry, setEntry] = useState(null);
@@ -49,7 +52,7 @@ export default function WhatsNewModal() {
         <View style={[styles.sheet, { backgroundColor: colors.card }]}>
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
-              <Text style={[styles.title, { color: colors.text }]}>What's New</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{t('whatsNew.title')}</Text>
               <View style={styles.versionPill}>
                 <Text style={styles.versionPillText}>v{entry.version}</Text>
               </View>
@@ -63,14 +66,14 @@ export default function WhatsNewModal() {
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
             {entry.highlights.map((h, i) => (
               <View key={i} style={styles.row}>
-                <Ionicons name="checkmark-circle" size={13} color="#7B5CFF" style={{ marginTop: 1.5 }} />
+                <Ionicons name="checkmark-circle" size={13} color={colors.primary} style={{ marginTop: 1.5 }} />
                 <Text style={[styles.itemText, { color: colors.text }]}>{h}</Text>
               </View>
             ))}
           </ScrollView>
 
           <TouchableOpacity style={styles.btn} onPress={dismiss} activeOpacity={0.85}>
-            <Text style={styles.btnText}>Got it</Text>
+            <Text style={styles.btnText}>{t('whatsNew.gotIt')}</Text>
           </TouchableOpacity>
         </View>
       </View>

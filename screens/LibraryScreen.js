@@ -1,15 +1,20 @@
 ﻿import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Image,
-  ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator, Platform, PanResponder,
+  View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, ScrollView, RefreshControl, Animated, Dimensions, ActivityIndicator, Platform, PanResponder,
 } from 'react-native';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { MangaCover } from '../utils/mangaCovers';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigation, useScrollToTop, useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead, syncLibraryWrite } from '../utils/readerUtils';
@@ -26,6 +31,7 @@ import { CoverGridSkeleton } from '../components/Skeleton';
 import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
 import { rateSeries, getSeriesRating } from '../utils/ratings';
 import { useResponsive, TABLET_GRID_MAX_WIDTH } from '../utils/responsive';
+import { HIT_SLOP } from '../utils/tokens';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
 const TABS = ['Reading', 'Bookmarked', 'Downloaded', 'Completed'];
@@ -57,8 +63,9 @@ const keyOf = (s) => s.searchKey || s.title;
 
 // ── GridItem with entrance animation ──────────────────────────────────────
 
-function GridItem({ series, activeTab, onPress, onLongPress, index, opening, newChapterCount, isNewInPool, siteIcon, arranging, pinned, onSlotLayout, onDragStart, onDrop, widthPct }) {
+function GridItem({ series, activeTab, focusKey, onPress, onLongPress, index, opening, newChapterCount, isNewInPool, siteIcon, arranging, pinned, onSlotLayout, onDragStart, onDrop, widthPct }) {
   const { colors } = useTheme();
+  const t = useT();
   const anim = useRef(new Animated.Value(0)).current;
   const wiggle = useRef(new Animated.Value(0)).current;
   const pan = useRef(new Animated.ValueXY()).current;
@@ -75,6 +82,11 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, new
   const onDropRef = useRef(onDrop);
   onDropRef.current = onDrop;
 
+  // focusKey is a dependency rather than part of the React key. It used to be
+  // in the key, which meant every tile in the library unmounted and remounted
+  // on every single focus of the tab — throwing away decoded covers and
+  // rebuilding each PanResponder — purely to replay a 160ms fade. As a dep the
+  // animation still replays, and nothing remounts.
   useEffect(() => {
     anim.setValue(0);
     Animated.timing(anim, {
@@ -83,7 +95,7 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, new
       delay: 0,
       useNativeDriver: true,
     }).start();
-  }, [activeTab]);
+  }, [activeTab, focusKey]);
 
   // App-icon style jiggle while arrange mode is on (pinned tiles sit still)
   useEffect(() => {
@@ -172,18 +184,18 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, new
 
           {newChapterCount > 0 ? (
             <View style={[styles.updateBadge, styles.newChapterBadge]}>
-              <Text style={styles.updateBadgeText}>NEW CHAPTER</Text>
+              <Text style={styles.updateBadgeText}>{t('library.newChapter')}</Text>
             </View>
           ) : isNewInPool ? (
             <View style={styles.updateBadge}>
-              <Text style={styles.updateBadgeText}>JUST ADDED</Text>
+              <Text style={styles.updateBadgeText}>{t('library.justAddedBadge')}</Text>
             </View>
           ) : null}
 
           {progressPct >= 1 && (
             <View style={styles.completeOverlay}>
               <View style={styles.completePill}>
-                <Text style={styles.completePillText}>COMPLETE</Text>
+                <Text style={styles.completePillText}>{t('library.completeBadge')}</Text>
               </View>
             </View>
           )}
@@ -199,7 +211,7 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, new
           </View>
         </MangaCover>
 
-        <Text style={[styles.itemTitle, { color: opening ? '#7B5CFF' : colors.text }]} numberOfLines={1}>
+        <Text style={[styles.itemTitle, { color: opening ? colors.primary : colors.text }]} numberOfLines={1}>
           {opening ? 'Opening…' : series.title}
         </Text>
         <View style={styles.itemMeta}>
@@ -234,6 +246,7 @@ function GridItem({ series, activeTab, onPress, onLongPress, index, opening, new
 
 function TabButton({ tab, active, onPress }) {
   const { colors } = useTheme();
+  const t = useT();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
@@ -278,8 +291,14 @@ function itemWidthPct(numCols) {
 export default function LibraryScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const { profile, updateProfile, refreshProfile } = useProfile();
   const insets = useSafeAreaInsets();
+  // The tab bar is absolutely positioned and translucent, so its height has to
+  // be reserved by the content itself. A hardcoded 88 was short of the real bar
+  // on gesture-nav Android and any device with a home indicator, which is why
+  // the last row rendered under the labels.
+  const tabBarHeight = useBottomTabBarHeight();
   const { isTablet } = useResponsive();
   const numCols = isTablet ? 4 : 3;
   const gridItemWidthPct = itemWidthPct(numCols);
@@ -1195,10 +1214,10 @@ export default function LibraryScreen() {
         bounces={false}
         overScrollMode="never"
         scrollEnabled={!scrollLocked}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}>
 
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Library</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('library.title')}</Text>
           <View style={styles.streakBadge}>
             <Text style={styles.fireEmoji}>🔥</Text>
             <Text style={styles.streakText}>{profile?.streak_count || 0} day streak </Text>
@@ -1207,7 +1226,7 @@ export default function LibraryScreen() {
 
         <TouchableOpacity style={[styles.searchBar, { borderColor: colors.border }]} onPress={openSearch}>
           <Ionicons name="search" size={16} color={colors.muted} />
-          <Text style={[styles.searchPlaceholder, { color: colors.muted }]}>Search manga, webtoons...</Text>
+          <Text style={[styles.searchPlaceholder, { color: colors.muted }]}>{t('placeholder.searchManga')}</Text>
         </TouchableOpacity>
 
         {continueReading && (
@@ -1227,7 +1246,7 @@ export default function LibraryScreen() {
                 </View>
               </MangaCover>
               <View style={styles.continueInfo}>
-                <Text style={styles.continueLabel}>Continue</Text>
+                <Text style={styles.continueLabel}>{t('common.continue')}</Text>
                 <Text style={[styles.continueTitle, { color: colors.text }]} numberOfLines={1}>
                   {continueReading.title}
                 </Text>
@@ -1252,7 +1271,7 @@ export default function LibraryScreen() {
                 })()}
               </View>
               <View style={styles.continuePlayBtn}>
-                <Ionicons name="play" size={16} color="#7B5CFF" />
+                <Ionicons name="play" size={16} color={colors.primary} />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -1271,14 +1290,14 @@ export default function LibraryScreen() {
               key={key}
               style={[styles.sortChip, { backgroundColor: colors.border }, sortMode === key && styles.sortChipActive]}
               onPress={() => changeSortMode(key)}>
-              <Text style={[styles.sortChipText, { color: sortMode === key ? '#7B5CFF' : colors.muted }]}>{label}</Text>
+              <Text style={[styles.sortChipText, { color: sortMode === key ? colors.primary : colors.muted }]}>{label}</Text>
             </TouchableOpacity>
           ))}
           {sortMode === 'custom' && (
             <TouchableOpacity
               style={[styles.arrangeBtn, arranging && styles.arrangeBtnActive]}
               onPress={toggleArranging}>
-              <Ionicons name={arranging ? 'checkmark' : 'move-outline'} size={11} color={arranging ? '#fff' : '#7B5CFF'} />
+              <Ionicons name={arranging ? 'checkmark' : 'move-outline'} size={11} color={arranging ? '#fff' : colors.primary} />
               <Text style={[styles.arrangeBtnText, arranging && { color: '#fff' }]}>{arranging ? 'Done' : 'Move'}</Text>
             </TouchableOpacity>
           )}
@@ -1288,7 +1307,7 @@ export default function LibraryScreen() {
               onPress={() => { light(); setShowGenreFilter((v) => !v); }}
               accessibilityRole="button"
               accessibilityLabel="Filter by genre">
-              <Ionicons name="filter" size={13} color={genreFilter ? '#7B5CFF' : colors.muted} />
+              <Ionicons name="filter" size={13} color={genreFilter ? colors.primary : colors.muted} />
               {!!genreFilter && <View style={styles.genreFilterDot} />}
             </TouchableOpacity>
           )}
@@ -1299,14 +1318,14 @@ export default function LibraryScreen() {
             <TouchableOpacity
               style={[styles.sortChip, { backgroundColor: colors.border }, !genreFilter && styles.sortChipActive]}
               onPress={() => { light(); setGenreFilter(null); }}>
-              <Text style={[styles.sortChipText, { color: !genreFilter ? '#7B5CFF' : colors.muted }]}>All</Text>
+              <Text style={[styles.sortChipText, { color: !genreFilter ? colors.primary : colors.muted }]}>{t('library.all')}</Text>
             </TouchableOpacity>
             {tabGenres.map((g) => (
               <TouchableOpacity
                 key={g}
                 style={[styles.sortChip, { backgroundColor: colors.border }, genreFilter === g && styles.sortChipActive]}
                 onPress={() => { light(); setGenreFilter(genreFilter === g ? null : g); }}>
-                <Text style={[styles.sortChipText, { color: genreFilter === g ? '#7B5CFF' : colors.muted }]}>{g}</Text>
+                <Text style={[styles.sortChipText, { color: genreFilter === g ? colors.primary : colors.muted }]}>{g}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -1327,14 +1346,14 @@ export default function LibraryScreen() {
         {activeTab === 'Downloaded' && filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cloud-download-outline" size={36} color={colors.muted} style={{ marginBottom: 12 }} />
-            <Text style={[styles.emptyTitle, { color: colors.muted }]}>No Downloaded Chapters </Text>
+            <Text style={[styles.emptyTitle, { color: colors.muted }]}>{t('library.noDownloaded')} </Text>
             <Text style={[styles.emptySub, { color: colors.muted }]}>→ Download Chapter for offline reading</Text>
           </View>
         ) : activeTab === 'Bookmarked' && savedItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="bookmark-outline" size={36} color={colors.muted} style={{ marginBottom: 12 }} />
-            <Text style={[styles.emptyTitle, { color: colors.muted }]}>No saved series yet </Text>
-            <Text style={[styles.emptySub, { color: colors.muted }]}>Tap Save on any series in your feed </Text>
+            <Text style={[styles.emptyTitle, { color: colors.muted }]}>{t('library.noSaved')} </Text>
+            <Text style={[styles.emptySub, { color: colors.muted }]}>{t('library.tapSave')} </Text>
           </View>
         ) : (
           <View style={[styles.grid, isTablet && styles.gridTablet]}>
@@ -1344,7 +1363,8 @@ export default function LibraryScreen() {
               const pool = findPoolEntry(series.title, series.searchKey);
               return (
                 <GridItem
-                  key={`${focusKey}-${activeTab}-${series.id}`}
+                  key={`${activeTab}-${series.id}`}
+                  focusKey={focusKey}
                   series={rating === series.rating ? series : { ...series, rating }}
                   activeTab={activeTab}
                   index={index}
@@ -1373,13 +1393,13 @@ export default function LibraryScreen() {
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={[styles.emptyTitle, { color: colors.muted }]}>Nothing here yet </Text>
-              <Text style={[styles.emptySub, { color: colors.muted }]}>Start exploring to fill your library </Text>
+              <Text style={[styles.emptyTitle, { color: colors.muted }]}>{t('library.nothingHere')} </Text>
+              <Text style={[styles.emptySub, { color: colors.muted }]}>{t('library.startExploring')} </Text>
             </View>
           )
         )}
 
-        <View style={{ height: 88 }} />
+        <View style={{ height: tabBarHeight + 8 }} />
       </ScrollView>
 
       {/* Long-press context menu */}
@@ -1408,7 +1428,7 @@ export default function LibraryScreen() {
                   <View style={styles.contextDivider} />
                   <TouchableOpacity style={styles.contextMenuItem} onPress={handleAddToBookmarked}>
                     <Ionicons name="bookmark-outline" size={15} color="#A09CE0" />
-                    <Text style={styles.contextMenuText}>Add to Bookmarked</Text>
+                    <Text style={styles.contextMenuText}>{t('library.addToBookmarked')}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -1417,14 +1437,14 @@ export default function LibraryScreen() {
                   <View style={styles.contextDivider} />
                   <TouchableOpacity style={styles.contextMenuItem} onPress={handleMarkAsCompleted}>
                     <Ionicons name="checkmark-circle-outline" size={15} color="#1D9E75" />
-                    <Text style={[styles.contextMenuText, { color: '#1D9E75' }]}>Mark as Completed</Text>
+                    <Text style={[styles.contextMenuText, { color: '#1D9E75' }]}>{t('library.markCompleted')}</Text>
                   </TouchableOpacity>
                 </>
               )}
               <View style={styles.contextDivider} />
               <TouchableOpacity style={styles.contextMenuItem} onPress={handleOpenRateModal}>
                 <Ionicons name="star-outline" size={15} color="#FFD700" />
-                <Text style={styles.contextMenuText}>Rate this Series</Text>
+                <Text style={styles.contextMenuText}>{t('library.rateSeries')}</Text>
               </TouchableOpacity>
             </View>
           );
@@ -1437,7 +1457,7 @@ export default function LibraryScreen() {
           <TouchableOpacity style={[styles.rateSheet, { backgroundColor: colors.card, borderColor: colors.border }]} activeOpacity={1}>
             <Text style={[styles.rateTitle, { color: colors.text }]} numberOfLines={1}>{rateModal.series?.title}</Text>
             {rateModal.loading ? (
-              <ActivityIndicator size="small" color="#7B5CFF" style={{ marginVertical: 20 }} />
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
             ) : (
               <>
                 <StarRatingDisplay avg={rateModal.avg} count={rateModal.count} size={14} showLabel />
@@ -1464,16 +1484,16 @@ export default function LibraryScreen() {
                 value={query}
                 onChangeText={setQuery}
                 onSubmitEditing={() => submitSearch()}
-                placeholder="Search manga, webtoons..."
+                placeholder={t('placeholder.searchManga')}
                 placeholderTextColor={colors.muted}
               />
               {query ? (
-                <TouchableOpacity onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
                   <Ionicons name="close" size={16} color={colors.muted} />
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={closeSearch}>
-                  <Text style={[styles.cancelText, { color: colors.muted }]}>Cancel</Text>
+                  <Text style={[styles.cancelText, { color: colors.muted }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1483,7 +1503,7 @@ export default function LibraryScreen() {
                   <View style={styles.searchSection}>
                     <View style={styles.searchSectionHeader}>
                       <Ionicons name="book-outline" size={11} color={colors.muted} />
-                      <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>Results</Text>
+                      <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>{t('library.results')}</Text>
                     </View>
                     {mergedResults.map((item) => (
                       <TouchableOpacity
@@ -1491,7 +1511,7 @@ export default function LibraryScreen() {
                         style={styles.searchResultRow}
                         onPress={() => openFromSearch(item)}
                         activeOpacity={0.7}>
-                        <View style={[styles.searchResultDot, { backgroundColor: item.color || '#7B5CFF' }]} />
+                        <View style={[styles.searchResultDot, { backgroundColor: item.color || colors.primary }]} />
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.searchResultTitle, { color: colors.text }]}>{item.title}</Text>
                           {item.genres?.length > 0 ? (
@@ -1520,14 +1540,14 @@ export default function LibraryScreen() {
                     <View style={styles.searchSection}>
                       <View style={styles.searchSectionHeader}>
                         <Ionicons name="time-outline" size={11} color={colors.muted} />
-                        <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>Recent</Text>
+                        <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>{t('library.recent')}</Text>
                       </View>
                       {recentSearches.map((term) => (
                         <View key={term} style={styles.recentRow}>
                           <TouchableOpacity style={styles.recentTermBtn} onPress={() => submitSearch(term)}>
                             <Text style={[styles.recentTermText, { color: colors.text }]}>{term}</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => removeRecent(term)} style={{ padding: 6 }} accessibilityRole="button" accessibilityLabel={`Remove "${term}" from recent searches`}>
+                          <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => removeRecent(term)} style={{ padding: 6 }} accessibilityRole="button" accessibilityLabel={`Remove "${term}" from recent searches`}>
                             <Ionicons name="close" size={13} color={colors.muted} />
                           </TouchableOpacity>
                         </View>
@@ -1537,7 +1557,7 @@ export default function LibraryScreen() {
                   <View style={styles.searchSection}>
                     <View style={styles.searchSectionHeader}>
                       <Ionicons name="trending-up" size={11} color={colors.muted} />
-                      <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>Trending</Text>
+                      <Text style={[styles.searchSectionTitle, { color: colors.muted }]}>{t('library.trending')}</Text>
                     </View>
                     <View style={styles.trendingWrap}>
                       {TRENDING.map((term, i) => (

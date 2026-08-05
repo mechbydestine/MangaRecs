@@ -1015,31 +1015,6 @@ export function Bubble({ children, s, id, style, tail = 'left' }) {
   );
 }
 
-/**
- * The vertical page rail — kanji numeral + mode mark running down the edge,
- * the way a printed volume marks its pages. Uses the system font, since the
- * brand display face carries no CJK glyphs.
- */
-export function VerticalRail({ s, id, numeral, label }) {
-  return (
-    <View style={{ alignItems: 'center', gap: 10 }} pointerEvents="none">
-      <Text style={{ fontSize: 19, color: s.ink, opacity: 0.9, lineHeight: 23 }}>{numeral}</Text>
-      <View style={{ width: 1, height: 26, backgroundColor: rgba(s.ink, 0.35) }} />
-      <Text style={{ fontSize: 13, color: s.ink, opacity: 0.5, lineHeight: 17, letterSpacing: 2 }}>
-        {String(id.mode.rail).split('').join('\n')}
-      </Text>
-      {!!label && (
-        <>
-          <View style={{ width: 1, height: 20, backgroundColor: rgba(s.ink, 0.28) }} />
-          <Text style={{ fontSize: 8.5, color: s.ink, opacity: 0.45, letterSpacing: 1.5, lineHeight: 11, textAlign: 'center' }}>
-            {String(label).split('').join('\n')}
-          </Text>
-        </>
-      )}
-    </View>
-  );
-}
-
 /** Oversized ghost numeral sitting behind content — editorial page furniture. */
 export function GhostNumeral({ text, s, style, size = 210 }) {
   const f = useLoop(9000);

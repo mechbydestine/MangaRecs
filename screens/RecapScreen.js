@@ -24,11 +24,11 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
+import { useT } from '../utils/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { DeviceMotion } from 'expo-sensors';
 import ViewShot from 'react-native-view-shot';
@@ -42,10 +42,10 @@ import {
   profileToBadgeStats, computeEarnedBadgeIds, highestGradeEarned,
 } from '../utils/badges';
 import BadgeIcon from '../components/BadgeIcon';
-import { buildIdentity, surfaceFor, rgba, RAIL_NUMERALS } from '../utils/recapIdentity';
+import { buildIdentity, surfaceFor, rgba } from '../utils/recapIdentity';
 import { getState as ambienceState } from '../utils/ambiencePlayer';
 import {
-  TextureStack, Panel, PrintText, Bubble, VerticalRail, GhostNumeral, Stamp, TornEdge, Band, TransitionCut,
+  TextureStack, Panel, PrintText, Bubble, GhostNumeral, Stamp, TornEdge, Band, TransitionCut,
   StageWall, StageDrift, StageImpact, StageHorizon, StageRunway,
   StageOrbit, StagePanelGrid, StageCelebrate, StageEmber, StageFinale,
 } from '../components/RecapStage';
@@ -56,9 +56,9 @@ import {
   readingDnaCode, ratingPersonality,
 } from '../utils/recapHistory';
 import { selection, light as hapticLight, success as hapticSuccess } from '../utils/haptics';
+import { HIT_SLOP } from '../utils/tokens';
 
 const DISPLAY = 'MangaRecsBrand';
-const MUTE_KEY = '@mangarecs/recap-muted';
 // Per-slide autoplay pace — slides carrying more to read (top series, badge
 // shelf, time) get longer than a pure title-card beat. Index-aligned with
 // SLIDES below.
@@ -77,6 +77,19 @@ function getPeriod(now = new Date()) {
   const y = now.getFullYear(), m = now.getMonth();
   if (m >= 6) return { label: `First Half ${y}`, short: `Jan – Jun ${y}`, start: new Date(y, 0, 1), end: new Date(y, 6, 0, 23, 59, 59) };
   return { label: `Second Half ${y - 1}`, short: `Jul – Dec ${y - 1}`, start: new Date(y - 1, 6, 1), end: new Date(y, 0, 0, 23, 59, 59) };
+}
+
+// ── TEMP TESTING TOGGLE ──────────────────────────────────────────────────
+// Flip this back to false to restore the real half-year recap. While true,
+// the recap covers everything since the account was created instead of just
+// the current half — for previewing every beat with real accumulated data
+// before deciding what to change. getPeriod() itself is untouched, so this
+// is a one-line revert whenever you're done.
+const TESTING_ALL_TIME = true;
+
+function getAllTimePeriod(profile, now = new Date()) {
+  const start = profile?.created_at ? new Date(profile.created_at) : new Date(2024, 0, 1);
+  return { label: 'All Time', short: 'All Time', start, end: now };
 }
 
 function keysInRange(log, start, end) {
@@ -231,13 +244,29 @@ function Reveal({ delay = 0, from = 'up', dist, style, children }) {
 }
 
 // Per-character kinetic headline — each glyph lands on its own spring, which is
-// what gives the titles their anime title-card snap.
+// what gives the titles their anime title-card snap. Grouped by WORD (each
+// word is its own flexWrap:'nowrap' row) so a line break can only ever land
+// between words, never mid-letter — splitting "MANGA" into "MANG"/"A" or
+// "HALF" into "HAL"/"F" was exactly what per-character-only wrapping did.
 function Kinetic({ text, style, delay = 0, stagger = 40, from = 'below' }) {
-  const chars = String(text).split('');
+  const words = String(text).split(' ');
+  let i = 0;
+  const groups = words.map((word, wi) => {
+    const chars = word.split('');
+    const startIdx = i;
+    i += chars.length;
+    const spaceIdx = wi < words.length - 1 ? i++ : null;
+    return { chars, startIdx, spaceIdx };
+  });
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-      {chars.map((ch, i) => (
-        <KineticChar key={`${ch}-${i}`} ch={ch} style={style} delay={delay + i * stagger} from={from} />
+      {groups.map((g, gi) => (
+        <View key={gi} style={{ flexDirection: 'row', flexWrap: 'nowrap' }}>
+          {g.chars.map((ch, ci) => (
+            <KineticChar key={ci} ch={ch} style={style} delay={delay + (g.startIdx + ci) * stagger} from={from} />
+          ))}
+          {g.spaceIdx != null && <KineticChar ch=" " style={style} delay={delay + g.spaceIdx * stagger} from={from} />}
+        </View>
       ))}
     </View>
   );
@@ -396,6 +425,7 @@ function PulseSparkline({ pulse, peak, s, width, height = 44 }) {
 // Centred title card. No stats anywhere; this is the cold open.
 // ═════════════════════════════════════════════════════════════════════════
 function S1Welcome({ d, s, id, cw }) {
+  const t = useT();
   const bob = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const a = Animated.loop(Animated.sequence([
@@ -406,13 +436,18 @@ function S1Welcome({ d, s, id, cw }) {
     return () => a.stop();
   }, [bob]);
   const chev = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -9] });
-  const heroSize = Math.min(78, cw * 0.265);
+  // Each glyph renders as its own Text node (Kinetic's per-character spring),
+  // which loses natural kerning and runs noticeably wider than one continuous
+  // string at the same font size — this multiplier is sized against that
+  // measured width, not the font's nominal em-width, so "MANGA"/"RECAP"
+  // actually fit instead of wrapping mid-word.
+  const heroSize = Math.min(64, cw * 0.185);
 
   return (
     <View style={{ alignItems: 'center', width: '100%' }}>
       <Reveal delay={60}>
         <Band s={s} id={id}>
-          <Text style={[styles.bandText, { color: s.onAccent }]}>MANGARECS PRESENTS</Text>
+          <Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.presents')}</Text>
         </Band>
       </Reveal>
 
@@ -440,7 +475,7 @@ function S1Welcome({ d, s, id, cw }) {
       <Reveal delay={1900} style={{ marginTop: 34, alignItems: 'center' }}>
         <Animated.View style={{ alignItems: 'center', transform: [{ translateY: chev }] }}>
           <Ionicons name="chevron-up" size={22} color={s.accent} />
-          <Text style={[styles.swipe, { color: s.dim }]}>SWIPE UP</Text>
+          <Text style={[styles.swipe, { color: s.dim }]}>{t('recap.swipeUp')}</Text>
         </Animated.View>
       </Reveal>
     </View>
@@ -453,12 +488,13 @@ function S1Welcome({ d, s, id, cw }) {
 // up, built from the actual daily log.
 // ═════════════════════════════════════════════════════════════════════════
 function S2Journey({ d, s, id }) {
+  const t = useT();
   return (
     <View style={{ width: '100%' }}>
       <Reveal delay={0} from="left">
         <Panel s={s} id={id} tilt={-1} style={{ alignSelf: 'flex-start', paddingVertical: 14 }}>
-          <Text style={[styles.kicker, { color: s.accent, marginBottom: 4 }]}>CHAPTER ONE</Text>
-          <Text style={[styles.h3, { color: s.ink }]}>It started on</Text>
+          <Text style={[styles.kicker, { color: s.accent, marginBottom: 4 }]}>{t('recap.chapterOne')}</Text>
+          <Text style={[styles.h3, { color: s.ink }]}>{t('recap.itStartedOn')}</Text>
           <PrintText s={s} id={id} style={[styles.h1, { color: s.ink, marginTop: 2 }]}>
             {d.firstDayLabel || 'day one'}
           </PrintText>
@@ -496,7 +532,12 @@ function MonthStrip({ d, s, id }) {
   const months = useMemo(() => {
     const out = [];
     const cur = new Date(d.period.start.getFullYear(), d.period.start.getMonth(), 1);
-    for (let i = 0; i < 6; i++) {
+    const endMonth = new Date(d.period.end.getFullYear(), d.period.end.getMonth(), 1);
+    // Real month count between period.start and period.end — normally 6, but
+    // TESTING_ALL_TIME can span years, so this can't be a hardcoded loop.
+    const spanMonths = Math.max(1, (endMonth.getFullYear() - cur.getFullYear()) * 12 + (endMonth.getMonth() - cur.getMonth()) + 1);
+    const showYear = spanMonths > 12;
+    for (let i = 0; i < spanMonths; i++) {
       const y = cur.getFullYear(), m = cur.getMonth();
       const days = new Date(y, m + 1, 0).getDate();
       const cells = [];
@@ -504,7 +545,8 @@ function MonthStrip({ d, s, id }) {
         const key = localDateKey(new Date(y, m, day));
         cells.push(d.dailyLog[key] || 0);
       }
-      out.push({ label: new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short' }).toUpperCase(), cells, lead: new Date(y, m, 1).getDay() });
+      const monthLabel = new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+      out.push({ label: showYear ? `${monthLabel} '${String(y).slice(2)}` : monthLabel, cells, lead: new Date(y, m, 1).getDay() });
       cur.setMonth(cur.getMonth() + 1);
     }
     return out;
@@ -556,6 +598,7 @@ function MonthStrip({ d, s, id }) {
 // live odometer on top of it, and an impact shake when the last digit lands.
 // ═════════════════════════════════════════════════════════════════════════
 function S3Chapters({ d, s, id, w, cw }) {
+  const t = useT();
   const [landed, setLanded] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
   const onDone = useCallback(() => {
@@ -581,7 +624,7 @@ function S3Chapters({ d, s, id, w, cw }) {
       <GhostNumeral text={String(d.chapters)} s={s} size={w * 0.62} style={{ top: -w * 0.16, left: -w * 0.1 }} />
 
       <Reveal delay={0}>
-        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOU DOVE INTO</Text></Band>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.youDoveInto')}</Text></Band>
       </Reveal>
 
       <View style={{ marginTop: 14 }}>
@@ -590,7 +633,7 @@ function S3Chapters({ d, s, id, w, cw }) {
       </View>
 
       <Reveal delay={260}>
-        <Text style={[styles.h2, { color: s.accent, letterSpacing: 6, marginTop: -4 }]}>CHAPTERS</Text>
+        <Text style={[styles.h2, { color: s.accent, letterSpacing: 6, marginTop: -4 }]}>{t('recap.chaptersLabel')}</Text>
       </Reveal>
 
       {landed && (
@@ -630,6 +673,7 @@ function S3Chapters({ d, s, id, w, cw }) {
 // peak-reading window drawn as a swept arc on a 24-hour dial below it.
 // ═════════════════════════════════════════════════════════════════════════
 function S4Time({ d, s, id, h, cw }) {
+  const t = useT();
   const hrs = useCountUp(Math.round(d.hours), 1600, 200);
   const p = useProgress(1200, 700);
   const night = d.peakWindow && (d.peakWindow.startHour >= 20 || d.peakWindow.startHour < 5);
@@ -641,14 +685,14 @@ function S4Time({ d, s, id, h, cw }) {
       {/* upper half — the total */}
       <View style={{ alignItems: 'flex-start', paddingTop: h * 0.06 }}>
         <Reveal delay={0}>
-          <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>TIME SPENT READING</Text></Band>
+          <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.timeSpent')}</Text></Band>
         </Reveal>
         <Reveal delay={160}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 10 }}>
             <Animated.Text style={[styles.mega, { color: s.ink, fontSize: 96, lineHeight: 100, transform: [{ scale: hrs.punch }] }]}>
               {hrs.value}
             </Animated.Text>
-            <Text style={[styles.h2, { color: s.accent, marginBottom: 16, marginLeft: 10 }]}>HRS</Text>
+            <Text style={[styles.h2, { color: s.accent, marginBottom: 16, marginLeft: 10 }]}>{t('recap.hrsLabel')}</Text>
           </View>
         </Reveal>
         {d.hours >= 24 && (
@@ -671,7 +715,7 @@ function S4Time({ d, s, id, h, cw }) {
         )}
         {d.hourPulseMax > 0.5 && (
           <Reveal delay={660} style={{ marginTop: 16 }}>
-            <Text style={[styles.microLabel, { color: s.dim }]}>YOUR DAY, IN CHAPTERS</Text>
+            <Text style={[styles.microLabel, { color: s.dim }]}>{t('recap.yourDayInChapters')}</Text>
             <PulseSparkline pulse={d.hourPulse} peak={d.hourPulseMax} s={s} width={cw} />
           </Reveal>
         )}
@@ -703,7 +747,7 @@ function S4Time({ d, s, id, h, cw }) {
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={[styles.kicker, { color: s.dim }]}>PEAK READING WINDOW</Text>
+            <Text style={[styles.kicker, { color: s.dim }]}>{t('recap.peakWindow')}</Text>
             <PrintText s={s} id={id} offset={2} style={[styles.h2, { color: s.ink, marginTop: 4 }]}>
               {d.peakWindow.label}
             </PrintText>
@@ -738,9 +782,9 @@ function S5TopSeries({ d, s, id, cw }) {
   if (!d.topSeries.length) {
     return (
       <View style={{ width: '100%' }}>
-        <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOUR TOP SERIES</Text></Band></Reveal>
+        <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.yourTopSeries')}</Text></Band></Reveal>
         <Reveal delay={200}><Text style={[styles.h1, { color: s.ink, marginTop: 18 }]}>Still writing{'\n'}this chapter</Text></Reveal>
-        <Reveal delay={420}><Text style={[styles.sub, { color: s.dim }]}>Start a series and it will headline your next recap.</Text></Reveal>
+        <Reveal delay={420}><Text style={[styles.sub, { color: s.dim }]}>{t('recap.noTopSeries')}</Text></Reveal>
       </View>
     );
   }
@@ -750,7 +794,7 @@ function S5TopSeries({ d, s, id, cw }) {
   return (
     <View style={{ width: '100%' }}>
       <Reveal delay={0}>
-        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOUR TOP SERIES</Text></Band>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.yourTopSeries')}</Text></Band>
       </Reveal>
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 18 }}>
@@ -850,14 +894,15 @@ function HeroCover({ uri, s, id, width }) {
 // as the segment colours and their top genre held in the middle.
 // ═════════════════════════════════════════════════════════════════════════
 function S6Genres({ d, s, id, cw }) {
+  const t = useT();
   const rows = d.genres;
   const p = useProgress(1300, 260);
 
   if (!rows.length) {
     return (
       <View style={{ width: '100%', alignItems: 'center' }}>
-        <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>GENRES YOU EXPLORED</Text></Band></Reveal>
-        <Reveal delay={200}><Text style={[styles.h1, { color: s.ink, marginTop: 18 }]}>Uncharted</Text></Reveal>
+        <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.genresExploredLabel')}</Text></Band></Reveal>
+        <Reveal delay={200}><Text style={[styles.h1, { color: s.ink, marginTop: 18 }]}>{t('recap.uncharted')}</Text></Reveal>
         <Reveal delay={420}><Text style={[styles.sub, { color: s.dim, textAlign: 'center' }]}>Your map is still blank — that is the fun part.</Text></Reveal>
       </View>
     );
@@ -884,7 +929,7 @@ function S6Genres({ d, s, id, cw }) {
   return (
     <View style={{ width: '100%', alignItems: 'center' }}>
       <Reveal delay={0}>
-        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>GENRES YOU EXPLORED</Text></Band>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.genresExploredLabel')}</Text></Band>
       </Reveal>
 
       <View style={{ width: size, height: size, marginTop: 20 }}>
@@ -934,6 +979,7 @@ function S6Genres({ d, s, id, cw }) {
 // card art, a foil sheen sweeping across it, their seal stamped in the corner.
 // ═════════════════════════════════════════════════════════════════════════
 function S7Personality({ d, s, id, h, cw }) {
+  const t = useT();
   const p = d.personality;
   const enter = useRef(new Animated.Value(0)).current;
   const sheen = useRef(new Animated.Value(0)).current;
@@ -996,7 +1042,7 @@ function S7Personality({ d, s, id, h, cw }) {
 
           {/* card body */}
           <View style={{ flex: 1, paddingHorizontal: 18, paddingBottom: 16, marginTop: -cardH * 0.06 }}>
-            <Text style={[styles.cardKicker, { color: s.accent }]}>READING PERSONALITY</Text>
+            <Text style={[styles.cardKicker, { color: s.accent }]}>{t('recap.personality')}</Text>
             <PrintText s={s} id={id} offset={2} style={[styles.cardTitle, { color: s.ink }]}>{p.title}</PrintText>
             <Text style={[styles.cardDesc, { color: s.dim }]}>{p.desc}</Text>
             {!!d.ratingPersona && (
@@ -1006,8 +1052,8 @@ function S7Personality({ d, s, id, h, cw }) {
             <View style={{ flex: 1 }} />
             <View style={[styles.cardRule, { backgroundColor: s.faint }]} />
             <View style={styles.cardFooter}>
-              <Text style={[styles.cardFooterText, { color: s.dim }]}>{d.dnaCode}</Text>
-              <Text style={[styles.cardFooterText, { color: s.dim }]}>@{d.username}</Text>
+              <Text style={[styles.cardFooterText, { color: s.dim, flex: 1, marginRight: 8 }]} numberOfLines={1}>{d.dnaCode}</Text>
+              <Text style={[styles.cardFooterText, { color: s.dim }]} numberOfLines={1}>@{d.username}</Text>
             </View>
           </View>
 
@@ -1037,6 +1083,7 @@ function S7Personality({ d, s, id, h, cw }) {
 // arcs, highest tier first.
 // ═════════════════════════════════════════════════════════════════════════
 function S8Achievements({ d, s, id, cw }) {
+  const t = useT();
   const n = useCountUp(d.badgesEarned, 1400, 150);
   const show = d.showcaseBadges;
   const anims = useRef(show.map(() => new Animated.Value(0))).current;
@@ -1051,7 +1098,7 @@ function S8Achievements({ d, s, id, cw }) {
   return (
     <View style={{ width: '100%', alignItems: 'center' }}>
       <Reveal delay={0}>
-        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>ACHIEVEMENTS UNLOCKED</Text></Band>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.achievements')}</Text></Band>
       </Reveal>
 
       {show.length > 0 && (
@@ -1088,7 +1135,7 @@ function S8Achievements({ d, s, id, cw }) {
           </Animated.Text>
           <Text style={[styles.h3, { color: s.dim, marginLeft: 8 }]}>/ {d.badgesTotal}</Text>
         </View>
-        <Text style={[styles.h2, { color: s.accent, letterSpacing: 4, marginTop: -2 }]}>BADGES</Text>
+        <Text style={[styles.h2, { color: s.accent, letterSpacing: 4, marginTop: -2 }]}>{t('recap.badgesLabel')}</Text>
       </Reveal>
 
       {!!d.tierLabel && (
@@ -1108,7 +1155,7 @@ function S8Achievements({ d, s, id, cw }) {
       {!!d.topComment && (
         <Reveal delay={1100} style={{ marginTop: 18, width: '100%' }}>
           <Bubble s={s} id={id}>
-            <Text style={[styles.microLabel, { color: s.accent, marginBottom: 4 }]}>YOUR LOUDEST MOMENT</Text>
+            <Text style={[styles.microLabel, { color: s.accent, marginBottom: 4 }]}>{t('recap.loudestMoment')}</Text>
             <Text style={[styles.bubbleText, { color: s.light ? id.paperInk : s.ink }]} numberOfLines={3}>
               "{d.topComment.text}"
             </Text>
@@ -1126,6 +1173,7 @@ function S8Achievements({ d, s, id, cw }) {
 // a time, with the flame behind it scaled by how long the streak actually was.
 // ═════════════════════════════════════════════════════════════════════════
 function S9Streak({ d, s, id, cw }) {
+  const t = useT();
   const n = useCountUp(d.longest, 1400, 120);
   const cols = 7;
   const shown = Math.min(49, Math.max(7, d.longest));
@@ -1152,7 +1200,7 @@ function S9Streak({ d, s, id, cw }) {
   return (
     <View style={{ width: '100%' }}>
       <Reveal delay={0}>
-        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>YOUR LONGEST STREAK</Text></Band>
+        <Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.longestStreak')}</Text></Band>
       </Reveal>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
@@ -1160,7 +1208,7 @@ function S9Streak({ d, s, id, cw }) {
           {n.value}
         </Animated.Text>
         <View style={{ marginLeft: 12, marginBottom: 10 }}>
-          <Text style={[styles.h2, { color: s.accent }]}>DAYS</Text>
+          <Text style={[styles.h2, { color: s.accent }]}>{t('recap.daysLabel')}</Text>
           <Animated.View style={{ transform: [{ scale: flick }], alignSelf: 'flex-start', marginTop: 4 }}>
             <Ionicons name={d.longest >= 30 ? 'bonfire' : 'flame'} size={26 + Math.min(16, d.longest / 2)} color={s.accent} />
           </Animated.View>
@@ -1210,6 +1258,7 @@ function S9Streak({ d, s, id, cw }) {
 // screenshotted and posted.
 // ═════════════════════════════════════════════════════════════════════════
 function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
+  const t = useT();
   const stats = [
     { v: d.chapters, l: 'CHAPTERS' },
     { v: d.series, l: 'SERIES' },
@@ -1265,7 +1314,7 @@ function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
 
           {!!d.topSeries.length && (
             <>
-              <Text style={[styles.posterSection, { color: s.dim }]}>TOP SERIES</Text>
+              <Text style={[styles.posterSection, { color: s.dim }]}>{t('recap.topSeries')}</Text>
               <View style={styles.posterCovers}>
                 {d.topSeries.slice(0, 5).map((x, i) => (
                   <View key={i} style={[styles.posterCover, {
@@ -1287,8 +1336,8 @@ function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
           )}
 
           <View style={[styles.posterFootRow, { borderTopColor: s.faint }]}>
-            <Text style={[styles.posterFoot, { color: s.dim }]}>{d.dnaCode}</Text>
-            <Text style={[styles.posterFoot, { color: s.accent }]}>mangarecs.net/recap/{d.username}</Text>
+            <Text style={[styles.posterFoot, { color: s.dim, flex: 1, marginRight: 8 }]} numberOfLines={1}>{d.dnaCode}</Text>
+            <Text style={[styles.posterFoot, { color: s.accent }]} numberOfLines={1}>mangarecs.net</Text>
           </View>
         </View>
       </Animated.View>
@@ -1299,17 +1348,23 @@ function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
           onPress={() => onShareImage('story')}
           activeOpacity={0.86}
           disabled={exporting}
+          accessibilityRole="button"
+          accessibilityLabel={exporting ? 'Preparing your recap image' : 'Share your recap'}
+          accessibilityState={{ disabled: exporting, busy: exporting }}
         >
           {exporting
             ? <ActivityIndicator size="small" color={s.onAccent} />
             : <Ionicons name="share-social" size={17} color={s.onAccent} />}
           <Text style={[styles.btnMainText, { color: s.onAccent }]}>{exporting ? 'Preparing…' : 'Share your recap'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        <TouchableOpacity hitSlop={HIT_SLOP}
           style={[styles.iconSquareBtn, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]}
           onPress={() => onShareImage('square')}
           activeOpacity={0.86}
           disabled={exporting}
+          accessibilityRole="button"
+          accessibilityLabel="Share as a square image"
+          accessibilityState={{ disabled: exporting, busy: exporting }}
         >
           <Ionicons name="square-outline" size={15} color={s.ink} />
         </TouchableOpacity>
@@ -1317,12 +1372,14 @@ function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
           style={[styles.btnGhost, styles.btnGhostRow, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]}
           onPress={onCompare}
           activeOpacity={0.86}
+          accessibilityRole="button"
+          accessibilityLabel={t('recap.compare')}
         >
           <Ionicons name="people-outline" size={15} color={s.ink} />
-          <Text style={[styles.btnGhostText, { color: s.ink }]}>Compare</Text>
+          <Text style={[styles.btnGhostText, { color: s.ink }]}>{t('recap.compare')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.btnGhost, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]} onPress={onDone} activeOpacity={0.86}>
-          <Text style={[styles.btnGhostText, { color: s.ink }]}>Done</Text>
+        <TouchableOpacity style={[styles.btnGhost, { borderColor: rgba(s.ink, 0.38), borderRadius: id.mode.radius > 8 ? 999 : 4 }]} onPress={onDone} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel={t('common.done')}>
+          <Text style={[styles.btnGhostText, { color: s.ink }]}>{t('common.done')}</Text>
         </TouchableOpacity>
       </Reveal>
     </View>
@@ -1349,6 +1406,7 @@ const SLIDES = [
 // against — but the wait itself can still feel like the app's world rather
 // than a bare spinner: a slowly closing ink ring on newsprint.
 function LoadingStage() {
+  const t = useT();
   const spin = useRef(new Animated.Value(0)).current;
   const close = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -1367,7 +1425,7 @@ function LoadingStage() {
           <Circle cx="50" cy="50" r="40" stroke="#B0362F" strokeWidth="6" fill="none" strokeDasharray="180 70" strokeLinecap="round" />
         </Svg>
       </Animated.View>
-      <Text style={styles.loadingText}>PRINTING YOUR RECAP…</Text>
+      <Text style={styles.loadingText}>{t('recap.printing')}</Text>
     </View>
   );
 }
@@ -1376,6 +1434,7 @@ function LoadingStage() {
 // SCREEN
 // ═════════════════════════════════════════════════════════════════════════
 export default function RecapScreen() {
+  const t = useT();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { width: W, height: H } = useWindowDimensions();
@@ -1385,7 +1444,6 @@ export default function RecapScreen() {
   const [data, setData] = useState(null);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -1454,7 +1512,7 @@ export default function RecapScreen() {
         `${data.chapters} chapters · ${data.series} series · ${Math.round(data.hours)} hours`,
         `${data.longest}-day streak · ${data.personality.title}`,
         data.topSeries[0] ? `Top series: ${data.topSeries[0].title}` : null,
-        `Get yours on MangaRecs — mangarecs.net/recap/${data.username}`,
+        'Get yours on MangaRecs — mangarecs.net',
       ].filter(Boolean);
       Share.share({ message: lines.join('\n') }).catch(() => {});
     } finally {
@@ -1480,11 +1538,11 @@ export default function RecapScreen() {
 
     (async () => {
       try {
-        const period = getPeriod();
+        const period = TESTING_ALL_TIME ? getAllTimePeriod(profile) : getPeriod();
         const sIso = period.start.toISOString(), eIso = period.end.toISOString();
 
         const [progRes, cmtRes, ratRes, dailyLog, hourLog] = await Promise.all([
-          supabase.from('reading_progress').select('series_title,status,current_chapter,updated_at').eq('user_id', userId).gte('updated_at', sIso).lte('updated_at', eIso),
+          supabase.from('reading_progress').select('series_title,status,current_chapter,updated_at').eq('user_id', userId).gte('updated_at', sIso).lte('updated_at', eIso).order('series_title', { ascending: true }),
           supabase.from('comments').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', sIso).lte('created_at', eIso),
           supabase.from('series_ratings').select('series_title,stars').eq('user_id', userId).gte('created_at', sIso).lte('created_at', eIso),
           getMergedDailyLog(profile?.daily_log),
@@ -1500,7 +1558,16 @@ export default function RecapScreen() {
         const earned = computeEarnedBadgeIds(badgeStats);
         const grade = highestGradeEarned(earned);
 
-        const ranked = [...rows].sort((a, b) => (b.current_chapter || 0) - (a.current_chapter || 0)).slice(0, 12);
+        // Tie-broken alphabetically, not left to whatever order Postgres
+        // happens to return equal-chapter rows in (PostgREST makes no such
+        // guarantee, and reading_progress rows get UPDATEd constantly, which
+        // can reshuffle physical row order between requests). Without this,
+        // a reader with two series tied for #1 chapters could get a
+        // different lead series — and therefore a different palette/mode —
+        // every single time they opened the same recap.
+        const ranked = [...rows]
+          .sort((a, b) => (b.current_chapter || 0) - (a.current_chapter || 0) || a.series_title.localeCompare(b.series_title))
+          .slice(0, 12);
         const ratingTitles = [...new Set(myRatings.map((r) => r.series_title))];
 
         // Everything below is independent of everything else in this batch —
@@ -1666,7 +1733,13 @@ export default function RecapScreen() {
 
         // Fire-and-forget — never blocks the render, and silently a no-op
         // until recap_snapshots (supabase_migrations.sql §57) is applied.
-        saveSnapshot(userId, period, {
+        // Just the numbers the in-app deltas/vault-diff features actually
+        // read back (fetchPreviousSnapshot/fetchOldestSnapshot in
+        // utils/recapHistory.js) — there is no web page to feed anymore.
+        // Skipped entirely under TESTING_ALL_TIME: an "All Time" period_start
+        // would sit in the same snapshot history as real half-year recaps and
+        // could get picked up as the "oldest snapshot" once testing is over.
+        if (!TESTING_ALL_TIME) saveSnapshot(userId, period, {
           chapters: base.chapters,
           series: base.series,
           hours: base.hours,
@@ -1696,14 +1769,6 @@ export default function RecapScreen() {
     let dead = false;
 
     (async () => {
-      let startMuted = false;
-      try {
-        const saved = await AsyncStorage.getItem(MUTE_KEY);
-        startMuted = saved === '1';
-      } catch (_) {}
-      if (dead) return;
-      setMuted(startMuted);
-      if (startMuted) return;
       if (ambienceState().presetId) return;
 
       const peakHour = data.peakWindow?.startHour;
@@ -1730,17 +1795,6 @@ export default function RecapScreen() {
       }
     };
   }, [data]);
-
-  const toggleMute = useCallback(() => {
-    setMuted((m) => {
-      const next = !m;
-      if (audio.current) {
-        try { audio.current.volume = next ? 0 : 0.18; } catch (_) {}
-      }
-      AsyncStorage.setItem(MUTE_KEY, next ? '1' : '0').catch(() => {});
-      return next;
-    });
-  }, []);
 
   // ── story engine ───────────────────────────────────────────────────────
   const bars = useMemo(() => SLIDES.map(() => new Animated.Value(0)), []);
@@ -1836,8 +1890,8 @@ export default function RecapScreen() {
         <Text style={styles.fallbackText}>
           {status === 'signedout' ? 'Sign in to see your MangaRecap.' : "Couldn't build your MangaRecap. Try again in a moment."}
         </Text>
-        <TouchableOpacity style={[styles.btnGhost, { borderColor: 'rgba(255,255,255,0.34)' }]} onPress={close}>
-          <Text style={[styles.btnGhostText, { color: '#fff' }]}>Close</Text>
+        <TouchableOpacity style={[styles.btnGhost, { borderColor: 'rgba(255,255,255,0.34)' }]} onPress={close} accessibilityRole="button" accessibilityLabel={t('common.close')}>
+          <Text style={[styles.btnGhostText, { color: '#fff' }]}>{t('common.close')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1853,8 +1907,7 @@ export default function RecapScreen() {
 
   const align = slide.align === 'center' ? 'center' : slide.align === 'fill' ? 'stretch' : 'flex-end';
   const contentJustify = slide.align === 'center' ? 'center' : slide.align === 'fill' ? 'flex-start' : 'flex-end';
-  // Centred slides need symmetric gutters or they read as shifted left; the
-  // right gutter always has to clear the vertical page rail.
+  // Centred slides need symmetric gutters or they read as shifted left.
   const padL = slide.align === 'center' ? 46 : 26;
   const padR = slide.align === 'center' ? 46 : 50;
   const contentW = W - padL - padR;
@@ -1917,11 +1970,6 @@ export default function RecapScreen() {
         </Animated.View>
       </ViewShot>
 
-      {/* vertical page rail — a printed volume numbers its pages */}
-      <View style={[styles.rail, { top: insets.top + 96 }]} pointerEvents="none">
-        <VerticalRail s={s} id={id} numeral={RAIL_NUMERALS[idx]} label={slide.key === 'welcome' ? null : id.laneLabel} />
-      </View>
-
       {/* chrome */}
       <View style={[styles.chrome, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
         <View style={styles.bars}>
@@ -1939,14 +1987,8 @@ export default function RecapScreen() {
         <View style={styles.topRow}>
           <Text style={[styles.brand, { color: s.ink }]}>MangaRecap</Text>
           <View style={styles.topBtns}>
-            {!slide.isFinale && <ChromeBtn s={s} icon="share-outline" onPress={onShareSlide} />}
-            <ChromeBtn s={s} icon={muted ? 'volume-mute' : 'volume-medium'} onPress={toggleMute} />
-            {!slide.isFinale && (
-              <ChromeBtn s={s} icon={paused ? 'play' : 'pause'} onPress={() => (paused ? resume() : pause())} />
-            )}
-            <ChromeBtn s={s} icon="refresh" onPress={() => go(0)} />
-            {!slide.isFinale && <ChromeBtn s={s} icon="play-skip-forward" onPress={() => go(SLIDES.length - 1)} />}
-            <ChromeBtn s={s} icon="close" size={18} onPress={close} />
+            {!slide.isFinale && <ChromeBtn s={s} icon="share-outline" onPress={onShareSlide} label={t('recap.shareSlide')} />}
+            <ChromeBtn s={s} icon="close" size={18} onPress={close} label={t('common.close')} />
           </View>
         </View>
       </View>
@@ -1999,13 +2041,15 @@ export default function RecapScreen() {
   );
 }
 
-function ChromeBtn({ s, icon, onPress, size = 15 }) {
+function ChromeBtn({ s, icon, onPress, size = 15, label }) {
   return (
     <TouchableOpacity
       style={[styles.iconBtn, { backgroundColor: rgba(s.ink, 0.16) }]}
       onPress={onPress}
       hitSlop={10}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <Ionicons name={icon} size={size} color={s.ink} />
     </TouchableOpacity>
@@ -2036,7 +2080,6 @@ const styles = StyleSheet.create({
   iconBtn: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 
   content: { flex: 1, zIndex: 20 },
-  rail: { position: 'absolute', right: 14, zIndex: 22 },
 
   kicker: { fontSize: 10.5, fontWeight: '900', letterSpacing: 2 },
   bandText: { fontSize: 11, fontWeight: '900', letterSpacing: 2 },
