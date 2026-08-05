@@ -4,6 +4,7 @@ import Svg, { Rect, Circle, Mask, Defs } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useCoachmarkRegistry } from '../utils/CoachmarkContext';
 import { light as hapticLight, success as hapticSuccess } from '../utils/haptics';
 
@@ -61,6 +62,7 @@ function PulseRing({ cx, cy, radius }) {
 
 export default function CoachmarkOverlay() {
   const { colors } = useTheme();
+  const t = useT();
   const registry = useCoachmarkRegistry();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [stepIndex, setStepIndex] = useState(0);
@@ -153,7 +155,7 @@ export default function CoachmarkOverlay() {
 
         {phase === 'touring' && (
           <TouchableOpacity style={styles.skipCorner} onPress={handleSkip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.skipCornerText}>Skip</Text>
+            <Text style={styles.skipCornerText}>{t('common.skip')}</Text>
           </TouchableOpacity>
         )}
 
@@ -174,10 +176,10 @@ export default function CoachmarkOverlay() {
           <View style={styles.finaleWrap}>
             <View style={[styles.finaleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Ionicons name="sparkles" size={32} color={colors.primary} />
-              <Text style={[styles.finaleTitle, { color: colors.text }]}>You're all set!</Text>
-              <Text style={[styles.finaleSub, { color: colors.textSecondary }]}>Enjoy discovering your next favorite story.</Text>
+              <Text style={[styles.finaleTitle, { color: colors.text }]}>{t('coachmark.allSet')}</Text>
+              <Text style={[styles.finaleSub, { color: colors.textSecondary }]}>{t('coachmark.allSetSub')}</Text>
               <TouchableOpacity style={[styles.finaleBtn, { backgroundColor: colors.primary }]} onPress={handleDone} activeOpacity={0.85}>
-                <Text style={styles.nextBtnText}>Let's go!</Text>
+                <Text style={styles.nextBtnText}>{t('coachmark.letsGo')}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -230,14 +230,57 @@ and makes the app feel consistent rather than half-finished.
 
 ## 7. Recommended order
 
-| # | Fix | Severity | Effort |
+| # | Fix | Severity | Status |
 |---|---|---|---|
-| 1 | `expo-image` on Library + MangaDetail, then Reader | P1 | M |
-| 2 | Extract token layer; migrate `#7B5CFF` → `colors.primary` | P1 | M |
-| 3 | Invert the DM list, delete the six `setTimeout`s | P1 | M |
-| 4 | a11y labels on Auth + Onboarding, then Profile/Discussion | P1 | S |
-| 5 | Virtualize the library grid; fix the `focusKey` remount | P2 | M |
-| 6 | Derive DM keyboard offset from header height | P2 | S |
-| 7 | Pull-to-refresh on the six screens missing it | P2 | S |
-| 8 | Propagate double-tap-like / long-press-react / swipe-reply | P3 | S |
-| 9 | Shared `EmptyState` component | P3 | S |
+| 1 | `expo-image` on Reader + MangaDetail | P1 | ✅ done — 10 screens |
+| 2 | Extract token layer; migrate `#7B5CFF` → `colors.primary` | P1 | ◐ partial — see below |
+| 3 | Invert the DM list, delete the six `setTimeout`s | P1 | ✅ done |
+| 4 | a11y labels on Auth + Onboarding, then Profile/Discussion | P1 | ✅ done |
+| 5 | Virtualize the library grid; fix the `focusKey` remount | P2 | ◐ remount fixed; virtualization blocked |
+| 6 | Derive DM keyboard offset from header height | P2 | ✅ done |
+| 7 | Pull-to-refresh on the screens missing it | P2 | ✅ done — 5 of 6 |
+| 8 | Propagate double-tap-like / long-press-react / swipe-reply | P3 | not started |
+| 9 | Shared `EmptyState` component | P3 | not started |
+
+### Notes on what shipped
+
+**#1 — expo-image.** Reader, MangaDetail, Social, Discussion, Notifications, FriendProfile, Profile,
+Library, CreatorDashboard, Moderation. Two traps found on the way:
+
+- `Image.getSize` has no expo-image equivalent. `PageImage`, `PagePairRow`, and `ZoomViewer` now take
+  dimensions from `onLoad` instead. That also removed a *duplicate download per page* — `getSize` used
+  React Native's image loader, a different cache from the one the pages rendered out of.
+- `Image.prefetch` had the same split. The next-chapter prefetch was filling RN's cache while the
+  reader rendered from expo-image's, so it was doing nothing. It now uses `Image.prefetch(u, 'memory-disk')`.
+- `IntroScreen` and `BadgeIcon` deliberately left on RN `Image` — bundled `require()` assets, and
+  Intro's off-screen decode warm-up depends on RN's behaviour.
+
+**#2 — partial, and the remainder is not a sed job.** `utils/tokens.js` now defines spacing, radii,
+type scale, `MIN_TAP`, and `HIT_SLOP`. The five hand-copied profile-accent maps collapsed into
+`profileAccent()` in `profileThemes.js` — and that copy-paste had already drifted: Notifications' map
+was missing `crimson`, so Master-tier users showed the default purple there and their real colour
+everywhere else.
+
+115 of 254 hardcoded `#7B5CFF` migrated to `colors.primary`; **139 remain**, in two groups:
+
+- **~92 inside `StyleSheet.create`.** Module scope — `colors` is a hook value and cannot reach them.
+  Fixing these means lifting each property out into an inline `style={[styles.x, { … }]}` at its usage
+  site. Mechanical but genuinely per-site.
+- **~20 in components with no theme access** (`ReaderScreen`'s chrome, `StarLogo`, `ToastHost`).
+  A first automated pass replaced these too and Babel scope analysis caught it — they were unbound
+  `colors` references that would have crashed the screen at runtime. All reverted. Any future pass
+  must verify bindings, not pattern-match.
+
+**#5 — virtualization is blocked by a feature, not by effort.** Drag-to-rearrange measures every
+slot's absolute rect via `onSlotLayout` into a shared flex-wrap container. `FlatList` + `numColumns`
+puts each row in its own View, changing the coordinate space the drop-target math depends on — so
+virtualizing would silently break rearranging. That needs the drag system reworked first.
+
+What *was* fixed is the expensive half: `focusKey` moved out of the React key into the entrance
+animation's dependency array. Every tile in the library used to unmount and remount on every focus of
+the tab — discarding decoded covers and rebuilding each PanResponder — purely to replay a 160ms fade.
+
+**#7 — DM is deliberately excluded.** Pull-to-refresh on an inverted list pulls from the wrong end.
+Chat wants `onEndReached` pagination instead, which is the same work as AUDIT_BEYOND_UI §C1.
+Every screen that got a RefreshControl also needed a `!refreshing` guard on its skeleton — their load
+functions set `loading`, which would otherwise swap the list out mid-gesture and unmount the control.

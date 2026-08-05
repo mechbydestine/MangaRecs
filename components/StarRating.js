@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useT } from '../utils/LanguageContext';
 
 const GOLD = '#FFD700';
 
@@ -48,6 +49,7 @@ export function StarRatingInput({ value = 0, onRate, size = 20, color = GOLD, di
 // explicit "MangaRecs Readers" caption rather than looking like a mismatch
 // or a duplicate of the canon score.
 export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD, mutedColor = '#8A8894', showCount = true, showLabel = false }) {
+  const t = useT();
   const starsEquiv = avg / 2;
   const rounded = Math.round(starsEquiv * 2) / 2;
   const stars = [1, 2, 3, 4, 5].map((n) => {
@@ -58,7 +60,7 @@ export function StarRatingDisplay({ avg = 0, count = 0, size = 13, color = GOLD,
   return (
     <View>
       {showLabel && (
-        <Text style={[styles.label, { color: mutedColor, fontSize: size * 0.7 }]}>MANGARECS READERS</Text>
+        <Text style={[styles.label, { color: mutedColor, fontSize: size * 0.7 }]}>{t('community.mangarecsReaders')}</Text>
       )}
       <View style={styles.row}>
         {stars.map((name, i) => (

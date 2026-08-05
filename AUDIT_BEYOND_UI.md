@@ -45,37 +45,29 @@ correctly today: it reads `push_token` server-side with `SUPABASE_SERVICE_ROLE_K
 and posts to `exp.host` (line 83). `service_role` bypasses RLS *and* column grants, so it keeps
 working after lockdown.
 
-Sequence — order matters, since step 3 breaks the client senders:
+**Why not just lock the column.** Two obvious fixes both fail here:
 
-1. Add an Edge Function (`notify-user`) modelled on `chapter-push`, taking `(recipientId, type,
-   payload)`. Enforce `notification_prefs` there, and validate the sender is entitled to notify the
-   recipient — friends, not blocked. That check doesn't exist anywhere today.
-2. Repoint `sendDMPush` / `sendCommentPush` / `sendFriendRequestPush` at it.
-3. Then, and only then, lock the columns:
+- *RLS* filters **rows**, not columns — and these rows have to stay publicly visible for profile
+  browsing to work at all.
+- *Column-level `GRANT SELECT`* isn't **row-aware** — revoking `push_token` hides it from its owner
+  too, breaking the user's own Settings and registration.
 
-```sql
-REVOKE SELECT ON profiles FROM anon, authenticated;
-GRANT SELECT (
-  id, username, display_name, bio, avatar_url, banner_url, color,
-  currently_reading, current_chapter, chapters_read, hours_read, streak_count,
-  favorite_genre, friends_count, comments_count, likes_given, series_count,
-  completed_count, night_reads, genres_count, shares_count, manga_count,
-  ratings_count, showcase_badges, favorites, online, is_busy, show_activity,
-  last_active_at, created_at
-) ON profiles TO anon, authenticated;
-```
+So the private fields move out of the public row instead. **Implemented** — `user_push_settings`
+(`user_id` PK, `push_token`, `notification_prefs`), RLS restricted to `auth.uid() = user_id`, with
+`profiles` going back to holding only what's safe to show the world. Server senders use `service_role`,
+which bypasses RLS, so they read it directly. Client browsing code is untouched — no join changes, no
+`profiles!…` embed rewrites.
 
-> **Two cautions.** Column grants are **not row-aware** — they apply to the owner's own row too. So
-> anything the user must read about *themselves* (`notification_prefs` and `default_site` in
-> Settings, `daily_log`/`hour_log` in Recap) needs either a `SECURITY DEFINER` RPC returning the
-> owner's private columns, or a `profiles_private` view filtered to `auth.uid() = id`. Decide that
-> before running the revoke.
->
-> Also verify the column list against the live schema — it's read off the migration file, and columns
-> added outside it would silently become unreadable.
+**Deploy order is load-bearing.** Migration 62 drops the old columns; anything still reading them gets
+a 400:
 
-`FriendProfileScreen.js:138` (`select('*')`) must move to an explicit column list in the same change,
-or every friend-profile load starts failing.
+1. `supabase functions deploy notify-user` — plus redeploy `chapter-push`, `report-alert`, and
+   `streak-reminder`, which now read the new table.
+2. Ship the client (`pushNotifications.js`, `badgeEngine.js`, `SettingsScreen.js`). This is a JS-only
+   change, so OTA is fine.
+3. **Only then** run migration 62. It backfills before dropping, so no registration or opt-out is lost.
+
+Running step 3 first takes push notifications down until the client catches up.
 
 ### A2. Behavioural data is public too · **P1**
 
@@ -239,7 +231,7 @@ constrained text is the standard mitigation — it keeps scaling but caps it.
 
 | # | Fix | Severity | Notes |
 |---|---|---|---|
-| 1 | `notify-user` Edge Function → repoint client senders → lock `profiles` columns | **P0** | Strictly in that order (§A1) |
+| 1 | ~~`notify-user` + `user_push_settings`~~ | **P0** | ✅ code written — **deploy in the §A1 order** |
 | 2 | ~~Remove `RECORD_AUDIO`~~ | **P0** | ✅ done — needs a native rebuild |
 | 3 | Decide `UIBackgroundModes` | P1 | Product call, then remove or implement |
 | 4 | Add crash reporting | P1 | Before store submission |

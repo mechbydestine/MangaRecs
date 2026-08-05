@@ -37,10 +37,16 @@ async function _persist() {
 
 async function _configureAudio() {
   try {
-    // expo-audio (v1.x) does NOT have shouldPlayInBackground — that was expo-av.
-    // iOS background audio is handled via UIBackgroundModes:["audio"] in app.json.
+    // SDK 54's expo-audio does expose shouldPlayInBackground (an earlier v1.x
+    // did not, hence the old comment here). Without it, app.json's
+    // UIBackgroundModes:["audio"] declared a capability the app never used —
+    // App Store guideline 2.5.4. Setting it makes the declaration honest and
+    // does what a reading-ambience track should do: keep playing when the
+    // screen locks mid-chapter.
+    // https://docs.expo.dev/versions/v54.0.0/sdk/audio/#audiomode
     await setAudioModeAsync({
       playsInSilentMode: true,
+      shouldPlayInBackground: true,
       interruptionMode: 'mixWithOthers',
     });
   } catch (e) {

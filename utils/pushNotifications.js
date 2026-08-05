@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
+import { showAppAlert } from './appAlert';
 
 // registerPushToken used to swallow every failure in a single catch-all, so a
 // broken token registration (bad projectId, expired session, network drop)
@@ -44,6 +45,91 @@ if (!isExpoGo) {
 export async function syncBadgeCount(count) {
   if (isExpoGo || !Notifications) return;
   try { await Notifications.setBadgeCountAsync(Math.max(0, count)); } catch (_) {}
+}
+
+// ── Permission priming ─────────────────────────────────────────────────────
+// The OS notification dialog can only ever be shown ONCE per install. If the
+// user says no there, no amount of later asking brings it back — the only
+// recovery is a trip to system settings, which nobody makes. So it must not be
+// spent on a cold start, which is what App.js used to do: registerPushToken()
+// fired on session restore and again the instant auth state changed, meaning a
+// brand-new account hit the dialog seconds after signup, before reading a
+// single page and with no idea what it would be used for.
+//
+// Now it's primed: an in-app, branded ask that explains the benefit and can be
+// declined harmlessly, and only a "yes" spends the real OS prompt. Declining
+// leaves the OS dialog unspent so a later, better moment can still use it.
+const PRIME_STATE_KEY = '@mangarecs/push_prime_state'; // unset | 'declined' | 'asked'
+
+export async function getPushPrimeState() {
+  try { return await AsyncStorage.getItem(PRIME_STATE_KEY); } catch (_) { return null; }
+}
+
+// Safe to call on cold start: refreshes the stored token for users who have
+// ALREADY granted permission, and never shows a prompt of any kind. Expo tokens
+// can rotate, so someone who opted in still needs this on launch — it just must
+// not be the thing that asks.
+export async function refreshPushTokenIfGranted(userId) {
+  if (isExpoGo || !Notifications || !Device.isDevice || !userId) return;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return; // not granted — say nothing, ask later
+  } catch (_) { return; }
+  registerPushToken(userId);
+}
+
+// Call at a moment where the value is self-evident — a finished chapter, or
+// following a series. `reason` picks the copy so the ask names the actual
+// benefit rather than asking for a generic permission.
+export async function maybePrimePushPermission(userId, reason = 'chapter') {
+  if (isExpoGo || !Notifications || !Device.isDevice || !userId) return;
+
+  const state = await getPushPrimeState();
+  if (state) return; // already asked or already declined — never nag
+
+  // If permission was somehow already granted (reinstall over a granted state),
+  // skip the ask entirely and just make sure the token is on file.
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === 'granted') {
+      await AsyncStorage.setItem(PRIME_STATE_KEY, 'asked');
+      registerPushToken(userId);
+      return;
+    }
+  } catch (_) {}
+
+  const copy = reason === 'follow'
+    ? {
+        title: 'Get told when it updates?',
+        body: "We'll send you a notification the moment a new chapter of a series you follow goes live. No other pings.",
+      }
+    : {
+        title: 'Know when the next chapter drops?',
+        body: "Turn on notifications and we'll tell you when a series you're reading updates — nothing else.",
+      };
+
+  showAppAlert(copy.title, copy.body, [
+    {
+      text: 'Not now',
+      style: 'cancel',
+      // Recorded as declined so we don't ask again on the next chapter, but the
+      // OS prompt itself is left unspent.
+      onPress: () => { AsyncStorage.setItem(PRIME_STATE_KEY, 'declined').catch(() => {}); },
+    },
+    {
+      text: 'Notify me',
+      onPress: () => {
+        AsyncStorage.setItem(PRIME_STATE_KEY, 'asked').catch(() => {});
+        registerPushToken(userId);
+      },
+    },
+  ]);
+}
+
+// Re-opens the ask after a previous "Not now" — used by Settings, where the
+// user has gone looking for it and the intent is explicit.
+export async function resetPushPrime() {
+  try { await AsyncStorage.removeItem(PRIME_STATE_KEY); } catch (_) {}
 }
 
 export async function registerPushToken(userId) {
@@ -93,7 +179,11 @@ export async function registerPushToken(userId) {
     return;
   }
 
-  const { error } = await supabase.from('profiles').update({ push_token: token }).eq('id', userId);
+  // Lives in user_push_settings, not profiles — profiles is world-readable, so
+  // a token stored there was harvestable by anyone (migration 62).
+  const { error } = await supabase
+    .from('user_push_settings')
+    .upsert({ user_id: userId, push_token: token, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   if (error) {
     recordPushError('save_token', error);
     return;

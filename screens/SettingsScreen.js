@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
+import { fetchAnilistLibrary, fetchMalLibrary, applyLibraryImport } from '../utils/libraryImport';
+import { checkOnline } from '../utils/connectivity';
+import { success as hapticSuccess } from '../utils/haptics';
 import { useProfile } from '../utils/ProfileContext';
 import { useTheme } from '../utils/ThemeContext';
 import { useCoachmarkRegistry } from '../utils/CoachmarkContext';
@@ -22,6 +25,8 @@ import { useResponsive } from '../utils/responsive';
 import { fetchAnilistMangaList } from '../utils/anilist';
 import { showAppToast } from '../utils/appToast';
 import { showAppAlert } from '../utils/appAlert';
+import { useLanguage } from '../utils/LanguageContext';
+import { HIT_SLOP } from '../utils/tokens';
 
 const NOTIFS_KEY      = '@mangarecs/notifPrefs';
 const READER_MODE_KEY = '@mangarecs/readerMode';
@@ -34,6 +39,7 @@ const currentChangelog = CHANGELOG.find((e) => e.version === APP_VERSION) || CHA
 const ADMIN_USER_ID   = '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0';
 
 function WebtoonIcon({ active }) {
+  const { colors } = useTheme();
   const arrowY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (active) {
@@ -48,15 +54,16 @@ function WebtoonIcon({ active }) {
     }
   }, [active]);
   return (
-    <View style={[iconStyles.webtoonBox, { borderColor: active ? '#7B5CFF' : '#5C5B63' }]}>
+    <View style={[iconStyles.webtoonBox, { borderColor: active ? colors.primary : '#5C5B63' }]}>
       <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
-        <View style={[iconStyles.triangleDown, { borderTopColor: active ? '#7B5CFF' : '#5C5B63' }]} />
+        <View style={[iconStyles.triangleDown, { borderTopColor: active ? colors.primary : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
 }
 
 function MangaIcon({ active }) {
+  const { colors } = useTheme();
   const arrowX = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (active) {
@@ -72,15 +79,16 @@ function MangaIcon({ active }) {
   }, [active]);
   return (
     <View style={iconStyles.mangaRow}>
-      <View style={[iconStyles.mangaBox, { borderColor: active ? '#7B5CFF' : '#5C5B63' }]} />
+      <View style={[iconStyles.mangaBox, { borderColor: active ? colors.primary : '#5C5B63' }]} />
       <Animated.View style={{ transform: [{ translateX: arrowX }] }}>
-        <View style={[iconStyles.triangleRight, { borderLeftColor: active ? '#7B5CFF' : '#5C5B63' }]} />
+        <View style={[iconStyles.triangleRight, { borderLeftColor: active ? colors.primary : '#5C5B63' }]} />
       </Animated.View>
     </View>
   );
 }
 
 function SlideIcon({ active }) {
+  const { colors } = useTheme();
   const x = useRef(new Animated.Value(8)).current;
   useEffect(() => {
     if (active) {
@@ -98,7 +106,7 @@ function SlideIcon({ active }) {
       <Animated.View
         style={[
           iconStyles.animPreviewInner,
-          { transform: [{ translateX: x }], borderColor: active ? '#7B5CFF' : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' },
+          { transform: [{ translateX: x }], borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' },
         ]}
       />
     </View>
@@ -106,6 +114,7 @@ function SlideIcon({ active }) {
 }
 
 function FadeIcon({ active }) {
+  const { colors } = useTheme();
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (active) {
@@ -123,16 +132,17 @@ function FadeIcon({ active }) {
     <Animated.View
       style={[
         iconStyles.animPreviewBox,
-        { opacity, borderColor: active ? '#7B5CFF' : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' },
+        { opacity, borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' },
       ]}
     />
   );
 }
 
 function NoneIcon({ active }) {
+  const { colors } = useTheme();
   return (
-    <View style={[iconStyles.animPreviewBox, { alignItems: 'center', justifyContent: 'center', borderColor: active ? '#7B5CFF' : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' }]}>
-      <View style={{ width: 12, height: 1, backgroundColor: active ? '#7B5CFF' : '#5C5B63' }} />
+    <View style={[iconStyles.animPreviewBox, { alignItems: 'center', justifyContent: 'center', borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' }]}>
+      <View style={{ width: 12, height: 1, backgroundColor: active ? colors.primary : '#5C5B63' }} />
     </View>
   );
 }
@@ -192,7 +202,7 @@ function SectionCard({ title, icon, children }) {
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.cardHeader}>
-        <Ionicons name={icon} size={15} color="#7B5CFF" />
+        <Ionicons name={icon} size={15} color={colors.primary} />
         <Text style={[styles.cardHeaderTitle, { color: colors.muted }]}>{title}</Text>
       </View>
       <View style={styles.cardBody}>{children}</View>
@@ -257,6 +267,7 @@ export default function SettingsScreen({ navigation }) {
   const [malUsername, setMalUsername] = useState('');
   const [anilistUsername, setAnilistUsername] = useState('');
   const [trackerSaved, setTrackerSaved] = useState(false);
+  const [importState, setImportState] = useState({ busy: false, source: null, message: '', error: false });
   const [anilistSync, setAnilistSync] = useState({ loading: false, error: false, data: null });
   const [showTasteModal, setShowTasteModal] = useState(false);
   const [genrePrefs, setGenrePrefs] = useState([]);
@@ -301,7 +312,7 @@ export default function SettingsScreen({ navigation }) {
     setShowUpgradeModal(false);
     setUpgradeEmail('');
     setUpgradePassword('');
-    showAppToast('Account created — check your email to confirm, your progress is already saved', 'success');
+    showAppToast(t('toast.accountCreated'), 'success');
   }
   const [showAgeGate, setShowAgeGate] = useState(false);
 
@@ -312,6 +323,7 @@ export default function SettingsScreen({ navigation }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('free');
   const [proBilling, setProBilling] = useState('monthly');
+  const { language, setLanguage, languages, t } = useLanguage();
 
   useEffect(() => {
     AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@mangarecs/mal_username', '@mangarecs/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
@@ -386,9 +398,11 @@ export default function SettingsScreen({ navigation }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.id) {
         const allOff = Object.values(updated).every((v) => !v);
-        const patch = { notification_prefs: updated };
+        // user_push_settings, not profiles — see migration 62. Upsert because a
+        // user who has never registered for push has no row yet.
+        const patch = { user_id: session.user.id, notification_prefs: updated, updated_at: new Date().toISOString() };
         if (allOff) patch.push_token = null;
-        supabase.from('profiles').update(patch).eq('id', session.user.id).then(() => {});
+        supabase.from('user_push_settings').upsert(patch, { onConflict: 'user_id' }).then(() => {});
         // Turning the last toggle off clears push_token above. Turning one
         // back on has to re-register it — otherwise the row stays tokenless
         // and no push can be delivered no matter what the prefs say, until
@@ -495,11 +509,57 @@ export default function SettingsScreen({ navigation }) {
     const { error } = await supabase.rpc('delete_user');
     setDeleteLoading(false);
     if (error) {
-      showAppToast('Could not delete account — please contact support');
+      showAppToast(t('toast.deleteFailed'));
       return;
     }
     await clearBadgeCache();
     await clearAllLocalDataAndSignOut();
+  }
+
+  async function handleImportLibrary(source) {
+    const username = (source === 'mal' ? malUsername : anilistUsername).trim();
+    if (!username || importState.busy) return;
+
+    // A partial import is worse than none: half a library looks like data
+    // loss. Check the connection up front rather than discovering it after
+    // three pages have already been written.
+    if (!(await checkOnline())) {
+      setImportState({ busy: false, source, message: t('settings.importOffline'), error: true });
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const uid = session?.user?.id;
+    if (!uid) return;
+
+    setImportState({ busy: true, source, message: t('settings.importFetching'), error: false });
+    const result = source === 'mal'
+      ? await fetchMalLibrary(username, {
+          onPage: (n) => setImportState((p) => ({ ...p, message: t('settings.importFound', { count: n }) })),
+        })
+      : await fetchAnilistLibrary(username);
+
+    if (!result.ok) {
+      const msg = result.reason === 'not-found'
+        ? t('settings.importNotFound')
+        : t('settings.importFailed');
+      setImportState({ busy: false, source, message: msg, error: true });
+      return;
+    }
+    if (!result.entries.length) {
+      setImportState({ busy: false, source, message: t('settings.importEmpty'), error: true });
+      return;
+    }
+
+    setImportState((p) => ({ ...p, message: t('settings.importSaving', { count: result.entries.length }) }));
+    const { added, updated, skipped } = await applyLibraryImport(uid, result.entries);
+    setImportState({
+      busy: false,
+      source,
+      message: t('settings.importDone', { added, updated, skipped }),
+      error: false,
+    });
+    hapticSuccess();
   }
 
   async function handleExportLibrary() {
@@ -524,7 +584,7 @@ export default function SettingsScreen({ navigation }) {
 
         {/* ── Guest upgrade ───────────────────────────────────────────── */}
         {isAnonymous && (
-          <SectionCard title="You're browsing as a guest" icon="person-add-outline">
+          <SectionCard title={t('profile.guest')} icon="person-add-outline">
             <Text style={[styles.cardSub, { color: colors.muted }]}>
               Create a real account to keep your reading progress, badges, and friends safe if you switch devices or reinstall.
             </Text>
@@ -532,13 +592,13 @@ export default function SettingsScreen({ navigation }) {
               style={[styles.smallCta, { alignSelf: 'flex-start', marginTop: 10 }]}
               onPress={() => setShowUpgradeModal(true)}>
               <Ionicons name="person-add" size={13} color="#fff" />
-              <Text style={styles.smallCtaText}>Create Account</Text>
+              <Text style={styles.smallCtaText}>{t('onboarding.createAccount')}</Text>
             </TouchableOpacity>
           </SectionCard>
         )}
 
         {/* ── Account ─────────────────────────────────────────────────── */}
-        <SectionCard title="Display name" icon="person-outline">
+        <SectionCard title={t('settings.displayNameSection')} icon="person-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>Shown across MangaRecs — change this anytime</Text>
           <View style={styles.urlRow}>
             <TextInput
@@ -546,7 +606,7 @@ export default function SettingsScreen({ navigation }) {
               value={displayNameDraft}
               onChangeText={(t) => { setDisplayNameDraft(t); setDisplayNameError(''); }}
               maxLength={24}
-              placeholder="Enter display name"
+              placeholder={t('placeholder.displayName')}
               placeholderTextColor={colors.muted}
             />
             <TouchableOpacity
@@ -558,10 +618,10 @@ export default function SettingsScreen({ navigation }) {
               ) : displayNameSaved ? (
                 <>
                   <Ionicons name="checkmark" size={13} color="#fff" />
-                  <Text style={styles.smallCtaText}>Saved</Text>
+                  <Text style={styles.smallCtaText}>{t('settings.saved')}</Text>
                 </>
               ) : (
-                <Text style={styles.smallCtaText}>Save</Text>
+                <Text style={styles.smallCtaText}>{t('common.save')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -579,11 +639,11 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
-        <SectionCard title="External Trackers" icon="sync-outline">
+        <SectionCard title={t('settings.trackers.section')} icon="sync-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>
             Link your tracker profiles to jump to any series directly from MangaRecs.
           </Text>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>MyAnimeList Username</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.malUsername')}</Text>
           <View style={styles.urlRow}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
@@ -599,10 +659,10 @@ export default function SettingsScreen({ navigation }) {
               disabled={!malUsername.trim()}
               onPress={() => Linking.openURL(`https://myanimelist.net/profile/${malUsername.trim()}`)}>
               <Ionicons name="open-outline" size={13} color="#fff" />
-              <Text style={styles.smallCtaText}>Open</Text>
+              <Text style={styles.smallCtaText}>{t('settings.openLink')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={[styles.cardTitle, { color: colors.text, marginTop: 12 }]}>AniList Username</Text>
+          <Text style={[styles.cardTitle, { color: colors.text, marginTop: 12 }]}>{t('settings.anilistUsername')}</Text>
           <View style={styles.urlRow}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
@@ -618,12 +678,12 @@ export default function SettingsScreen({ navigation }) {
               disabled={!anilistUsername.trim()}
               onPress={() => Linking.openURL(`https://anilist.co/user/${anilistUsername.trim()}`)}>
               <Ionicons name="open-outline" size={13} color="#fff" />
-              <Text style={styles.smallCtaText}>Open</Text>
+              <Text style={styles.smallCtaText}>{t('settings.openLink')}</Text>
             </TouchableOpacity>
           </View>
           {anilistSync.loading && (
             <View style={styles.anilistSyncRow}>
-              <ActivityIndicator size="small" color="#7B5CFF" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.anilistSyncText, { color: colors.muted }]}>Syncing AniList list…</Text>
             </View>
           )}
@@ -646,7 +706,7 @@ export default function SettingsScreen({ navigation }) {
               </View>
               {anilistSync.data.current.length > 0 && (
                 <>
-                  <Text style={[styles.anilistCardSub, { color: colors.muted }]}>Currently reading</Text>
+                  <Text style={[styles.anilistCardSub, { color: colors.muted }]}>{t('settings.currentlyReading')}</Text>
                   {anilistSync.data.current.map((e) => (
                     <Text key={e.title} style={[styles.anilistEntryText, { color: colors.text }]} numberOfLines={1}>
                       {e.title} <Text style={{ color: colors.muted }}>· ch. {e.progress}</Text>
@@ -672,25 +732,72 @@ export default function SettingsScreen({ navigation }) {
                 syncAnilist(anilist);
               }}>
               {trackerSaved ? (
-                <><Ionicons name="checkmark" size={13} color="#fff" /><Text style={styles.smallCtaText}>Saved</Text></>
+                <><Ionicons name="checkmark" size={13} color="#fff" /><Text style={styles.smallCtaText}>{t('settings.saved')}</Text></>
               ) : (
-                <Text style={styles.smallCtaText}>Save Links</Text>
+                <Text style={styles.smallCtaText}>{t('settings.saveLinks')}</Text>
               )}
             </TouchableOpacity>
           ) : null}
+          {/* Import — the reason most people switch trackers at all. Additive:
+              a series already in the library keeps whichever chapter number is
+              further along, so this can never roll real progress backwards. */}
+          <View style={[styles.exportRow, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={styles.exportBtn}
+              onPress={() => handleImportLibrary('anilist')}
+              disabled={importState.busy || !anilistUsername.trim()}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.importFromAnilist')}
+              accessibilityState={{ disabled: importState.busy || !anilistUsername.trim(), busy: importState.busy }}>
+              {importState.busy && importState.source === 'anilist'
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <Ionicons name="cloud-download-outline" size={15} color={colors.primary} />}
+              <View style={{ marginLeft: 10, flex: 1, opacity: anilistUsername.trim() ? 1 : 0.4 }}>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.importFromAnilist')}</Text>
+                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.importDesc')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.exportRow, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={styles.exportBtn}
+              onPress={() => handleImportLibrary('mal')}
+              disabled={importState.busy || !malUsername.trim()}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.importFromMal')}
+              accessibilityState={{ disabled: importState.busy || !malUsername.trim(), busy: importState.busy }}>
+              {importState.busy && importState.source === 'mal'
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <Ionicons name="cloud-download-outline" size={15} color={colors.primary} />}
+              <View style={{ marginLeft: 10, flex: 1, opacity: malUsername.trim() ? 1 : 0.4 }}>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.importFromMal')}</Text>
+                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.importDesc')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {importState.message ? (
+            <Text style={[styles.anilistSyncText, { color: importState.error ? colors.error : colors.muted, marginTop: 8 }]}>
+              {importState.message}
+            </Text>
+          ) : null}
+
           <View style={[styles.exportRow, { borderTopColor: colors.border }]}>
             <TouchableOpacity style={styles.exportBtn} onPress={handleExportLibrary} activeOpacity={0.7}>
-              <Ionicons name="share-outline" size={15} color="#7B5CFF" />
+              <Ionicons name="share-outline" size={15} color={colors.primary} />
               <View style={{ marginLeft: 10 }}>
-                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Export Library</Text>
-                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Share your reading list as text</Text>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.exportLibrary')}</Text>
+                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.exportLibraryDesc')}</Text>
               </View>
             </TouchableOpacity>
           </View>
         </SectionCard>
 
         {/* ── Notifications ───────────────────────────────────────────── */}
-        <SectionCard title="Notifications" icon="notifications-outline">
+        <SectionCard title={t('settings.notifications.section')} icon="notifications-outline">
           {[
             { key: 'newChapter', label: 'New chapter alerts', desc: 'Get notified when your series update' },
             { key: 'friendActivity', label: 'Friend activity', desc: 'See what your friends are reading' },
@@ -705,7 +812,7 @@ export default function SettingsScreen({ navigation }) {
               <Switch
                 value={notifs[item.key]}
                 onValueChange={() => toggleNotif(item.key)}
-                trackColor={{ false: colors.border, true: '#7B5CFF' }}
+                trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor="#fff"
               />
             </View>
@@ -713,16 +820,16 @@ export default function SettingsScreen({ navigation }) {
         </SectionCard>
 
         {/* ── Privacy & Content ───────────────────────────────────────── */}
-        <SectionCard title="Content" icon="shield-outline">
+        <SectionCard title={t('settings.content.section')} icon="shield-outline">
           <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>AI Recommendations</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.aiRecommendations')}</Text>
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
             </View>
             <Switch
               value={aiRec}
               onValueChange={toggleAiRec}
-              trackColor={{ false: colors.border, true: '#7B5CFF' }}
+              trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor="#fff"
             />
           </View>
@@ -731,8 +838,8 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => { setShowTasteModal(true); loadGenrePrefs(); }}
             activeOpacity={0.7}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Tune My Taste</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>See and adjust the genre weights behind your Recs feed.</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.tuneMyTaste')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.tuneMyTasteDesc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} />
           </TouchableOpacity>
@@ -742,7 +849,7 @@ export default function SettingsScreen({ navigation }) {
                 <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
                 {ageVerified && (
                   <View style={{ backgroundColor: 'rgba(123,92,255,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9, color: '#7B5CFF', fontWeight: '700' }}>VERIFIED</Text>
+                    <Text style={{ fontSize: 9, color: colors.primary, fontWeight: '700' }}>{t('settings.verified')}</Text>
                   </View>
                 )}
               </View>
@@ -761,10 +868,10 @@ export default function SettingsScreen({ navigation }) {
               />
             ) : (
               <TouchableOpacity
-                style={{ backgroundColor: '#7B5CFF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
                 onPress={() => setShowAgeGate(true)}
                 activeOpacity={0.8}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Verify Age</Text>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('settings.verifyAge')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -776,22 +883,22 @@ export default function SettingsScreen({ navigation }) {
           onDismiss={() => setShowAgeGate(false)}
         />
 
-        <SectionCard title="Status" icon="radio-button-on-outline">
+        <SectionCard title={t('settings.statusSection')} icon="radio-button-on-outline">
           <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Show online status</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Let friends see when you're online, idle, or reading</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.showOnlineStatus')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.showOnlineStatusDesc')}</Text>
             </View>
             <Switch
               value={showActivity}
               onValueChange={toggleShowActivity}
-              trackColor={{ false: colors.border, true: '#7B5CFF' }}
+              trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor="#fff"
             />
           </View>
           <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Appear busy</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.appearBusy')}</Text>
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
             </View>
             <Switch
@@ -805,8 +912,8 @@ export default function SettingsScreen({ navigation }) {
         </SectionCard>
 
         {/* ── Appearance & Reader ─────────────────────────────────────── */}
-        <SectionCard title="Appearance" icon="color-palette-outline">
-          <Text style={[styles.cardTitle, { color: colors.text }]}>App Theme</Text>
+        <SectionCard title={t('settings.appearance')} icon="color-palette-outline">
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.theme')}</Text>
           <View style={styles.themeRow}>
             {THEMES.map((t) => {
               const active = theme === t.id;
@@ -829,8 +936,44 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
-        <SectionCard title="Reader" icon="book-outline">
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Default mode</Text>
+        <SectionCard title={t('settings.language.section')} icon="language-outline">
+          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 12, marginTop: 0 }]}>
+            {t('settings.language.desc')}
+          </Text>
+          <View style={styles.langRow}>
+            {languages.map((l) => {
+              const active = language === l.id;
+              return (
+                <TouchableOpacity
+                  key={l.id}
+                  style={[
+                    styles.langBtn,
+                    { borderColor: colors.border },
+                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
+                  ]}
+                  onPress={() => { Haptics.selectionAsync(); setLanguage(l.id); }}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={t('settings.language.a11y', { name: l.label })}>
+                  <Text style={[styles.langBtnNative, { color: active ? colors.primary : colors.text }]}>{l.native}</Text>
+                  <Text style={[styles.langBtnLabel, { color: colors.muted }]}>{l.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {language !== 'en' && (
+            <View style={[styles.warningRow, { marginTop: 12 }]}>
+              <Ionicons name="information-circle-outline" size={14} color={colors.muted} style={{ marginRight: 6 }} />
+              <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
+                {t('settings.language.partial')}
+              </Text>
+            </View>
+          )}
+        </SectionCard>
+
+        <SectionCard title={t('settings.reader.section')} icon="book-outline">
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.reader.defaultMode')}</Text>
           <View style={styles.readerRow}>
             {READER_MODES.map((mode) => {
               const active = readerMode === mode.id;
@@ -848,8 +991,8 @@ export default function SettingsScreen({ navigation }) {
             })}
           </View>
 
-          <Text style={[styles.cardTitle, { color: colors.text, marginTop: 18 }]}>Page animation</Text>
-          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 8, marginTop: 0 }]}>Applies in Manga mode only</Text>
+          <Text style={[styles.cardTitle, { color: colors.text, marginTop: 18 }]}>{t('settings.reader.pageAnimation')}</Text>
+          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 8, marginTop: 0 }]}>{t('settings.reader.pageAnimationDesc')}</Text>
           <View style={styles.animRow}>
             {PAGE_ANIMS.map((anim) => {
               const active = pageAnim === anim.id;
@@ -867,15 +1010,15 @@ export default function SettingsScreen({ navigation }) {
           </View>
 
           <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border, alignItems: 'center' }]}>
-            <Ionicons name="headset-outline" size={18} color="#7B5CFF" style={{ marginRight: 10 }} />
+            <Ionicons name="headset-outline" size={18} color={colors.primary} style={{ marginRight: 10 }} />
             <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
               Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
             </Text>
           </View>
         </SectionCard>
 
-        <SectionCard title="Creator" icon="create-outline">
-          <SettingsRow icon="create-outline" label="Creator Dashboard" desc="Upload manga · Manage series · View stats" onPress={() => navigation.navigate('Creator')} />
+        <SectionCard title={t('settings.creator.section')} icon="create-outline">
+          <SettingsRow icon="create-outline" label={t('settings.creator.dashboard')} desc={t('settings.creator.dashboardDesc')} onPress={() => navigation.navigate('Creator')} />
         </SectionCard>
 
         {/* ── Subscription ─────────────────────────────────────────────── */}
@@ -883,7 +1026,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.upgradeLeft}>
             <Ionicons name="star" size={20} color="#FFD700" />
             <View style={{ marginLeft: 12 }}>
-              <Text style={[styles.upgradeTitle, { color: colors.text }]}>Upgrade Plan</Text>
+              <Text style={[styles.upgradeTitle, { color: colors.text }]}>{t('settings.upgradePlan')}</Text>
               <Text style={[styles.upgradeSub, { color: colors.muted }]}>Free · Pro — see what's included</Text>
             </View>
           </View>
@@ -891,11 +1034,11 @@ export default function SettingsScreen({ navigation }) {
         </TouchableOpacity>
 
         {/* ── Storage & About ──────────────────────────────────────────── */}
-        <SectionCard title="Storage & Data" icon="trash-outline">
+        <SectionCard title={t('settings.storageSection')} icon="trash-outline">
           <View style={styles.cacheRow}>
             <View>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Clear Cache</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Free up locally cached images & chapters</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.clearCache')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.clearCacheDesc')}</Text>
             </View>
             <TouchableOpacity
               style={[styles.clearBtn, { backgroundColor: colors.border }, cacheCleared && { backgroundColor: 'rgba(29,158,117,0.2)' }]}
@@ -907,25 +1050,25 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
-        <SectionCard title="About" icon="information-circle-outline">
-          <SettingsRow icon="help-circle-outline" label="Help & Support" desc="FAQs, contact us, report a bug" onPress={() => Linking.openURL('mailto:support@mangarecs.net?subject=Help%20%26%20Support')} />
-          <SettingsRow icon="sparkles-outline" label="Replay App Tour" desc="Re-run the quick tour of Home, Search, Library & more" onPress={replayAppTour} />
-          <SettingsRow icon="people-outline" label="Community Guidelines" desc="Read our community standards" onPress={() => navigation.navigate('Guidelines')} />
-          <SettingsRow icon="shield-outline" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
-          <SettingsRow icon="document-text-outline" label="Terms of Use" onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
+        <SectionCard title={t('settings.about.section')} icon="information-circle-outline">
+          <SettingsRow icon="help-circle-outline" label={t('settings.help')} desc={t('settings.helpDesc')} onPress={() => Linking.openURL('mailto:support@mangarecs.net?subject=Help%20%26%20Support')} />
+          <SettingsRow icon="sparkles-outline" label={t('settings.replayTour')} desc={t('settings.replayTourDesc')} onPress={replayAppTour} />
+          <SettingsRow icon="people-outline" label={t('settings.guidelines')} desc={t('settings.guidelinesDesc')} onPress={() => navigation.navigate('Guidelines')} />
+          <SettingsRow icon="shield-outline" label={t('settings.about.privacy')} onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
+          <SettingsRow icon="document-text-outline" label={t('settings.termsLabel')} onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
           <TouchableOpacity
             style={[styles.settingsRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
             onPress={() => setShowChangelog(true)}
             activeOpacity={0.7}>
             <Ionicons name="information-circle-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
-            <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>App Version</Text>
+            <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>{t('settings.appVersion')}</Text>
             <Text style={[styles.versionText, { color: colors.muted }]}>v{APP_VERSION}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 6 }} />
           </TouchableOpacity>
           <View style={[styles.settingsRow, { borderTopWidth: 1, borderTopColor: colors.border, flexWrap: 'wrap' }]}>
             <Ionicons name="cloud-download-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Live Update</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.liveUpdate')}</Text>
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
                 {Updates.isEmbeddedLaunch ? 'Running built-in code' : `Running update ${(Updates.updateId || '').slice(0, 8)}`}
                 {Updates.channel ? ` · ${Updates.channel}` : ''}
@@ -936,37 +1079,37 @@ export default function SettingsScreen({ navigation }) {
               style={[styles.smallCta, updateChecking && { opacity: 0.6 }]}
               onPress={handleCheckForUpdate}
               disabled={updateChecking}>
-              {updateChecking ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.smallCtaText}>Check Now</Text>}
+              {updateChecking ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.smallCtaText}>{t('settings.checkNow')}</Text>}
             </TouchableOpacity>
           </View>
         </SectionCard>
 
         {/* ── Danger zone ──────────────────────────────────────────────── */}
         {userId === ADMIN_USER_ID && (
-          <SectionCard title="Admin" icon="hammer-outline">
+          <SectionCard title={t('settings.adminSection')} icon="hammer-outline">
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Moderation')} activeOpacity={0.7}>
               <Ionicons name="flag-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
-              <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>Moderation Queue</Text>
+              <Text style={[styles.settingsRowLabel, { flex: 1, color: colors.text }]}>{t('settings.moderationQueue')}</Text>
               <Ionicons name="chevron-forward" size={16} color={colors.muted} />
             </TouchableOpacity>
           </SectionCard>
         )}
 
-        <SectionCard title="Account" icon="person-circle-outline">
+        <SectionCard title={t('settings.account.section')} icon="person-circle-outline">
           <View style={styles.cacheRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Delete Account</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Permanently remove your account and all data</Text>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.deleteAccountTitle')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.deleteAccountDesc')}</Text>
             </View>
             <TouchableOpacity
               style={[styles.clearBtn, { backgroundColor: 'rgba(255,59,48,0.12)' }]}
               onPress={() => setShowDeleteConfirm(true)}>
-              <Text style={[styles.clearBtnText, { color: colors.error }]}>Delete</Text>
+              <Text style={[styles.clearBtnText, { color: colors.error }]}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         </SectionCard>
 
-        <TouchableOpacity
+        <TouchableOpacity hitSlop={HIT_SLOP}
           style={styles.signOutBtn}
           onPress={async () => { await clearBadgeCache(); await clearAllLocalDataAndSignOut(); }}
           activeOpacity={0.8}>
@@ -983,7 +1126,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={[styles.deleteIconWrap, { backgroundColor: 'rgba(255,59,48,0.15)' }]}>
               <Ionicons name="warning-outline" size={28} color={colors.error} />
             </View>
-            <Text style={[styles.deleteTitle, { color: colors.text }]}>Delete your account?</Text>
+            <Text style={[styles.deleteTitle, { color: colors.text }]}>{t('settings.deleteAccountConfirm')}</Text>
             <Text style={[styles.deleteSub, { color: colors.muted }]}>
               This will permanently delete your MangaRecs account, reading history, badges, friends, and all saved data. This action cannot be undone.
             </Text>
@@ -991,7 +1134,7 @@ export default function SettingsScreen({ navigation }) {
               <TouchableOpacity
                 style={[styles.deleteCancelBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
                 onPress={() => setShowDeleteConfirm(false)}>
-                <Text style={[styles.deleteCancelText, { color: colors.text }]}>Cancel</Text>
+                <Text style={[styles.deleteCancelText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteConfirmBtn}
@@ -1010,17 +1153,17 @@ export default function SettingsScreen({ navigation }) {
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
               <View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Choose Your Plan</Text>
-                <Text style={[styles.modalSub, { color: colors.muted }]}>Upgrade anytime, cancel anytime</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.choosePlan')}</Text>
+                <Text style={[styles.modalSub, { color: colors.muted }]}>{t('settings.choosePlanSub')}</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowPlans(false)} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowPlans(false)} accessibilityRole="button" accessibilityLabel="Close">
                 <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.plansRow}>
               {[
-                { id: 'free', icon: 'flash-outline', label: 'Free', glow: '#7B5CFF', price: '$0' },
+                { id: 'free', icon: 'flash-outline', label: 'Free', glow: colors.primary, price: '$0' },
                 { id: 'pro', icon: 'star', label: 'Pro', glow: '#FFD700', price: proBilling === 'monthly' ? '$3.99/mo' : '$29.99/yr' },
               ].map((plan) => (
                 <TouchableOpacity
@@ -1029,7 +1172,7 @@ export default function SettingsScreen({ navigation }) {
                   onPress={() => setSelectedPlan(plan.id)}>
                   {plan.id === 'pro' && (
                     <View style={styles.bestBadge}>
-                      <Text style={styles.bestBadgeText}>UNLOCK MORE</Text>
+                      <Text style={styles.bestBadgeText}>{t('settings.unlockMore')}</Text>
                     </View>
                   )}
                   <PlanGlowIcon icon={plan.icon} color={plan.glow} />
@@ -1055,7 +1198,7 @@ export default function SettingsScreen({ navigation }) {
               </View>
             )}
 
-            <Text style={[styles.whatsIncluded, { color: colors.muted }]}>WHAT'S INCLUDED</Text>
+            <Text style={[styles.whatsIncluded, { color: colors.muted }]}>{t('settings.whatsIncluded')}</Text>
             {selectedPlan === 'free' && [
               'Ad-supported experience',
               'Community access & social features',
@@ -1094,7 +1237,7 @@ export default function SettingsScreen({ navigation }) {
               style={[styles.ctaBtn, selectedPlan === 'pro' && styles.ctaBtnPro]}
               onPress={() => {
                 if (selectedPlan !== 'free') {
-                  showAppToast('Paid plans will be available after launch — stay tuned', 'info');
+                  showAppToast(t('toast.paidPlansLater'), 'info');
                 }
               }}>
               <Text style={[styles.ctaBtnText, selectedPlan === 'pro' && styles.ctaBtnTextPro]}>
@@ -1116,7 +1259,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Tune My Taste</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.tuneMyTaste')}</Text>
                 <Text style={[styles.modalSub, { color: colors.muted }]}>
                   These weights come from series you've rated, liked, and swiped on — higher weight means Recs shows you more of that genre. Nudge any genre up or down.
                 </Text>
@@ -1126,7 +1269,7 @@ export default function SettingsScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             {genrePrefsLoading ? (
-              <ActivityIndicator color="#7B5CFF" style={{ marginVertical: 24 }} />
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
             ) : genrePrefs.length === 0 ? (
               <Text style={[styles.modalSub, { color: colors.muted, marginTop: 12 }]}>
                 No taste data yet — rate, like, or swipe on a few series to build your profile.
@@ -1137,7 +1280,7 @@ export default function SettingsScreen({ navigation }) {
                   <View key={g.genre} style={[styles.tasteRow, { borderColor: colors.border }]}>
                     <Text style={[styles.tasteGenre, { color: colors.text }]} numberOfLines={1}>{g.genre}</Text>
                     <View style={styles.tasteControls}>
-                      <TouchableOpacity
+                      <TouchableOpacity hitSlop={HIT_SLOP}
                         style={[styles.tasteStepBtn, { borderColor: colors.border }]}
                         onPress={() => adjustGenreWeight(g.genre, -1)}
                         disabled={g.weight <= 0}
@@ -1146,7 +1289,7 @@ export default function SettingsScreen({ navigation }) {
                         <Ionicons name="remove" size={16} color={g.weight <= 0 ? colors.border : colors.text} />
                       </TouchableOpacity>
                       <Text style={[styles.tasteWeight, { color: colors.text }]}>{g.weight}</Text>
-                      <TouchableOpacity
+                      <TouchableOpacity hitSlop={HIT_SLOP}
                         style={[styles.tasteStepBtn, { borderColor: colors.border }]}
                         onPress={() => adjustGenreWeight(g.genre, 1)}
                         accessibilityRole="button"
@@ -1168,7 +1311,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
               <View style={styles.changelogTitleRow}>
-                <Text style={[styles.changelogModalTitle, { color: colors.text }]}>What's New</Text>
+                <Text style={[styles.changelogModalTitle, { color: colors.text }]}>{t('whatsNew.title')}</Text>
                 <View style={styles.changelogVersionPill}>
                   <Text style={styles.changelogVersionPillText}>v{currentChangelog.version}</Text>
                 </View>
@@ -1182,7 +1325,7 @@ export default function SettingsScreen({ navigation }) {
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
               {currentChangelog.highlights.map((h, hi) => (
                 <View key={hi} style={styles.changelogRow}>
-                  <Ionicons name="checkmark-circle" size={13} color="#7B5CFF" style={{ marginTop: 1.5 }} />
+                  <Ionicons name="checkmark-circle" size={13} color={colors.primary} style={{ marginTop: 1.5 }} />
                   <Text style={[styles.changelogText, { color: colors.text }]}>{h}</Text>
                 </View>
               ))}
@@ -1198,8 +1341,8 @@ export default function SettingsScreen({ navigation }) {
             <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
               <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Create Account</Text>
-                <TouchableOpacity onPress={() => setShowUpgradeModal(false)} accessibilityRole="button" accessibilityLabel="Close">
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('onboarding.createAccount')}</Text>
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowUpgradeModal(false)} accessibilityRole="button" accessibilityLabel="Close">
                   <Ionicons name="close" size={22} color={colors.muted} />
                 </TouchableOpacity>
               </View>
@@ -1211,7 +1354,7 @@ export default function SettingsScreen({ navigation }) {
                 style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, marginTop: 14 }]}
                 value={upgradeEmail}
                 onChangeText={(t) => { setUpgradeEmail(t); setUpgradeError(''); }}
-                placeholder="Email"
+                placeholder={t('placeholder.email')}
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 keyboardType="email-address"
@@ -1237,7 +1380,7 @@ export default function SettingsScreen({ navigation }) {
                 style={[styles.smallCta, { justifyContent: 'center', marginTop: 16, opacity: upgradeLoading ? 0.6 : 1 }]}
                 onPress={handleUpgradeAccount}
                 disabled={upgradeLoading}>
-                {upgradeLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.smallCtaText}>Create Account</Text>}
+                {upgradeLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.smallCtaText}>{t('onboarding.createAccount')}</Text>}
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -1288,6 +1431,13 @@ const styles = StyleSheet.create({
   tasteWeight: { fontSize: 14, fontWeight: '700', minWidth: 20, textAlign: 'center' },
   warningRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   warningTextDanger: { color: '#FF3B30', fontSize: 11, marginLeft: 5 },
+  // Wraps rather than flexing to fit: six languages in one row leaves each too
+  // narrow for 日本語 or Français without truncating.
+  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  langBtn: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(155,154,163,0.06)', alignItems: 'center', minWidth: 84 },
+  langBtnNative: { fontSize: 14, fontWeight: '700' },
+  langBtnLabel: { fontSize: 10.5, marginTop: 2 },
+
   themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   themeBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
   themeBtnText: { fontSize: 12, fontWeight: '500', marginTop: 8 },

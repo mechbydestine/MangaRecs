@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { rgba } from '../utils/recapIdentity';
 import { fetchFriendsRecap, fetchFriendDetail } from '../utils/recapHistory';
+import { useT } from '../utils/LanguageContext';
 
 const DISPLAY = 'MangaRecsBrand';
 
@@ -53,6 +54,7 @@ function jaccard(a, b) {
 }
 
 export default function RecapCompareModal({ visible, onClose, d, id, s, period }) {
+  const t = useT();
   const [friends, setFriends] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -161,7 +163,7 @@ export default function RecapCompareModal({ visible, onClose, d, id, s, period }
 
                   {detail.sharedSeries.length > 0 ? (
                     <View style={{ marginTop: 14 }}>
-                      <Text style={styles.sectionLbl}>YOU BOTH READ</Text>
+                      <Text style={styles.sectionLbl}>{t('recap.youBothRead')}</Text>
                       {detail.sharedSeries.slice(0, 5).map((x) => (
                         <Text key={x.series_title} style={styles.sharedTitle} numberOfLines={1}>· {x.series_title}</Text>
                       ))}

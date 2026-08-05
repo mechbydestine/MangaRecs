@@ -1,4 +1,11 @@
-﻿import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, Image } from 'react-native';
+﻿import {
+  View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Modal, ActivityIndicator, RefreshControl,
+} from 'react-native';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
+import { badgeName, badgeDesc } from '../utils/badgeText';
 import { getBlockedIds, blockUser, unblockUser } from '../utils/blocking';
 import { showAppToast } from '../utils/appToast';
 import { showAppAlert } from '../utils/appAlert';
@@ -9,9 +16,11 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../supabase';
+import { requireAccount } from '../utils/guestGate';
 import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats, ensureBadgeRarity } from '../utils/badges';
 import BadgeDetail from '../components/BadgeDetail';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { MangaCover, fetchMangaInfo } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 import StreakCalendar from '../components/StreakCalendar';
@@ -20,6 +29,7 @@ import { localDateKey } from '../utils/readerUtils';
 import { Bone, RowSkeleton } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
 import { PROFILE_THEMES } from '../utils/profileThemes';
+import { HIT_SLOP } from '../utils/tokens';
 
 const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
 
@@ -31,6 +41,7 @@ const fmtHrs = (h) => {
 
 export default function FriendProfileScreen({ route }) {
   const { colors } = useTheme();
+  const t = useT();
   const navigation = useNavigation();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -67,6 +78,18 @@ export default function FriendProfileScreen({ route }) {
     loadEntriesRead();
   }, [id]);
 
+  // Pull-to-refresh. loadProfile() drives `loading`, which swaps the whole
+  // screen for a spinner, so refreshing needs its own flag.
+  const [refreshing, setRefreshing] = useState(false);
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadProfile(), loadEntriesRead(), loadFollowers(), loadFollowing()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   function handleBlockToggle() {
     if (!myId || !id || blockBusy) return;
     if (iBlocked) {
@@ -75,7 +98,7 @@ export default function FriendProfileScreen({ route }) {
         setBlockBusy(false);
         if (error) { showAppToast("Couldn't unblock — try again"); return; }
         setIBlocked(false);
-        showAppToast(`Unblocked ${displayName || 'user'}`, 'success');
+        showAppToast(t('toast.unblocked', { name: displayName || 'user' }), 'success');
       });
       return;
     }
@@ -93,7 +116,7 @@ export default function FriendProfileScreen({ route }) {
               setBlockBusy(false);
               if (error) { showAppToast("Couldn't block — try again"); return; }
               setIBlocked(true);
-              showAppToast(`Blocked ${displayName || 'user'}`, 'success');
+              showAppToast(t('toast.blocked', { name: displayName || 'user' }), 'success');
             });
           },
         },
@@ -205,6 +228,16 @@ export default function FriendProfileScreen({ route }) {
 
   async function toggleFollow() {
     if (!myId || myId === id || followBusy) return;
+    // Following builds a social graph. On an anonymous session that graph is
+    // orphaned the moment the install goes away.
+    if (!iFollow) {
+      const ok = await requireAccount({
+        what: 'follow people',
+        onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
+        action: () => {},
+      });
+      if (!ok) return;
+    }
     setFollowBusy(true);
     if (iFollow) {
       setIFollow(false);
@@ -332,20 +365,28 @@ export default function FriendProfileScreen({ route }) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Floating header — back button + online badge + message (no title bar) */}
       <View style={[styles.floatingBar, { paddingTop: insets.top + 6 }]} pointerEvents="box-none">
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.floatingBackBtn} activeOpacity={0.75} pointerEvents="auto">
+        <TouchableOpacity hitSlop={HIT_SLOP}
+          onPress={() => navigation.goBack()}
+          style={styles.floatingBackBtn}
+          activeOpacity={0.75}
+          pointerEvents="auto"
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </TouchableOpacity>
         {profile && !loading && isOnline && (
           <View style={styles.floatingRight} pointerEvents="auto">
             <View style={styles.onlineBadge}>
               <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>Online</Text>
+              <Text style={styles.onlineText}>{t('friend.online')}</Text>
             </View>
           </View>
         )}
       </View>
 
-      {loading ? (
+      {/* !refreshing: loadProfile() sets `loading`, which would swap the screen
+          for skeletons mid-pull and unmount the RefreshControl. */}
+      {loading && !refreshing ? (
         <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 12 }}>
           <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
             <Bone width="100%" height={110} radius={16} />
@@ -361,13 +402,24 @@ export default function FriendProfileScreen({ route }) {
         </View>
       ) : !profile ? (
         <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
-          <Text style={[styles.notFoundText, { color: colors.muted }]}>Friend not found.</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.notFoundLink}>Go back</Text>
+          <Text style={[styles.notFoundText, { color: colors.muted }]}>{t('friend.notFound')}</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('friend.goBack')}>
+            <Text style={styles.notFoundLink}>{t('friend.goBack')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
+      // bounces/overScrollMode were disabled here; pull-to-refresh needs the
+      // overscroll gesture they suppress.
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.muted}
+            colors={[colors.primary]}
+          />
+        }>
         <View style={isTablet ? styles.tabletWrap : null}>
 
         {/* Space for floating bar */}
@@ -409,7 +461,12 @@ export default function FriendProfileScreen({ route }) {
             {showcaseBadges.length > 0 && (
               <View style={styles.showcaseRow}>
                 {showcaseBadges.map((b) => (
-                  <TouchableOpacity key={b.id} onPress={() => setDetailBadge(b)} activeOpacity={0.75}>
+                  <TouchableOpacity
+                    key={b.id}
+                    onPress={() => setDetailBadge(b)}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel={badgeName(b)}>
                     <BadgeIcon badge={b} size={30} />
                   </TouchableOpacity>
                 ))}
@@ -443,10 +500,12 @@ export default function FriendProfileScreen({ route }) {
                 {!iBlocked && (
                   <TouchableOpacity
                     onPress={toggleFollow}
+                    accessibilityRole="button"
+                    accessibilityLabel={iFollow ? t('friend.unfollow') : t('friend.follow')}
                     disabled={followBusy}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     activeOpacity={0.6}>
-                    <Ionicons name={iFollow ? 'person-remove-outline' : 'person-add-outline'} size={19} color={iFollow ? '#1D9E75' : '#7B5CFF'} />
+                    <Ionicons name={iFollow ? 'person-remove-outline' : 'person-add-outline'} size={19} color={iFollow ? '#1D9E75' : colors.primary} />
                   </TouchableOpacity>
                 )}
                 {!iBlocked && (
@@ -459,11 +518,13 @@ export default function FriendProfileScreen({ route }) {
                     })}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     activeOpacity={0.6}>
-                    <Ionicons name="chatbubble-outline" size={18} color="#7B5CFF" />
+                    <Ionicons name="chatbubble-outline" size={18} color={colors.primary} />
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
                   onPress={handleBlockToggle}
+                  accessibilityRole="button"
+                  accessibilityLabel={iBlocked ? t('friend.unblock') : t('friend.block')}
                   disabled={blockBusy}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   activeOpacity={0.6}>
@@ -477,21 +538,21 @@ export default function FriendProfileScreen({ route }) {
         {/* Stats — plain icon + value + label, no box/chip */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Ionicons name="book" size={14} color="#7B5CFF" />
+            <Ionicons name="book" size={14} color={colors.primary} />
             <Text style={[styles.statValue, { color: colors.text }]}>{entriesRead}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Read</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>{t('profile.readStat')}</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="time" size={14} color="#1D9E75" />
             <Text style={[styles.statValue, { color: colors.text }]}>{fmtHrs(profile.hours_read)}</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Time Read</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>{t('profile.timeRead')}</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="trophy" size={14} color="#FFD700" />
             <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>
               {profile.favorite_genre || '—'}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Fav. Genre</Text>
+            <Text style={[styles.statLabel, { color: colors.muted }]}>{t('profile.favGenre')}</Text>
           </View>
         </View>
 
@@ -534,14 +595,14 @@ export default function FriendProfileScreen({ route }) {
         {/* Reading Streak + Faves */}
         <View style={[styles.streakSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.streakSectionHeader}>
-            <Text style={[styles.streakTitle, { color: colors.text }]}>Reading Streak </Text>
+            <Text style={[styles.streakTitle, { color: colors.text }]}>{t('profile.readingStreak')} </Text>
           </View>
           <View style={styles.streakBody}>
             <View style={styles.streakLeft}>
               <View style={styles.streakBadges}>
                 {todayLabel && (
                   <View style={styles.todayBadge}>
-                    <Ionicons name="time" size={11} color="#7B5CFF" />
+                    <Ionicons name="time" size={11} color={colors.primary} />
                     <Text style={styles.todayBadgeText}>{todayLabel}</Text>
                   </View>
                 )}
@@ -552,7 +613,7 @@ export default function FriendProfileScreen({ route }) {
               </View>
               <StreakCalendar dailyLog={dailyLog} />
               <View style={styles.streakLegend}>
-                {[{ bg: '#4A40A0', label: 'Some' }, { bg: '#7B5CFF', label: 'Lots' }].map(({ bg, label }) => (
+                {[{ bg: '#4A40A0', label: 'Some' }, { bg: colors.primary, label: 'Lots' }].map(({ bg, label }) => (
                   <View key={label} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: bg }]} />
                     <Text style={[styles.legendText, { color: colors.muted }]}>{label}</Text>
@@ -565,10 +626,15 @@ export default function FriendProfileScreen({ route }) {
             <View style={styles.favesPanel}>
               {favorites.length === 0 ? (
                 <View style={[styles.favesEmptyCard, { borderColor: 'rgba(123,92,255,0.25)' }]}>
-                  <Text style={styles.favesEmptyText}>No faves yet</Text>
+                  <Text style={styles.favesEmptyText}>{t('friend.noFaves')}</Text>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.faveFeatCard} onPress={() => setShowAllFaves(true)} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={styles.faveFeatCard}
+                  onPress={() => setShowAllFaves(true)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.favorites')}>
                   <MangaCover
                     title={favorites[0].title}
                     searchKey={favorites[0].searchKey}
@@ -605,7 +671,7 @@ export default function FriendProfileScreen({ route }) {
         {earnedIds.size > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Badges Earned</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.badgesEarned')}</Text>
               <Text style={[styles.badgeCountText, { color: colors.muted }]}>{earnedIds.size} / {ALL_BADGES.length}</Text>
             </View>
             <View style={styles.badgeGrid}>
@@ -616,14 +682,16 @@ export default function FriendProfileScreen({ route }) {
                     key={badge.id}
                     style={[styles.badgeCard, { borderColor: grade.border }]}
                     onPress={() => setDetailBadge(badge)}
+                    accessibilityRole="button"
+                    accessibilityLabel={badgeName(badge)}
                     activeOpacity={0.8}>
                     <BadgeIcon badge={badge} size={48} />
-                    <Text style={[styles.badgeName, { color: grade.color }]} numberOfLines={2}>{badge.name}</Text>
+                    <Text style={[styles.badgeName, { color: grade.color }]} numberOfLines={2}>{badgeName(badge)}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-            <TouchableOpacity style={styles.seeAllBtn} onPress={() => setShowAllBadges(true)}>
+            <TouchableOpacity style={styles.seeAllBtn} onPress={() => setShowAllBadges(true)} accessibilityRole="button" accessibilityLabel={t('common.seeAll')}>
               <Text style={styles.seeAllText}>See all {earnedIds.size} earned badges</Text>
             </TouchableOpacity>
           </View>
@@ -642,10 +710,10 @@ export default function FriendProfileScreen({ route }) {
               <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
               <View style={styles.sheetHeader}>
                 <View>
-                  <Text style={[styles.sheetTitle, { color: colors.text }]}>Achievement Badges</Text>
+                  <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('profile.achievementBadges')}</Text>
                   <Text style={[styles.sheetSub, { color: colors.muted }]}>{earnedIds.size} earned · {ALL_BADGES.length - earnedIds.size} locked</Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowAllBadges(false)}>
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAllBadges(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                   <Ionicons name="close" size={18} color={colors.muted} />
                 </TouchableOpacity>
               </View>
@@ -692,7 +760,7 @@ export default function FriendProfileScreen({ route }) {
                             </View>
                             <View style={styles.fullBadgeInfo}>
                               <Text style={[styles.fullBadgeName, { color: earned ? item.grade.color : colors.muted }]}>
-                                {badge.name}
+                                {badgeName(badge)}
                               </Text>
                             </View>
                           </TouchableOpacity>

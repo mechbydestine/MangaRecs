@@ -1,15 +1,21 @@
 ﻿import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native';
+import { profileAccent } from '../utils/profileThemes';
+// expo-image rather than RN's Image: these are remote avatars/covers and
+// RN's Android disk cache is effectively absent, so they re-downloaded on
+// every render. cachePolicy defaults to 'disk'.
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useProfile } from '../utils/ProfileContext';
 import { MangaCover } from '../utils/mangaCovers';
 import { supabase } from '../supabase';
+import { requireAccount } from '../utils/guestGate';
 import { insertActivity } from '../utils/activityFeed';
 import { RowSkeleton } from '../components/Skeleton';
 import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
@@ -19,6 +25,7 @@ import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { light } from '../utils/haptics';
 import { showAppToast } from '../utils/appToast';
+import { HIT_SLOP } from '../utils/tokens';
 
 
 const BLOCKED_DOMAINS = [
@@ -33,14 +40,14 @@ function containsBlockedDomain(text) {
 
 const REPORT_REASONS = ['Piracy link', 'Copyrighted content', 'Harassment', 'Spam', 'Other'];
 
+// Top-level comments per page. Each one also pulls two tiers of replies, so
+// this is the knob that decides how much a popular chapter costs to open.
+const COMMENT_PAGE_SIZE = 50;
+
 // Matches the palette used everywhere else a user's chosen profile color
 // shows up (SocialScreen/DMScreen) — comments were falling back to a
 // name-hashed color instead of the commenter's real avatar/chroma.
-const THEME_COLORS = {
-  default: '#7B5CFF', rose: '#D4537E', sky: '#378ADD',
-  emerald: '#1D9E75', amber: '#EF9F27', violet: '#7F77DD', crimson: '#FF5C7A',
-};
-function themeColor(id) { return THEME_COLORS[id] || '#7B5CFF'; }
+const themeColor = profileAccent;
 
 function timeAgo(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -57,6 +64,7 @@ export default function DiscussionScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
   const {
@@ -70,6 +78,8 @@ export default function DiscussionScreen() {
 
   const { profile } = useProfile();
   const [comments, setComments] = useState([]);
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSpoilerPost, setIsSpoilerPost] = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -102,6 +112,15 @@ export default function DiscussionScreen() {
 
   async function handleSubmitRating(stars) {
     if (!title || !currentUserId || seriesRating.submitting) return;
+    // A rating is a permanent public opinion attached to an identity. On an
+    // anonymous session it would vanish with the install and could never be
+    // edited, so this is one of the actions that earns the signup prompt.
+    const ran = await requireAccount({
+      what: 'rate this series',
+      onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
+      action: () => {},
+    });
+    if (!ran) return;
     setSeriesRating((prev) => ({ ...prev, yourRating: stars, submitting: true }));
     try {
       const poolEntry = findPoolEntry(title, searchKey);
@@ -125,9 +144,21 @@ export default function DiscussionScreen() {
     });
   }, [selectedChapter]);
 
-  async function loadComments() {
+  // Pull-to-refresh. loadComments() sets `fetchingComments`, which renders a
+  // spinner in place of the thread, so refreshing tracks its own flag.
+  const [refreshing, setRefreshing] = useState(false);
+  async function handleRefresh() {
+    setRefreshing(true);
+    try { await loadComments(); } finally { setRefreshing(false); }
+  }
+
+  // `append` loads the next page onto the end instead of replacing it. A busy
+  // chapter thread used to stop at a hard .limit(50) with no way to reach
+  // comment 51 — the rest of the discussion simply did not exist in the UI.
+  async function loadComments({ append = false } = {}) {
     if (!title) { setFetchingComments(false); return; }
-    setFetchingComments(true);
+    if (append) setLoadingMoreComments(true); else setFetchingComments(true);
+    const offset = append ? comments.length : 0;
 
     // 1. Fetch top-level comments only, scoped to the selected chapter.
     // Legacy comments (posted before per-chapter tagging existed) have no
@@ -143,12 +174,14 @@ export default function DiscussionScreen() {
       : query.eq('chapter', selectedChapter);
     const { data, error } = await query
       .order('created_at', { ascending: false })
-      .limit(50);
+      .range(offset, offset + COMMENT_PAGE_SIZE - 1);
 
     if (error || !data) {
       setFetchingComments(false);
+      setLoadingMoreComments(false);
       return;
     }
+    setHasMoreComments(data.length === COMMENT_PAGE_SIZE);
 
     // 2. Fetch replies for all top-level comments (tier 2), then replies of
     // those replies (tier 3) — real two-level nesting instead of flattening
@@ -218,7 +251,8 @@ export default function DiscussionScreen() {
     });
 
     setFetchingComments(false);
-    setComments(data.map((row) => {
+    setLoadingMoreComments(false);
+    const page = data.map((row) => {
       const name = row.author?.display_name || row.author?.username || 'Reader';
       return {
         id: row.id,
@@ -234,7 +268,14 @@ export default function DiscussionScreen() {
         spoiler: row.spoiler || false,
         replies: replyMap[row.id] || [],
       };
-    }));
+    });
+    // A comment posted between page fetches shifts the offset window by one, so
+    // the same row can arrive twice — drop it rather than render a duplicate.
+    setComments((prev) => {
+      if (!append) return page;
+      const seen = new Set(prev.map((c) => c.id));
+      return [...prev, ...page.filter((c) => !seen.has(c.id))];
+    });
   }
 
   async function postComment() {
@@ -249,6 +290,13 @@ export default function DiscussionScreen() {
       return;
     }
     setUrlError('');
+    // Posting attaches your name to something other people will read.
+    const canPost = await requireAccount({
+      what: 'post a comment',
+      onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
+      action: () => {},
+    });
+    if (!canPost) return;
     setCommentLoading(true);
     light();
 
@@ -427,7 +475,7 @@ export default function DiscussionScreen() {
 
         {/* ── Header ── */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -436,12 +484,20 @@ export default function DiscussionScreen() {
           </View>
         </View>
 
+        {/* bounces/overScrollMode were disabled here; pull-to-refresh needs the
+            overscroll gesture they suppress. */}
         <ScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
-          bounces={false}
-          overScrollMode="never"
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.muted}
+              colors={[colors.primary]}
+            />
+          }>
 
           <View style={isTablet ? styles.tabletWrap : null}>
 
@@ -458,7 +514,7 @@ export default function DiscussionScreen() {
               <Text style={[styles.infoTitle, { color: colors.text }]}>{title}</Text>
               <Text style={[styles.infoChap, { color: colors.muted }]}>Chapter {latestChapter} · Latest</Text>
               <View style={styles.infoStats}>
-                <Ionicons name="chatbubble-ellipses" size={12} color="#7B5CFF" />
+                <Ionicons name="chatbubble-ellipses" size={12} color={colors.primary} />
                 <Text style={styles.infoDiscussing}>
                   {(discussing || 0).toLocaleString()} discussing
                 </Text>
@@ -466,7 +522,7 @@ export default function DiscussionScreen() {
               {!seriesRating.loading && (
                 <TouchableOpacity style={styles.ratingRow} onPress={() => setShowRateSheet(true)} activeOpacity={0.7}>
                   <StarRatingDisplay avg={seriesRating.avg} count={seriesRating.count} size={13} />
-                  <Text style={[styles.rateLink, seriesRating.yourRating && { color: '#7B5CFF' }]}>
+                  <Text style={[styles.rateLink, seriesRating.yourRating && { color: colors.primary }]}>
                     {seriesRating.yourRating ? `You rated ${seriesRating.yourRating}/10` : 'Rate it'}
                   </Text>
                 </TouchableOpacity>
@@ -503,12 +559,12 @@ export default function DiscussionScreen() {
               <TouchableOpacity
                 style={[styles.sortBtn, sortBy === 'top' && [styles.sortBtnActive, { backgroundColor: colors.background }]]}
                 onPress={() => setSortBy('top')}>
-                <Text style={[styles.sortBtnText, { color: sortBy === 'top' ? '#7B5CFF' : colors.muted }]}>Top</Text>
+                <Text style={[styles.sortBtnText, { color: sortBy === 'top' ? colors.primary : colors.muted }]}>{t('discussion.top')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.sortBtn, sortBy === 'new' && [styles.sortBtnActive, { backgroundColor: colors.background }]]}
                 onPress={() => setSortBy('new')}>
-                <Text style={[styles.sortBtnText, { color: sortBy === 'new' ? '#7B5CFF' : colors.muted }]}>New</Text>
+                <Text style={[styles.sortBtnText, { color: sortBy === 'new' ? colors.primary : colors.muted }]}>{t('discussion.newest')}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -517,16 +573,16 @@ export default function DiscussionScreen() {
               <Ionicons
                 name={spoilerFilter ? 'eye-off-outline' : 'eye-outline'}
                 size={13}
-                color={spoilerFilter ? colors.muted : '#7B5CFF'}
+                color={spoilerFilter ? colors.muted : colors.primary}
               />
-              <Text style={[styles.spoilerBtnText, { color: spoilerFilter ? colors.muted : '#7B5CFF' }]}>
-                Spoilers
+              <Text style={[styles.spoilerBtnText, { color: spoilerFilter ? colors.muted : colors.primary }]}>
+                {t('discussion.spoilerToggle')}
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* ── Comments ── */}
-          {fetchingComments && (
+          {fetchingComments && !refreshing && (
             <View style={{ paddingVertical: 24, marginHorizontal: -20 }}>
               <RowSkeleton count={4} />
             </View>
@@ -534,7 +590,7 @@ export default function DiscussionScreen() {
           {!fetchingComments && sorted.length === 0 && (
             <View style={{ paddingVertical: 48, alignItems: 'center', gap: 8 }}>
               <Ionicons name="chatbubble-outline" size={32} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 14 }}>No comments yet. Start the discussion!</Text>
+              <Text style={{ color: colors.muted, fontSize: 14 }}>{t('discussion.noComments')}</Text>
             </View>
           )}
           {sorted.map((comment) => {
@@ -565,7 +621,7 @@ export default function DiscussionScreen() {
                       <Text style={[styles.commenterTime, { color: colors.muted }]}>{comment.time}</Text>
                       {comment.spoiler && (
                         <View style={styles.spoilerPill}>
-                          <Text style={styles.spoilerPillText}>SPOILER</Text>
+                          <Text style={styles.spoilerPillText}>{t('feed.spoiler')}</Text>
                         </View>
                       )}
                     </View>
@@ -597,12 +653,12 @@ export default function DiscussionScreen() {
 
                       <TouchableOpacity style={styles.actionBtn} onPress={() => handleReply(comment.name, comment.id, comment.userId)}>
                         <Ionicons name="chatbubble-outline" size={14} color={colors.muted} />
-                        <Text style={[styles.actionText, { color: colors.muted }]}>Reply</Text>
+                        <Text style={[styles.actionText, { color: colors.muted }]}>{t('feed.reply')}</Text>
                       </TouchableOpacity>
 
                       {hasReplies && (
                         <TouchableOpacity style={styles.actionBtn} onPress={() => toggleReplies(comment.id)}>
-                          <Text style={[styles.actionText, { color: '#7B5CFF' }]}>
+                          <Text style={[styles.actionText, { color: colors.primary }]}>
                             {repliesOpen
                               ? 'Hide replies'
                               : `${comment.replies.length} repl${comment.replies.length === 1 ? 'y' : 'ies'}`}
@@ -613,6 +669,8 @@ export default function DiscussionScreen() {
                       <TouchableOpacity
                         style={[styles.actionBtn, { marginLeft: 'auto' }]}
                         onPress={() => setReportItem(comment)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Report this comment"
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <Ionicons name="flag-outline" size={13} color={colors.muted} />
                       </TouchableOpacity>
@@ -661,11 +719,13 @@ export default function DiscussionScreen() {
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.actionBtn} onPress={() => handleReply(reply.name, reply.id, reply.userId, comment.id)}>
                             <Ionicons name="chatbubble-outline" size={13} color={colors.muted} />
-                            <Text style={[styles.actionText, { color: colors.muted }]}>Reply</Text>
+                            <Text style={[styles.actionText, { color: colors.muted }]}>{t('feed.reply')}</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={[styles.actionBtn, { marginLeft: 'auto' }]}
                             onPress={() => setReportItem(reply)}
+                            accessibilityRole="button"
+                            accessibilityLabel="Report this reply"
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                             <Ionicons name="flag-outline" size={13} color={colors.muted} />
                           </TouchableOpacity>
@@ -711,11 +771,13 @@ export default function DiscussionScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.actionBtn} onPress={() => handleReply(subReply.name, reply.id, subReply.userId, comment.id)}>
                               <Ionicons name="chatbubble-outline" size={13} color={colors.muted} />
-                              <Text style={[styles.actionText, { color: colors.muted }]}>Reply</Text>
+                              <Text style={[styles.actionText, { color: colors.muted }]}>{t('feed.reply')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[styles.actionBtn, { marginLeft: 'auto' }]}
                               onPress={() => setReportItem(subReply)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Report this reply"
                               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                               <Ionicons name="flag-outline" size={13} color={colors.muted} />
                             </TouchableOpacity>
@@ -729,6 +791,19 @@ export default function DiscussionScreen() {
             );
           })}
 
+          {hasMoreComments && (
+            <TouchableOpacity
+              style={[styles.loadMoreBtn, { borderColor: colors.border }]}
+              onPress={() => loadComments({ append: true })}
+              disabled={loadingMoreComments}
+              accessibilityRole="button"
+              accessibilityLabel={t('discussion.loadMoreComments')}>
+              {loadingMoreComments
+                ? <ActivityIndicator size="small" color={colors.muted} />
+                : <Text style={[styles.loadMoreText, { color: colors.primary }]}>{t('discussion.loadMoreComments')}</Text>}
+            </TouchableOpacity>
+          )}
+
           <View style={{ height: 80 }} />
           </View>
         </ScrollView>
@@ -737,12 +812,14 @@ export default function DiscussionScreen() {
         <View style={isTablet ? styles.tabletWrap : null}>
         {replyingTo && (
           <View style={[styles.replyingToBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-            <Ionicons name="return-down-forward-outline" size={13} color="#7B5CFF" />
+            <Ionicons name="return-down-forward-outline" size={13} color={colors.primary} />
             <Text style={[styles.replyingToText, { color: colors.muted }]}>
-              Replying to <Text style={{ color: '#7B5CFF', fontWeight: '600' }}>@{replyingTo.name}</Text>
+              {t('discussion.replyingTo')} <Text style={{ color: colors.primary, fontWeight: '600' }}>@{replyingTo.name}</Text>
             </Text>
             <TouchableOpacity
               onPress={() => { setReplyingTo(null); setCommentText(''); }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel reply"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={15} color={colors.muted} />
             </TouchableOpacity>
@@ -756,9 +833,12 @@ export default function DiscussionScreen() {
         )}
         <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: (!replyingTo && !urlError) ? colors.border : 'transparent', paddingBottom: Math.max(insets.bottom, 12) }]}>
           {!replyingTo && (
-            <TouchableOpacity
+            <TouchableOpacity hitSlop={HIT_SLOP}
               style={[styles.spoilerToggleBtn, isSpoilerPost && styles.spoilerToggleBtnActive]}
-              onPress={() => setIsSpoilerPost((v) => !v)}>
+              onPress={() => setIsSpoilerPost((v) => !v)}
+              accessibilityRole="switch"
+              accessibilityLabel="Mark as spoiler"
+              accessibilityState={{ checked: isSpoilerPost }}>
               <Ionicons name={isSpoilerPost ? 'eye-off' : 'eye-off-outline'} size={15} color={isSpoilerPost ? '#E8527A' : colors.muted} />
             </TouchableOpacity>
           )}
@@ -774,7 +854,13 @@ export default function DiscussionScreen() {
             multiline
             maxLength={500}
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={postComment} disabled={commentLoading || !commentText.trim()}>
+          <TouchableOpacity
+            style={styles.sendBtn}
+            onPress={postComment}
+            accessibilityRole="button"
+            accessibilityLabel="Post comment"
+            accessibilityState={{ disabled: commentLoading || !commentText.trim(), busy: commentLoading }}
+            disabled={commentLoading || !commentText.trim()}>
             {commentLoading
               ? <ActivityIndicator size="small" color="#fff" />
               : <Ionicons name="send" size={16} color="#fff" />}
@@ -786,8 +872,8 @@ export default function DiscussionScreen() {
           <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setReportItem(null)}>
             <View style={[styles.reportSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
               <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-              <Text style={[styles.reportTitle, { color: colors.text }]}>Report Content</Text>
-              <Text style={[styles.reportSub, { color: colors.muted }]}>Why are you reporting this?</Text>
+              <Text style={[styles.reportTitle, { color: colors.text }]}>{t('community.reportContent')}</Text>
+              <Text style={[styles.reportSub, { color: colors.muted }]}>{t('discussion.whyReport')}</Text>
               {REPORT_REASONS.map((reason) => (
                 <TouchableOpacity
                   key={reason}
@@ -797,7 +883,7 @@ export default function DiscussionScreen() {
                   activeOpacity={0.75}>
                   <Text style={[styles.reportOptionText, { color: colors.text }]}>{reason}</Text>
                   {reportSubmitting
-                    ? <ActivityIndicator size="small" color="#7B5CFF" />
+                    ? <ActivityIndicator size="small" color={colors.primary} />
                     : <Ionicons name="chevron-forward" size={14} color={colors.muted} />}
                 </TouchableOpacity>
               ))}
@@ -826,7 +912,7 @@ export default function DiscussionScreen() {
         {reportToast && (
           <View style={styles.toast} pointerEvents="none">
             <Ionicons name="checkmark-circle" size={16} color="#1D9E75" />
-            <Text style={styles.toastText}>Reported</Text>
+            <Text style={styles.toastText}>{t('community.reported')}</Text>
           </View>
         )}
       </View>
@@ -835,6 +921,8 @@ export default function DiscussionScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadMoreBtn: { marginTop: 4, marginHorizontal: 16, paddingVertical: 12, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center' },
+  loadMoreText: { fontSize: 13, fontWeight: '600' },
   container: { flex: 1 },
   tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },

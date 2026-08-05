@@ -8,7 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import StarLogo from '../components/StarLogo';
+import { HIT_SLOP } from '../utils/tokens';
+import { useResponsive } from '../utils/responsive';
 
 const GUIDELINES = [
   {
@@ -59,6 +62,8 @@ const GUIDELINES = [
 export default function GuidelinesScreen({ onComplete, navigation }) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { isTablet } = useResponsive();
+  const t = useT();
   const [loading, setLoading] = useState(false);
   const isInfoMode = !onComplete && !!navigation;
 
@@ -83,14 +88,19 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {isInfoMode && (
         <View style={styles.topBar}>
-          <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.card }]} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            hitSlop={HIT_SLOP}
+            style={[styles.closeBtn, { backgroundColor: colors.card }]}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.close')}>
             <Ionicons name="close" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
       )}
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, isTablet && styles.tabletWrap]}
         showsVerticalScrollIndicator={false}
         bounces={false}>
 
@@ -102,7 +112,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
           </View>
         </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>Community Guidelines</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('nav.guidelines')}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {isInfoMode
             ? 'Our community standards keep MangaRecs a great place for every reader.'
@@ -121,12 +131,18 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
 
         {isInfoMode && (
           <View style={styles.linksRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('Legal', { tab: 'privacy' })}>
-              <Text style={[styles.linkText, { color: colors.primary }]}>Privacy Policy</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Legal', { tab: 'privacy' })}
+              accessibilityRole="link"
+              accessibilityLabel={t('legal.privacy')}>
+              <Text style={[styles.linkText, { color: colors.primary }]}>{t('legal.privacy')}</Text>
             </TouchableOpacity>
             <Text style={[styles.linkSep, { color: colors.textSecondary }]}>·</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Legal', { tab: 'terms' })}>
-              <Text style={[styles.linkText, { color: colors.primary }]}>Terms of Service</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Legal', { tab: 'terms' })}
+              accessibilityRole="link"
+              accessibilityLabel={t('legal.terms')}>
+              <Text style={[styles.linkText, { color: colors.primary }]}>{t('legal.termsOfService')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -140,7 +156,10 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
             style={[styles.agreeBtn, { backgroundColor: colors.primary }, loading && styles.agreeBtnLoading]}
             onPress={handleAgree}
             disabled={loading}
-            activeOpacity={0.85}>
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('guidelines.agree')}
+            accessibilityState={{ disabled: loading, busy: loading }}>
             {loading
               ? <ActivityIndicator size="small" color="#fff" />
               : <Text style={styles.agreeBtnText}>I Agree — Let me in</Text>}
@@ -152,6 +171,9 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // Caps the reading measure on iPad — full-width body text at 1024pt is
+  // unreadable. Matches the 640 used by every other screen.
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   root: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 },
 

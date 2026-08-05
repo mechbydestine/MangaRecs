@@ -8,9 +8,11 @@ import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigation, useScrollToTop, useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Polygon, Line, Circle } from 'react-native-svg';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
@@ -65,6 +67,7 @@ const RADAR_ICON_SIZE = 20;
 
 function RadarChart({ tasteProfile, onGenreTap }) {
   const { colors } = useTheme();
+  const t = useT();
   const n = tasteProfile.length;
   const angleStep = (Math.PI * 2) / n;
   const levels = 4;
@@ -100,7 +103,7 @@ function RadarChart({ tasteProfile, onGenreTap }) {
           const outer = getPoint(i, 100);
           return <Line key={i} x1={RADAR_CENTER} y1={RADAR_CENTER} x2={outer.x} y2={outer.y} stroke={colors.border} strokeWidth={1} />;
         })}
-        <Polygon points={polygonPoints} fill="#7B5CFF" fillOpacity={0.25} stroke="#7B5CFF" strokeWidth={2} />
+        <Polygon points={polygonPoints} fill={colors.primary} fillOpacity={0.25} stroke={colors.primary} strokeWidth={2} />
         {/* Dotted endpoints where the web meets its outer ring — the data
             polygon itself stays clean, no vertex dots */}
         {tasteProfile.map((_, i) => {
@@ -126,8 +129,11 @@ function RadarChart({ tasteProfile, onGenreTap }) {
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            onPress={() => onGenreTap(t.genre)}>
-            <Ionicons name={iconName} size={RADAR_ICON_SIZE} color={active ? '#7B5CFF' : colors.muted} />
+            onPress={() => onGenreTap(t.genre)}
+            accessibilityRole="button"
+            accessibilityLabel={t.genre}
+            accessibilityState={{ selected: active }}>
+            <Ionicons name={iconName} size={RADAR_ICON_SIZE} color={active ? colors.primary : colors.muted} />
           </TouchableOpacity>
         );
       })}
@@ -138,6 +144,7 @@ function RadarChart({ tasteProfile, onGenreTap }) {
 // ── Radar card — replays on focusKey change ────────────────────────────────
 
 function RadarCard({ colors, focusKey, tasteProfile }) {
+  const t = useT();
   const scale   = useRef(new Animated.Value(0.72)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const [selectedGenre, setSelectedGenre] = useState(null);
@@ -165,11 +172,11 @@ function RadarCard({ colors, focusKey, tasteProfile }) {
     <Animated.View style={[styles.tasteCard, { opacity, transform: [{ scale }] }]}>
       <View style={styles.tasteTitleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.tasteTitle, { color: colors.text }]}>Your Taste</Text>
+          <Text style={[styles.tasteTitle, { color: colors.text }]}>{t('forYou.yourTaste')}</Text>
         </View>
         {selectedGenre && (
           <View style={[styles.genrePill, { flexShrink: 0 }]}>
-            <Ionicons name={MOOD_ICON_MAP[selectedGenre] || 'book-outline'} size={13} color="#7B5CFF" />
+            <Ionicons name={MOOD_ICON_MAP[selectedGenre] || 'book-outline'} size={13} color={colors.primary} />
             <Text style={styles.genrePillText} numberOfLines={1}>{selectedGenre}</Text>
           </View>
         )}
@@ -207,6 +214,7 @@ function SectionTitle({ children, colors, delay, focusKey }) {
 
 function MoodButton({ mood, active, onPress }) {
   const { colors } = useTheme();
+  const t = useT();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
@@ -226,7 +234,10 @@ function MoodButton({ mood, active, onPress }) {
           active && styles.moodBtnActive,
         ]}
         onPress={handlePress}
-        activeOpacity={0.8}>
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={mood.label}
+        accessibilityState={{ selected: active }}>
         <Ionicons name={active ? (mood.iconActive || mood.icon) : mood.icon} size={15} color={active ? '#A09CE0' : colors.muted} style={{ marginRight: 6 }} />
         <Text style={[styles.moodLabel, { color: colors.muted }, active && styles.moodLabelActive]}>
           {mood.label}
@@ -242,6 +253,7 @@ function MoodButton({ mood, active, onPress }) {
 // remove ("not interested"). Tap still opens the reader.
 function RecCard({ series, reason, onDismiss, onSave, index, animKey }) {
   const { colors } = useTheme();
+  const t = useT();
   const { width: screenW } = useResponsive();
   const navigation = useNavigation();
 
@@ -326,10 +338,10 @@ function RecCard({ series, reason, onDismiss, onSave, index, animKey }) {
       {/* Swipe action underlays */}
       <Animated.View style={[styles.swipeUnder, styles.swipeUnderSave, { opacity: saveOpacity }]}>
         <Ionicons name="bookmark" size={18} color="#fff" />
-        <Text style={styles.swipeUnderText}>Save</Text>
+        <Text style={styles.swipeUnderText}>{t('common.save')}</Text>
       </Animated.View>
       <Animated.View style={[styles.swipeUnder, styles.swipeUnderRemove, { opacity: removeOpacity }]}>
-        <Text style={styles.swipeUnderText}>Remove</Text>
+        <Text style={styles.swipeUnderText}>{t('common.remove')}</Text>
         <Ionicons name="trash" size={18} color="#fff" />
       </Animated.View>
 
@@ -337,15 +349,18 @@ function RecCard({ series, reason, onDismiss, onSave, index, animKey }) {
         <TouchableOpacity
           style={[styles.recCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 0 }]}
           onPress={handlePress}
-          activeOpacity={0.9}>
+          activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={series.title}
+          accessibilityHint={t('forYou.openSeriesHint')}>
           <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} contentRating={series.contentRating} nsfw={series.nsfw} style={styles.recCover}>
             <View style={styles.coverLetterWrap}>
               <Text style={styles.coverLetterText}>{(series.title || '?').charAt(0).toUpperCase()}</Text>
             </View>
             {series.comingSoon && (
               <View style={styles.comingSoonOverlay}>
-                <Text style={styles.comingSoonLabel}>UNRELEASED</Text>
-                <Text style={styles.comingSoonText}>Coming Soon</Text>
+                <Text style={styles.comingSoonLabel}>{t('forYou.unreleased')}</Text>
+                <Text style={styles.comingSoonText}>{t('forYou.comingSoon')}</Text>
               </View>
             )}
           </MangaCover>
@@ -371,6 +386,7 @@ function RecCard({ series, reason, onDismiss, onSave, index, animKey }) {
 
 const HotCard = memo(function HotCard({ series, onPress }) {
   const { colors } = useTheme();
+  const t = useT();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
@@ -387,15 +403,20 @@ const HotCard = memo(function HotCard({ series, onPress }) {
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
-      <TouchableOpacity onPress={handlePress} activeOpacity={0.85} style={styles.hotCard}>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={0.85}
+        style={styles.hotCard}
+        accessibilityRole="button"
+        accessibilityLabel={series.title}>
         <MangaCover title={series.title} searchKey={series.searchKey} lang={series.lang} color={series.color} contentRating={series.contentRating} nsfw={series.nsfw} style={styles.hotCover}>
           <View style={styles.hotLetterWrap}>
             <Text style={styles.hotLetterText}>{(series.title || '?').charAt(0).toUpperCase()}</Text>
           </View>
           {series.comingSoon && (
             <View style={styles.comingSoonOverlay}>
-              <Text style={styles.comingSoonLabel}>UNRELEASED</Text>
-              <Text style={styles.comingSoonText}>Coming Soon</Text>
+              <Text style={styles.comingSoonLabel}>{t('forYou.unreleased')}</Text>
+              <Text style={styles.comingSoonText}>{t('forYou.comingSoon')}</Text>
             </View>
           )}
         </MangaCover>
@@ -452,7 +473,9 @@ function applyContentRatio(items) {
 export default function ForYouScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { isTablet: IS_TABLET } = useResponsive();
   const DISMISSED_KEY = '@mangarecs_dismissed_recs';
   const [activeMood, setActiveMood] = useState(null);
@@ -513,7 +536,7 @@ export default function ForYouScreen() {
         });
       }
     }
-    showAppToast('Saved to Library', 'success');
+    showAppToast(t('toast.savedToLibrary'), 'success');
   }
   const [focusKey, setFocusKey] = useState(0);
   const [genreWeights, setGenreWeights] = useState({});
@@ -849,20 +872,20 @@ export default function ForYouScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7B5CFF" colors={['#7B5CFF']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}>
 
         <View style={IS_TABLET ? styles.tabletWrap : null}>
         <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerY }] }]}>
-          <Ionicons name="sparkles" size={16} color="#7B5CFF" />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>For You</Text>
+          <Ionicons name="sparkles" size={16} color={colors.primary} />
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('forYou.title')}</Text>
         </Animated.View>
         <Animated.Text style={[styles.headerSub, { color: colors.muted, opacity: headerOpacity }]}>
-          AI-powered recommendations
+          {t('forYou.subtitle')}
         </Animated.Text>
 
         {aiRecEnabled && Object.keys(genreWeights).length === 0 && (
           <View style={[styles.newUserHint, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="compass-outline" size={16} color="#7B5CFF" />
+            <Ionicons name="compass-outline" size={16} color={colors.primary} />
             <Text style={[styles.newUserHintText, { color: colors.muted }]}>
               Your taste profile is empty — like, save, or read a few series and
               recommendations here will start matching your taste.
@@ -876,11 +899,13 @@ export default function ForYouScreen() {
           <TouchableOpacity
             style={[styles.aiOffBanner, { backgroundColor: colors.card, borderColor: colors.border }]}
             onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'Settings' })}
-            activeOpacity={0.8}>
-            <Ionicons name="sparkles-outline" size={16} color="#7B5CFF" />
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('forYou.goToSettings')}>
+            <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
             <Text style={[styles.aiOffText, { color: colors.muted }]}>
               AI Recommendations are off — showing popular picks.{' '}
-              <Text style={{ color: '#7B5CFF', fontWeight: '600' }}>Enable in Settings</Text>
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('forYou.enableInSettings')}</Text>
             </Text>
           </TouchableOpacity>
         )}
@@ -919,7 +944,7 @@ export default function ForYouScreen() {
           </>
         )}
 
-        <SectionTitle colors={colors} delay={180} focusKey={focusKey}>What's your mood?</SectionTitle>
+        <SectionTitle colors={colors} delay={180} focusKey={focusKey}>{t('forYou.whatsYourMood')}</SectionTitle>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodRow}>
           {MOODS.map((mood) => (
             <MoodButton
@@ -961,22 +986,24 @@ export default function ForYouScreen() {
 
         {activeMood === 'Adult' && ageVerified && !allowNsfw ? (
           <View style={[styles.adultLock, { backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 16 }]}>
-            <Ionicons name="lock-closed" size={32} color="#7B5CFF" />
-            <Text style={[styles.adultLockTitle, { color: colors.text }]}>Adult Content is Off</Text>
+            <Ionicons name="lock-closed" size={32} color={colors.primary} />
+            <Text style={[styles.adultLockTitle, { color: colors.text }]}>{t('forYou.adultOff')}</Text>
             <Text style={[styles.adultLockSub, { color: colors.muted }]}>
               You're verified but adult content is disabled. Enable it in Settings → Content.
             </Text>
             <TouchableOpacity
               style={styles.adultLockBtn}
               onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'Settings' })}
-              activeOpacity={0.85}>
-              <Text style={styles.adultLockBtnText}>Go to Settings </Text>
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={t('forYou.goToSettings')}>
+              <Text style={styles.adultLockBtnText}>{t('forYou.goToSettings')} </Text>
             </TouchableOpacity>
           </View>
         ) : displayRecs.filter((s) => !dismissedIds.has(s.id)).length === 0 ? (
           <View style={[styles.adultLock, { backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 16 }]}>
             <Ionicons name="albums-outline" size={30} color={colors.muted} />
-            <Text style={[styles.adultLockTitle, { color: colors.text }]}>Nothing here yet</Text>
+            <Text style={[styles.adultLockTitle, { color: colors.text }]}>{t('library.nothingHere')}</Text>
             <Text style={[styles.adultLockSub, { color: colors.muted }]}>
               {activeMood === 'Adult'
                 ? "There aren't many 18+ titles in the catalog yet — more are being added."
@@ -999,7 +1026,7 @@ export default function ForYouScreen() {
           </View>
         )}
 
-        <View style={{ height: 88 }} />
+        <View style={{ height: tabBarHeight + 8 }} />
         </View>
       </ScrollView>
 

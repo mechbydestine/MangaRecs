@@ -11,13 +11,18 @@ import { ensureGuestSession } from '../utils/guestSession';
 import { GENRES as GENRE_OPTIONS } from '../utils/genres';
 import { useKeyboardPadding } from '../utils/keyboard';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
 import { GoogleButton, AuthDivider } from '../components/AuthButtons';
 import StarLogo from '../components/StarLogo';
 import { useResponsive } from '../utils/responsive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-function SignUpGate({ onDone }) {
+function SignUpGate({ onDone, onBrowse, browsing }) {
   const { colors } = useTheme();
+
+  const insets = useSafeAreaInsets();
+  const t = useT();
   const [mode, setMode] = useState('prompt');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,8 +64,8 @@ function SignUpGate({ onDone }) {
   if (mode === 'form') {
     return (
       <View style={styles.screenPad}>
-        <Text style={[styles.headline, { color: colors.text }]}>Create your account</Text>
-        <Text style={[styles.sub, { color: colors.textSecondary }]}>Save your progress, preferences, and library.</Text>
+        <Text style={[styles.headline, { color: colors.text }]}>{t('onboarding.createYourAccount')}</Text>
+        <Text style={[styles.sub, { color: colors.textSecondary }]}>{t('onboarding.saveProgressDesc')}</Text>
 
         <GoogleButton onPress={handleGoogle} loading={googleLoading} />
         <AuthDivider />
@@ -83,7 +88,7 @@ function SignUpGate({ onDone }) {
           <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} style={styles.fieldIcon} />
           <TextInput
             style={[styles.input, { color: colors.text }]}
-            placeholder="Create a password"
+            placeholder={t('placeholder.createPassword')}
             placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}
@@ -105,7 +110,7 @@ function SignUpGate({ onDone }) {
           accessibilityLabel="Create account"
           accessibilityState={{ disabled: loading, busy: loading }}
           disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaBtnText}>Create Account</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaBtnText}>{t('onboarding.createAccount')}</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -124,7 +129,7 @@ function SignUpGate({ onDone }) {
         <Ionicons name="sparkles" size={32} color="#fff" />
       </View>
 
-      <Text style={[styles.headline, { color: colors.text, textAlign: 'center' }]}>Save your journey</Text>
+      <Text style={[styles.headline, { color: colors.text, textAlign: 'center' }]}>{t('onboarding.saveJourney')}</Text>
       <Text style={[styles.sub, { color: colors.textSecondary, textAlign: 'center' }]}>
         Sign up to save your reading progress, genre preferences, friends, and library — all synced to your account.
       </Text>
@@ -153,11 +158,25 @@ function SignUpGate({ onDone }) {
         <Text style={styles.ctaBtnText}>Sign Up — It's Free</Text>
         <Ionicons name="chevron-forward" size={16} color="#fff" />
       </TouchableOpacity>
+      {/* "Skip for now, explore first" used to just jump to the genre picker —
+          it skipped the signup FORM, not onboarding, so nobody could actually
+          reach a chapter without finishing setup first. These are now two
+          honest, separate choices. */}
       <TouchableOpacity
         onPress={onDone}
         accessibilityRole="button"
-        accessibilityLabel="Skip for now and explore first">
-        <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip for now, explore first</Text>
+        accessibilityLabel="Set up my taste first">
+        <Text style={[styles.skipText, { color: colors.textSecondary }]}>{t('onboarding.tasteFirstBtn')}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onBrowse}
+        disabled={browsing}
+        accessibilityRole="button"
+        accessibilityLabel="Start reading without an account"
+        accessibilityState={{ disabled: !!browsing, busy: !!browsing }}>
+        <Text style={[styles.skipText, { color: colors.primary, fontWeight: '600' }]}>
+          {browsing ? 'Opening…' : 'Start reading — no account'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -171,11 +190,12 @@ const VIBES = [
 
 function ScreenGenreVibe({ selected, onToggle, vibe, onVibe }) {
   const { colors } = useTheme();
+  const t = useT();
   return (
     <View style={styles.screenPad}>
-      <Text style={[styles.headline, { color: colors.text }]}>What do you love?</Text>
-      <Text style={[styles.highlightText, { color: colors.primary }]}>Pick your 3 favourite genres.</Text>
-      <Text style={[styles.sub, { color: colors.textSecondary }]}>We'll tailor your entire experience around your taste.</Text>
+      <Text style={[styles.headline, { color: colors.text }]}>{t('onboarding.whatDoYouLove')}</Text>
+      <Text style={[styles.highlightText, { color: colors.primary }]}>{t('onboarding.pick3Genres')}</Text>
+      <Text style={[styles.sub, { color: colors.textSecondary }]}>{t('onboarding.tailorDesc')}</Text>
 
       <View style={styles.genreGrid}>
         {GENRE_OPTIONS.map((g) => {
@@ -207,7 +227,7 @@ function ScreenGenreVibe({ selected, onToggle, vibe, onVibe }) {
         {selected.length}/3 selected{selected.length === 3 ? '  ✓ Perfect!' : ''}
       </Text>
 
-      <Text style={[styles.vibeLabel, { color: colors.textSecondary }]}>What's your vibe?</Text>
+      <Text style={[styles.vibeLabel, { color: colors.textSecondary }]}>{t('onboarding.whatsYourVibe')}</Text>
       <View style={styles.vibeRow}>
         {VIBES.map((v) => {
           const active = vibe === v.id;
@@ -235,14 +255,15 @@ function ScreenGenreVibe({ selected, onToggle, vibe, onVibe }) {
 
 function ScreenUsername({ username, onChange, status }) {
   const { colors } = useTheme();
+  const t = useT();
   return (
     <View style={styles.screenPad}>
       <View style={[styles.gateOrb, { backgroundColor: colors.primary }]}>
         <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>@</Text>
       </View>
-      <Text style={[styles.headline, { color: colors.text }]}>What should we call you?</Text>
-      <Text style={[styles.highlightText, { color: colors.primary }]}>Choose a username for your MangaRecs profile.</Text>
-      <Text style={[styles.sub, { color: colors.textSecondary }]}>This is how friends and the community will find you.</Text>
+      <Text style={[styles.headline, { color: colors.text }]}>{t('onboarding.whatToCallYou')}</Text>
+      <Text style={[styles.highlightText, { color: colors.primary }]}>{t('onboarding.chooseUsername')}</Text>
+      <Text style={[styles.sub, { color: colors.textSecondary }]}>{t('onboarding.usernameDesc')}</Text>
 
       <View style={[
         styles.usernameWrap,
@@ -265,7 +286,7 @@ function ScreenUsername({ username, onChange, status }) {
       </View>
       {status === 'available' && <Text style={[styles.usernamePreview, { color: colors.accent }]}>@{username} is available — looks great!</Text>}
       {status === 'taken' && <Text style={[styles.usernamePreview, { color: colors.error }]}>@{username} is already taken — try another.</Text>}
-      {status === 'invalid' && <Text style={[styles.usernamePreview, { color: colors.textSecondary }]}>Usernames need at least 3 characters.</Text>}
+      {status === 'invalid' && <Text style={[styles.usernamePreview, { color: colors.textSecondary }]}>{t('onboarding.usernameTooShort')}</Text>}
       <Text style={[styles.sub, { color: colors.textSecondary }]}>This is permanent and can't be changed later — choose carefully. Already have one? Leave this blank.</Text>
     </View>
   );
@@ -273,6 +294,7 @@ function ScreenUsername({ username, onChange, status }) {
 
 export default function OnboardingScreen({ onComplete }) {
   const { colors } = useTheme();
+  const t = useT();
   const [step, setStep] = useState(-1);
   const [genres, setGenres] = useState([]);
   const [vibe, setVibe] = useState('mix');
@@ -358,7 +380,7 @@ export default function OnboardingScreen({ onComplete }) {
 
   if (step === -1) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.topBar}>
           <View style={styles.logoRow}>
             <StarLogo size={22} />
@@ -369,7 +391,7 @@ export default function OnboardingScreen({ onComplete }) {
           contentContainerStyle={{ flexGrow: 1, paddingBottom: keyboardPadding }}
           keyboardShouldPersistTaps="handled">
           <View style={isTablet ? styles.tabletWrap : null}>
-            <SignUpGate onDone={() => setStep(0)} />
+            <SignUpGate onDone={() => setStep(0)} onBrowse={finishOnboarding} browsing={finishing} />
           </View>
         </ScrollView>
       </View>
@@ -377,7 +399,7 @@ export default function OnboardingScreen({ onComplete }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.topBar}>
         <View style={styles.logoRow}>
           <StarLogo size={22} />
@@ -389,7 +411,7 @@ export default function OnboardingScreen({ onComplete }) {
           accessibilityLabel="Skip setup"
           accessibilityState={{ disabled: finishing, busy: finishing }}
           disabled={finishing}>
-          <Text style={[styles.skipText, { color: colors.textSecondary, marginTop: 0 }]}>Skip</Text>
+          <Text style={[styles.skipText, { color: colors.textSecondary, marginTop: 0 }]}>{t('common.skip')}</Text>
         </TouchableOpacity>
       </View>
 

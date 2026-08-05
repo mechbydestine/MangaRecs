@@ -14,7 +14,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
-import { registerPushToken } from './utils/pushNotifications';
+import { LanguageProvider, useT } from './utils/LanguageContext';
+import { refreshPushTokenIfGranted } from './utils/pushNotifications';
 import { ProfileProvider } from './utils/ProfileContext';
 import { ensureGuestSession } from './utils/guestSession';
 import { NotificationsProvider, useNotifications } from './utils/NotificationsContext';
@@ -24,6 +25,7 @@ import { hydrateLibraryBadges, prewarmLibraryBadges } from './utils/libraryBadge
 import { checkForNewChapters } from './utils/chapterUpdates';
 import { markTouch, startPresenceHeartbeat, stopPresenceHeartbeat } from './utils/presence';
 import { light } from './utils/haptics';
+import { setCrashUser } from './utils/crashReporting';
 import CoverMorphOverlay from './components/CoverMorphOverlay';
 import WhatsNewModal from './components/WhatsNewModal';
 
@@ -50,6 +52,7 @@ import LegalScreen from './screens/LegalScreen';
 import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
+import OfflineBanner from './components/OfflineBanner';
 import AlertHost from './components/AlertHost';
 import BadgeCeremony from './components/BadgeCeremony';
 import CoachmarkOverlay, { COACHMARK_SEEN_KEY } from './components/CoachmarkOverlay';
@@ -97,7 +100,9 @@ function routeNotificationResponse(response) {
       chapters: data.chapter || 0,
     });
   } else if (data.type === 'friend_request' || data.type === 'direct_message') {
-    navigationRef.navigate('Tabs', { screen: 'Social' });
+    // Friends/DMs live under Profile now (the Social tab is gone), so this has
+    // to push through the Profile stack or the notification dead-ends.
+    navigationRef.navigate('Tabs', { screen: 'Feed', params: { screen: 'Messages' } });
   } else {
     navigationRef.navigate('Tabs', { screen: 'Feed', params: { screen: 'Notifications' } });
   }
@@ -119,8 +124,11 @@ const linking = {
       Tabs: {
         screens: {
           Feed: { screens: { FeedHome: 'home', Notifications: 'notifications' } },
-          Social: { screens: { SocialHome: 'social' } },
-          Profile: { screens: { ProfileHome: 'profile' } },
+          Discover: { screens: { ForYouHome: 'discover' } },
+          Community: { screens: { CommunityHome: 'community' } },
+          // mangarecs://social predates the split — keep it working, pointed at
+          // the inbox, which is what it always meant in practice.
+          Profile: { screens: { ProfileHome: 'profile', Friends: 'social' } },
         },
       },
     },
@@ -223,10 +231,14 @@ const SLIDE = { animation: 'slide_from_right' };
 function FeedStack() {
   const { colors } = useTheme();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary where="feed">
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, ...SLIDE }}>
         <Stack.Screen name="FeedHome" component={FeedScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        {/* Friends + DMs. Reached from the ✉ icon in the Home header — the
+            Instagram placement — so messaging is one tap from launch and its
+            unread badge stays separate from Community's. */}
+        <Stack.Screen name="Messages" component={SocialScreen} initialParams={{ mode: 'messages' }} />
         <Stack.Screen name="FriendProfile" component={FriendProfileScreen} />
         <Stack.Screen name="DM" component={DMScreen} />
       </Stack.Navigator>
@@ -237,7 +249,7 @@ function FeedStack() {
 function LibraryStack() {
   const { colors } = useTheme();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary where="library">
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, ...SLIDE }}>
         <Stack.Screen name="LibraryHome" component={LibraryScreen} />
       </Stack.Navigator>
@@ -245,12 +257,16 @@ function LibraryStack() {
   );
 }
 
-function SocialStack() {
+// Discover absorbs what used to be split across the "Recs" and "Comms" tabs:
+// recommendations, trending discussions, and finding people. Those were three
+// separate tabs that all answered the same question — "what's out there that
+// I haven't seen" — so a first-time user had no way to predict which held what.
+function DiscoverStack() {
   const { colors } = useTheme();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary where="discover">
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, ...SLIDE }}>
-        <Stack.Screen name="SocialHome" component={SocialScreen} />
+        <Stack.Screen name="ForYouHome" component={ForYouScreen} />
         <Stack.Screen name="FriendProfile" component={FriendProfileScreen} />
         <Stack.Screen name="DM" component={DMScreen} />
       </Stack.Navigator>
@@ -258,12 +274,17 @@ function SocialStack() {
   );
 }
 
-function ForYouStack() {
+// Community is a place, not a feed: per-series rooms, the weekly poll, the
+// leaderboard, and later events and mini-games. Distinct from Home (your feed)
+// and Discover (finding new series), which is why it earns its own tab.
+function CommunityStack() {
   const { colors } = useTheme();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary where="community">
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, ...SLIDE }}>
-        <Stack.Screen name="ForYouHome" component={ForYouScreen} />
+        <Stack.Screen name="CommunityHome" component={SocialScreen} />
+        <Stack.Screen name="FriendProfile" component={FriendProfileScreen} />
+        <Stack.Screen name="DM" component={DMScreen} />
       </Stack.Navigator>
     </ErrorBoundary>
   );
@@ -272,9 +293,13 @@ function ForYouStack() {
 function ProfileStack() {
   const { colors } = useTheme();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary where="profile">
     <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, ...SLIDE }}>
       <Stack.Screen name="ProfileHome" component={ProfileScreen} />
+      {/* Friends/DMs used to be their own "Comms" tab. Moved under Profile —
+          the same place Discord and Instagram keep friend management — so the
+          bar is four distinct destinations instead of five overlapping ones. */}
+      <Stack.Screen name="Friends" component={SocialScreen} initialParams={{ mode: 'messages' }} />
       <Stack.Screen name="FriendProfile" component={FriendProfileScreen} />
       <Stack.Screen name="DM" component={DMScreen} />
       <Stack.Screen
@@ -327,6 +352,7 @@ function ProfileStack() {
 function TabNavigator() {
   const { colors, isDark } = useTheme();
   const { unreadCount } = useNotifications();
+  const t = useT();
   return (
     <Tab.Navigator
       screenListeners={{ tabPress: () => light() }}
@@ -336,8 +362,8 @@ function TabNavigator() {
           let iconName;
           if (route.name === 'Feed') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Library') iconName = focused ? 'book' : 'book-outline';
-          else if (route.name === 'Social') iconName = focused ? 'people' : 'people-outline';
-          else if (route.name === 'For You') iconName = focused ? 'sparkles' : 'sparkles-outline';
+          else if (route.name === 'Discover') iconName = focused ? 'sparkles' : 'sparkles-outline';
+          else if (route.name === 'Community') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
           return <AnimatedTabIcon name={iconName} focused={focused} color={color} targetKey={`tab-${route.name}`} />;
         },
@@ -346,7 +372,11 @@ function TabNavigator() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: isDark ? 'rgba(5,5,5,0.70)' : 'rgba(255,255,255,0.88)',
+          // 0.70 was too sheer: manga cover art read straight through the bar
+          // and collided with the labels. Screens reserve the bar's height via
+          // useBottomTabBarHeight(), so what shows through now is only what's
+          // mid-scroll — but it still has to stay legible while it passes.
+          backgroundColor: isDark ? 'rgba(5,5,5,0.92)' : 'rgba(255,255,255,0.95)',
           borderTopWidth: isDark ? 0 : StyleSheet.hairlineWidth,
           borderTopColor: isDark ? 'transparent' : 'rgba(0,0,0,0.1)',
           borderTopLeftRadius: 22,
@@ -364,7 +394,7 @@ function TabNavigator() {
       <Tab.Screen
         name="Feed"
         component={FeedStack}
-        options={{ tabBarLabel: 'Home', tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+        options={{ tabBarLabel: t('tabs.home'), tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             if (navigation.isFocused()) {
@@ -377,25 +407,40 @@ function TabNavigator() {
           },
         })}
       />
-      <Tab.Screen name="Library" component={LibraryStack} />
-      <Tab.Screen name="For You" component={ForYouStack} options={{ tabBarLabel: 'Recs' }} />
+      <Tab.Screen name="Library" component={LibraryStack} options={{ tabBarLabel: t('tabs.library') }} />
       <Tab.Screen
-        name="Social"
-        component={SocialStack}
-        options={{ tabBarLabel: 'Comms' }}
+        name="Discover"
+        component={DiscoverStack}
+        options={{ tabBarLabel: t('tabs.discover') }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             if (navigation.isFocused()) {
               e.preventDefault();
-              navigation.navigate('Social', {
-                screen: 'SocialHome',
+              navigation.navigate('Discover', {
+                screen: 'ForYouHome',
                 params: { refreshAt: Date.now() },
               });
             }
           },
         })}
       />
-      <Tab.Screen name="Profile" component={ProfileStack} />
+      <Tab.Screen
+        name="Community"
+        component={CommunityStack}
+        options={{ tabBarLabel: t('tabs.community') }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (navigation.isFocused()) {
+              e.preventDefault();
+              navigation.navigate('Community', {
+                screen: 'CommunityHome',
+                params: { refreshAt: Date.now() },
+              });
+            }
+          },
+        })}
+      />
+      <Tab.Screen name="Profile" component={ProfileStack} options={{ tabBarLabel: t('tabs.profile') }} />
     </Tab.Navigator>
   );
 }
@@ -405,7 +450,7 @@ function TabNavigator() {
 function AppNavigator() {
   const { colors } = useTheme();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary where="root">
     <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
       {/* Recap lives on the ROOT stack, not inside ProfileStack — nested in the
@@ -617,7 +662,13 @@ export default function App() {
 
         setSession(s);
         if (s?.user?.id) {
-          registerPushToken(s.user.id);
+          // No permission prompt here. The OS notification dialog is a one-shot —
+          // spending it on a cold start, before the user has read anything, is how
+          // you earn a permanent "no". The ask now happens in the reader after a
+          // finished chapter, where the benefit is self-evident.
+          // This call only refreshes the token of someone who ALREADY granted it
+          // (Expo tokens rotate); it never prompts.
+          refreshPushTokenIfGranted(s.user.id);
           if (guidelinesLocal === 'true') {
             setNeedsGuidelines(false);
           } else {
@@ -637,8 +688,12 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
+      // So a crash report says *which* account hit it, without carrying any
+      // personal data into Sentry — the Supabase user id and nothing else.
+      setCrashUser(session?.user?.id ?? null);
       if (session?.user?.id) {
-        registerPushToken(session.user.id);
+        // Same reasoning — this used to fire the OS dialog seconds after signup.
+        refreshPushTokenIfGranted(session.user.id);
         const guidelinesLocal = await AsyncStorage.getItem('@mangarecs/guidelines_accepted').catch(() => null);
         if (guidelinesLocal === 'true') {
           setNeedsGuidelines(false);
@@ -829,6 +884,7 @@ export default function App() {
           <GestureHandlerRootView style={{ flex: 1 }} onTouchStart={markTouch}>
             <SafeAreaProvider>
               <ThemeProvider>
+                <LanguageProvider>
                 <QueryClientProvider client={queryClient}>
                   <ProfileProvider>
                     <NotificationsProvider>
@@ -840,6 +896,7 @@ export default function App() {
                           needsGuidelines={needsGuidelines}
                           onGuidelinesComplete={() => setNeedsGuidelines(false)}
                         />
+                        <OfflineBanner />
                         <ToastHost />
                         <AlertHost />
                         <BadgeCeremony />
@@ -849,6 +906,7 @@ export default function App() {
                     </NotificationsProvider>
                   </ProfileProvider>
                 </QueryClientProvider>
+                </LanguageProvider>
               </ThemeProvider>
             </SafeAreaProvider>
           </GestureHandlerRootView>

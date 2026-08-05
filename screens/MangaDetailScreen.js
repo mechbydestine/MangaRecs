@@ -1,6 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Animated } from 'react-native';
+// expo-image, not RN's Image: these are remote URLs and RN's Android cache is
+// effectively nonexistent, so covers/favicons re-downloaded on every visit.
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
@@ -9,16 +12,49 @@ import { MangaCover } from '../utils/mangaCovers';
 import { findPoolEntry, MANGA_POOL } from '../utils/mangaPool';
 import { searchMangaDex, getMangaFullDetails } from '../utils/mangaDexApi';
 import { syncReadOpen, updateGenreWeights, syncLibraryWrite } from '../utils/readerUtils';
-import { TOP_SITES, buildSearchUrl, siteFaviconUrl } from '../utils/mangaSearch';
-import { fetchAnilistCharacters } from '../utils/anilist';
+import { siteFaviconUrl } from '../utils/mangaSearch';
+import { getReadSources, cacheReadSources, sortSources, buildTitleMatcher, pendingWebviewProbes, MAX_SOURCES } from '../utils/readSources';
+import SourceProbe from '../components/SourceProbe';
+import { useLanguage } from '../utils/LanguageContext';
+import { fetchAnilistCharacters, fetchAnilistSources } from '../utils/anilist';
 import { supabase } from '../supabase';
-
-const READ_AVAILABLE_SITES = TOP_SITES.slice(0, 5);
+import { requireAccount } from '../utils/guestGate';
+import { HIT_SLOP } from '../utils/tokens';
+import { useResponsive } from '../utils/responsive';
 
 function formatLabel(lang) {
   if (lang === 'ko') return 'Manhwa';
   if (lang === 'zh') return 'Manhua';
   return 'Manga';
+}
+
+// One source button. Icon-only by design, so a favicon that 404s or resolves
+// to a blank placeholder would leave an empty box with nothing to identify it —
+// hence the initial as a fallback, keyed off the site's own host rather than
+// the (possibly deep) content URL so every brand gets one stable icon.
+function SourceIcon({ source, title, colors, onPress, t }) {
+  const [failed, setFailed] = useState(false);
+  const favicon = siteFaviconUrl(`https://${source.host}`);
+  return (
+    <TouchableOpacity
+      style={[styles.siteIconBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={t('detail.readOn', { title, site: source.name })}>
+      {favicon && !failed ? (
+        <Image
+          source={{ uri: favicon }}
+          style={styles.siteIconImg}
+          contentFit="cover"
+          cachePolicy="disk"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Text style={[styles.siteIconLetter, { color: colors.text }]}>{source.name.slice(0, 1)}</Text>
+      )}
+    </TouchableOpacity>
+  );
 }
 
 function InfoRow({ icon, label, value, colors }) {
@@ -37,6 +73,8 @@ export default function MangaDetailScreen() {
   const { title, searchKey, lang, mangaId: routeMangaId, color, coverUrl: knownCoverUrl, chapters: routeChapters } = params || {};
   const navigation = useNavigation();
   const { colors } = useTheme();
+
+  const { isTablet } = useResponsive();
   const insets = useSafeAreaInsets();
   const { userId, profile, updateProfile } = useProfile();
 
@@ -45,6 +83,11 @@ export default function MangaDetailScreen() {
   const [expanded, setExpanded] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [characters, setCharacters] = useState([]);
+  const [anilistLinks, setAnilistLinks] = useState([]);
+  // Settled-flags for the two metadata fetches the source resolver reads.
+  // See the AniList effect below for why these can't be inferred from the data.
+  const [anilistReady, setAnilistReady] = useState(false);
+  const [detailsReady, setDetailsReady] = useState(false);
 
   // Pool data resolves synchronously (no fetch) so synopsis/genres/rating can
   // render on first paint instead of waiting on the live MangaDex lookup —
@@ -115,6 +158,7 @@ export default function MangaDetailScreen() {
     (async () => {
       setLoading(true);
       setDetails(null);
+      setDetailsReady(false);
       try {
         let id = routeMangaId;
         if (!id) {
@@ -130,6 +174,9 @@ export default function MangaDetailScreen() {
       } finally {
         if (!cancelled) {
           setLoading(false);
+          // In `finally`, so a failed lookup still unblocks the source
+          // resolver rather than leaving the row spinning forever.
+          setDetailsReady(true);
           const stagger = (a, delay, duration = 260) => Animated.timing(a, { toValue: 1, duration, delay, useNativeDriver: true });
           [synopsisAnim, detailsAnim, genresAnim, warningsAnim, charactersAnim, recsAnim].forEach((a) => a.setValue(0));
           Animated.parallel([
@@ -160,6 +207,116 @@ export default function MangaDetailScreen() {
     return () => { cancelled = true; };
   }, [title, searchKey]);
 
+  // Official per-title links. Also best-effort: with none of these the source
+  // row still renders, just entirely out of the search tier.
+  //
+  // `anilistReady` exists because the source resolver depends on this AND on
+  // the MangaDex details, both of which settle independently. Without an
+  // explicit "this one is done" flag, each arrival re-runs the resolver — and
+  // the resolver kicks off six WebView loads, so an unguarded detail open
+  // started three rounds of probing and threw two of them away.
+  useEffect(() => {
+    let cancelled = false;
+    setAnilistLinks([]);
+    setAnilistReady(false);
+    fetchAnilistSources(title, searchKey).then((list) => {
+      if (cancelled) return;
+      setAnilistLinks(list);
+      setAnilistReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [title, searchKey]);
+
+  // Which sites actually carry this series. Every entry is checked — either
+  // against per-title metadata or by querying the site — so this can't run
+  // until the MangaDex details land, and it can legitimately come back empty.
+  const [readSources, setReadSources] = useState([]);
+  const [sourcesLoading, setSourcesLoading] = useState(true);
+  // App-wide, straight from context: changing it in Settings re-renders here
+  // and re-resolves the row immediately, with no focus polling.
+  const { language, label: languageLabel, ready: languageReady, t } = useLanguage();
+
+  // Kept in a ref as well so the probe callbacks — which fire seconds later,
+  // outside this effect's closure — always merge into the current list.
+  const sourceOptsRef = useRef(null);
+  const [probeTargets, setProbeTargets] = useState([]);
+  const [probing, setProbing] = useState(false);
+
+  useEffect(() => {
+    // Resolve once, when every input has settled. Language matters because
+    // firing on the pre-load default resolves the English list and caches it;
+    // the two metadata flags matter because each late arrival would otherwise
+    // restart six WebView probes.
+    if (!languageReady || !detailsReady || !anilistReady) return undefined;
+    let cancelled = false;
+    setSourcesLoading(true);
+    setProbeTargets([]);
+    setProbing(false);
+    // Belongs to the previous series until the resolve lands; a stale list
+    // here would get merged into — and cached against — the new one.
+    readSourcesRef.current = [];
+    const opts = {
+      title,
+      searchKey,
+      altTitles: details?.altTitles,
+      mangaId: details?.id || routeMangaId,
+      mdLinks: details?.links,
+      anilistLinks,
+      originalLang: details?.lang || lang,
+      language,
+    };
+    sourceOptsRef.current = opts;
+    getReadSources(opts).then(({ sources, probed }) => {
+      if (cancelled) return;
+      readSourcesRef.current = sources;
+      setReadSources(sources);
+      setSourcesLoading(false);
+      // Everything a plain fetch could answer is in. Hand the rest — the SPA
+      // and challenge-gated sites — to the WebView, unless the row is already
+      // full or a previous run already checked them and they didn't have it.
+      const pending = (probed || sources.length >= MAX_SOURCES)
+        ? []
+        : pendingWebviewProbes(sources, language);
+      if (pending.length) {
+        setProbeTargets(pending);
+        setProbing(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [title, searchKey, details, routeMangaId, anilistLinks, lang, language,
+      languageReady, detailsReady, anilistReady]);
+
+  const titleMatcher = useMemo(
+    () => buildTitleMatcher([title, searchKey, ...(details?.altTitles || [])]),
+    [title, searchKey, details],
+  );
+
+  // The ref, not state, is the working copy the probe callbacks merge into.
+  //
+  // Two reasons it can't be a setState updater plus a syncing effect. Writing
+  // the cache inside an updater is a side effect in a function React may call
+  // twice. And syncing the ref from an effect is too late: SourceProbe reports
+  // its last hit and finishes in the same tick, and a child's effects run
+  // before its parent's — so the final source would be missing from the write.
+  // Updating the ref synchronously here sidesteps both.
+  const readSourcesRef = useRef([]);
+
+  const handleProbeFound = useCallback((source) => {
+    const prev = readSourcesRef.current;
+    if (prev.some((s) => s.host === source.host)) return;
+    const next = sortSources([...prev, { ...source, official: false }]);
+    readSourcesRef.current = next;
+    setReadSources(next);
+  }, []);
+
+  const handleProbeDone = useCallback(() => {
+    setProbing(false);
+    setProbeTargets([]);
+    // Fold the probe hits into the cache so the next visit is instant and
+    // complete, rather than re-running six WebView loads.
+    if (sourceOptsRef.current) cacheReadSources(sourceOptsRef.current, readSourcesRef.current);
+  }, []);
+
   useEffect(() => {
     supabase.from('reading_progress')
       .select('status')
@@ -184,22 +341,21 @@ export default function MangaDetailScreen() {
     }
   }
 
-  // "Read Available" row tap — jumps straight to that site's search results
-  // for this title (resumeUrl/resumeSite is the reader's existing "open this
-  // exact URL, skip auto-resolve" path, reused here for a fresh open rather
-  // than a true resume).
-  function openReaderWithSite(site) {
+  // "Read Available" row tap. `source.url` is the series page on that site —
+  // every listed source resolved to one — so it's handed to the reader as-is
+  // via resumeUrl, the existing "open this exact URL, skip auto-resolve" path.
+  function openReaderWithSite(source) {
     navigation.navigate('Reader', {
       searchQuery: searchKey || title,
       title,
       chapters: details?.lastChapter || routeChapters || 1,
       lang: details?.lang || lang || 'ja',
-      resumeUrl: buildSearchUrl(site.url, searchKey || title),
+      resumeUrl: source.url,
       // Full {name,url,emoji} object, not just the name — ReaderScreen's
       // `activeSite` is read as an object everywhere (site-card highlighting,
       // download labels, site-switch detection), and a bare string there
       // silently drops all of that.
-      resumeSite: site,
+      resumeSite: { name: source.name, url: `https://${source.host}`, emoji: '🌐' },
     });
     if (userId) {
       updateProfile({ currently_reading: title });
@@ -211,6 +367,20 @@ export default function MangaDetailScreen() {
   function toggleBookmark() {
     if (!userId) return;
     const next = !bookmarked;
+    // Same rule as the feed: reading is free, keeping needs an account. A
+    // guest bookmark lives on an anonymous session that dies with the install.
+    if (next) {
+      requireAccount({
+        what: 'save this series',
+        onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
+        action: () => applyBookmark(true),
+      });
+      return;
+    }
+    applyBookmark(false);
+  }
+
+  function applyBookmark(next) {
     setBookmarked(next);
     bookmarkPop.setValue(0.7);
     Animated.spring(bookmarkPop, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true }).start();
@@ -244,7 +414,7 @@ export default function MangaDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[isTablet && styles.tabletWrap, { paddingBottom: insets.bottom + 32 }]}>
         <Animated.View style={[styles.hero, heroStyle]}>
           <View style={[styles.coverWrap, { paddingTop: insets.top + 14 }]}>
             <TouchableOpacity
@@ -297,7 +467,7 @@ export default function MangaDetailScreen() {
         </Animated.View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.readBtn} onPress={openReader} activeOpacity={0.85} accessibilityLabel="Read">
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.readBtn} onPress={openReader} activeOpacity={0.85} accessibilityLabel="Read">
             <Ionicons name="book" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
@@ -306,10 +476,10 @@ export default function MangaDetailScreen() {
             activeOpacity={0.7}
             accessibilityLabel={bookmarked ? 'Saved' : 'Save to Library'}>
             <Animated.View style={{ transform: [{ scale: bookmarkPop }] }}>
-              <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? '#7B5CFF' : colors.muted} />
+              <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? colors.primary : colors.muted} />
             </Animated.View>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.iconActionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
             onPress={() => Share.share({ message: `Check out ${title} on MangaRecs — mangarecs://series/${encodeURIComponent(searchKey || title)}` })}
             activeOpacity={0.7}
@@ -320,51 +490,67 @@ export default function MangaDetailScreen() {
 
         {(!poolEntry && loading) ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color="#7B5CFF" />
+            <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
           <View style={styles.body}>
             <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(synopsisAnim)]}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Synopsis</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('detail.synopsis')}</Text>
               <Text style={[styles.synopsis, { color: colors.muted }]}>
-                {displaySynopsis || (loading ? 'Loading synopsis…' : 'No synopsis available for this series yet.')}
+                {displaySynopsis || (loading ? t('detail.loadingSynopsis') : t('detail.noSynopsis'))}
               </Text>
               {showToggle && (
                 <TouchableOpacity onPress={() => setExpanded((v) => !v)}>
-                  <Text style={styles.showMore}>{expanded ? 'Show less' : 'Show more'}</Text>
+                  <Text style={styles.showMore}>{expanded ? t('common.showLess') : t('common.showMore')}</Text>
                 </TouchableOpacity>
               )}
             </Animated.View>
 
             <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Read Available</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t('detail.readAvailable')}</Text>
               <Text style={[styles.readAvailableSub, { color: colors.muted }]}>
-                Pick a site to read this series in the app.
+                {sourcesLoading
+                  ? t('detail.sourcesChecking')
+                  : readSources.length === 0
+                    ? t('detail.sourcesNone', { language: languageLabel })
+                    : t('detail.sourcesFound', { count: readSources.length, language: languageLabel })}
               </Text>
-              <View style={styles.siteIconRow}>
-                {READ_AVAILABLE_SITES.map((site) => {
-                  const favicon = siteFaviconUrl(site.url);
-                  return (
-                    <TouchableOpacity
-                      key={site.name}
-                      style={[styles.siteIconBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-                      onPress={() => openReaderWithSite(site)}
-                      activeOpacity={0.75}
-                      accessibilityLabel={site.name}>
-                      {favicon ? (
-                        <Image source={{ uri: favicon }} style={styles.siteIconImg} />
-                      ) : (
-                        <Text style={styles.siteIconEmoji}>{site.emoji}</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              {sourcesLoading ? (
+                <View style={styles.sourcesLoading}>
+                  <ActivityIndicator color={colors.primary} size="small" />
+                </View>
+              ) : (
+                <View style={styles.siteIconRow}>
+                  {readSources.map((source) => (
+                    <SourceIcon
+                      key={source.name}
+                      source={source}
+                      title={title}
+                      colors={colors}
+                      t={t}
+                      onPress={() => openReaderWithSite(source)}
+                    />
+                  ))}
+                  {/* Sites still being checked in the background. Shown as a
+                      slot rather than nothing so the row visibly isn't final —
+                      icons appear here one at a time as each resolves. */}
+                  {probing && (
+                    <View style={[styles.siteIconBtn, styles.siteIconPending, { borderColor: colors.border }]}>
+                      <ActivityIndicator color={colors.muted} size="small" />
+                    </View>
+                  )}
+                </View>
+              )}
+              {probing && (
+                <Text style={[styles.sourcesProbing, { color: colors.muted }]}>
+                  {t('detail.sourcesProbing', { count: probeTargets.length })}
+                </Text>
+              )}
             </Animated.View>
 
             {genres.length > 0 && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(genresAnim)]}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>Genres</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('detail.genres')}</Text>
                 <View style={styles.chipRow}>
                   {genres.map((g) => (
                     <View key={g} style={[styles.chip, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -377,15 +563,15 @@ export default function MangaDetailScreen() {
 
             {characters.length > 0 && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(charactersAnim)]}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>Characters</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('detail.characters')}</Text>
                 <View style={styles.charGrid}>
                   {characters.map((c) => (
                     <View key={c.name} style={styles.charCard}>
                       <View style={styles.charImgWrap}>
-                        <Image source={{ uri: c.image }} style={styles.charImg} />
+                        <Image source={{ uri: c.image }} style={styles.charImg} contentFit="cover" cachePolicy="disk" transition={140} />
                         {c.main && (
                           <View style={styles.charMainBadge}>
-                            <Text style={styles.charMainBadgeText}>MAIN</Text>
+                            <Text style={styles.charMainBadgeText}>{t('detail.main')}</Text>
                           </View>
                         )}
                       </View>
@@ -398,7 +584,7 @@ export default function MangaDetailScreen() {
 
             {(details || poolEntry) && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>Details</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('detail.details')}</Text>
                 <InfoRow icon="bookmark-outline" label="Status" value={details?.status || (poolEntry?.status === 'ongoing' ? 'Ongoing' : poolEntry?.status === 'completed' ? 'Completed' : null)} colors={colors} />
                 <InfoRow icon="people-outline" label="Demographic" value={details?.demographic} colors={colors} />
                 <InfoRow icon="calendar-outline" label="Year" value={details?.year} colors={colors} />
@@ -413,7 +599,7 @@ export default function MangaDetailScreen() {
               <Animated.View style={[styles.card, styles.warningCard, cardStyle(warningsAnim)]}>
                 <View style={styles.warningHeader}>
                   <Ionicons name="alert-circle" size={16} color="#E24B4A" />
-                  <Text style={styles.warningTitle}>Content Warnings</Text>
+                  <Text style={styles.warningTitle}>{t('detail.contentWarnings')}</Text>
                 </View>
                 {details.contentWarnings.map((w) => (
                   <Text key={w} style={styles.warningItem}>• {w}</Text>
@@ -423,7 +609,7 @@ export default function MangaDetailScreen() {
 
             {recommendations.length > 0 && (
               <Animated.View style={cardStyle(recsAnim)}>
-                <Text style={[styles.sectionHeading, { color: colors.text }]}>You Might Also Like</Text>
+                <Text style={[styles.sectionHeading, { color: colors.text }]}>{t('detail.alsoLike')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recsRow}>
                   {recommendations.map((m) => (
                     <TouchableOpacity
@@ -449,11 +635,26 @@ export default function MangaDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Off-screen and zero-sized. Only mounted while there are sites left to
+          check, so a cached detail screen never creates a WebView at all. */}
+      {probeTargets.length > 0 && (
+        <SourceProbe
+          targets={probeTargets}
+          query={searchKey || title}
+          matches={titleMatcher}
+          onFound={handleProbeFound}
+          onDone={handleProbeDone}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Caps the reading measure on iPad — full-width body text at 1024pt is
+  // unreadable. Matches the 640 used by every other screen.
+  tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
   container: { flex: 1 },
   hero: { flexDirection: 'row', paddingHorizontal: 20, gap: 16 },
   coverWrap: { position: 'relative' },
@@ -493,8 +694,11 @@ const styles = StyleSheet.create({
   readAvailableSub: { fontSize: 12, lineHeight: 17, marginBottom: 12, marginTop: -4 },
   siteIconRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   siteIconBtn: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  sourcesLoading: { paddingVertical: 18, alignItems: 'flex-start', paddingLeft: 4 },
+  siteIconPending: { borderStyle: 'dashed' },
+  sourcesProbing: { fontSize: 11, marginTop: 10, fontStyle: 'italic' },
   siteIconImg: { width: 28, height: 28, borderRadius: 6 },
-  siteIconEmoji: { fontSize: 20 },
+  siteIconLetter: { fontSize: 18, fontWeight: '800' },
   sectionHeading: { fontSize: 14, fontWeight: '700', marginBottom: 12 },
   recsRow: { gap: 12 },
   recCard: { width: 108 },

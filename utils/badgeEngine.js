@@ -100,7 +100,12 @@ export async function checkAndNotifyBadges(userId, profile) {
 
 async function getPushToken(userId) {
   try {
-    const { data } = await supabase.from('profiles').select('push_token').eq('id', userId).maybeSingle();
+    // Own row only — RLS on user_push_settings restricts this to auth.uid().
+    const { data } = await supabase
+      .from('user_push_settings')
+      .select('push_token')
+      .eq('user_id', userId)
+      .maybeSingle();
     return data?.push_token || null;
   } catch (_) { return null; }
 }

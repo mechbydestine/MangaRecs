@@ -467,6 +467,3 @@ export function surfaceFor(id, i) {
     onAccent: luminance(accent) > 0.42 ? '#0B0709' : '#FFFFFF',
   };
 }
-
-/** Kanji numerals for the vertical slide rail — a printed volume numbers its pages. */
-export const RAIL_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];

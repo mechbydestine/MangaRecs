@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 
 export const AGE_VERIFIED_KEY = '@mangarecs/age_verified';
 
@@ -27,6 +28,7 @@ function validate(mm, dd, yyyy) {
 
 export default function AgeGateModal({ visible, onVerified, onDismiss }) {
   const { colors } = useTheme();
+  const t = useT();
   const [mm, setMm] = useState('');
   const [dd, setDd] = useState('');
   const [yyyy, setYyyy] = useState('');
@@ -72,7 +74,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
           <View style={[s.iconWrap, { backgroundColor: 'rgba(123,92,255,0.15)' }]}>
             <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
           </View>
-          <Text style={[s.title, { color: colors.text }]}>Age Verification</Text>
+          <Text style={[s.title, { color: colors.text }]}>{t('gate.ageTitle')}</Text>
           <Text style={[s.sub, { color: colors.muted }]}>
             Adult content is restricted to users 18 and older.{'\n'}Enter your date of birth to continue.
           </Text>
@@ -135,10 +137,10 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
           {!!error && <Text style={[s.error, { color: colors.error }]}>{error}</Text>}
 
           <TouchableOpacity style={[s.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
-            <Text style={s.confirmBtnText}>Confirm Age</Text>
+            <Text style={s.confirmBtnText}>{t('gate.confirmAge')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.cancelBtn} onPress={handleClose} activeOpacity={0.7}>
-            <Text style={[s.cancelBtnText, { color: colors.muted }]}>Cancel</Text>
+            <Text style={[s.cancelBtnText, { color: colors.muted }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
           <Text style={[s.disclaimer, { color: colors.muted, opacity: 0.7 }]}>
             Your date of birth is used only for age verification and is not stored on our servers.

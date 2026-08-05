@@ -106,6 +106,40 @@ function titlesMatch(media, ...candidates) {
   return ours.some((o) => known.includes(o));
 }
 
+// Per-title official links, curated by AniList's moderators. Same fuzzy-search
+// caveat as the character lookup — and the same isExactMatch guard, which
+// matters much more here: a wrong match would send someone to a *different*
+// series' official page, which is worse than showing no link at all.
+const LINKS_QUERY = `
+query ($search: String) {
+  Media(search: $search, type: MANGA) {
+    title { romaji english native }
+    synonyms
+    externalLinks { site url type language isDisabled }
+  }
+}`;
+
+export async function fetchAnilistSources(title, searchKey) {
+  const search = (searchKey || title || '').trim();
+  if (!search) return [];
+  try {
+    const resp = await fetch(ANILIST_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: LINKS_QUERY, variables: { search } }),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    const media = json?.data?.Media;
+    if (!media || !titlesMatch(media, title, searchKey)) return [];
+    return (media.externalLinks || [])
+      .filter((l) => l?.url && !l.isDisabled && l.type !== 'SOCIAL')
+      .map((l) => ({ site: l.site || '', url: l.url, language: l.language || null }));
+  } catch (_) {
+    return [];
+  }
+}
+
 export async function fetchAnilistCharacters(title, searchKey) {
   const search = (searchKey || title || '').trim();
   if (!search) return [];
