@@ -2,6 +2,22 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.5.0',
+    date: 'August 5, 2026',
+    highlights: [
+      'Import your whole library from AniList or MyAnimeList in one tap — Settings → Trackers. It only ever adds or moves you forward, so it can never undo progress you already have',
+      'The bottom tab bar no longer sits on top of your content — the last row of Library, the badges on your Profile, and the poll in Community were all being clipped by it',
+      'The Home feed no longer breaks when you rotate your device, unfold a foldable, or use split-screen — cards used to stop snapping to the screen properly',
+      'Comments, Direct Messages and Notifications now load older entries as you scroll instead of silently stopping at the first batch',
+      'The whole app is now genuinely translated in all six languages — pop-ups, alerts and error screens were still showing English even when you had another language selected',
+      'Reading ambience now keeps playing when your screen locks mid-chapter instead of cutting out',
+      'A banner now tells you when you have lost connection, rather than screens quietly failing to load',
+      'Much better screen-reader support, and small icons like bookmark, share and spoiler are now far easier to tap accurately',
+      'Sign-in, sign-up and the Creator dashboard no longer run under the notch or the home indicator on some phones',
+      'Manga details, sign-in and a few other screens now use the space properly on tablets instead of stretching text edge to edge',
+    ],
+  },
+  {
     version: '1.4.0',
     date: 'July 30, 2026',
     highlights: [

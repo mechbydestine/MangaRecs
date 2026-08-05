@@ -87,6 +87,31 @@ rather than a success that didn't happen. Eight tests cover exactly that.
 
 ---
 
+## The lockfile trap this uncovered
+
+Adding `jest-expo` broke EAS builds in a way that is invisible locally, and it's
+worth knowing about because it will recur with any future dev dependency.
+
+`jest-expo` nests `jsdom@20.0.3`, which declares `canvas@^2.5.0` as an **optional**
+peer. This repo's root `canvas` is `3.2.3` (used by `scripts/fetchIntroPanels.js`)
+and doesn't satisfy that range. **npm 11** — local — skips an optional peer it can't
+satisfy and writes no lock entry. **npm 10** — the EAS builder — resolves
+`canvas@2.11.2` nested instead, then aborts because it isn't in the lock:
+
+```
+npm error Missing: canvas@2.11.2 from lock file
+```
+
+So the lockfile was simultaneously valid locally and invalid on the builder. A
+root-level `package.json` ↔ `package-lock.json` comparison passed, `npm ci --dry-run`
+passed, and a clean `npm ci` passed — all three while the build kept failing.
+
+Fixed with `"overrides": { "canvas": "$canvas" }`, verified by running `npx npm@10 ci`
+against both revisions: reproduces the exact builder error without it, passes with it.
+
+**How to check this in future:** `npm ci` under your own npm proves nothing. Run
+`npx npm@10 ci --ignore-scripts` in a scratch copy before pushing a build.
+
 ## Two bugs found while working
 
 1. **`AuthScreen` would have crashed on open.** An automated hook insertion put
