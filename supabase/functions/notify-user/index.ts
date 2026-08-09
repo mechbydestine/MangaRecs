@@ -19,7 +19,12 @@
 // live BEFORE migration 62 drops profiles.push_token / notification_prefs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type NotifyType = "direct_message" | "comment" | "friend_request";
+type NotifyType =
+  | "direct_message"
+  | "comment"
+  | "reply"
+  | "follow"
+  | "friend_request";
 
 interface NotifyBody {
   type: NotifyType;
@@ -28,11 +33,14 @@ interface NotifyBody {
   preview?: string;
 }
 
-// notification_prefs key that gates each type, matching the keys the client
-// already writes in SettingsScreen.
+// notification_prefs key that gates each type. These must stay in step with
+// PREF_GROUPS in utils/notificationPrefs.js — that module is the client-side
+// source of truth and this is its server mirror.
 const PREF_KEY: Record<NotifyType, string> = {
   direct_message: "directMessages",
   comment: "comments",
+  reply: "replies",
+  follow: "followers",
   friend_request: "friendActivity",
 };
 
@@ -145,6 +153,16 @@ Deno.serve(async (req) => {
     title = "New comment on your series";
     bodyText = `${fromName} commented on ${seriesTitle}`;
     data = { type: "comment", series_title: seriesTitle };
+  } else if (type === "reply") {
+    title = "New reply";
+    bodyText = body.seriesTitle
+      ? `${fromName} replied to you on ${body.seriesTitle}`
+      : `${fromName} replied to your comment`;
+    data = { type: "reply", series_title: body.seriesTitle ?? null };
+  } else if (type === "follow") {
+    title = "New follower";
+    bodyText = `${fromName} started following you`;
+    data = { type: "follow" };
   } else {
     title = "New friend request";
     bodyText = `${fromName} sent you a friend request`;

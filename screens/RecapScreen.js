@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity, Share,
-  Easing, ActivityIndicator, PanResponder, useWindowDimensions, AccessibilityInfo,
+  Easing, ActivityIndicator, PanResponder, useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
@@ -44,6 +44,7 @@ import {
 import BadgeIcon from '../components/BadgeIcon';
 import { buildIdentity, surfaceFor, rgba } from '../utils/recapIdentity';
 import { getState as ambienceState } from '../utils/ambiencePlayer';
+import { trackFor, fadeIn, fadeOutAndStop, MUSIC_VOLUME } from '../utils/recapMusic';
 import {
   TextureStack, Panel, PrintText, Bubble, GhostNumeral, Stamp, TornEdge, Band, TransitionCut,
   StageWall, StageDrift, StageImpact, StageHorizon, StageRunway,
@@ -57,6 +58,8 @@ import {
 } from '../utils/recapHistory';
 import { selection, light as hapticLight, success as hapticSuccess } from '../utils/haptics';
 import { HIT_SLOP } from '../utils/tokens';
+import { TABLET_CONTENT_MAX_WIDTH } from '../utils/responsive';
+import { useReducedMotion } from '../utils/a11y';
 
 const DISPLAY = 'MangaRecsBrand';
 // Per-slide autoplay pace — slides carrying more to read (top series, badge
@@ -64,12 +67,6 @@ const DISPLAY = 'MangaRecsBrand';
 // SLIDES below.
 const SLIDE_DURATIONS = [6200, 7800, 6800, 8400, 8800, 7600, 7400, 8600, 7200, 0];
 
-const SOUNDTRACK = {
-  night: require('../assets/sounds/night.mp3'),
-  rain: require('../assets/sounds/rain.mp3'),
-  forest: require('../assets/sounds/forest.mp3'),
-  ocean: require('../assets/sounds/ocean.mp3'),
-};
 
 // ── period + stat maths ──────────────────────────────────────────────────
 
@@ -779,6 +776,7 @@ function S4Time({ d, s, id, h, cw }) {
 // it; ranks two to five deal in from the right like a hand of cards.
 // ═════════════════════════════════════════════════════════════════════════
 function S5TopSeries({ d, s, id, cw }) {
+  const t = useT();
   if (!d.topSeries.length) {
     return (
       <View style={{ width: '100%' }}>
@@ -1389,7 +1387,7 @@ function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
 // ── slide manifest ───────────────────────────────────────────────────────
 // Ten slides, always. `align` is what stops the recap reading as one template:
 // each beat is composed differently rather than stacked bottom-left.
-const SLIDES = [
+export const SLIDES = [
   { key: 'welcome',  Stage: StageWall,      Comp: S1Welcome,      align: 'center', foot: 'Every chapter is a new adventure' },
   { key: 'journey',  Stage: StageDrift,     Comp: S2Journey,      align: 'end',    foot: 'It all started somewhere' },
   { key: 'chapters', Stage: StageImpact,    Comp: S3Chapters,     align: 'center', foot: 'Page after page after page' },
@@ -1444,18 +1442,14 @@ export default function RecapScreen() {
   const [data, setData] = useState(null);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [reduced, setReduced] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportRatio, setExportRatio] = useState('story');
 
   // ── accessibility: reduce motion ────────────────────────────────────────
-  useEffect(() => {
-    let dead = false;
-    AccessibilityInfo.isReduceMotionEnabled?.().then((v) => { if (!dead) setReduced(!!v); }).catch(() => {});
-    const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => setReduced(!!v));
-    return () => { dead = true; sub?.remove?.(); };
-  }, []);
+  // Shared with the rest of the app now (utils/a11y.js) rather than a copy
+  // that only this screen honoured.
+  const reduced = useReducedMotion();
 
   // ── tilt parallax ────────────────────────────────────────────────────────
   // A few degrees of device tilt nudges the background, on top of its own
@@ -1764,6 +1758,7 @@ export default function RecapScreen() {
   // would overwrite the soundscape the user picked for reading. If their
   // ambience is already running we stay silent and let it carry the recap.
   const audio = useRef(null);
+  const fadeTimer = useRef(null);
   useEffect(() => {
     if (!data) return;
     let dead = false;
@@ -1771,26 +1766,30 @@ export default function RecapScreen() {
     (async () => {
       if (ambienceState().presetId) return;
 
-      const peakHour = data.peakWindow?.startHour;
-      const track = (peakHour != null && (peakHour >= 20 || peakHour < 5)) ? 'night'
-        : data.identity.lane === 'dread' ? 'rain'
-          : (data.identity.lane === 'calm' || data.identity.lane === 'heart') ? 'forest'
-            : 'ocean';
+      // Which track is entirely the reader's genre lane's business — see
+      // moodFor() in utils/recapMusic.js for why peak hour no longer overrides it.
       try {
         await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'mixWithOthers' });
         if (dead) return;
-        const p = createAudioPlayer(SOUNDTRACK[track]);
+        const p = createAudioPlayer(trackFor(data));
+        // Still looped: the tracks outrun the ~69s of slides, but a reader who
+        // holds to pause on a slide can outlast anything.
         p.loop = true;
-        p.volume = 0.18;
+        p.volume = MUSIC_VOLUME;
         p.play();
         audio.current = p;
+        fadeTimer.current = fadeIn(p);
       } catch (_) {}
     })();
 
     return () => {
       dead = true;
+      if (fadeTimer.current) { clearInterval(fadeTimer.current); fadeTimer.current = null; }
       if (audio.current) {
-        try { audio.current.pause(); audio.current.remove(); } catch (_) {}
+        // Faded rather than cut: leaving the recap mid-track otherwise chops
+        // the music dead on the same frame the screen animates away.
+        // fadeOutAndStop owns pause/remove once it reaches silence.
+        fadeOutAndStop(audio.current);
         audio.current = null;
       }
     };
@@ -1820,6 +1819,11 @@ export default function RecapScreen() {
     if (next < 0 || next >= SLIDES.length) return;
     if (running.current) running.current.stop();
     bars.forEach((v, i) => v.setValue(i < next ? 1 : 0));
+    // The bar listener only writes progressAt for the *current* index, and
+    // idxRef does not catch up until the effect after this render — so without
+    // this reset a press-and-hold in the first frames of a new slide would
+    // resume against the previous slide's finished progress and cut it to 60ms.
+    progressAt.current = 0;
     setIdx(next);
     setPaused(false);
     runWipe();
@@ -1869,7 +1873,13 @@ export default function RecapScreen() {
       if (didHold.current) { resume(); return; }
       if (g.dy < -60) { advance(1); return; }
       if (g.dy > 60) { advance(-1); return; }
-      const x = e.nativeEvent.locationX;
+      // Screen coordinates, never locationX: locationX is measured against the
+      // view the finger actually landed on, not the root that owns this
+      // responder. Tapping the slide-3 odometer — a 140pt numeral sitting dead
+      // centre — reported an x of a few points inside that digit, which read as
+      // a left-edge tap and sent the story backwards, so the recap could never
+      // get past it. x0 is the grant point in screen space; pageX backs it up.
+      const x = g.x0 != null ? g.x0 : e.nativeEvent.pageX;
       advance(x < W * 0.3 ? -1 : 1);
     },
     onPanResponderTerminate: () => { clearTimeout(holdTimer.current); if (didHold.current) resume(); },
@@ -1908,8 +1918,15 @@ export default function RecapScreen() {
   const align = slide.align === 'center' ? 'center' : slide.align === 'fill' ? 'stretch' : 'flex-end';
   const contentJustify = slide.align === 'center' ? 'center' : slide.align === 'fill' ? 'flex-start' : 'flex-end';
   // Centred slides need symmetric gutters or they read as shifted left.
-  const padL = slide.align === 'center' ? 46 : 26;
-  const padR = slide.align === 'center' ? 46 : 50;
+  const basePadL = slide.align === 'center' ? 46 : 26;
+  const basePadR = slide.align === 'center' ? 46 : 50;
+  // On an iPad the stage art still runs edge to edge — it is a full-bleed
+  // poster — but the type column is capped and centred, the same cap the rest
+  // of the app uses. Without this every slide caps its own hero element at a
+  // phone size and then strands it against the left edge of a 1024pt frame.
+  const sidePad = Math.max(0, (W - basePadL - basePadR - TABLET_CONTENT_MAX_WIDTH) / 2);
+  const padL = basePadL + sidePad;
+  const padR = basePadR + sidePad;
   const contentW = W - padL - padR;
 
   const slideIn = wipe.interpolate({ inputRange: [0, 1], outputRange: [26, 0] });

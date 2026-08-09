@@ -2042,3 +2042,109 @@ GRANT UPDATE (
 -- Default 0 keeps every existing chapter exactly as it renders today, and
 -- MangaDex-sourced chapters (which never touch this table) are unaffected.
 ALTER TABLE chapters ADD COLUMN IF NOT EXISTS page_gap INTEGER NOT NULL DEFAULT 0;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 64. Short-form video in the feed (feed_videos) ----------------------------
+-- The feed is manga/manhwa entries only, which makes it a catalog you browse
+-- rather than something you fall into. Short-form video about the medium —
+-- recommendation lists, edits, chapter reactions — is where that audience
+-- already spends its scrolling time, so it belongs between the entries.
+--
+-- MangaRecs hosts none of it. Rows point at a third-party video by id and the
+-- app embeds it through that platform's own sanctioned player, which is what
+-- keeps this on the right side of every provider's terms. Nothing here is
+-- user-submitted: rows arrive either from an admin curating them or from the
+-- refill-feed-videos function, which only ever writes videos the YouTube API
+-- has already marked embeddable.
+CREATE TABLE IF NOT EXISTS feed_videos (
+  id            BIGSERIAL PRIMARY KEY,
+  provider      TEXT NOT NULL DEFAULT 'youtube',   -- 'youtube' | 'tiktok'
+  video_id      TEXT NOT NULL,                     -- provider's own id, not a URL
+  title         TEXT NOT NULL,
+  channel       TEXT,
+  thumbnail_url TEXT,
+  -- Drives which readers see it. Mirrors the feed's own vocabulary so a
+  -- manhwa reader isn't served nothing but shonen edits.
+  topic         TEXT NOT NULL DEFAULT 'anime',     -- 'manga' | 'manhwa' | 'anime'
+  duration_secs INTEGER,
+  -- Curated rows are hand-checked; api rows come from the refill function and
+  -- can be culled separately if a query starts returning junk.
+  source        TEXT NOT NULL DEFAULT 'curated',   -- 'curated' | 'youtube_api'
+  -- Soft delete. A video that gets taken down or turns out to be off-topic is
+  -- flipped off rather than deleted, so the refill function can't re-add it.
+  active        BOOLEAN NOT NULL DEFAULT TRUE,
+  weight        INTEGER NOT NULL DEFAULT 0,        -- higher floats to the top
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (provider, video_id)
+);
+
+CREATE INDEX IF NOT EXISTS feed_videos_active_idx
+  ON feed_videos (active, weight DESC, created_at DESC);
+
+ALTER TABLE feed_videos ENABLE ROW LEVEL SECURITY;
+
+-- Readable by everyone (including guests — the feed works signed out), but
+-- only the active rows. Writes have NO policy at all: the refill function goes
+-- in via service_role, and curation goes through the admin RPC below.
+DROP POLICY IF EXISTS "feed_videos readable" ON feed_videos;
+CREATE POLICY "feed_videos readable" ON feed_videos
+  FOR SELECT USING (active);
+
+GRANT SELECT ON feed_videos TO anon, authenticated;
+
+-- Admin curation, same single-account gate as reports/get_reports_queue.
+CREATE OR REPLACE FUNCTION upsert_feed_video(
+  p_provider      TEXT,
+  p_video_id      TEXT,
+  p_title         TEXT,
+  p_channel       TEXT DEFAULT NULL,
+  p_thumbnail_url TEXT DEFAULT NULL,
+  p_topic         TEXT DEFAULT 'anime',
+  p_duration_secs INTEGER DEFAULT NULL,
+  p_weight        INTEGER DEFAULT 0
+)
+RETURNS feed_videos
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  result feed_videos;
+BEGIN
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  IF p_provider NOT IN ('youtube', 'tiktok') THEN
+    RAISE EXCEPTION 'unsupported provider: %', p_provider;
+  END IF;
+  IF p_topic NOT IN ('manga', 'manhwa', 'anime') THEN
+    RAISE EXCEPTION 'unsupported topic: %', p_topic;
+  END IF;
+
+  INSERT INTO feed_videos (
+    provider, video_id, title, channel, thumbnail_url, topic, duration_secs, source, weight, active
+  ) VALUES (
+    p_provider, p_video_id, p_title, p_channel, p_thumbnail_url, p_topic, p_duration_secs, 'curated', p_weight, TRUE
+  )
+  ON CONFLICT (provider, video_id) DO UPDATE SET
+    title         = EXCLUDED.title,
+    channel       = EXCLUDED.channel,
+    thumbnail_url = EXCLUDED.thumbnail_url,
+    topic         = EXCLUDED.topic,
+    duration_secs = EXCLUDED.duration_secs,
+    weight        = EXCLUDED.weight,
+    active        = TRUE
+  RETURNING * INTO result;
+  RETURN result;
+END; $$;
+REVOKE ALL ON FUNCTION upsert_feed_video(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, INTEGER) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION upsert_feed_video(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, INTEGER) TO authenticated;
+
+CREATE OR REPLACE FUNCTION set_feed_video_active(p_id BIGINT, p_active BOOLEAN)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS DISTINCT FROM '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0'::uuid THEN
+    RAISE EXCEPTION 'not authorized';
+  END IF;
+  UPDATE feed_videos SET active = p_active WHERE id = p_id;
+END; $$;
+REVOKE ALL ON FUNCTION set_feed_video_active(BIGINT, BOOLEAN) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION set_feed_video_active(BIGINT, BOOLEAN) TO authenticated;

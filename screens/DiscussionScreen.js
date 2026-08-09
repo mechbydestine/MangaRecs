@@ -26,6 +26,7 @@ import { containsBlockedLanguage } from '../utils/contentFilter';
 import { light } from '../utils/haptics';
 import { showAppToast } from '../utils/appToast';
 import { HIT_SLOP } from '../utils/tokens';
+import { sendReplyPush } from '../utils/pushNotifications';
 
 
 const BLOCKED_DOMAINS = [
@@ -328,6 +329,7 @@ export default function DiscussionScreen() {
             type: 'reply',
             data: { series_title: title, chapter: latestChapter, text_preview: text.slice(0, 80), comment_id: replyingTo.commentId },
           }).then(() => {});
+          sendReplyPush(replyingTo.userId, title).catch(() => {});
         }
         const newReply = {
           id: data.id,
@@ -475,7 +477,7 @@ export default function DiscussionScreen() {
 
         {/* ── Header ── */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -853,7 +855,8 @@ export default function DiscussionScreen() {
             onSubmitEditing={postComment}
             multiline
             maxLength={500}
-          />
+          
+            accessibilityLabel={t('a11y.replyInput')}/>
           <TouchableOpacity
             style={styles.sendBtn}
             onPress={postComment}
@@ -936,7 +939,7 @@ const styles = StyleSheet.create({
   infoTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   infoChap: { fontSize: 12, marginBottom: 6 },
   infoStats: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  infoDiscussing: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  infoDiscussing: { color: '#7858FF', fontSize: 11, fontWeight: '600' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 6 },
   rateLink: { fontSize: 11, fontWeight: '600', color: '#8A8894' },
   controlsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4, gap: 8 },
@@ -945,7 +948,7 @@ const styles = StyleSheet.create({
   sortBtnActive: { borderRadius: 8 },
   sortBtnText: { fontSize: 12, fontWeight: '600' },
   spoilerBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, borderWidth: 1, gap: 5 },
-  spoilerBtnOn: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.1)' },
+  spoilerBtnOn: { borderColor: '#7858FF', backgroundColor: 'rgba(120, 88, 255,0.1)' },
   spoilerBtnText: { fontSize: 12, fontWeight: '500' },
   // Comments
   commentRow: { flexDirection: 'row', paddingLeft: 16, paddingRight: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1 },
@@ -955,7 +958,7 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   chapterChipRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 10, gap: 8 },
   chapterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
-  chapterChipActive: { backgroundColor: '#7B5CFF', borderColor: '#7B5CFF' },
+  chapterChipActive: { backgroundColor: '#7858FF', borderColor: '#7858FF' },
   chapterChipText: { fontSize: 12, fontWeight: '700' },
   commentBody: { flex: 1 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8, flexWrap: 'wrap' },
@@ -984,7 +987,7 @@ const styles = StyleSheet.create({
   urlErrorText: { color: '#E8527A', fontSize: 12, flex: 1 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1 },
   inputField: { flex: 1, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, maxHeight: 100, marginRight: 10 },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7858FF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   spoilerToggleBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginRight: 6, flexShrink: 0 },
   spoilerToggleBtnActive: { backgroundColor: 'rgba(232,82,122,0.12)' },
   // Report

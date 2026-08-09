@@ -132,6 +132,83 @@ export async function resetPushPrime() {
   try { await AsyncStorage.removeItem(PRIME_STATE_KEY); } catch (_) {}
 }
 
+// ── Push state, for Settings ───────────────────────────────────────────────
+// Until this existed there was no way to see, or fix, a user who had no push
+// token: the only route to registration was advancing a chapter in the reader
+// and accepting the prime, and a single "Not now" disabled that route
+// permanently (maybePrimePushPermission returns early on any stored state, and
+// nothing called resetPushPrime). Settings could not report the problem, let
+// alone recover from it.
+export async function getPushStatus(userId) {
+  if (isExpoGo || !Notifications) return { supported: false, reason: 'expo-go' };
+  if (!Device.isDevice) return { supported: false, reason: 'simulator' };
+
+  let permission = 'undetermined';
+  let canAskAgain = true;
+  try {
+    const res = await Notifications.getPermissionsAsync();
+    permission = res?.status || 'undetermined';
+    canAskAgain = res?.canAskAgain !== false;
+  } catch (_) {}
+
+  let hasToken = false;
+  if (userId) {
+    try {
+      const { data } = await supabase
+        .from('user_push_settings')
+        .select('push_token')
+        .eq('user_id', userId)
+        .maybeSingle();
+      hasToken = !!data?.push_token;
+    } catch (_) {}
+  }
+
+  return {
+    supported: true,
+    permission,
+    canAskAgain,
+    hasToken,
+    // Push only actually works when BOTH are true. Permission alone is the
+    // trap: the OS says yes, but nothing was ever written to the table, so
+    // every Edge Function still has nowhere to send.
+    active: permission === 'granted' && hasToken,
+    primeState: await getPushPrimeState(),
+  };
+}
+
+// The explicit "turn this on" path. Clears any earlier "Not now" so the reader
+// prime works again, then registers — which shows the OS dialog if it has not
+// been spent yet. Returns why it failed so Settings can say something useful
+// rather than silently doing nothing.
+export async function enablePush(userId) {
+  if (isExpoGo || !Notifications) return { ok: false, reason: 'expo-go' };
+  if (!Device.isDevice) return { ok: false, reason: 'simulator' };
+  if (!userId) return { ok: false, reason: 'signed-out' };
+
+  await resetPushPrime();
+
+  let canAskAgain = true;
+  let status = 'undetermined';
+  try {
+    const res = await Notifications.getPermissionsAsync();
+    status = res?.status || 'undetermined';
+    canAskAgain = res?.canAskAgain !== false;
+  } catch (_) {}
+
+  // Permanently denied at OS level — requestPermissionsAsync resolves instantly
+  // with 'denied' and no dialog, so asking again just looks broken. The only
+  // real recovery is the system settings app.
+  if (status === 'denied' && !canAskAgain) return { ok: false, reason: 'blocked' };
+
+  const token = await registerPushToken(userId);
+  if (token) return { ok: true };
+
+  // registerPushToken already recorded the specific stage that failed.
+  let last = null;
+  try { last = JSON.parse((await AsyncStorage.getItem(LAST_ERROR_KEY)) || 'null'); } catch (_) {}
+  return { ok: false, reason: 'failed', detail: last?.stage || null };
+}
+
 export async function registerPushToken(userId) {
   if (isExpoGo || !Notifications || !Device.isDevice) return;
 
@@ -224,4 +301,12 @@ export async function sendDMPush(toUserId, preview) {
 
 export async function sendFriendRequestPush(toUserId) {
   await notify({ type: 'friend_request', recipientId: toUserId });
+}
+
+export async function sendReplyPush(toUserId, seriesTitle) {
+  await notify({ type: 'reply', recipientId: toUserId, seriesTitle });
+}
+
+export async function sendFollowPush(toUserId) {
+  await notify({ type: 'follow', recipientId: toUserId });
 }

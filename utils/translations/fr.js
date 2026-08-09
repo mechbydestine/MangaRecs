@@ -49,6 +49,12 @@ export default {
   },
 
   feed: {
+    video: {
+      play: 'Lire {title}',
+      stop: 'Arrêter la vidéo',
+      openExternal: 'Ouvrir',
+      embedFailed: "Cette vidéo ne peut pas être lue ici — appuyez sur Ouvrir pour la regarder.",
+    },
     destEmail: "E-mail",
     creatorLabel: "Créateur MangaRecs",
     addFriendsFirst: "Ajoutez d'abord des amis pour envoyer des recommandations.",
@@ -198,6 +204,9 @@ export default {
     searchHint: "Recherchez par nom d'utilisateur",
     suggested: "Suggestions",
     noRankings: "Pas encore de classement. Commencez à lire pour y figurer !",
+    rankedByHours: 'Top {count} par heures de lecture',
+    noFriendRankings: "Aucun de vos amis n'est encore classé. Ajoutez des lecteurs pour vous comparer.",
+    leaderboardError: "Impossible de charger le classement.",
     mangarecsReaders: "LECTEURS MANGARECS",
     addAFriend: 'Ajouter un ami',
     searchByUsername: 'Recherchez par nom pour trouver des lecteurs MangaRecs',
@@ -263,6 +272,13 @@ export default {
   },
 
   notifications: {
+
+
+
+
+
+
+
     emptySub: "Demandes d’amis, commentaires et messages s’afficheront ici",
     allCaughtUp: 'Vous êtes à jour',
     title: 'Notifications',
@@ -349,12 +365,34 @@ export default {
       ambienceHint: "L'ambiance se règle dans le lecteur. Ouvrez un manga et appuyez sur l'icône casque en haut.",
     },
     notifications: {
+      pushOff: "Les notifications push ne sont pas configurées sur cet appareil — ces réglages ne vous parviendront pas encore.",
+      pushBlocked: "Les notifications de MangaRecs sont désactivées dans les réglages de votre appareil.",
+      enablePush: "Activer",
+      pushBlockedTitle: "Notifications bloquées",
+      pushBlockedBody: "MangaRecs ne peut plus vous le demander. Réactivez les notifications dans les réglages de votre appareil.",
+      openSettings: "Ouvrir les réglages",
+      pushFailed: "Impossible de configurer les notifications. Vérifiez votre connexion et réessayez.",
       section: 'Notifications',
-      chapters: 'Nouveaux chapitres',
+      groupSeries: 'Vos séries',
+      groupSocial: 'Social',
+      groupProgress: 'Progression',
+      newChapter: 'Nouveaux chapitres',
+      newChapterDesc: 'Une série que vous suivez publie un nouveau chapitre',
+      replies: 'Réponses',
+      repliesDesc: "Quelqu'un répond à votre commentaire",
       comments: 'Commentaires',
-      friends: "Demandes d'ami",
-      messages: 'Messages privés',
-      streak: 'Rappels de série',
+      commentsDesc: "Quelqu'un commente une série que vous avez publiée",
+      likes: "J'aime",
+      likesDesc: "Quelqu'un aime votre publication ou votre commentaire",
+      followers: 'Nouveaux abonnés',
+      followersDesc: "Quelqu'un commence à vous suivre",
+      friendActivity: "Demandes d'ami",
+      friendActivityDesc: 'Celles que vous recevez, et les vôtres acceptées',
+      directMessages: 'Messages privés',
+      directMessagesDesc: 'Un ami vous envoie un message',
+      badges: 'Badges débloqués',
+      badgesDesc: 'Vous obtenez un nouveau badge ou palier de médaille',
+      allOff: "Tout est désactivé — MangaRecs ne vous notifiera pas.",
     },
     content: {
       section: 'Contenu',
@@ -678,5 +716,49 @@ export default {
 
   intro: {
     tagline: "Votre prochaine histoire, recommandée.",
+  },
+
+  // Screen-reader labels for controls that show only an icon. A sighted user
+  // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
+  a11y: {
+    bioInput: "Votre bio",
+    commentInput: "Écrire un commentaire",
+    spoilerCommentInput: "Écrire un commentaire spoiler",
+    replyInput: "Écrire une réponse",
+    seriesDescription: "Description de la série",
+    chapterNumber: "Numéro de chapitre",
+    birthMonth: "Mois de naissance",
+    birthDay: "Jour de naissance",
+    birthYear: "Année de naissance",
+    showPassword: "Afficher le mot de passe",
+    hidePassword: "Masquer le mot de passe",
+    changePhoto: "Changer la photo de profil",
+    cancelEdit: "Annuler la modification",
+    sendComment: "Envoyer le commentaire",
+    searchFriends: "Rechercher des amis",
+    reportDiscussion: "Signaler cette discussion",
+    addFriend: "Ajouter un ami",
+    sendGif: "Envoyer un GIF",
+    messageFriend: "Envoyer un message",
+    removePage: "Supprimer la page",
+    removeSite: "Supprimer ce site",
+    rateStars: "Noter {n} sur 5",
+    volumeDown: "Baisser le volume",
+    volumeUp: "Augmenter le volume",
+    dimmerDown: "Moins d'assombrissement",
+    dimmerUp: "Plus d'assombrissement",
+    nightFilterDown: "Moins de filtre nuit",
+    nightFilterUp: "Plus de filtre nuit",
+    autoScrollStart: "Démarrer le défilement automatique",
+    autoScrollPause: "Mettre en pause le défilement",
+    switchToManga: "Passer en mode manga",
+    switchToWebtoon: "Passer en mode webtoon",
+    addBookmark: "Marquer ce chapitre",
+    removeBookmark: "Retirer le marque-page",
+    hideControls: "Masquer les commandes",
+    showControls: "Afficher les commandes",
+    closeZoom: "Fermer la page agrandie",
+    mangaPage: "Page de manga",
+    openSeries: "Ouvrir la série",
   },
 };

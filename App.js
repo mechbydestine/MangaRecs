@@ -26,6 +26,7 @@ import { checkForNewChapters } from './utils/chapterUpdates';
 import { markTouch, startPresenceHeartbeat, stopPresenceHeartbeat } from './utils/presence';
 import { light } from './utils/haptics';
 import { setCrashUser } from './utils/crashReporting';
+import { useReducedMotion } from './utils/a11y';
 import CoverMorphOverlay from './components/CoverMorphOverlay';
 import WhatsNewModal from './components/WhatsNewModal';
 
@@ -50,6 +51,7 @@ import ModerationScreen from './screens/ModerationScreen';
 import DMScreen from './screens/DMScreen';
 import LegalScreen from './screens/LegalScreen';
 import AllDiscussionsScreen from './screens/AllDiscussionsScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastHost from './components/ToastHost';
 import OfflineBanner from './components/OfflineBanner';
@@ -188,6 +190,34 @@ async function checkGuidelinesAccepted(userId) {
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// Each root-stack destination gets its own boundary, the way every tab already
+// does. These are full-screen features — the recap story, the reader — and
+// without one, a render error in any of them fell all the way through to
+// `where="root"`, which unmounts the entire navigator: tabs, stack history and
+// the reader's place in a chapter, all replaced by one retry button.
+//
+// Built once at module scope, never inside a render: a wrapper recreated per
+// render is a new component type each time, which remounts the whole screen.
+function guard(where, Screen) {
+  function Guarded(props) {
+    return (
+      <ErrorBoundary where={where}>
+        <Screen {...props} />
+      </ErrorBoundary>
+    );
+  }
+  Guarded.displayName = `Guarded(${where})`;
+  return Guarded;
+}
+
+const GuardedRecap = guard('recap', RecapScreen);
+const GuardedReader = guard('reader', ReaderScreen);
+const GuardedMangaDetail = guard('mangaDetail', MangaDetailScreen);
+const GuardedDiscussion = guard('discussion', DiscussionScreen);
+const GuardedAllDiscussions = guard('allDiscussions', AllDiscussionsScreen);
+const GuardedLeaderboard = guard('leaderboard', LeaderboardScreen);
+const GuardedLegal = guard('legal', LegalScreen);
+
 function ThemedStatusBar() {
   const { isDark } = useTheme();
   return <StatusBar style={isDark ? 'light' : 'dark'} />;
@@ -199,8 +229,17 @@ function AnimatedTabIcon({ name, focused, color, targetKey }) {
   const scale   = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(focused ? 1 : 0.7)).current;
   const registerTarget = useCoachmarkTarget(targetKey);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    // Opacity still changes — that is how the selected tab is identified, and
+    // Reduce Motion asks for less movement, not less information. Only the
+    // spring scale is dropped, jumping straight to its target size.
+    if (reduced) {
+      scale.setValue(focused ? 1.2 : 1);
+      opacity.setValue(focused ? 1 : 0.7);
+      return;
+    }
     Animated.parallel([
       Animated.spring(scale, {
         toValue: focused ? 1.2 : 1,
@@ -215,7 +254,7 @@ function AnimatedTabIcon({ name, focused, color, targetKey }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [focused]);
+  }, [focused, reduced, scale, opacity]);
 
   return (
     <Animated.View ref={registerTarget} style={{ transform: [{ scale }], opacity }}>
@@ -389,6 +428,10 @@ function TabNavigator() {
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
+        // Deliberately unbounded: the bar declares no fixed height, so it grows
+        // with the label, and screens reserve whatever it actually measures via
+        // useBottomTabBarHeight(). Capping here would shrink text for the
+        // people who asked the OS to enlarge it, and buy nothing.
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       })}>
       <Tab.Screen
@@ -458,12 +501,12 @@ function AppNavigator() {
           off the bottom of every slide (footer caption, peak-time pill). */}
       <Stack.Screen
         name="Recap"
-        component={RecapScreen}
+        component={GuardedRecap}
         options={{ animation: 'slide_from_bottom', contentStyle: { backgroundColor: '#000' } }}
       />
       <Stack.Screen
         name="Reader"
-        component={ReaderScreen}
+        component={GuardedReader}
         options={{
           animation: 'slide_from_bottom',
           contentStyle: { backgroundColor: colors.background },
@@ -471,7 +514,7 @@ function AppNavigator() {
       />
       <Stack.Screen
         name="MangaDetail"
-        component={MangaDetailScreen}
+        component={GuardedMangaDetail}
         options={{
           animation: 'slide_from_right',
           contentStyle: { backgroundColor: colors.background },
@@ -479,7 +522,7 @@ function AppNavigator() {
       />
       <Stack.Screen
         name="Discussion"
-        component={DiscussionScreen}
+        component={GuardedDiscussion}
         options={{
           animation: 'slide_from_right',
           contentStyle: { backgroundColor: colors.background },
@@ -487,7 +530,18 @@ function AppNavigator() {
       />
       <Stack.Screen
         name="AllDiscussions"
-        component={AllDiscussionsScreen}
+        component={GuardedAllDiscussions}
+        options={{
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      {/* Root stack, not CommunityStack: SocialScreen is mounted in three
+          different stacks (Community, Messages, Friends) and the leaderboard
+          has to open from any of them. */}
+      <Stack.Screen
+        name="Leaderboard"
+        component={GuardedLeaderboard}
         options={{
           animation: 'slide_from_right',
           contentStyle: { backgroundColor: colors.background },
@@ -495,7 +549,7 @@ function AppNavigator() {
       />
       <Stack.Screen
         name="Legal"
-        component={LegalScreen}
+        component={GuardedLegal}
         options={{
           presentation: 'modal',
           animation: 'slide_from_bottom',

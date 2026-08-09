@@ -19,7 +19,7 @@ import { sendFriendRequestPush } from '../utils/pushNotifications';
 import { showAppToast } from '../utils/appToast';
 import { getBlockedIds } from '../utils/blocking';
 import { MangaCover } from '../utils/mangaCovers';
-import { ALL_BADGES, BADGE_GRADES, computeEarnedBadgeIds, profileToBadgeStats } from '../utils/badges';
+import { ALL_BADGES } from '../utils/badges';
 import { fetchPopularManga } from '../utils/mangaDexApi';
 import { prewarmCoverCache } from '../utils/mangaCovers';
 import StarLogo from '../components/StarLogo';
@@ -46,11 +46,6 @@ function containsBlockedDomain(text) {
 }
 
 const REPORT_REASONS = ['Piracy link', 'Copyrighted content', 'Harassment', 'Spam', 'Other'];
-
-function formatTime(hours) {
-  if (hours < 1) return `${Math.round(hours * 60)}m`;
-  return `${Math.round(hours)}h`;
-}
 
 // Profile color is stored as a theme ID ('default','rose',…), not a hex value
 const themeColor = profileAccent;
@@ -104,41 +99,6 @@ function RareBadge({ badgeId }) {
     </View>
   );
 }
-
-// Highest-tier badge a user has earned — mythic > gold > purple > indigo > blue > green > grey
-const LB_GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
-function topBadgeFor(badgeIds) {
-  if (!badgeIds?.length) return null;
-  let best = null;
-  for (const id of badgeIds) {
-    const badge = ALL_BADGES.find((b) => b.id === id);
-    if (!badge) continue;
-    if (!best || (LB_GRADE_RANK[badge.grade] ?? 9) < (LB_GRADE_RANK[best.grade] ?? 9)) best = badge;
-  }
-  return best;
-}
-
-// Pinned showcase shields per leaderboard row — the user's chosen badges,
-// falling back to their single highest-tier badge when nothing is pinned.
-// Plain shields, no pill wrapper: the shield IS the badge shape.
-function FeaturedBadgeStat({ entry }) {
-  let badges = (entry?.showcase || [])
-    .map((id) => ALL_BADGES.find((b) => b.id === id))
-    .filter(Boolean);
-  if (badges.length === 0) {
-    const top = topBadgeFor(entry?.badges);
-    if (top) badges = [top];
-  }
-  if (badges.length === 0) return null;
-  return (
-    <View style={lbFeaturedStyles.row}>
-      {badges.map((b) => <BadgeIcon key={b.id} badge={b} size={24} />)}
-    </View>
-  );
-}
-const lbFeaturedStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-});
 
 // Friend avatar with a corner presence dot — tap to peek status/reading via
 // toast, long-press to open their profile. Replaces the old always-expanded
@@ -219,7 +179,7 @@ function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote,
               styles.pollOptionFill,
               {
                 width: fillAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
-                backgroundColor: isSelected ? 'rgba(123,92,255,0.22)' : colors.inputBg,
+                backgroundColor: isSelected ? 'rgba(120, 88, 255,0.22)' : colors.inputBg,
               },
             ]}
           />
@@ -227,7 +187,7 @@ function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote,
         <View style={styles.pollOptionContent}>
           {isSelected
             ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={{ marginRight: 10 }} />
-            : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(123,92,255,0.5)' }]} />
+            : <View style={[styles.pollDot, { borderColor: hasVoted ? colors.border : 'rgba(120, 88, 255,0.5)' }]} />
           }
           <Text style={[styles.pollOptionLabel, { color: isSelected ? '#A09CE0' : colors.text }]} numberOfLines={1}>
             {opt.label}
@@ -397,13 +357,8 @@ export default function SocialScreen() {
   const [friends, setFriends] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
-  const [leaderboardScope, setLeaderboardScope] = useState('global'); // 'global' | 'friends'
-  const [leaderboardMetric, setLeaderboardMetric] = useState('hours'); // 'hours' | 'chapters' | 'streak'
   const [suggestedFriends, setSuggestedFriends] = useState([]);
   const [showAddFriend, setShowAddFriend] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [discussionSeries, setDiscussionSeries] = useState([]);
   const [reportItem, setReportItem] = useState(null);
   const [reportSubmitting, setReportSubmitting] = useState(false);
@@ -512,7 +467,6 @@ export default function SocialScreen() {
         loadFriends(uid);
         loadDMConvos(uid);
         loadPendingRequests(uid);
-        loadLeaderboard(uid);
         loadSuggestedFriends(uid);
         loadPoll(uid);
         loadDiscussions(uid);
@@ -788,52 +742,6 @@ export default function SocialScreen() {
     setDmConvos(convos);
   }
 
-  const LB_METRIC_COL = { hours: 'hours_read', chapters: 'chapters_read', streak: 'streak_count' };
-  const lbMetricMounted = useRef(false);
-
-  useEffect(() => {
-    if (!lbMetricMounted.current) { lbMetricMounted.current = true; return; }
-    if (currentUserId) loadLeaderboard(currentUserId, leaderboardMetric);
-  }, [leaderboardMetric]);
-
-  async function loadLeaderboard(uid, metric = 'hours') {
-    setLeaderboardLoading(true);
-    const orderCol = LB_METRIC_COL[metric] || 'hours_read';
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, color, chapters_read, hours_read, streak_count, avatar_url, friends_count, comments_count, likes_given, series_count, completed_count, showcase_badges')
-      .not('username', 'is', null)
-      .neq('username', '')
-      .or('hours_read.gt.0,chapters_read.gt.0')
-      .order(orderCol, { ascending: false })
-      .limit(50);
-    if (!error && data) {
-      const entries = data.map((p) => {
-        const stats = profileToBadgeStats(p);
-        const earnedSet = computeEarnedBadgeIds(stats);
-        // Their pinned showcase, validated against what they actually earned
-        const showcase = (Array.isArray(p.showcase_badges) ? p.showcase_badges : [])
-          .filter((id) => earnedSet.has(id))
-          .slice(0, 3);
-        return {
-          id: p.id,
-          name: p.display_name || p.username || 'Reader',
-          avatar: (p.display_name || p.username || '?').charAt(0).toUpperCase(),
-          avatarUrl: p.avatar_url || null,
-          color: p.color,
-          hours: p.hours_read || 0,
-          chapters: p.chapters_read || 0,
-          streak: p.streak_count || 0,
-          badges: Array.from(earnedSet),
-          showcase,
-          online: false,
-          isMe: p.id === uid,
-        };
-      });
-      setLeaderboard(entries);
-    }
-    setLeaderboardLoading(false);
-  }
 
   async function loadPendingRequests(uid) {
     const { data: rows, error } = await supabase
@@ -1039,12 +947,6 @@ export default function SocialScreen() {
     setTimeout(() => setReportToast(false), 2000);
   }
 
-  const friendIdSet = new Set(friends.map((f) => f.id));
-  const LB_METRIC_KEY = { hours: 'hours', chapters: 'chapters', streak: 'streak' };
-  const sortedLeaderboard = [...leaderboard]
-    .filter((e) => leaderboardScope === 'global' || e.isMe || friendIdSet.has(e.id))
-    .sort((a, b) => b[LB_METRIC_KEY[leaderboardMetric]] - a[LB_METRIC_KEY[leaderboardMetric]]);
-
   const totalDmUnread = dmConvos.reduce((n, c) => n + c.unread, 0);
   const dmFriendIdSet = new Set(dmConvos.map((c) => c.friendId));
   const friendsWithoutThread = friends.filter((f) => !dmFriendIdSet.has(f.id));
@@ -1084,7 +986,7 @@ export default function SocialScreen() {
             </TouchableOpacity>
             )}
             {!isMessages && (
-            <TouchableOpacity style={styles.leaderboardBtn} onPress={() => setShowLeaderboard(true)}>
+            <TouchableOpacity style={styles.leaderboardBtn} onPress={() => navigation.navigate('Leaderboard')}>
               <Ionicons name="trophy-outline" size={13} color="#FFD700" />
               <Text style={styles.leaderboardText}>{t('community.leaderboard')}</Text>
             </TouchableOpacity>
@@ -1281,7 +1183,7 @@ export default function SocialScreen() {
               style={[styles.discCard, { backgroundColor: colors.card, borderColor: colors.border }]}
               onPress={() => openDiscussion(item)}
               activeOpacity={0.82}>
-              <TouchableOpacity onPress={() => openReader(item)} activeOpacity={0.82}>
+              <TouchableOpacity onPress={() => openReader(item)} activeOpacity={0.82} accessibilityRole="button" accessibilityLabel={t('a11y.openSeries')}>
                 <MangaCover
                   title={item.title}
                   searchKey={item.searchKey}
@@ -1302,7 +1204,7 @@ export default function SocialScreen() {
                 <TouchableOpacity
                   style={styles.discReportBtn}
                   onPress={(e) => { e.stopPropagation(); setReportItem(item); }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('a11y.reportDiscussion')}>
                   <Ionicons name="flag-outline" size={13} color={colors.muted} />
                 </TouchableOpacity>
                 <Ionicons name="chevron-forward" size={16} color={colors.muted} />
@@ -1365,8 +1267,9 @@ export default function SocialScreen() {
                 autoCapitalize="none"
                 returnKeyType="search"
                 onSubmitEditing={handleSearch}
-              />
-              <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+              
+                accessibilityLabel={t('placeholder.username')}/>
+              <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} accessibilityRole="button" accessibilityLabel={t('common.search')}>
                 {searchLoading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Ionicons name="search" size={16} color="#fff" />}
@@ -1418,7 +1321,7 @@ export default function SocialScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity hitSlop={HIT_SLOP}
                   style={[styles.suggestedAddBtn, requestSentTo[f.id] && styles.suggestedAddBtnSent]}
-                  onPress={() => handleAddFriend(f.id)}>
+                  onPress={() => handleAddFriend(f.id)} accessibilityRole="button" accessibilityLabel={t('a11y.addFriend')}>
                   <Ionicons
                     name={requestSentTo[f.id] ? 'checkmark' : 'add'}
                     size={16}
@@ -1464,127 +1367,6 @@ export default function SocialScreen() {
         </View>
       )}
 
-      {/* ── Leaderboard Modal ── */}
-      <Modal visible={showLeaderboard} animationType="slide" transparent onRequestClose={() => setShowLeaderboard(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowLeaderboard(false)}>
-          <View style={[styles.lbSheet, { backgroundColor: colors.card }]} onStartShouldSetResponder={() => true}>
-            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-
-            <View style={styles.lbHeader}>
-              <View style={styles.lbHeaderLeft}>
-                <Ionicons name="trophy" size={18} color="#FFD700" />
-                <Text style={[styles.lbTitle, { color: colors.text }]}>{t('community.liveLeaderboard')}</Text>
-                <View style={styles.liveChip}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>{t('community.live')}</Text>
-                </View>
-              </View>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowLeaderboard(false)} style={styles.lbCloseBtn} accessibilityRole="button" accessibilityLabel="Close">
-                <Ionicons name="close" size={16} color={colors.muted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.lbTabBar, { backgroundColor: colors.background }]}>
-              <TouchableOpacity
-                style={[styles.lbTab, leaderboardScope === 'global' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
-                onPress={() => setLeaderboardScope('global')}>
-                <Ionicons name="globe-outline" size={11} color={leaderboardScope === 'global' ? colors.text : colors.muted} />
-                <Text style={[styles.lbTabText, { color: leaderboardScope === 'global' ? colors.text : colors.muted }]}>{t('community.global')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.lbTab, leaderboardScope === 'friends' && [styles.lbTabActive, { backgroundColor: colors.card }]]}
-                onPress={() => setLeaderboardScope('friends')}>
-                <Ionicons name="people-outline" size={11} color={leaderboardScope === 'friends' ? colors.text : colors.muted} />
-                <Text style={[styles.lbTabText, { color: leaderboardScope === 'friends' ? colors.text : colors.muted }]}>{t('messages.friends')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.lbMetricRow}>
-              {[
-                { key: 'hours', label: 'Hours', icon: 'time-outline' },
-                { key: 'chapters', label: 'Chapters', icon: 'book-outline' },
-                { key: 'streak', label: 'Streak', icon: 'flame-outline' },
-              ].map((m) => {
-                const active = leaderboardMetric === m.key;
-                return (
-                  <TouchableOpacity
-                    key={m.key}
-                    style={[styles.lbMetricPill, { borderColor: active ? '#FFD700' : colors.border }, active && { backgroundColor: 'rgba(255,215,0,0.12)' }]}
-                    onPress={() => setLeaderboardMetric(m.key)}>
-                    <Ionicons name={m.icon} size={11} color={active ? '#FFD700' : colors.muted} />
-                    <Text style={[styles.lbMetricText, { color: active ? '#FFD700' : colors.muted }]}>{m.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <View style={[styles.lbDivider, { backgroundColor: colors.border }]} />
-
-            {leaderboardLoading ? (
-              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 24 }} />
-            ) : sortedLeaderboard.length === 0 ? (
-              <Text style={[styles.emptyHint, { textAlign: 'center', paddingVertical: 32 }]}>{t('community.noRankings')}</Text>
-            ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28, paddingTop: 4 }}>
-                {sortedLeaderboard.map((entry, idx) => (
-                  <View
-                    key={entry.id || idx}
-                    style={[
-                      styles.lbRow,
-                      { borderColor: entry.isMe ? 'rgba(123,92,255,0.4)' : colors.border },
-                      entry.isMe && styles.lbRowMe,
-                    ]}>
-                    <View style={styles.lbRankWrap}>
-                      {idx < 3 ? (
-                        <Text style={styles.lbMedal}>{['🥇','🥈','🥉'][idx]}</Text>
-                      ) : (
-                        <View style={[styles.lbRankNumWrap, { backgroundColor: colors.background }]}>
-                          <Text style={[styles.lbRankNumText, { color: colors.muted }]}>{idx + 1}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={[
-                      styles.lbAvatar,
-                      { backgroundColor: themeColor(entry.color), overflow: 'hidden' },
-                      entry.online && styles.lbAvatarOnline,
-                    ]}>
-                      {entry.avatarUrl
-                        ? <Image source={{ uri: entry.avatarUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                        : <Text style={styles.lbAvatarText}>{entry.avatar}</Text>}
-                    </View>
-                    <View style={styles.lbInfo}>
-                      <View style={styles.lbNameRow}>
-                        <Text style={[styles.lbName, { color: entry.isMe ? colors.primary : colors.text }]} numberOfLines={1}>
-                          {entry.name}
-                        </Text>
-                        {entry.isMe && (
-                          <View style={styles.youChip}>
-                            <Text style={styles.youChipText}>YOU</Text>
-                          </View>
-                        )}
-                        {entry.online && <View style={styles.lbOnlineDot} />}
-                      </View>
-                    </View>
-                    <View style={styles.lbFeaturedStatGroup}>
-                      <FeaturedBadgeStat entry={entry} />
-                      <View style={styles.lbStat}>
-                        <Text style={[styles.lbStatValue, { color: colors.text }]}>
-                          {leaderboardMetric === 'hours' ? formatTime(entry.hours)
-                            : leaderboardMetric === 'chapters' ? entry.chapters.toLocaleString()
-                            : entry.streak.toLocaleString()}
-                        </Text>
-                        <Text style={[styles.lbStatLabel, { color: colors.muted }]}>
-                          {leaderboardMetric === 'hours' ? 'read' : leaderboardMetric === 'chapters' ? 'chapters' : 'streak'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
@@ -1596,14 +1378,14 @@ const styles = StyleSheet.create({
   noFriendsHint: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 14, padding: 12, borderRadius: 12, borderWidth: 1, gap: 8 },
   noFriendsHintText: { fontSize: 12.5, flexShrink: 1 },
   errorBannerText: { flex: 1, fontSize: 11 },
-  errorBannerRetry: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  errorBannerRetry: { color: '#7858FF', fontSize: 11, fontWeight: '600' },
 
   // Header
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, marginBottom: 20 },
   headerTitle: { fontSize: 18, fontWeight: '700', marginLeft: 10, flex: 1 },
   headerButtons: { alignItems: 'flex-end' },
-  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.15)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginBottom: 6 },
-  addFriendText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
+  addFriendBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.15)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginBottom: 6 },
+  addFriendText: { color: '#7858FF', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
   leaderboardBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
   leaderboardText: { color: '#FFD700', fontSize: 11, fontWeight: '600', marginLeft: 5, paddingRight: 2 },
 
@@ -1619,13 +1401,13 @@ const styles = StyleSheet.create({
   // ── Poll ──
   pollCard: { marginHorizontal: 20, marginBottom: 24, borderRadius: 16, borderWidth: 1, overflow: 'hidden', padding: 16 },
   pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  pollLabel: { color: '#7B5CFF', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  pollLabel: { color: '#7858FF', fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
   pollQuestion: { fontSize: 15, fontWeight: '700', lineHeight: 22, marginBottom: 14 },
   pollOption: { borderRadius: 10, borderWidth: 1, marginBottom: 8, overflow: 'hidden', height: 44, justifyContent: 'center' },
   pollOptionFill: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   pollOptionContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
-  pollDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(123,92,255,0.5)', marginRight: 10 },
-  pollDotFilled: { backgroundColor: '#7B5CFF', borderColor: '#7B5CFF' },
+  pollDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: 'rgba(120, 88, 255,0.5)', marginRight: 10 },
+  pollDotFilled: { backgroundColor: '#7858FF', borderColor: '#7858FF' },
   pollOptionLabel: { flex: 1, fontSize: 13, fontWeight: '500' },
   pollPct: { fontSize: 12, fontWeight: '700', marginLeft: 8 },
   pollHint: { fontSize: 12, marginBottom: 10, fontStyle: 'italic' },
@@ -1640,7 +1422,7 @@ const styles = StyleSheet.create({
 
   // Friends
   // Messages section
-  dmTotalBadge: { backgroundColor: '#7B5CFF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  dmTotalBadge: { backgroundColor: '#7858FF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   dmTotalBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
   dmSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginTop: 4, marginBottom: 6 },
@@ -1657,14 +1439,14 @@ const styles = StyleSheet.create({
   dmConvoTime: { fontSize: 11, marginLeft: 8 },
   dmConvoPreview: { fontSize: 13, lineHeight: 17 },
   dmConvoPreviewBold: { fontWeight: '600' },
-  dmUnreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#7B5CFF', borderWidth: 2, borderColor: '#0D0D0F' },
-  dmUnreadBadge: { backgroundColor: '#7B5CFF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
+  dmUnreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#7858FF', borderWidth: 2, borderColor: '#0D0D0F' },
+  dmUnreadBadge: { backgroundColor: '#7858FF', borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
   dmUnreadText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   friendsList: { paddingHorizontal: 20, marginBottom: 24 },
   friendRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   friendRowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   friendRowChevron: { paddingLeft: 8, paddingVertical: 4 },
-  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(123,92,255,0.5)', alignItems: 'center', justifyContent: 'center' },
+  friendAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(120, 88, 255,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendInfo: { flex: 1, marginLeft: 12 },
@@ -1672,7 +1454,7 @@ const styles = StyleSheet.create({
   friendName: { fontSize: 14, fontWeight: '500' },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginLeft: 6 },
   friendReading: { fontSize: 12, marginTop: 2 },
-  friendSeriesLink: { color: '#7B5CFF' },
+  friendSeriesLink: { color: '#7858FF' },
 
   // Friend avatar strip (replaces the old "Friends Reading" list)
   friendStripRow: { paddingLeft: 20, marginBottom: 22 },
@@ -1687,7 +1469,7 @@ const styles = StyleSheet.create({
   // Discussions
   discHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
   seeAllChip: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  seeAllChipText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600' },
+  seeAllChipText: { color: '#7858FF', fontSize: 12, fontWeight: '600' },
   discList: { paddingHorizontal: 20, marginBottom: 8 },
   discCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   discCover: { width: 52, height: 66, borderRadius: 8, marginRight: 14 },
@@ -1695,7 +1477,7 @@ const styles = StyleSheet.create({
   discTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
   discChap: { fontSize: 11, marginBottom: 5 },
   discCountRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  discCount: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  discCount: { color: '#7858FF', fontSize: 11, fontWeight: '600' },
   discActions: { alignItems: 'center', justifyContent: 'space-between', height: 40, paddingLeft: 8 },
   discReportBtn: { padding: 2 },
 
@@ -1719,46 +1501,11 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
   modalSub: { fontSize: 12, marginBottom: 16 },
 
-  // Leaderboard modal
-  lbSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 16, maxHeight: '86%' },
-  lbHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  lbHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lbTitle: { fontSize: 16, fontWeight: 'bold', marginLeft: 6 },
-  lbCloseBtn: { padding: 6, borderRadius: 20 },
-  lbTabBar: { flexDirection: 'row', gap: 6, padding: 4, borderRadius: 12, marginBottom: 10 },
-  lbTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 7, borderRadius: 9, gap: 4 },
-  lbTabActive: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  lbTabText: { fontSize: 11, fontWeight: '600' },
-  lbTabEmoji: { fontSize: 11 },
-  lbMetricRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
-  lbMetricPill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, borderRadius: 9, borderWidth: 1, gap: 4 },
-  lbMetricText: { fontSize: 10, fontWeight: '600' },
-  lbDivider: { height: 1, marginBottom: 6 },
-  lbRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, marginBottom: 5 },
-  lbRowMe: { backgroundColor: 'rgba(123,92,255,0.1)' },
-  lbRankWrap: { width: 32, alignItems: 'center', marginRight: 4 },
-  lbMedal: { fontSize: 18 },
-  lbRankNumWrap: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  lbRankNumText: { fontSize: 11, fontWeight: '600' },
-  lbAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  lbAvatarOnline: { borderWidth: 2, borderColor: '#10b981', padding: 1 },
-  lbAvatarText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  lbInfo: { flex: 1, marginRight: 6 },
-  lbNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
-  lbName: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
-  youChip: { paddingHorizontal: 5, paddingVertical: 1, backgroundColor: 'rgba(123,92,255,0.2)', borderRadius: 20 },
-  youChipText: { color: '#7B5CFF', fontSize: 8, fontWeight: '700' },
-  lbOnlineDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#10b981' },
-  lbBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
-  lbFeaturedStatGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lbStat: { alignItems: 'flex-end', minWidth: 44 },
-  lbStatValue: { fontSize: 14, fontWeight: 'bold' },
-  lbStatLabel: { fontSize: 9, marginTop: 1 },
 
   // Search / friend modal
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   searchInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, marginRight: 8 },
-  searchBtn: { backgroundColor: '#7B5CFF', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  searchBtn: { backgroundColor: '#7858FF', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   searchError: { color: '#D4537E', fontSize: 12, marginBottom: 10 },
   resultCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 4, borderWidth: 1 },
   resultAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
@@ -1766,11 +1513,11 @@ const styles = StyleSheet.create({
   resultInfo: { flex: 1 },
   resultName: { fontSize: 14, fontWeight: '600' },
   resultSub: { fontSize: 11, marginTop: 2 },
-  viewBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.1)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)', marginRight: 8 },
-  viewBtnText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(123,92,255,0.1)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)' },
+  viewBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(120, 88, 255,0.1)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.3)', marginRight: 8 },
+  viewBtnText: { color: '#7858FF', fontSize: 11, fontWeight: '600' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(120, 88, 255,0.1)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.3)' },
   addBtnSent: { borderColor: 'rgba(29,158,117,0.4)', backgroundColor: 'rgba(29,158,117,0.1)' },
-  addBtnText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  addBtnText: { color: '#7858FF', fontSize: 11, fontWeight: '600' },
   addBtnTextSent: { color: '#1D9E75' },
   divider: { height: 1, marginVertical: 16 },
   suggestedTitle: { fontSize: 11, fontWeight: '600', marginBottom: 12, letterSpacing: 0.5, textTransform: 'uppercase' },
@@ -1778,14 +1525,14 @@ const styles = StyleSheet.create({
   suggestedName: { fontSize: 13, flex: 1, marginLeft: 10 },
   suggestedProfileBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, marginRight: 8 },
   suggestedProfileText: { fontSize: 11, fontWeight: '500' },
-  suggestedAddBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(123,92,255,0.15)' },
+  suggestedAddBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(120, 88, 255,0.15)' },
   suggestedAddBtnSent: { backgroundColor: 'rgba(29,158,117,0.15)' },
 
   // Friend requests
   requestsSection: { paddingHorizontal: 20, marginBottom: 16 },
   requestsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   requestsTitle: { fontSize: 13, fontWeight: '600', marginLeft: 6, flex: 1 },
-  requestsBadge: { backgroundColor: '#7B5CFF', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  requestsBadge: { backgroundColor: '#7858FF', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   requestsBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   requestRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
   requestAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 10 },

@@ -49,6 +49,12 @@ export default {
   },
 
   feed: {
+    video: {
+      play: '{title} 재생',
+      stop: '동영상 정지',
+      openExternal: '열기',
+      embedFailed: '이 동영상은 여기서 재생할 수 없습니다. 열기를 눌러 시청하세요.',
+    },
     destEmail: "이메일",
     creatorLabel: "MangaRecs 크리에이터",
     addFriendsFirst: "추천을 보내려면 먼저 친구를 추가하세요.",
@@ -198,6 +204,9 @@ export default {
     searchHint: "사용자 이름으로 독자 찾기",
     suggested: "추천",
     noRankings: "아직 순위가 없습니다. 읽기 시작하면 리더보드에 표시됩니다!",
+    rankedByHours: '읽은 시간 상위 {count}명',
+    noFriendRankings: "아직 순위에 오른 친구가 없습니다. 독자를 더 추가해 비교해 보세요.",
+    leaderboardError: "리더보드를 불러오지 못했습니다.",
     mangarecsReaders: "MANGARECS 독자",
     addAFriend: '친구 추가',
     searchByUsername: '사용자명으로 MangaRecs 독자를 찾아보세요',
@@ -263,6 +272,13 @@ export default {
   },
 
   notifications: {
+
+
+
+
+
+
+
     emptySub: "친구 요청, 댓글, 메시지가 여기에 표시됩니다",
     allCaughtUp: '모두 확인했습니다',
     title: '알림',
@@ -349,12 +365,34 @@ export default {
       ambienceHint: '배경음은 뷰어 안에서 설정합니다. 작품을 열고 상단의 헤드폰 아이콘을 탭하세요.',
     },
     notifications: {
+      pushOff: "이 기기에서 푸시 알림이 설정되지 않았습니다. 지금은 이 설정이 전달되지 않습니다.",
+      pushBlocked: "기기 설정에서 MangaRecs 알림이 꺼져 있습니다.",
+      enablePush: "켜기",
+      pushBlockedTitle: "알림이 차단되었습니다",
+      pushBlockedBody: "MangaRecs에서 다시 요청할 수 없습니다. 기기 설정에서 알림을 켜주세요.",
+      openSettings: "설정 열기",
+      pushFailed: "알림을 설정하지 못했습니다. 연결을 확인한 후 다시 시도해 주세요.",
       section: '알림',
-      chapters: '새 회차',
+      groupSeries: '내 작품',
+      groupSocial: '소셜',
+      groupProgress: '진행 상황',
+      newChapter: '새 회차',
+      newChapterDesc: '팔로우 중인 작품에 새 회차가 올라올 때',
+      replies: '답글',
+      repliesDesc: '내 댓글에 답글이 달릴 때',
       comments: '댓글',
-      friends: '친구 요청',
-      messages: '다이렉트 메시지',
-      streak: '연속 기록 알림',
+      commentsDesc: '내가 올린 작품에 댓글이 달릴 때',
+      likes: '좋아요',
+      likesDesc: '내 게시물이나 댓글에 좋아요를 받을 때',
+      followers: '새 팔로워',
+      followersDesc: '누군가 나를 팔로우하기 시작할 때',
+      friendActivity: '친구 요청',
+      friendActivityDesc: '받은 요청과 내가 보낸 요청의 수락',
+      directMessages: '다이렉트 메시지',
+      directMessagesDesc: '친구가 메시지를 보낼 때',
+      badges: '배지 획득',
+      badgesDesc: '새 배지나 메달 등급을 얻을 때',
+      allOff: '모두 꺼져 있습니다 — MangaRecs가 알림을 보내지 않습니다.',
     },
     content: {
       section: '콘텐츠',
@@ -678,5 +716,49 @@ export default {
 
   intro: {
     tagline: "당신의 다음 이야기를 추천합니다.",
+  },
+
+  // Screen-reader labels for controls that show only an icon. A sighted user
+  // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
+  a11y: {
+    bioInput: "자기소개",
+    commentInput: "댓글 입력",
+    spoilerCommentInput: "스포일러 댓글 입력",
+    replyInput: "답글 입력",
+    seriesDescription: "시리즈 설명",
+    chapterNumber: "화 번호",
+    birthMonth: "태어난 월",
+    birthDay: "태어난 일",
+    birthYear: "태어난 연도",
+    showPassword: "비밀번호 표시",
+    hidePassword: "비밀번호 숨기기",
+    changePhoto: "프로필 사진 변경",
+    cancelEdit: "편집 취소",
+    sendComment: "댓글 보내기",
+    searchFriends: "친구 검색",
+    reportDiscussion: "이 토론 신고",
+    addFriend: "친구 추가",
+    sendGif: "GIF 보내기",
+    messageFriend: "메시지 보내기",
+    removePage: "페이지 삭제",
+    removeSite: "이 사이트 삭제",
+    rateStars: "5점 만점에 {n}점",
+    volumeDown: "음량 낮추기",
+    volumeUp: "음량 높이기",
+    dimmerDown: "화면 어둡기 낮추기",
+    dimmerUp: "화면 어둡기 높이기",
+    nightFilterDown: "야간 필터 낮추기",
+    nightFilterUp: "야간 필터 높이기",
+    autoScrollStart: "자동 스크롤 시작",
+    autoScrollPause: "자동 스크롤 일시정지",
+    switchToManga: "만화 모드로 전환",
+    switchToWebtoon: "웹툰 모드로 전환",
+    addBookmark: "이 화 북마크",
+    removeBookmark: "북마크 해제",
+    hideControls: "리더 컨트롤 숨기기",
+    showControls: "리더 컨트롤 표시",
+    closeZoom: "확대 보기 닫기",
+    mangaPage: "만화 페이지",
+    openSeries: "시리즈 열기",
   },
 };

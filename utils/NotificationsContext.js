@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo } 
 import { supabase } from '../supabase';
 import { syncBadgeCount } from './pushNotifications';
 import { reportError } from './crashReporting';
+import { NOTIF_PREF_DEFAULTS, isRowAllowed, readStoredPrefs, subscribePrefs } from './notificationPrefs';
 
 const NotificationsContext = createContext(null);
 
@@ -79,12 +80,14 @@ const NOTIF_PAGE_SIZE = 40;
 // Raw rows in, display rows out. Kept separate from the fetch so a second page
 // can be appended and the whole set re-derived: both the chapter-update dedupe
 // and the unread-first sort have to run across everything loaded, not per page.
-function buildList(rows) {
-  // Badge unlocks are hidden until the badge system rework ships.
+function buildList(rows, prefs) {
+  // Rows the user has muted in Settings never reach the list. Badge unlocks
+  // used to be hard-filtered here regardless of preference; they are now
+  // governed by the `badges` toggle like everything else.
   // buildNotification returns null for rows with nothing meaningful to say —
   // those are dropped rather than shown as filler.
   const all = rows
-    .filter((row) => row.type !== 'badge')
+    .filter((row) => isRowAllowed(row, prefs))
     .map(buildNotification)
     .filter(Boolean);
 
@@ -111,9 +114,19 @@ export function NotificationsProvider({ children }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [prefs, setPrefs] = useState(NOTIF_PREF_DEFAULTS);
+
+  // Read once on mount, then follow Settings live so muting a category empties
+  // it from the list (and the unread badge) immediately.
+  useEffect(() => {
+    let alive = true;
+    readStoredPrefs().then((p) => { if (alive) setPrefs(p); });
+    const unsubscribe = subscribePrefs(setPrefs);
+    return () => { alive = false; unsubscribe(); };
+  }, []);
 
   const items = useMemo(() => {
-    const built = buildList(rows);
+    const built = buildList(rows, prefs);
     if (built.length === 0) {
       return [{
         id: 'welcome', type: 'system', user: 'MangaRecs', avatar: 'M', isMangaRec: true,
@@ -123,7 +136,7 @@ export function NotificationsProvider({ children }) {
       }];
     }
     return built;
-  }, [rows]);
+  }, [rows, prefs]);
 
   const unreadCount = items.filter(n => !n.read).length;
 

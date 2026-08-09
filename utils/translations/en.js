@@ -52,6 +52,12 @@ export default {
   },
 
   feed: {
+    video: {
+      play: 'Play {title}',
+      stop: 'Stop video',
+      openExternal: 'Open',
+      embedFailed: "This video can't play here — tap Open to watch it.",
+    },
     destEmail: "Email",
     creatorLabel: "MangaRecs Creator",
     addFriendsFirst: "Add friends first to send recommendations.",
@@ -201,6 +207,9 @@ export default {
     searchHint: "Search by username to find MangaRecs readers",
     suggested: "Suggested",
     noRankings: "No rankings yet. Start reading to appear on the leaderboard!",
+    rankedByHours: 'Top {count} by hours read',
+    noFriendRankings: "None of your friends are on the board yet. Add more readers to see how you compare.",
+    leaderboardError: "Couldn't load the leaderboard.",
     mangarecsReaders: "MANGARECS READERS",
     addAFriend: 'Add a Friend',
     searchByUsername: 'Search by username to find MangaRecs readers',
@@ -266,6 +275,13 @@ export default {
   },
 
   notifications: {
+
+
+
+
+
+
+
     emptySub: "Friend requests, comments, and messages will show here",
     allCaughtUp: 'All caught up',
     title: 'Notifications',
@@ -352,12 +368,34 @@ export default {
       ambienceHint: 'Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.',
     },
     notifications: {
+      pushOff: "Push notifications are not set up on this device — these switches will not reach you yet.",
+      pushBlocked: "Notifications are turned off for MangaRecs in your device settings.",
+      enablePush: "Enable",
+      pushBlockedTitle: "Notifications are blocked",
+      pushBlockedBody: "MangaRecs cannot ask again — notifications have to be turned back on in your device settings.",
+      openSettings: "Open Settings",
+      pushFailed: "Couldn't set up notifications. Check your connection and try again.",
       section: 'Notifications',
-      chapters: 'New chapters',
+      groupSeries: 'Your series',
+      groupSocial: 'Social',
+      groupProgress: 'Progress',
+      newChapter: 'New chapters',
+      newChapterDesc: 'A series you follow posts a new chapter',
+      replies: 'Replies',
+      repliesDesc: 'Someone replies to your comment',
       comments: 'Comments',
-      friends: 'Friend requests',
-      messages: 'Direct messages',
-      streak: 'Streak reminders',
+      commentsDesc: 'Someone comments on a series you posted',
+      likes: 'Likes',
+      likesDesc: 'Someone likes your post or comment',
+      followers: 'New followers',
+      followersDesc: 'Someone starts following you',
+      friendActivity: 'Friend requests',
+      friendActivityDesc: 'Requests you receive, and yours being accepted',
+      directMessages: 'Direct messages',
+      directMessagesDesc: 'A friend sends you a message',
+      badges: 'Badge unlocks',
+      badgesDesc: 'You earn a new badge or medal tier',
+      allOff: "Everything is off — MangaRecs won't notify you at all.",
     },
     content: {
       section: 'Content',
@@ -641,5 +679,49 @@ export default {
 
   intro: {
     tagline: "Your next story, recommended.",
+  },
+
+  // Screen-reader labels for controls that show only an icon. A sighted user
+  // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
+  a11y: {
+    bioInput: "Your bio",
+    commentInput: "Write a comment",
+    spoilerCommentInput: "Write a spoiler comment",
+    replyInput: "Write a reply",
+    seriesDescription: "Series description",
+    chapterNumber: "Chapter number",
+    birthMonth: "Birth month",
+    birthDay: "Birth day",
+    birthYear: "Birth year",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    changePhoto: "Change profile photo",
+    cancelEdit: "Cancel editing",
+    sendComment: "Send comment",
+    searchFriends: "Search friends",
+    reportDiscussion: "Report this discussion",
+    addFriend: "Add friend",
+    sendGif: "Send GIF",
+    messageFriend: "Send a message",
+    removePage: "Remove page",
+    removeSite: "Remove this site",
+    rateStars: "Rate {n} out of 5",
+    volumeDown: "Lower volume",
+    volumeUp: "Raise volume",
+    dimmerDown: "Less screen dimming",
+    dimmerUp: "More screen dimming",
+    nightFilterDown: "Less night filter",
+    nightFilterUp: "More night filter",
+    autoScrollStart: "Start auto-scroll",
+    autoScrollPause: "Pause auto-scroll",
+    switchToManga: "Switch to manga mode",
+    switchToWebtoon: "Switch to webtoon mode",
+    addBookmark: "Bookmark this chapter",
+    removeBookmark: "Remove bookmark",
+    hideControls: "Hide reader controls",
+    showControls: "Show reader controls",
+    closeZoom: "Close zoomed page",
+    mangaPage: "Manga page",
+    openSeries: "Open series",
   },
 };

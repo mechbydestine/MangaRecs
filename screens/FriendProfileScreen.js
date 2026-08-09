@@ -30,6 +30,7 @@ import { Bone, RowSkeleton } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
 import { PROFILE_THEMES } from '../utils/profileThemes';
 import { HIT_SLOP } from '../utils/tokens';
+import { sendFollowPush } from '../utils/pushNotifications';
 
 const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
 
@@ -258,6 +259,7 @@ export default function FriendProfileScreen({ route }) {
         setIFollow(false);
       } else {
         supabase.from('notifications').insert({ user_id: id, actor_id: myId, type: 'follow', data: {} }).then(() => {});
+        sendFollowPush(id).catch(() => {});
         loadFollowers();
       }
     }
@@ -517,7 +519,7 @@ export default function FriendProfileScreen({ route }) {
                       friendAvatarUrl: profile.avatar_url || null,
                     })}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    activeOpacity={0.6}>
+                    activeOpacity={0.6} accessibilityRole="button" accessibilityLabel={t('a11y.messageFriend')}>
                     <Ionicons name="chatbubble-outline" size={18} color={colors.primary} />
                   </TouchableOpacity>
                 )}
@@ -625,7 +627,7 @@ export default function FriendProfileScreen({ route }) {
             {/* Faves panel */}
             <View style={styles.favesPanel}>
               {favorites.length === 0 ? (
-                <View style={[styles.favesEmptyCard, { borderColor: 'rgba(123,92,255,0.25)' }]}>
+                <View style={[styles.favesEmptyCard, { borderColor: 'rgba(120, 88, 255,0.25)' }]}>
                   <Text style={styles.favesEmptyText}>{t('friend.noFaves')}</Text>
                 </View>
               ) : (
@@ -777,7 +779,7 @@ export default function FriendProfileScreen({ route }) {
                 <TouchableOpacity
                   style={styles.badgeDetailOverlay}
                   activeOpacity={1}
-                  onPress={() => setDetailBadge(null)}>
+                  onPress={() => setDetailBadge(null)} accessible={false}>
                   <BadgeDetail
                     badge={detailBadge}
                     earned={earnedIds.has(detailBadge.id)}
@@ -794,7 +796,7 @@ export default function FriendProfileScreen({ route }) {
 
       {/* Badge detail popup — description + rarity (no pin button on friends) */}
       <Modal visible={!!detailBadge && !showAllBadges} animationType="fade" transparent onRequestClose={() => setDetailBadge(null)}>
-        <TouchableOpacity style={styles.badgeDetailOverlay} activeOpacity={1} onPress={() => setDetailBadge(null)}>
+        <TouchableOpacity style={styles.badgeDetailOverlay} activeOpacity={1} onPress={() => setDetailBadge(null)} accessible={false}>
           <BadgeDetail
             badge={detailBadge}
             earned={detailBadge ? earnedIds.has(detailBadge.id) : false}
@@ -816,7 +818,7 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundText: { fontSize: 14, marginBottom: 12 },
-  notFoundLink: { color: '#7B5CFF', fontSize: 14, fontWeight: '600' },
+  notFoundLink: { color: '#7858FF', fontSize: 14, fontWeight: '600' },
 
   // Floating header bar
   floatingBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10 },
@@ -826,8 +828,8 @@ const styles = StyleSheet.create({
   onlineBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(29,158,117,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1D9E75', marginRight: 4 },
   onlineText: { color: '#1D9E75', fontSize: 10, fontWeight: '600' },
-  msgHeaderBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(123,92,255,0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
-  msgHeaderText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600' },
+  msgHeaderBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(120, 88, 255,0.15)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
+  msgHeaderText: { color: '#7858FF', fontSize: 12, fontWeight: '600' },
 
   // Banner card — no overflow:hidden so negative-margin avatar is never clipped
   bannerCard: { marginHorizontal: 20, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
@@ -858,8 +860,8 @@ const styles = StyleSheet.create({
   actionIconBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(123,92,255,0.12)',
-    borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)',
+    backgroundColor: 'rgba(120, 88, 255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.25)',
   },
   actionIconBtnActive: { backgroundColor: 'rgba(29,158,117,0.12)', borderColor: 'rgba(29,158,117,0.35)' },
   actionIconBtnBlocked: { backgroundColor: 'rgba(229,83,75,0.14)', borderColor: 'rgba(229,83,75,0.4)' },
@@ -871,8 +873,8 @@ const styles = StyleSheet.create({
   streakSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   streakTitle: { fontSize: 16, fontWeight: '600' },
   streakBadges: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
-  todayBadgeText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
+  todayBadgeText: { color: '#7858FF', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   fireBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.12)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   fireBadgeText: { color: '#FF9500', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
@@ -907,7 +909,7 @@ const styles = StyleSheet.create({
   favesPopupCover: { width: '100%', aspectRatio: 0.7, borderRadius: 10 },
   favesPopupName: { fontSize: 10, fontWeight: '600', marginTop: 5, textAlign: 'center' },
   favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center' },
+  favesEmptyText: { color: 'rgba(120, 88, 255,0.5)', fontSize: 10, textAlign: 'center' },
   favesPanelFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10 },
   favesCountText: { fontSize: 11, fontWeight: '500' },
 
@@ -920,7 +922,7 @@ const styles = StyleSheet.create({
   badgeCard: { width: '22%', margin: '1.5%', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, alignItems: 'center', minHeight: 80, backgroundColor: 'rgba(255,255,255,0.04)' },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2, marginTop: 4 },
   seeAllBtn: { paddingVertical: 8, alignItems: 'center' },
-  seeAllText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500' },
+  seeAllText: { color: '#7858FF', fontSize: 11, fontWeight: '500' },
 
   // Badge modal — mirrors ProfileScreen's badge modal exactly
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

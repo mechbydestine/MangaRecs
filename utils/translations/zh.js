@@ -50,6 +50,12 @@ export default {
   },
 
   feed: {
+    video: {
+      play: '播放 {title}',
+      stop: '停止播放',
+      openExternal: '打开',
+      embedFailed: '该视频无法在此播放，点击打开观看。',
+    },
     destEmail: "电子邮件",
     creatorLabel: "MangaRecs 创作者",
     addFriendsFirst: "请先添加好友才能发送推荐。",
@@ -199,6 +205,9 @@ export default {
     searchHint: "按用户名搜索读者",
     suggested: "推荐",
     noRankings: "暂无排名。开始阅读即可上榜！",
+    rankedByHours: '阅读时长前 {count} 名',
+    noFriendRankings: "还没有好友上榜。添加更多读者，看看你们的差距。",
+    leaderboardError: "无法加载排行榜。",
     mangarecsReaders: "MANGARECS 读者",
     addAFriend: '添加好友',
     searchByUsername: '按用户名搜索，找到其他 MangaRecs 读者',
@@ -264,6 +273,13 @@ export default {
   },
 
   notifications: {
+
+
+
+
+
+
+
     emptySub: "好友请求、评论和消息将显示在这里",
     allCaughtUp: '全部看完了',
     title: '通知',
@@ -350,12 +366,34 @@ export default {
       ambienceHint: '环境音在阅读器内设置。打开任意作品，点击顶部的耳机图标。',
     },
     notifications: {
+      pushOff: "此设备尚未设置推送通知，这些开关目前不会生效。",
+      pushBlocked: "你已在设备设置中关闭了 MangaRecs 的通知。",
+      enablePush: "开启",
+      pushBlockedTitle: "通知已被阻止",
+      pushBlockedBody: "MangaRecs 无法再次请求，请在设备设置中重新开启通知。",
+      openSettings: "打开设置",
+      pushFailed: "无法设置通知。请检查网络后重试。",
       section: '通知',
-      chapters: '作品更新',
+      groupSeries: '我的作品',
+      groupSocial: '社交',
+      groupProgress: '进度',
+      newChapter: '作品更新',
+      newChapterDesc: '你关注的作品发布新章节时',
+      replies: '回复',
+      repliesDesc: '有人回复你的评论时',
       comments: '评论',
-      friends: '好友申请',
-      messages: '私信',
-      streak: '连续阅读提醒',
+      commentsDesc: '有人评论你发布的作品时',
+      likes: '点赞',
+      likesDesc: '有人给你的帖子或评论点赞时',
+      followers: '新粉丝',
+      followersDesc: '有人开始关注你时',
+      friendActivity: '好友申请',
+      friendActivityDesc: '收到的申请，以及你的申请被接受时',
+      directMessages: '私信',
+      directMessagesDesc: '好友给你发消息时',
+      badges: '徽章解锁',
+      badgesDesc: '获得新徽章或奖章等级时',
+      allOff: '全部已关闭 — MangaRecs 不会向你发送任何通知。',
     },
     content: {
       section: '内容',
@@ -679,5 +717,49 @@ export default {
 
   intro: {
     tagline: "推荐你的下一个故事。",
+  },
+
+  // Screen-reader labels for controls that show only an icon. A sighted user
+  // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
+  a11y: {
+    bioInput: "个人简介",
+    commentInput: "写评论",
+    spoilerCommentInput: "写剧透评论",
+    replyInput: "写回复",
+    seriesDescription: "系列简介",
+    chapterNumber: "章节号",
+    birthMonth: "出生月份",
+    birthDay: "出生日期",
+    birthYear: "出生年份",
+    showPassword: "显示密码",
+    hidePassword: "隐藏密码",
+    changePhoto: "更换头像",
+    cancelEdit: "取消编辑",
+    sendComment: "发送评论",
+    searchFriends: "搜索好友",
+    reportDiscussion: "举报此讨论",
+    addFriend: "添加好友",
+    sendGif: "发送 GIF",
+    messageFriend: "发送消息",
+    removePage: "删除此页",
+    removeSite: "移除此站点",
+    rateStars: "评分 {n} / 5",
+    volumeDown: "降低音量",
+    volumeUp: "提高音量",
+    dimmerDown: "减弱屏幕变暗",
+    dimmerUp: "增强屏幕变暗",
+    nightFilterDown: "减弱夜间滤镜",
+    nightFilterUp: "增强夜间滤镜",
+    autoScrollStart: "开始自动滚动",
+    autoScrollPause: "暂停自动滚动",
+    switchToManga: "切换到漫画模式",
+    switchToWebtoon: "切换到条漫模式",
+    addBookmark: "收藏此话",
+    removeBookmark: "取消收藏",
+    hideControls: "隐藏阅读控件",
+    showControls: "显示阅读控件",
+    closeZoom: "关闭放大视图",
+    mangaPage: "漫画页面",
+    openSeries: "打开系列",
   },
 };

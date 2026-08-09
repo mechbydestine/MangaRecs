@@ -21,6 +21,8 @@ import ShareCard from '../components/ShareCard';
 import { supabase } from '../supabase';
 import { syncReadOpen, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
+import { loadVideoPool, interleaveVideos } from '../utils/shortVideos';
+import ShortVideoCard from '../components/ShortVideoCard';
 import { requireAccount } from '../utils/guestGate';
 import { useNotifications } from '../utils/NotificationsContext';
 
@@ -31,6 +33,7 @@ import { showAppToast } from '../utils/appToast';
 import { light, medium, selection } from '../utils/haptics';
 import { startCoverTransition } from '../utils/coverTransition';
 import { HIT_SLOP } from '../utils/tokens';
+import { useReducedMotion, useAnnounceOnOpen } from '../utils/a11y';
 
 // Plain FlatList can't take a native-driven onScroll — RN throws
 // "must be wrapped with Animated.createAnimatedComponent" without this.
@@ -366,9 +369,16 @@ const BOOKMARKS = [
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Abbreviation starts at 10K, not 1K. The seeded pool has counts in the
+// thousands, and `(7511/1000).toFixed(1)` and `(7512/1000).toFixed(1)` are
+// both "7.5K" — so liking something changed the number by one and the label
+// not at all, which reads as a broken button. Below 10K the exact figure is
+// shown with separators so a tap always moves something visible.
 function formatCount(n) {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
-  return String(n);
+  const v = Math.max(0, Math.round(Number(n) || 0));
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 10_000) return `${(v / 1000).toFixed(1)}K`;
+  return v.toLocaleString();
 }
 function notifIconName(type) {
   if (type === 'friend_request')  return 'person-add';
@@ -389,7 +399,7 @@ function notifIconColor(type, colors) {
   return '#E8527A';
 }
 function notifIconBg(type) {
-  if (type === 'friend_request')  return 'rgba(123,92,255,0.22)';
+  if (type === 'friend_request')  return 'rgba(120, 88, 255,0.22)';
   if (type === 'friend_accepted') return 'rgba(29,158,117,0.22)';
   if (type === 'comment')         return 'rgba(29,158,117,0.22)';
   if (type === 'badge')           return 'rgba(245,158,11,0.22)';
@@ -403,7 +413,11 @@ function SkeletonFeed() {
   const { colors } = useTheme();
   const { coverW, coverH } = useFeedMetrics();
   const pulse = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
+    // Full-screen skeleton — the largest single source of ambient motion in
+    // the app. Held mid-way so it still reads as a placeholder.
+    if (reduced) { pulse.setValue(0.5); return undefined; }
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 850, useNativeDriver: true }),
@@ -411,7 +425,7 @@ function SkeletonFeed() {
       ])
     ).start();
     return () => pulse.stopAnimation();
-  }, []);
+  }, [reduced, pulse]);
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.65] });
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24 }}>
@@ -959,6 +973,9 @@ export default function FeedScreen() {
   const metrics = useFeedMetrics();
   const route = useRoute();
   const searchCoachTarget = useCoachmarkTarget('header-search');
+  // Video cards lay their own caption out, so they need the same real tab-bar
+  // height FeedCard measures rather than a hardcoded guess.
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [feed, setFeed]           = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -983,6 +1000,9 @@ export default function FeedScreen() {
   const [searchOpen, setSearchOpen]   = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  useAnnounceOnOpen(commentsOpen, t('feed.comments'));
+  useAnnounceOnOpen(searchOpen, t('common.search'));
+  useAnnounceOnOpen(shareSheetOpen, t('feed.sendTo'));
   // sms:/mailto: are default-queryable system schemes on both platforms (no
   // extra entitlement needed), so canOpenURL reliably reflects real device
   // capability here — unlike third-party app schemes (e.g. whatsapp://),
@@ -1024,10 +1044,15 @@ export default function FeedScreen() {
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })
   ).current;
   const lastSnapIndexRef = useRef(0);
+  // Which card the feed is settled on. Only video cards read it — FeedCard's
+  // memo comparator ignores every prop that changes here, so manga cards do
+  // not re-render when this moves.
+  const [activeIndex, setActiveIndex] = useState(0);
   function onFeedMomentumEnd(e) {
     const idx = Math.round(e.nativeEvent.contentOffset.y / metrics.height);
     if (idx !== lastSnapIndexRef.current) {
       lastSnapIndexRef.current = idx;
+      setActiveIndex(idx);
       selection();
     }
   }
@@ -1148,7 +1173,10 @@ export default function FeedScreen() {
       }
 
       // Primary: sectioned feed — Hot Picks → Trending → Popular → algo
-      await refillQueue();
+      // The video pool loads alongside the queue rather than after it, so the
+      // first batch can already carry video instead of only getting it once
+      // the user scrolls far enough to trigger loadMore.
+      await Promise.all([refillQueue(), loadVideoPool()]);
       let firstBatch = buildSectionedFeed(savedIds, likedSet);
 
       // Prepend creator series (max 3, before hot picks)
@@ -1185,6 +1213,9 @@ export default function FeedScreen() {
       } catch (_) {}
 
       if (cancelled) return;
+      // Videos go in last, after the creator prepend, so the cadence counts
+      // real feed positions rather than positions that later shift.
+      firstBatch = interleaveVideos(firstBatch, 0);
       setFeed(firstBatch);
       setInitialLoading(false);
       syncLiveCounts(firstBatch);
@@ -1212,7 +1243,9 @@ export default function FeedScreen() {
   // the feed, so counts are live without needing a tap. Realtime keeps them
   // fresh afterwards.
   async function syncLiveCounts(items) {
-    const ids = [...new Set(items.filter((i) => i && !i.isCreatorUpload).map((i) => i.id))];
+    // Video cards carry no manga_pool row — their ids would just be 120 misses
+    // on every batch.
+    const ids = [...new Set(items.filter((i) => i && !i.isCreatorUpload && i.kind !== 'video').map((i) => i.id))];
     if (ids.length === 0) return;
     const { data, error } = await supabase
       .from('manga_pool')
@@ -1718,8 +1751,13 @@ export default function FeedScreen() {
     const batch = dequeueItems(BATCH_SIZE, savedIds).map((item) => ({
       ...item, liked: likedIds.has(item.id),
     }));
+    // Offset by what's already above so the one-in-five cadence carries across
+    // pages instead of restarting at each seam. Computed out here, not inside
+    // the updater below: interleaveVideos advances the pool's rotation cursor,
+    // and a state updater has to be pure — React is free to call it twice.
+    const withVideos = interleaveVideos(batch, feed.length);
     setFeed((prev) => {
-      const next = [...prev, ...batch];
+      const next = [...prev, ...withVideos];
       return next.length > MAX_FEED_LENGTH ? next.slice(TRIM_BATCH) : next;
     });
     syncLiveCounts(batch);
@@ -1733,9 +1771,11 @@ export default function FeedScreen() {
     // Clear seen IDs so the refresh pulls a fresh feed
     _seenIds.clear();
     _feedQueue = [];
-    await refillQueue();
+    // Retries the video pool too when a previous load failed (table missing,
+    // network blip) — otherwise pulling to refresh brings back manga only.
+    await Promise.all([refillQueue(), loadVideoPool()]);
     const savedIds = new Set(savedMap.keys());
-    const batch = buildSectionedFeed(savedIds, likedIds);
+    const batch = interleaveVideos(buildSectionedFeed(savedIds, likedIds), 0);
     setFeed(batch);
     syncLiveCounts(batch);
     setRefreshing(false);
@@ -1762,7 +1802,7 @@ export default function FeedScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <StarLogo ref={logoRef} size={38} />
         <View style={styles.headerRight}>
-          <TouchableOpacity ref={searchCoachTarget} style={styles.headerBtn} onPress={() => setSearchOpen(true)}>
+          <TouchableOpacity ref={searchCoachTarget} style={styles.headerBtn} onPress={() => setSearchOpen(true)} accessibilityRole="button" accessibilityLabel={t('common.search')}>
             <Ionicons name="search-outline" size={24} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
@@ -1773,7 +1813,12 @@ export default function FeedScreen() {
             <Ionicons name="notifications-outline" size={24} color="#fff" />
             {unreadCount > 0 && (
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount}</Text>
+                {/* The badge is a hard 16x16 circle, so this is one of the few
+                    places where unbounded scaling genuinely breaks: at 200% the
+                    digits spill outside the dot. The count is also spoken in
+                    the button's accessibilityLabel above, so the number here is
+                    a glance cue and can stay bounded. */}
+                <Text style={styles.badgeText} maxFontSizeMultiplier={1.3}>{unreadCount}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -1785,16 +1830,25 @@ export default function FeedScreen() {
         data={feed}
         keyExtractor={(item) => item.feedKey}
         renderItem={({ item, index }) => (
-          <FeedCard
-            item={item}
-            index={index}
-            scrollY={scrollY}
-            onLike={handleLike}
-            onBookmark={handleBookmark}
-            onComment={handleCommentOpen}
-            onShare={handleShareOpen}
-            onOpen={handleOpenReader}
-          />
+          item.kind === 'video' ? (
+            <ShortVideoCard
+              item={item}
+              height={metrics.height}
+              isActive={index === activeIndex}
+              tabBarHeight={tabBarHeight}
+            />
+          ) : (
+            <FeedCard
+              item={item}
+              index={index}
+              scrollY={scrollY}
+              onLike={handleLike}
+              onBookmark={handleBookmark}
+              onComment={handleCommentOpen}
+              onShare={handleShareOpen}
+              onOpen={handleOpenReader}
+            />
+          )
         )}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -1839,7 +1893,7 @@ export default function FeedScreen() {
         <KeyboardAvoidingView
           style={styles.commentsWrap}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCommentsOpen(false)} />
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCommentsOpen(false)}  accessibilityElementsHidden importantForAccessibility="no"/>
 
           <View style={[styles.commentsSheet, { height: metrics.commentsH, backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -1865,7 +1919,7 @@ export default function FeedScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity hitSlop={HIT_SLOP}
                   style={[styles.commentsCloseBtn, { backgroundColor: colors.inputBg }]}
-                  onPress={() => setCommentsOpen(false)}>
+                  onPress={() => setCommentsOpen(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                   <Ionicons name="close" size={14} color={colors.muted} />
                 </TouchableOpacity>
               </View>
@@ -1923,7 +1977,8 @@ export default function FeedScreen() {
                 placeholderTextColor={colors.muted}
                 multiline
                 maxLength={300}
-              />
+              
+                accessibilityLabel={commentSpoiler ? t('a11y.spoilerCommentInput') : t('a11y.commentInput')}/>
               <TouchableOpacity hitSlop={HIT_SLOP}
                 style={[
                   styles.commentSpoilerBtn,
@@ -1938,7 +1993,7 @@ export default function FeedScreen() {
               <TouchableOpacity hitSlop={HIT_SLOP}
                 style={[styles.commentSendBtn, { opacity: commentInput.trim() ? 1 : 0.35 }]}
                 onPress={handleSendComment}
-                disabled={!commentInput.trim()}>
+                disabled={!commentInput.trim()} accessibilityRole="button" accessibilityLabel={t('a11y.sendComment')}>
                 <Ionicons name="send" size={15} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -1957,14 +2012,14 @@ export default function FeedScreen() {
               <TouchableOpacity hitSlop={HIT_SLOP}
                 style={feedSendStyles.headerIconBtn}
                 onPress={() => setFriendSearchOpen((o) => !o)}
-                activeOpacity={0.7}>
+                activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('a11y.searchFriends')}>
                 <Ionicons name="search" size={20} color={colors.text} />
               </TouchableOpacity>
               <Text style={[feedSendStyles.headerTitle, { color: colors.text }]}>{t('feed.sendTo')}</Text>
               <TouchableOpacity hitSlop={HIT_SLOP}
                 style={feedSendStyles.headerIconBtn}
                 onPress={() => setShareSheetOpen(false)}
-                activeOpacity={0.7}>
+                activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -1981,7 +2036,8 @@ export default function FeedScreen() {
                   value={friendSearchQuery}
                   onChangeText={setFriendSearchQuery}
                   autoFocus
-                />
+                
+                  accessibilityLabel={t('placeholder.searchFriends')}/>
               </View>
             ) : null}
 
@@ -2122,12 +2178,12 @@ export default function FeedScreen() {
           style={[StyleSheet.absoluteFill, { top: metrics.notifH }]}
           activeOpacity={1}
           onPress={closeNotif}
-        />
+         accessibilityElementsHidden importantForAccessibility="no"/>
         <Animated.View style={[styles.notifPanel, { height: metrics.notifH, transform: [{ translateY: notifY }] }]}>
           <View style={[styles.notifInner, { paddingTop: insets.top + 14 }]}>
             <View style={styles.notifHeader}>
               <Text style={styles.notifHeaderTitle}>{t('notifications.title')}</Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} style={styles.notifCloseBtn} onPress={closeNotif}>
+              <TouchableOpacity hitSlop={HIT_SLOP} style={styles.notifCloseBtn} onPress={closeNotif} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={16} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -2215,7 +2271,8 @@ export default function FeedScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={[styles.searchField, { color: colors.text }]}
-              />
+              
+                accessibilityLabel={t('placeholder.enterUrl')}/>
               {siteInput ? (
                 <TouchableOpacity onPress={handleGo} style={styles.searchGoBtn}>
                   <Text style={styles.searchGoBtnText}>Go</Text>
@@ -2253,7 +2310,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
-  logo: { color: '#7B5CFF', fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
+  logo: { color: '#7858FF', fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
   headerRight: { flexDirection: 'row' },
   headerBtn: { position: 'relative', marginLeft: 16 },
   badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', borderRadius: 8, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
@@ -2281,7 +2338,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(160,156,224,0.65)',
-    shadowColor: '#7B5CFF',
+    shadowColor: '#7858FF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.85,
     shadowRadius: 22,
@@ -2293,7 +2350,7 @@ const styles = StyleSheet.create({
   nsfwGateText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   coverFallbackText: { fontSize: 72, fontWeight: '800', color: 'rgba(255,255,255,0.25)' },
   feedComingSoonOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', paddingVertical: 10, borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
-  feedComingSoonChip: { backgroundColor: 'rgba(123,92,255,0.5)', borderWidth: 1, borderColor: 'rgba(160,156,224,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 4 },
+  feedComingSoonChip: { backgroundColor: 'rgba(120, 88, 255,0.5)', borderWidth: 1, borderColor: 'rgba(160,156,224,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 4 },
   feedComingSoonLabel: { color: '#A09CE0', fontSize: 9, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' },
   feedComingSoonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   sideActions: { position: 'absolute', right: 14, bottom: 110, alignItems: 'center', justifyContent: 'space-between', height: 220 },
@@ -2304,12 +2361,12 @@ const styles = StyleSheet.create({
   sectionBadgeHot:      { backgroundColor: 'rgba(255, 86, 24, 0.27)', borderColor: 'rgba(255, 81, 1, 0.57)' },
   sectionBadgeTrending: { backgroundColor: 'rgba(46, 31, 212, 0.49)',  borderColor: 'rgba(10, 0, 104, 0.81)' },
   sectionBadgePopular:  { backgroundColor: 'rgba(255, 217, 0, 0.25)',  borderColor: 'rgba(255, 217, 0, 0.55)' },
-  sectionBadgeCreator:  { backgroundColor: 'rgba(123,92,255,0.22)',  borderColor: 'rgba(160,156,224,0.45)' },
+  sectionBadgeCreator:  { backgroundColor: 'rgba(120, 88, 255,0.22)',  borderColor: 'rgba(160,156,224,0.45)' },
   sectionBadgeIcon: { fontSize: 11 },
   sectionBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
   genres: { flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' },
   genreTag: {
-    backgroundColor: 'rgba(123,92,255,0.42)',
+    backgroundColor: 'rgba(120, 88, 255,0.42)',
     paddingHorizontal: 11,
     paddingVertical: 4,
     borderRadius: 20,
@@ -2327,7 +2384,7 @@ const styles = StyleSheet.create({
 
   // Save toast
   loadingMore: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D12' },
-  loadingMoreDot: { color: '#7B5CFF', fontSize: 32, letterSpacing: 8 },
+  loadingMoreDot: { color: '#7858FF', fontSize: 32, letterSpacing: 8 },
   saveToast: { position: 'absolute', bottom: 100, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,28,50,0.92)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(160,156,224,0.35)' },
   saveToastText: { color: '#A09CE0', fontSize: 13, fontWeight: '600', marginLeft: 7, paddingRight: 2 },
 
@@ -2344,7 +2401,7 @@ const styles = StyleSheet.create({
 
   // Comment row (TikTok layout)
   commentRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14, alignItems: 'flex-start' },
-  commentAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(123,92,255,0.45)', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0, overflow: 'hidden' },
+  commentAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(120, 88, 255,0.45)', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0, overflow: 'hidden' },
   commentAvatarText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   commentContent: { flex: 1 },
   commentMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginBottom: 5 },
@@ -2358,7 +2415,7 @@ const styles = StyleSheet.create({
   commentFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 16 },
   replyBtn: {},
   replyBtnText: { fontSize: 12, fontWeight: '600' },
-  repliesBtnText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600' },
+  repliesBtnText: { color: '#7858FF', fontSize: 12, fontWeight: '600' },
   commentLikeCol: { paddingTop: 2, paddingLeft: 8, alignItems: 'center', flexShrink: 0 },
   commentLikeBtn: { alignItems: 'center' },
   commentLikeCount: { fontSize: 11, fontWeight: '600', marginTop: 3 },
@@ -2366,7 +2423,7 @@ const styles = StyleSheet.create({
   // Reply thread
   replyThread: { marginTop: 8, paddingLeft: 4 },
   replyItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
-  replyAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(123,92,255,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0, overflow: 'hidden' },
+  replyAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(120, 88, 255,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 8, flexShrink: 0, overflow: 'hidden' },
   replyAvatarText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   replyName: { fontSize: 12, fontWeight: '700' },
   replyTime: { fontSize: 10 },
@@ -2374,11 +2431,11 @@ const styles = StyleSheet.create({
 
   // Comment input
   commentInputBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 10, borderTopWidth: 1 },
-  commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(123,92,255,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' },
+  commentInputAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(120, 88, 255,0.45)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' },
   commentInput: { flex: 1, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 80 },
   commentSpoilerBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   commentSpoilerBtnActive: { backgroundColor: 'rgba(255,59,48,0.16)' },
-  commentSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  commentSendBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#7858FF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 
   // Notification panel
   notifPanel: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: 'hidden' },
@@ -2388,12 +2445,12 @@ const styles = StyleSheet.create({
   notifCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(155,154,163,0.16)', alignItems: 'center', justifyContent: 'center' },
   notifViewAll: { color: '#9B9AA3', fontSize: 12, fontWeight: '500' },
   notifFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)' },
-  notifClearBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(123,92,255,0.14)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(123,92,255,0.35)' },
+  notifClearBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(120, 88, 255,0.14)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.35)' },
   notifClearBtnText: { color: '#A09CE0', fontSize: 12, fontWeight: '600' },
   notifRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 13, marginHorizontal: 8, borderRadius: 12, marginBottom: 2 },
-  notifRowUnread: { backgroundColor: 'rgba(123,92,255,0.08)' },
+  notifRowUnread: { backgroundColor: 'rgba(120, 88, 255,0.08)' },
   notifAvatarWrap: { position: 'relative', marginRight: 12, flexShrink: 0 },
-  notifAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(123,92,255,0.55)', alignItems: 'center', justifyContent: 'center' },
+  notifAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(120, 88, 255,0.55)', alignItems: 'center', justifyContent: 'center' },
   notifAvatarTxt: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   notifTypeBadge: { position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   notifContent: { flex: 1 },
@@ -2401,20 +2458,20 @@ const styles = StyleSheet.create({
   notifUser: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   notifAction: { color: '#9B9AA3', fontSize: 13 },
   notifMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 7, padding: 9, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)' },
-  notifMetaCover: { width: 28, height: 36, borderRadius: 5, marginRight: 9, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(123,92,255,0.3)' },
+  notifMetaCover: { width: 28, height: 36, borderRadius: 5, marginRight: 9, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(120, 88, 255,0.3)' },
   notifMetaTitle: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
   notifMetaGenre: { color: '#9B9AA3', fontSize: 10, marginTop: 2 },
   notifTime: { color: '#9B9AA3', fontSize: 10, marginTop: 5 },
-  notifAcceptBtn: { alignSelf: 'flex-start', marginTop: 7, backgroundColor: 'rgba(123,92,255,0.2)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.45)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5 },
+  notifAcceptBtn: { alignSelf: 'flex-start', marginTop: 7, backgroundColor: 'rgba(120, 88, 255,0.2)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.45)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5 },
   notifAcceptBtnText: { color: '#A09CE0', fontSize: 11, fontWeight: '600' },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7B5CFF', marginTop: 5, flexShrink: 0 },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7858FF', marginTop: 5, flexShrink: 0 },
 
   // Search
   searchOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.42)' },
   searchPanel: { marginTop: 90, marginHorizontal: 12, borderRadius: 16, borderWidth: 1, padding: 16 },
   searchRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16 },
   searchField: { flex: 1, fontSize: 13, marginLeft: 8 },
-  searchGoBtn: { backgroundColor: '#7B5CFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, marginLeft: 6 },
+  searchGoBtn: { backgroundColor: '#7858FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, marginLeft: 6 },
   searchGoBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   searchLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   bookmarksGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },

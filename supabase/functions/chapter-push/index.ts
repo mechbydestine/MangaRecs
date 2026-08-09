@@ -59,19 +59,27 @@ Deno.serve(async () => {
   // Expo push tokens for everyone owed a notification
   const userIds = [...new Set(pushes.map((p) => p.user_id))];
   let tokenMap = new Map<string, string>();
+  // Settings has always shown a "New chapters" switch, but this function never
+  // read it — turning it off silenced nothing, because this is the only thing
+  // that sends a chapter push. `newChapter` is the key PREF_GROUPS uses in
+  // utils/notificationPrefs.js; absent means on, matching the client default.
+  const mutedChapterPush = new Set<string>();
   if (userIds.length) {
     // Moved out of profiles in migration 62 — profiles is world-readable.
     const { data: settings } = await supabase
       .from("user_push_settings")
-      .select("user_id, push_token")
+      .select("user_id, push_token, notification_prefs")
       .in("user_id", userIds);
     tokenMap = new Map(
       (settings ?? []).filter((p) => p.push_token).map((p) => [p.user_id, p.push_token as string]),
     );
+    for (const s of settings ?? []) {
+      if (s.notification_prefs?.newChapter === false) mutedChapterPush.add(s.user_id);
+    }
   }
 
   const messages = pushes
-    .filter((p) => tokenMap.has(p.user_id))
+    .filter((p) => tokenMap.has(p.user_id) && !mutedChapterPush.has(p.user_id))
     .map((p) => ({
       to: tokenMap.get(p.user_id),
       sound: "default",

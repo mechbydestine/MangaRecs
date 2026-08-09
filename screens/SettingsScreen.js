@@ -1,6 +1,7 @@
 ﻿import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Animated, ActivityIndicator, Linking, Share, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../supabase';
@@ -13,9 +14,11 @@ import { useCoachmarkRegistry } from '../utils/CoachmarkContext';
 import MobileHeader from '../components/MobileHeader';
 import { AI_REC_KEY, clearAllCoversCache, NSFW_KEY, invalidateNsfwCache } from '../utils/mangaCovers';
 import AgeGateModal, { AGE_VERIFIED_KEY } from '../components/AgeGateModal';
+import PickerSheet from '../components/PickerSheet';
 import { clearBadgeCache } from '../utils/badgeEngine';
 import { clearAllLocalDataAndSignOut } from '../utils/accountSession';
-import { registerPushToken } from '../utils/pushNotifications';
+import { registerPushToken, getPushStatus, enablePush } from '../utils/pushNotifications';
+import { PREF_GROUPS, PREF_ITEMS, NOTIF_PREF_DEFAULTS, NOTIFS_KEY, normalizePrefs, publishPrefs } from '../utils/notificationPrefs';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
@@ -27,8 +30,8 @@ import { showAppToast } from '../utils/appToast';
 import { showAppAlert } from '../utils/appAlert';
 import { useLanguage } from '../utils/LanguageContext';
 import { HIT_SLOP } from '../utils/tokens';
+import { useReducedMotion } from '../utils/a11y';
 
-const NOTIFS_KEY      = '@mangarecs/notifPrefs';
 const READER_MODE_KEY = '@mangarecs/readerMode';
 const PAGE_ANIM_KEY   = '@mangarecs/pageAnim';
 const APP_VERSION     = Constants.expoConfig?.version || '1.0.0';
@@ -41,8 +44,9 @@ const ADMIN_USER_ID   = '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0';
 function WebtoonIcon({ active }) {
   const { colors } = useTheme();
   const arrowY = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    if (active && !reduced) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(arrowY, { toValue: 3, duration: 600, useNativeDriver: true }),
@@ -52,7 +56,7 @@ function WebtoonIcon({ active }) {
     } else {
       arrowY.setValue(0);
     }
-  }, [active]);
+  }, [active, reduced]);
   return (
     <View style={[iconStyles.webtoonBox, { borderColor: active ? colors.primary : '#5C5B63' }]}>
       <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
@@ -65,8 +69,9 @@ function WebtoonIcon({ active }) {
 function MangaIcon({ active }) {
   const { colors } = useTheme();
   const arrowX = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    if (active && !reduced) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(arrowX, { toValue: 3, duration: 600, useNativeDriver: true }),
@@ -76,7 +81,7 @@ function MangaIcon({ active }) {
     } else {
       arrowX.setValue(0);
     }
-  }, [active]);
+  }, [active, reduced]);
   return (
     <View style={iconStyles.mangaRow}>
       <View style={[iconStyles.mangaBox, { borderColor: active ? colors.primary : '#5C5B63' }]} />
@@ -90,8 +95,9 @@ function MangaIcon({ active }) {
 function SlideIcon({ active }) {
   const { colors } = useTheme();
   const x = useRef(new Animated.Value(8)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    if (active && !reduced) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(x, { toValue: 0, duration: 500, useNativeDriver: true }),
@@ -100,13 +106,13 @@ function SlideIcon({ active }) {
         ])
       ).start();
     }
-  }, [active]);
+  }, [active, reduced]);
   return (
     <View style={[iconStyles.animPreviewBox, { overflow: 'hidden' }]}>
       <Animated.View
         style={[
           iconStyles.animPreviewInner,
-          { transform: [{ translateX: x }], borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' },
+          { transform: [{ translateX: x }], borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(120, 88, 255,0.2)' : 'rgba(155,154,163,0.1)' },
         ]}
       />
     </View>
@@ -116,8 +122,9 @@ function SlideIcon({ active }) {
 function FadeIcon({ active }) {
   const { colors } = useTheme();
   const opacity = useRef(new Animated.Value(1)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    if (active && !reduced) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(opacity, { toValue: 0.2, duration: 750, useNativeDriver: true }),
@@ -127,12 +134,12 @@ function FadeIcon({ active }) {
     } else {
       opacity.setValue(1);
     }
-  }, [active]);
+  }, [active, reduced]);
   return (
     <Animated.View
       style={[
         iconStyles.animPreviewBox,
-        { opacity, borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' },
+        { opacity, borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(120, 88, 255,0.2)' : 'rgba(155,154,163,0.1)' },
       ]}
     />
   );
@@ -141,7 +148,7 @@ function FadeIcon({ active }) {
 function NoneIcon({ active }) {
   const { colors } = useTheme();
   return (
-    <View style={[iconStyles.animPreviewBox, { alignItems: 'center', justifyContent: 'center', borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(123,92,255,0.2)' : 'rgba(155,154,163,0.1)' }]}>
+    <View style={[iconStyles.animPreviewBox, { alignItems: 'center', justifyContent: 'center', borderColor: active ? colors.primary : '#5C5B63', backgroundColor: active ? 'rgba(120, 88, 255,0.2)' : 'rgba(155,154,163,0.1)' }]}>
       <View style={{ width: 12, height: 1, backgroundColor: active ? colors.primary : '#5C5B63' }} />
     </View>
   );
@@ -153,7 +160,10 @@ function NoneIcon({ active }) {
 // rather than a flat icon swap.
 function PlanGlowIcon({ icon, color }) {
   const pulse = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
+    // Purely decorative aura behind the plan icon — nothing depends on it.
+    if (reduced) return undefined;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
@@ -162,7 +172,7 @@ function PlanGlowIcon({ icon, color }) {
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduced, pulse]);
   return (
     <View style={iconStyles.planIconWrap}>
       <Animated.View
@@ -263,7 +273,7 @@ export default function SettingsScreen({ navigation }) {
   const [pageAnim, setPageAnim] = useState('slide');
 
   const [aiRec, setAiRecState] = useState(true);
-  const [notifs, setNotifs] = useState({ newChapter: true, friendActivity: true, recommendations: false, comments: true, directMessages: true });
+  const [notifs, setNotifs] = useState(NOTIF_PREF_DEFAULTS);
   const [malUsername, setMalUsername] = useState('');
   const [anilistUsername, setAnilistUsername] = useState('');
   const [trackerSaved, setTrackerSaved] = useState(false);
@@ -319,6 +329,7 @@ export default function SettingsScreen({ navigation }) {
   const [cacheCleared, setCacheCleared] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showLangSheet, setShowLangSheet] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('free');
@@ -329,10 +340,10 @@ export default function SettingsScreen({ navigation }) {
     AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@mangarecs/mal_username', '@mangarecs/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
       if (aiRecRaw !== null) setAiRecState(aiRecRaw === 'true');
       if (notifsRaw) {
-        // Merge onto current defaults, not replace — otherwise a prefs blob
-        // saved before "comments"/"directMessages" existed would make those
-        // keys undefined (renders as off) instead of defaulting to on.
-        try { setNotifs((prev) => ({ ...prev, ...JSON.parse(notifsRaw) })); } catch (_) {}
+        // normalizePrefs fills in every toggle the running build knows about,
+        // so a blob saved before `replies`/`likes`/`badges` existed defaults
+        // those to on rather than leaving them undefined (renders as off).
+        try { setNotifs(normalizePrefs(JSON.parse(notifsRaw))); } catch (_) {}
       }
       if (savedMode) setReaderMode(savedMode);
       if (savedAnim) setPageAnim(savedAnim);
@@ -389,15 +400,64 @@ export default function SettingsScreen({ navigation }) {
     invalidateNsfwCache();
   }
 
+  // "All off" is measured across the toggles this screen actually renders.
+  // Object.values(notifs) would also count legacy keys like `recommendations`
+  // that no switch controls, so a user could turn every visible switch off and
+  // still not trip the push_token teardown below.
+  const isAllOff = (prefs) => PREF_ITEMS.every((i) => prefs[i.key] === false);
+  const allNotifsOff = isAllOff(notifs);
+
+  // ── Push registration state ──────────────────────────────────────────────
+  // Re-checked whenever the screen regains focus, because the user may have
+  // just come back from the system settings app having flipped it there.
+  const [pushStatus, setPushStatus] = useState(null);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  const refreshPushStatus = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setPushStatus(await getPushStatus(session?.user?.id));
+  }, []);
+
+  useFocusEffect(useCallback(() => { refreshPushStatus(); }, [refreshPushStatus]));
+
+  async function handleEnablePush() {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await enablePush(session?.user?.id);
+      if (!res.ok && res.reason === 'blocked') {
+        // The OS prompt is spent and will never appear again; the only real
+        // recovery is the system settings app, so send them straight there.
+        showAppAlert(
+          t('settings.notifications.pushBlockedTitle'),
+          t('settings.notifications.pushBlockedBody'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('settings.notifications.openSettings'), onPress: () => Linking.openSettings().catch(() => {}) },
+          ]
+        );
+      } else if (!res.ok && res.reason === 'failed') {
+        showAppAlert(t('common.error'), t('settings.notifications.pushFailed'), [{ text: 'OK' }]);
+      }
+      await refreshPushStatus();
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
   async function toggleNotif(key) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const wasAllOff = Object.values(notifs).every((v) => !v);
-    const updated = { ...notifs, [key]: !notifs[key] };
+    const wasAllOff = allNotifsOff;
+    // `=== false` rather than `!notifs[key]` so a key that has never been set
+    // (undefined, rendered as on) toggles to off, not back to on.
+    const updated = { ...notifs, [key]: notifs[key] === false };
     setNotifs(updated);
     await AsyncStorage.setItem(NOTIFS_KEY, JSON.stringify(updated));
+    publishPrefs(updated); // notification list hides muted rows straight away
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.id) {
-        const allOff = Object.values(updated).every((v) => !v);
+        const allOff = isAllOff(updated);
         // user_push_settings, not profiles — see migration 62. Upsert because a
         // user who has never registered for push has no row yet.
         const patch = { user_id: session.user.id, notification_prefs: updated, updated_at: new Date().toISOString() };
@@ -602,7 +662,7 @@ export default function SettingsScreen({ navigation }) {
           </SectionCard>
         )}
 
-        {/* ── Account ─────────────────────────────────────────────────── */}
+        {/* ── Display Name ──────────────────────────────────────────────── */}
         <SectionCard title={t('settings.displayNameSection')} icon="person-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>Shown across MangaRecs — change this anytime</Text>
           <View style={styles.urlRow}>
@@ -613,7 +673,8 @@ export default function SettingsScreen({ navigation }) {
               maxLength={24}
               placeholder={t('placeholder.displayName')}
               placeholderTextColor={colors.muted}
-            />
+            
+              accessibilityLabel={t('placeholder.displayName')}/>
             <TouchableOpacity
               style={[styles.smallCta, (displayNameDraft.trim() === displayName || displayNameSaving) && { opacity: 0.4 }]}
               onPress={handleSaveDisplayName}
@@ -644,6 +705,243 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
+        {/* ── Appearance ────────────────────────────────────────────────── */}
+        <SectionCard title={t('settings.appearance')} icon="color-palette-outline">
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.theme')}</Text>
+          <View style={styles.themeRow}>
+            {THEMES.map((t) => {
+              const active = theme === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[
+                    styles.themeBtn,
+                    { borderColor: colors.border },
+                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
+                  ]}
+                  onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
+                  activeOpacity={0.8}>
+                  <Ionicons name={t.icon} size={20} color={active ? colors.primary : colors.muted} />
+                  <Text style={[styles.themeBtnText, { color: active ? colors.primary : colors.muted }]}>{t.label}</Text>
+                  {active && <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </SectionCard>
+
+        {/* ── Reader ────────────────────────────────────────────────────── */}
+        <SectionCard title={t('settings.reader.section')} icon="book-outline">
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.reader.defaultMode')}</Text>
+          <View style={styles.readerRow}>
+            {READER_MODES.map((mode) => {
+              const active = readerMode === mode.id;
+              return (
+                <TouchableOpacity
+                  key={mode.id}
+                  style={[styles.readerBtn, { borderColor: colors.border }, active && styles.readerBtnActive]}
+                  onPress={() => { Haptics.selectionAsync(); setReaderMode(mode.id); AsyncStorage.setItem(READER_MODE_KEY, mode.id); }}
+                  activeOpacity={0.8}>
+                  <mode.Icon active={active} />
+                  <Text style={[styles.readerBtnText, { color: colors.muted }, active && styles.readerBtnTextActive]}>{mode.label}</Text>
+                  <Text style={styles.readerBtnSub}>{mode.desc}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={[styles.cardTitle, { color: colors.text, marginTop: 18 }]}>{t('settings.reader.pageAnimation')}</Text>
+          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 8, marginTop: 0 }]}>{t('settings.reader.pageAnimationDesc')}</Text>
+          <View style={styles.animRow}>
+            {PAGE_ANIMS.map((anim) => {
+              const active = pageAnim === anim.id;
+              return (
+                <TouchableOpacity
+                  key={anim.id}
+                  style={[styles.animBtn, { borderColor: colors.border }, active && styles.animBtnActive]}
+                  onPress={() => { Haptics.selectionAsync(); setPageAnim(anim.id); AsyncStorage.setItem(PAGE_ANIM_KEY, anim.id); }}
+                  activeOpacity={0.8}>
+                  <anim.Icon active={active} />
+                  <Text style={[styles.animBtnText, { color: colors.muted }, active && styles.animBtnTextActive]}>{anim.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border, alignItems: 'center' }]}>
+            <Ionicons name="headset-outline" size={18} color={colors.primary} style={{ marginRight: 10 }} />
+            <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
+              Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
+            </Text>
+          </View>
+        </SectionCard>
+
+        {/* ── Status ────────────────────────────────────────────────────── */}
+        <SectionCard title={t('settings.statusSection')} icon="radio-button-on-outline">
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.showOnlineStatus')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.showOnlineStatusDesc')}</Text>
+            </View>
+            <Switch
+              accessibilityLabel={t('settings.showOnlineStatus')}
+              value={showActivity}
+              onValueChange={toggleShowActivity}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.appearBusy')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
+            </View>
+            <Switch
+              accessibilityLabel={t('settings.appearBusy')}
+              value={isBusy}
+              onValueChange={toggleBusy}
+              trackColor={{ false: colors.border, true: colors.error }}
+              thumbColor="#fff"
+              disabled={!showActivity}
+            />
+          </View>
+        </SectionCard>
+
+        {/* ── Notifications ─────────────────────────────────────────────── */}
+        <SectionCard title={t('settings.notifications.section')} icon="notifications-outline">
+          {/* Every switch below is a *preference*; none of them grant the OS
+              permission or put a token on file. Without this row a user whose
+              registration never happened saw eight toggles all reading "on"
+              and no notifications ever arriving, with nothing anywhere telling
+              them why or offering a way to fix it. */}
+          {pushStatus?.supported && !pushStatus.active && (
+            <View style={[styles.warningRow, { marginBottom: 14, alignItems: 'center' }]}>
+              <Ionicons name="alert-circle-outline" size={15} color={colors.error} />
+              <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 0, marginTop: 0, marginLeft: 6, flex: 1 }]}>
+                {pushStatus.permission === 'denied' && !pushStatus.canAskAgain
+                  ? t('settings.notifications.pushBlocked')
+                  : t('settings.notifications.pushOff')}
+              </Text>
+              <TouchableOpacity
+                onPress={handleEnablePush}
+                disabled={pushBusy}
+                hitSlop={HIT_SLOP}
+                activeOpacity={0.8}
+                style={[styles.enablePushBtn, { borderColor: colors.primary, opacity: pushBusy ? 0.5 : 1 }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('settings.notifications.enablePush')}
+                accessibilityState={{ disabled: pushBusy, busy: pushBusy }}
+              >
+                <Text style={[styles.enablePushBtnText, { color: colors.primary }]}>
+                  {pushBusy ? t('common.loading') : t('settings.notifications.enablePush')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Grouped rather than one flat list of eight switches: with this many
+              toggles, "which of these is about my own series vs. someone
+              else's" is the question people actually arrive with. */}
+          {PREF_GROUPS.map((group, gi) => (
+            <View key={group.title}>
+              <Text style={[styles.cardTitle, { color: colors.muted, marginTop: gi === 0 ? 0 : 18, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
+                {t(group.title)}
+              </Text>
+              {group.items.map((item, i) => (
+                <View key={item.key} style={[styles.toggleRow, i > 0 && [styles.borderTop, { borderTopColor: colors.border }]]}>
+                  <Ionicons name={item.icon} size={16} color={colors.muted} style={{ marginRight: 10, marginTop: 2 }} />
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t(`settings.notifications.${item.key}`)}</Text>
+                    <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t(`settings.notifications.${item.key}Desc`)}</Text>
+                  </View>
+                  <Switch
+                    value={notifs[item.key] !== false}
+                    onValueChange={() => toggleNotif(item.key)}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor="#fff"
+                    accessibilityLabel={t(`settings.notifications.${item.key}`)}
+                  />
+                </View>
+              ))}
+            </View>
+          ))}
+          {allNotifsOff && (
+            <View style={[styles.warningRow, { marginTop: 14 }]}>
+              <Ionicons name="notifications-off-outline" size={13} color={colors.muted} />
+              <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 0, marginTop: 0, marginLeft: 5, flex: 1 }]}>
+                {t('settings.notifications.allOff')}
+              </Text>
+            </View>
+          )}
+        </SectionCard>
+
+        {/* ── Content ───────────────────────────────────────────────────── */}
+        <SectionCard title={t('settings.content.section')} icon="shield-outline">
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.aiRecommendations')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
+            </View>
+            <Switch
+              accessibilityLabel={t('settings.aiRecommendations')}
+              value={aiRec}
+              onValueChange={toggleAiRec}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}
+            onPress={() => { setShowTasteModal(true); loadGenrePrefs(); }}
+            activeOpacity={0.7}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.tuneMyTaste')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.tuneMyTasteDesc')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </TouchableOpacity>
+          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
+                {ageVerified && (
+                  <View style={{ backgroundColor: 'rgba(120, 88, 255,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 9, color: colors.primary, fontWeight: '700' }}>{t('settings.verified')}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
+                {ageVerified
+                  ? 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.'
+                  : 'Verify your age to unlock adult content.'}
+              </Text>
+            </View>
+            {ageVerified ? (
+              <Switch
+                accessibilityLabel={t('settings.content.nsfw')}
+                value={allowNsfw}
+                onValueChange={toggleNsfw}
+                trackColor={{ false: colors.border, true: colors.error }}
+                thumbColor="#fff"
+              />
+            ) : (
+              <TouchableOpacity
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
+                onPress={() => setShowAgeGate(true)}
+                activeOpacity={0.8}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('settings.verifyAge')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </SectionCard>
+
+        <AgeGateModal
+          visible={showAgeGate}
+          onVerified={() => { setAgeVerified(true); setShowAgeGate(false); }}
+          onDismiss={() => setShowAgeGate(false)}
+        />
+
+        {/* ── External Trackers ─────────────────────────────────────────── */}
         <SectionCard title={t('settings.trackers.section')} icon="sync-outline">
           <Text style={[styles.cardSub, { color: colors.muted }]}>
             Link your tracker profiles to jump to any series directly from MangaRecs.
@@ -658,7 +956,8 @@ export default function SettingsScreen({ navigation }) {
               onChangeText={setMalUsername}
               autoCapitalize="none"
               autoCorrect={false}
-            />
+            
+              accessibilityLabel={t('settings.malUsername')}/>
             <TouchableOpacity
               style={[styles.smallCta, (!malUsername.trim()) && { opacity: 0.35 }]}
               disabled={!malUsername.trim()}
@@ -677,7 +976,8 @@ export default function SettingsScreen({ navigation }) {
               onChangeText={setAnilistUsername}
               autoCapitalize="none"
               autoCorrect={false}
-            />
+            
+              accessibilityLabel={t('settings.anilistUsername')}/>
             <TouchableOpacity
               style={[styles.smallCta, (!anilistUsername.trim()) && { opacity: 0.35 }]}
               disabled={!anilistUsername.trim()}
@@ -801,227 +1101,6 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </SectionCard>
 
-        {/* ── Notifications ───────────────────────────────────────────── */}
-        <SectionCard title={t('settings.notifications.section')} icon="notifications-outline">
-          {[
-            { key: 'newChapter', label: 'New chapter alerts', desc: 'Get notified when your series update' },
-            { key: 'friendActivity', label: 'Friend activity', desc: 'See what your friends are reading' },
-            { key: 'comments', label: 'Comments', desc: 'Get notified when someone comments on your series' },
-            { key: 'directMessages', label: 'Direct messages', desc: 'Get notified when a friend sends you a message' },
-          ].map((item, i) => (
-            <View key={item.key} style={[styles.toggleRow, i > 0 && [styles.borderTop, { borderTopColor: colors.border }]]}>
-              <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{item.label}</Text>
-                <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{item.desc}</Text>
-              </View>
-              <Switch
-                value={notifs[item.key]}
-                onValueChange={() => toggleNotif(item.key)}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#fff"
-              />
-            </View>
-          ))}
-        </SectionCard>
-
-        {/* ── Privacy & Content ───────────────────────────────────────── */}
-        <SectionCard title={t('settings.content.section')} icon="shield-outline">
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.aiRecommendations')}</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
-            </View>
-            <Switch
-              value={aiRec}
-              onValueChange={toggleAiRec}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}
-            onPress={() => { setShowTasteModal(true); loadGenrePrefs(); }}
-            activeOpacity={0.7}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.tuneMyTaste')}</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.tuneMyTasteDesc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-          </TouchableOpacity>
-          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
-                {ageVerified && (
-                  <View style={{ backgroundColor: 'rgba(123,92,255,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9, color: colors.primary, fontWeight: '700' }}>{t('settings.verified')}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
-                {ageVerified
-                  ? 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.'
-                  : 'Verify your age to unlock adult content.'}
-              </Text>
-            </View>
-            {ageVerified ? (
-              <Switch
-                value={allowNsfw}
-                onValueChange={toggleNsfw}
-                trackColor={{ false: colors.border, true: colors.error }}
-                thumbColor="#fff"
-              />
-            ) : (
-              <TouchableOpacity
-                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
-                onPress={() => setShowAgeGate(true)}
-                activeOpacity={0.8}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('settings.verifyAge')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </SectionCard>
-
-        <AgeGateModal
-          visible={showAgeGate}
-          onVerified={() => { setAgeVerified(true); setShowAgeGate(false); }}
-          onDismiss={() => setShowAgeGate(false)}
-        />
-
-        <SectionCard title={t('settings.statusSection')} icon="radio-button-on-outline">
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.showOnlineStatus')}</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.showOnlineStatusDesc')}</Text>
-            </View>
-            <Switch
-              value={showActivity}
-              onValueChange={toggleShowActivity}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.appearBusy')}</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
-            </View>
-            <Switch
-              value={isBusy}
-              onValueChange={toggleBusy}
-              trackColor={{ false: colors.border, true: colors.error }}
-              thumbColor="#fff"
-              disabled={!showActivity}
-            />
-          </View>
-        </SectionCard>
-
-        {/* ── Appearance & Reader ─────────────────────────────────────── */}
-        <SectionCard title={t('settings.appearance')} icon="color-palette-outline">
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.theme')}</Text>
-          <View style={styles.themeRow}>
-            {THEMES.map((t) => {
-              const active = theme === t.id;
-              return (
-                <TouchableOpacity
-                  key={t.id}
-                  style={[
-                    styles.themeBtn,
-                    { borderColor: colors.border },
-                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
-                  ]}
-                  onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
-                  activeOpacity={0.8}>
-                  <Ionicons name={t.icon} size={20} color={active ? colors.primary : colors.muted} />
-                  <Text style={[styles.themeBtnText, { color: active ? colors.primary : colors.muted }]}>{t.label}</Text>
-                  {active && <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </SectionCard>
-
-        <SectionCard title={t('settings.language.section')} icon="language-outline">
-          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 12, marginTop: 0 }]}>
-            {t('settings.language.desc')}
-          </Text>
-          <View style={styles.langRow}>
-            {languages.map((l) => {
-              const active = language === l.id;
-              return (
-                <TouchableOpacity
-                  key={l.id}
-                  style={[
-                    styles.langBtn,
-                    { borderColor: colors.border },
-                    active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
-                  ]}
-                  onPress={() => { Haptics.selectionAsync(); setLanguage(l.id); }}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={t('settings.language.a11y', { name: l.label })}>
-                  <Text style={[styles.langBtnNative, { color: active ? colors.primary : colors.text }]}>{l.native}</Text>
-                  <Text style={[styles.langBtnLabel, { color: colors.muted }]}>{l.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {language !== 'en' && (
-            <View style={[styles.warningRow, { marginTop: 12 }]}>
-              <Ionicons name="information-circle-outline" size={14} color={colors.muted} style={{ marginRight: 6 }} />
-              <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
-                {t('settings.language.partial')}
-              </Text>
-            </View>
-          )}
-        </SectionCard>
-
-        <SectionCard title={t('settings.reader.section')} icon="book-outline">
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.reader.defaultMode')}</Text>
-          <View style={styles.readerRow}>
-            {READER_MODES.map((mode) => {
-              const active = readerMode === mode.id;
-              return (
-                <TouchableOpacity
-                  key={mode.id}
-                  style={[styles.readerBtn, { borderColor: colors.border }, active && styles.readerBtnActive]}
-                  onPress={() => { Haptics.selectionAsync(); setReaderMode(mode.id); AsyncStorage.setItem(READER_MODE_KEY, mode.id); }}
-                  activeOpacity={0.8}>
-                  <mode.Icon active={active} />
-                  <Text style={[styles.readerBtnText, { color: colors.muted }, active && styles.readerBtnTextActive]}>{mode.label}</Text>
-                  <Text style={styles.readerBtnSub}>{mode.desc}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <Text style={[styles.cardTitle, { color: colors.text, marginTop: 18 }]}>{t('settings.reader.pageAnimation')}</Text>
-          <Text style={[styles.cardSub, { color: colors.muted, marginBottom: 8, marginTop: 0 }]}>{t('settings.reader.pageAnimationDesc')}</Text>
-          <View style={styles.animRow}>
-            {PAGE_ANIMS.map((anim) => {
-              const active = pageAnim === anim.id;
-              return (
-                <TouchableOpacity
-                  key={anim.id}
-                  style={[styles.animBtn, { borderColor: colors.border }, active && styles.animBtnActive]}
-                  onPress={() => { Haptics.selectionAsync(); setPageAnim(anim.id); AsyncStorage.setItem(PAGE_ANIM_KEY, anim.id); }}
-                  activeOpacity={0.8}>
-                  <anim.Icon active={active} />
-                  <Text style={[styles.animBtnText, { color: colors.muted }, active && styles.animBtnTextActive]}>{anim.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border, alignItems: 'center' }]}>
-            <Ionicons name="headset-outline" size={18} color={colors.primary} style={{ marginRight: 10 }} />
-            <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
-              Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
-            </Text>
-          </View>
-        </SectionCard>
-
         <SectionCard title={t('settings.creator.section')} icon="create-outline">
           <SettingsRow icon="create-outline" label={t('settings.creator.dashboard')} desc={t('settings.creator.dashboardDesc')} onPress={() => navigation.navigate('Creator')} />
         </SectionCard>
@@ -1056,6 +1135,27 @@ export default function SettingsScreen({ navigation }) {
         </SectionCard>
 
         <SectionCard title={t('settings.about.section')} icon="information-circle-outline">
+          {/* Language lives here rather than in its own card — it's a set-once
+              preference, so a picker row costs one tap and saves a full screen
+              of six always-visible buttons. */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => setShowLangSheet(true)}
+            activeOpacity={0.6}
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.language.section')}>
+            <Ionicons name="language-outline" size={16} color={colors.muted} style={{ marginRight: 12 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.language.section')}</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
+                {language === 'en' ? t('settings.language.desc') : t('settings.language.partial')}
+              </Text>
+            </View>
+            <Text style={[styles.versionText, { color: colors.muted }]}>
+              {languages.find((l) => l.id === language)?.native || 'English'}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color="rgba(155,154,163,0.4)" style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
           <SettingsRow icon="help-circle-outline" label={t('settings.help')} desc={t('settings.helpDesc')} onPress={() => Linking.openURL('mailto:support@mangarecs.net?subject=Help%20%26%20Support')} />
           <SettingsRow icon="sparkles-outline" label={t('settings.replayTour')} desc={t('settings.replayTourDesc')} onPress={replayAppTour} />
           <SettingsRow icon="people-outline" label={t('settings.guidelines')} desc={t('settings.guidelinesDesc')} onPress={() => navigation.navigate('Guidelines')} />
@@ -1117,12 +1217,21 @@ export default function SettingsScreen({ navigation }) {
         <TouchableOpacity hitSlop={HIT_SLOP}
           style={styles.signOutBtn}
           onPress={async () => { await clearBadgeCache(); await clearAllLocalDataAndSignOut(); }}
-          activeOpacity={0.8}>
+          activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('common.signOut')}>
           <Ionicons name="log-out-outline" size={20} color={colors.error} />
         </TouchableOpacity>
 
         </View>
       </ScrollView>
+
+      <PickerSheet
+        visible={showLangSheet}
+        onClose={() => setShowLangSheet(false)}
+        title={t('settings.language.section')}
+        value={language}
+        options={languages.map((l) => ({ value: l.id, label: `${l.native} · ${l.label}` }))}
+        onSelect={(id) => { Haptics.selectionAsync(); setLanguage(id); }}
+      />
 
       {/* ── Delete Account Confirmation ── */}
       <Modal visible={showDeleteConfirm} animationType="fade" transparent onRequestClose={() => setShowDeleteConfirm(false)}>
@@ -1364,7 +1473,8 @@ export default function SettingsScreen({ navigation }) {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
-              />
+              
+                accessibilityLabel={t('placeholder.email')}/>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, marginTop: 10 }]}
                 value={upgradePassword}
@@ -1373,7 +1483,8 @@ export default function SettingsScreen({ navigation }) {
                 placeholderTextColor={colors.muted}
                 secureTextEntry
                 autoCapitalize="none"
-              />
+              
+                accessibilityLabel={t('placeholder.password')}/>
               {!!upgradeError && (
                 <View style={[styles.warningRow, { marginTop: 8 }]}>
                   <Ionicons name="alert-circle-outline" size={12} color={colors.error} />
@@ -1418,7 +1529,7 @@ const styles = StyleSheet.create({
   cardSub: { fontSize: 12, marginBottom: 10 },
   urlRow: { flexDirection: 'row', alignItems: 'center' },
   input: { flex: 1, borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 13, marginRight: 8 },
-  smallCta: { backgroundColor: '#7B5CFF', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
+  smallCta: { backgroundColor: '#7858FF', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   smallCtaText: { color: '#fff', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   anilistSyncRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 },
   anilistSyncText: { fontSize: 12 },
@@ -1435,14 +1546,9 @@ const styles = StyleSheet.create({
   tasteStepBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   tasteWeight: { fontSize: 14, fontWeight: '700', minWidth: 20, textAlign: 'center' },
   warningRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  enablePushBtn: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginLeft: 8 },
+  enablePushBtnText: { fontSize: 12, fontWeight: '700' },
   warningTextDanger: { color: '#FF3B30', fontSize: 11, marginLeft: 5 },
-  // Wraps rather than flexing to fit: six languages in one row leaves each too
-  // narrow for 日本語 or Français without truncating.
-  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  langBtn: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, backgroundColor: 'rgba(155,154,163,0.06)', alignItems: 'center', minWidth: 84 },
-  langBtnNative: { fontSize: 14, fontWeight: '700' },
-  langBtnLabel: { fontSize: 10.5, marginTop: 2 },
-
   themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   themeBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
   themeBtnText: { fontSize: 12, fontWeight: '500', marginTop: 8 },
@@ -1455,16 +1561,16 @@ const styles = StyleSheet.create({
   versionText: { fontSize: 12, fontFamily: 'monospace' },
   readerRow: { flexDirection: 'row', justifyContent: 'space-between' },
   readerBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
-  readerBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
+  readerBtnActive: { borderColor: '#7858FF', backgroundColor: 'rgba(120, 88, 255,0.15)' },
   readerBtnText: { fontSize: 12, fontWeight: '600', marginTop: 8, paddingHorizontal: 2 },
-  readerBtnTextActive: { color: '#7B5CFF' },
+  readerBtnTextActive: { color: '#7858FF' },
   readerBtnSub: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
   animRow: { flexDirection: 'row', justifyContent: 'space-between' },
   animBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
-  animBtnActive: { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
+  animBtnActive: { borderColor: '#7858FF', backgroundColor: 'rgba(120, 88, 255,0.15)' },
   animBtnText: { fontSize: 12, fontWeight: '600', marginTop: 8, paddingHorizontal: 2 },
-  animBtnTextActive: { color: '#7B5CFF' },
-  upgradeCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(123,92,255,0.1)', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)' },
+  animBtnTextActive: { color: '#7858FF' },
+  upgradeCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(120, 88, 255,0.1)', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.3)' },
   upgradeLeft: { flexDirection: 'row', alignItems: 'center' },
   upgradeTitle: { fontSize: 14, fontWeight: '600' },
   upgradeSub: { fontSize: 11, marginTop: 2 },
@@ -1498,9 +1604,9 @@ const styles = StyleSheet.create({
   planPrice: { fontSize: 13, fontWeight: 'bold', marginTop: 4 },
   billingRow: { flexDirection: 'row', marginBottom: 16 },
   billingBtn: { flex: 1, alignItems: 'center', padding: 10, borderRadius: 10, marginHorizontal: 4, borderWidth: 1, flexDirection: 'row', justifyContent: 'center' },
-  billingBtnActive: { borderColor: '#7B5CFF', backgroundColor: '#1A1633' },
+  billingBtnActive: { borderColor: '#7858FF', backgroundColor: '#1A1633' },
   billingBtnText: { fontSize: 13, fontWeight: '500' },
-  billingBtnTextActive: { color: '#7B5CFF' },
+  billingBtnTextActive: { color: '#7858FF' },
   saveBadge: { backgroundColor: '#FFD700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 6 },
   saveBadgeText: { color: '#000', fontSize: 9, fontWeight: 'bold', paddingRight: 2 },
   whatsIncluded: { fontSize: 11, fontWeight: '600', letterSpacing: 1, marginBottom: 12, marginTop: 4 },
@@ -1508,12 +1614,12 @@ const styles = StyleSheet.create({
   featureText: { fontSize: 14, marginLeft: 10 },
   changelogTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   changelogModalTitle: { fontSize: 18, fontWeight: 'bold' },
-  changelogVersionPill: { backgroundColor: 'rgba(123,92,255,0.14)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  changelogVersionPillText: { color: '#7B5CFF', fontSize: 11, fontWeight: '700' },
+  changelogVersionPill: { backgroundColor: 'rgba(120, 88, 255,0.14)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  changelogVersionPillText: { color: '#7858FF', fontSize: 11, fontWeight: '700' },
   changelogDate: { fontSize: 11 },
   changelogRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 9 },
   changelogText: { fontSize: 12.5, lineHeight: 17.5, flex: 1, flexShrink: 1 },
-  ctaBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
+  ctaBtn: { backgroundColor: '#7858FF', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 16 },
   ctaBtnPro: { backgroundColor: '#FFD700' },
   ctaBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   ctaBtnTextPro: { color: '#1A1400' },

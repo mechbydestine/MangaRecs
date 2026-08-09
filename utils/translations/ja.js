@@ -49,6 +49,12 @@ export default {
   },
 
   feed: {
+    video: {
+      play: '{title} を再生',
+      stop: '動画を停止',
+      openExternal: '開く',
+      embedFailed: 'この動画はここでは再生できません。「開く」から視聴してください。',
+    },
     destEmail: "メール",
     creatorLabel: "MangaRecs クリエイター",
     addFriendsFirst: "おすすめを送るにはまずフレンドを追加してください。",
@@ -198,6 +204,9 @@ export default {
     searchHint: "ユーザー名で読者を検索",
     suggested: "おすすめ",
     noRankings: "まだランキングはありません。読み始めるとランキングに載ります。",
+    rankedByHours: '読書時間トップ{count}',
+    noFriendRankings: "まだランキングに入っているフレンドがいません。読者を追加して比べてみましょう。",
+    leaderboardError: "リーダーボードを読み込めませんでした。",
     mangarecsReaders: "MANGARECS の読者",
     addAFriend: 'フレンドを追加',
     searchByUsername: 'ユーザー名で検索してMangaRecsの読者を探す',
@@ -263,6 +272,13 @@ export default {
   },
 
   notifications: {
+
+
+
+
+
+
+
     emptySub: "フレンド申請・コメント・メッセージがここに表示されます",
     allCaughtUp: 'すべて確認済みです',
     title: '通知',
@@ -349,12 +365,34 @@ export default {
       ambienceHint: '環境音はリーダー内で設定できます。作品を開いて上部のヘッドホンアイコンをタップしてください。',
     },
     notifications: {
+      pushOff: "この端末ではプッシュ通知が設定されていません。今のままではこれらの設定は届きません。",
+      pushBlocked: "端末の設定でMangaRecsの通知がオフになっています。",
+      enablePush: "有効にする",
+      pushBlockedTitle: "通知がブロックされています",
+      pushBlockedBody: "MangaRecsから再度確認することはできません。端末の設定から通知をオンにしてください。",
+      openSettings: "設定を開く",
+      pushFailed: "通知を設定できませんでした。接続を確認してもう一度お試しください。",
       section: '通知',
-      chapters: '新しい話',
+      groupSeries: 'あなたの作品',
+      groupSocial: 'ソーシャル',
+      groupProgress: '進捗',
+      newChapter: '新しい話',
+      newChapterDesc: 'フォロー中の作品に新しい話が公開されたとき',
+      replies: '返信',
+      repliesDesc: '自分のコメントに返信があったとき',
       comments: 'コメント',
-      friends: 'フレンド申請',
-      messages: 'ダイレクトメッセージ',
-      streak: '連続記録のリマインダー',
+      commentsDesc: '投稿した作品にコメントがついたとき',
+      likes: 'いいね',
+      likesDesc: '投稿やコメントにいいねがついたとき',
+      followers: '新しいフォロワー',
+      followersDesc: '誰かがあなたをフォローしたとき',
+      friendActivity: 'フレンド申請',
+      friendActivityDesc: '受け取った申請と、承認された申請',
+      directMessages: 'ダイレクトメッセージ',
+      directMessagesDesc: 'フレンドからメッセージが届いたとき',
+      badges: 'バッジ獲得',
+      badgesDesc: '新しいバッジやメダルを獲得したとき',
+      allOff: 'すべてオフです — MangaRecs からの通知は届きません。',
     },
     content: {
       section: 'コンテンツ',
@@ -678,5 +716,49 @@ export default {
 
   intro: {
     tagline: "次の物語を、おすすめします。",
+  },
+
+  // Screen-reader labels for controls that show only an icon. A sighted user
+  // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
+  a11y: {
+    bioInput: "自己紹介",
+    commentInput: "コメントを入力",
+    spoilerCommentInput: "ネタバレコメントを入力",
+    replyInput: "返信を入力",
+    seriesDescription: "シリーズの説明",
+    chapterNumber: "話数",
+    birthMonth: "生まれた月",
+    birthDay: "生まれた日",
+    birthYear: "生まれた年",
+    showPassword: "パスワードを表示",
+    hidePassword: "パスワードを非表示",
+    changePhoto: "プロフィール写真を変更",
+    cancelEdit: "編集をキャンセル",
+    sendComment: "コメントを送信",
+    searchFriends: "フレンドを検索",
+    reportDiscussion: "このディスカッションを報告",
+    addFriend: "フレンドに追加",
+    sendGif: "GIFを送信",
+    messageFriend: "メッセージを送る",
+    removePage: "ページを削除",
+    removeSite: "このサイトを削除",
+    rateStars: "5段階中{n}で評価",
+    volumeDown: "音量を下げる",
+    volumeUp: "音量を上げる",
+    dimmerDown: "画面の暗さを弱める",
+    dimmerUp: "画面の暗さを強める",
+    nightFilterDown: "ナイトフィルターを弱める",
+    nightFilterUp: "ナイトフィルターを強める",
+    autoScrollStart: "自動スクロールを開始",
+    autoScrollPause: "自動スクロールを一時停止",
+    switchToManga: "マンガモードに切り替え",
+    switchToWebtoon: "ウェブトゥーンモードに切り替え",
+    addBookmark: "この話をブックマーク",
+    removeBookmark: "ブックマークを解除",
+    hideControls: "リーダーの操作を非表示",
+    showControls: "リーダーの操作を表示",
+    closeZoom: "拡大表示を閉じる",
+    mangaPage: "マンガのページ",
+    openSeries: "シリーズを開く",
   },
 };
