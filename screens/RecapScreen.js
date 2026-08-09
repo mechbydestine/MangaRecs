@@ -82,7 +82,7 @@ function getPeriod(now = new Date()) {
 // the current half — for previewing every beat with real accumulated data
 // before deciding what to change. getPeriod() itself is untouched, so this
 // is a one-line revert whenever you're done.
-const TESTING_ALL_TIME = true;
+const TESTING_ALL_TIME = false;
 
 function getAllTimePeriod(profile, now = new Date()) {
   const start = profile?.created_at ? new Date(profile.created_at) : new Date(2024, 0, 1);
