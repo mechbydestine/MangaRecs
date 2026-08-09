@@ -82,7 +82,8 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-          />
+          
+            accessibilityLabel={t('placeholder.email')}/>
         </View>
         <View style={[styles.fieldWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
           <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} style={styles.fieldIcon} />
@@ -93,7 +94,8 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={passwordHidden}
-          />
+          
+            accessibilityLabel={t('placeholder.createPassword')}/>
           <TouchableOpacity
             onPress={() => setPasswordHidden((h) => !h)}
             accessibilityRole="button"
@@ -281,7 +283,8 @@ function ScreenUsername({ username, onChange, status }) {
           maxLength={20}
           autoCapitalize="none"
           autoCorrect={false}
-        />
+        
+          accessibilityLabel={t('placeholder.username')}/>
         <UsernameStatusIcon status={status} />
       </View>
       {status === 'available' && <Text style={[styles.usernamePreview, { color: colors.accent }]}>@{username} is available — looks great!</Text>}

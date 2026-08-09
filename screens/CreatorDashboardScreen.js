@@ -312,7 +312,7 @@ export default function CreatorDashboardScreen() {
       <MobileHeader
         title="Creator Dashboard"
         right={
-          <View style={[styles.proBadge, { borderColor: 'rgba(123,92,255,0.3)' }]}>
+          <View style={[styles.proBadge, { borderColor: 'rgba(120, 88, 255,0.3)' }]}>
             <Ionicons name="diamond" size={11} color={colors.primary} />
             <Text style={styles.proBadgeText}>{t('creator.title')}</Text>
           </View>
@@ -482,7 +482,8 @@ export default function CreatorDashboardScreen() {
                     placeholderTextColor={colors.muted}
                     value={title}
                     onChangeText={setTitle}
-                  />
+                  
+                    accessibilityLabel={t('placeholder.seriesTitle')}/>
                 </View>
 
                 <TouchableOpacity
@@ -505,7 +506,8 @@ export default function CreatorDashboardScreen() {
                     multiline
                     value={description}
                     onChangeText={setDescription}
-                  />
+                  
+                    accessibilityLabel={t('a11y.seriesDescription')}/>
                 </View>
 
                 <TouchableOpacity
@@ -563,7 +565,8 @@ export default function CreatorDashboardScreen() {
                     placeholderTextColor={colors.muted}
                     value={chapterTitle}
                     onChangeText={setChapterTitle}
-                  />
+                  
+                    accessibilityLabel={t('a11y.chapterNumber')}/>
                 </View>
 
                 {/* Page picker */}
@@ -585,7 +588,7 @@ export default function CreatorDashboardScreen() {
                         <View key={page.uri} style={styles.thumbWrap}>
                           <Image source={{ uri: page.uri }} style={styles.thumb} resizeMode="cover" />
                           <Text style={styles.thumbLabel}>{i + 1}</Text>
-                          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.thumbRemove} onPress={() => removePage(i)}>
+                          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.thumbRemove} onPress={() => removePage(i)} accessibilityRole="button" accessibilityLabel={t('a11y.removePage')}>
                             <Ionicons name="close-circle" size={18} color="#FF3B30" />
                           </TouchableOpacity>
                         </View>
@@ -667,16 +670,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   tabletWrap: { maxWidth: 640, width: '100%', alignSelf: 'center' },
 
-  proBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.15)', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  proBadgeText: { color: '#7B5CFF', fontSize: 11, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  proBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.15)', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  proBadgeText: { color: '#7858FF', fontSize: 11, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
 
   statsRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 20 },
   statCard: { flex: 1, borderRadius: 14, padding: 12, alignItems: 'center', marginHorizontal: 4, borderWidth: 1 },
   statValue: { fontSize: 18, fontWeight: 'bold', marginTop: 6, marginBottom: 2 },
   statLabel: { fontSize: 9, textAlign: 'center' },
 
-  uploadBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, borderWidth: 1, borderColor: 'rgba(123,92,255,0.4)', borderRadius: 16, padding: 16, marginBottom: 24 },
-  uploadIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.4)', borderRadius: 16, padding: 16, marginBottom: 24 },
+  uploadIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7858FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   uploadTitle: { fontSize: 14, fontWeight: '600' },
   uploadSub: { fontSize: 11, marginTop: 2 },
 
@@ -705,10 +708,10 @@ const styles = StyleSheet.create({
   seriesMetaText: { fontSize: 10, marginLeft: 4 },
   seriesActions: { flexDirection: 'row', borderTopWidth: 1, paddingTop: 10 },
   seriesActionBtn: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
-  seriesActionText: { color: '#7B5CFF', fontSize: 12, fontWeight: '500', marginLeft: 4 },
+  seriesActionText: { color: '#7858FF', fontSize: 12, fontWeight: '500', marginLeft: 4 },
 
-  monetizationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.06)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.25)', borderRadius: 16, padding: 16 },
-  monetizationIcon: { backgroundColor: 'rgba(123,92,255,0.15)', borderRadius: 20, padding: 10, marginRight: 14 },
+  monetizationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.06)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.25)', borderRadius: 16, padding: 16 },
+  monetizationIcon: { backgroundColor: 'rgba(120, 88, 255,0.15)', borderRadius: 20, padding: 10, marginRight: 14 },
   monetizationTitle: { fontSize: 14, fontWeight: '600' },
   monetizationSub: { fontSize: 11, marginTop: 3 },
 
@@ -723,7 +726,7 @@ const styles = StyleSheet.create({
   fieldWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, marginBottom: 12 },
   input: { flex: 1, paddingVertical: 14, fontSize: 14 },
 
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#7B5CFF', borderRadius: 12, padding: 16, gap: 8 },
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#7858FF', borderRadius: 12, padding: 16, gap: 8 },
   submitBtnDisabled: { opacity: 0.45 },
   submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 
@@ -733,7 +736,7 @@ const styles = StyleSheet.create({
 
   // Chapter page picker
   pagePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 12, padding: 16, marginBottom: 14 },
-  pagePickerText: { color: '#7B5CFF', fontSize: 13, fontWeight: '600', flex: 1 },
+  pagePickerText: { color: '#7858FF', fontSize: 13, fontWeight: '600', flex: 1 },
 
   gapSectionLabel: { fontSize: 11, fontWeight: '600', marginBottom: 7, letterSpacing: 0.2 },
   gapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
@@ -748,6 +751,6 @@ const styles = StyleSheet.create({
 
   progressWrap: { marginBottom: 14 },
   progressBar: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
-  progressFill: { height: '100%', borderRadius: 3, backgroundColor: '#7B5CFF' },
+  progressFill: { height: '100%', borderRadius: 3, backgroundColor: '#7858FF' },
   progressText: { fontSize: 12, textAlign: 'center' },
 });

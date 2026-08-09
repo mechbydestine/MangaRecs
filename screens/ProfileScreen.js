@@ -34,6 +34,7 @@ import { containsBlockedLanguage } from '../utils/contentFilter';
 import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 import { PROFILE_THEMES } from '../utils/profileThemes';
 import { HIT_SLOP } from '../utils/tokens';
+import { useAnnounceOnOpen } from '../utils/a11y';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -150,11 +151,11 @@ export function PeopleListModal({ visible, title, people = [], colors, onClose, 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.peopleModalOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose}  accessibilityElementsHidden importantForAccessibility="no"/>
         <View style={[styles.peopleModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.peopleModalHeader}>
             <Text style={[styles.peopleModalTitle, { color: colors.text }]}>{title}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={22} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -210,6 +211,7 @@ export default function ProfileScreen() {
   const [bioDraft, setBioDraft]           = useState('');
   const [showThemes, setShowThemes]       = useState(false);
   const [showAllBadges, setShowAllBadges] = useState(false);
+  useAnnounceOnOpen(showAllBadges, t('profile.achievementBadges'));
   const [friends, setFriends]             = useState([]);
   const [followersList, setFollowersList] = useState([]);
   const [followingList, setFollowingList] = useState([]);
@@ -811,7 +813,7 @@ export default function ProfileScreen() {
                     <Text style={styles.avatarText}>{username.slice(0, 2).toUpperCase()}</Text>
                   )}
                 </LinearGradient>
-                <TouchableOpacity hitSlop={HIT_SLOP} style={styles.cameraBtn} onPress={pickAvatar}>
+                <TouchableOpacity hitSlop={HIT_SLOP} style={styles.cameraBtn} onPress={pickAvatar} accessibilityRole="button" accessibilityLabel={t('a11y.changePhoto')}>
                   <Ionicons name="camera" size={11} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -829,7 +831,8 @@ export default function ProfileScreen() {
                       placeholder="Write your bio..."
                       placeholderTextColor={colors.muted}
                       autoFocus
-                    />
+                    
+                      accessibilityLabel={t('a11y.bioInput')}/>
                     {BIO_SUGGESTIONS.filter((s) => s !== bioDraft).slice(0, 2).map((s) => (
                       <TouchableOpacity key={s} onPress={() => setBioDraft(s)}>
                         <Text style={styles.bioSuggestion}>✦ {s}</Text>
@@ -840,7 +843,7 @@ export default function ProfileScreen() {
                         <Ionicons name="checkmark" size={11} color="#fff" />
                         <Text style={styles.bioSaveText}>{t('common.save')}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bioCancelBtn} onPress={() => { setBioDraft(bio); setEditingBio(false); }}>
+                      <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bioCancelBtn} onPress={() => { setBioDraft(bio); setEditingBio(false); }} accessibilityRole="button" accessibilityLabel={t('a11y.cancelEdit')}>
                         <Ionicons name="close" size={14} color={colors.muted} />
                       </TouchableOpacity>
                     </View>
@@ -915,7 +918,7 @@ export default function ProfileScreen() {
                   return (
                     <TouchableOpacity
                       key={t.id}
-                      style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(123,92,255,0.12)' }, !unlocked && { opacity: 0.5 }]}
+                      style={[styles.themeChip, { borderColor: colors.border }, themeId === t.id && { borderColor: t.ring, backgroundColor: 'rgba(120, 88, 255,0.12)' }, !unlocked && { opacity: 0.5 }]}
                       onPress={() => {
                         if (!unlocked) {
                           showAppToast(`Reach ${t.gradeLabel} tier to unlock ${t.label}`);
@@ -1007,7 +1010,7 @@ export default function ProfileScreen() {
                     <View style={styles.favesPopupHeader}>
                       <Ionicons name={s.icon} size={13} color={s.color} />
                       <Text style={[styles.favesPopupTitle, { color: colors.text }]}>{s.title}</Text>
-                      <TouchableOpacity onPress={() => setStatDetail(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <TouchableOpacity onPress={() => setStatDetail(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                         <Ionicons name="close" size={16} color={colors.muted} />
                       </TouchableOpacity>
                     </View>
@@ -1076,8 +1079,8 @@ export default function ProfileScreen() {
                 button), so no extra +/x chrome here */}
             <View style={styles.favesPanel}>
               {favorites.length === 0 ? (
-                <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(123,92,255,0.25)' }]} onPress={() => setShowAddFave(true)}>
-                  <Ionicons name="add" size={16} color="rgba(123,92,255,0.5)" />
+                <TouchableOpacity style={[styles.favesEmptyCard, { borderColor: 'rgba(120, 88, 255,0.25)' }]} onPress={() => setShowAddFave(true)}>
+                  <Ionicons name="add" size={16} color="rgba(120, 88, 255,0.5)" />
                   <Text style={styles.favesEmptyText}>{t('profile.addFavorite')}</Text>
                 </TouchableOpacity>
               ) : (
@@ -1244,7 +1247,7 @@ export default function ProfileScreen() {
                   <Text style={[styles.badgesModalTitle, { color: colors.text }]}>{t('profile.achievementBadges')}</Text>
                   <Text style={[styles.badgesModalSub, { color: colors.muted }]}>{earnedIds.size} earned · {ALL_BADGES.length - earnedIds.size} locked</Text>
                 </View>
-                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAllBadges(false)}>
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAllBadges(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                   <Ionicons name="close" size={18} color={colors.muted} />
                 </TouchableOpacity>
               </View>
@@ -1320,7 +1323,7 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={styles.badgeDetailOverlay}
                   activeOpacity={1}
-                  onPress={() => setDetailBadge(null)}>
+                  onPress={() => setDetailBadge(null)} accessible={false}>
                   <BadgeDetail
                     badge={detailBadge}
                     earned={earnedIds.has(detailBadge.id)}
@@ -1341,7 +1344,7 @@ export default function ProfileScreen() {
       {/* Badge detail popup — for taps outside the All Badges sheet (grid,
           showcase, next-up rail) */}
       <Modal visible={!!detailBadge && !showAllBadges} animationType="fade" transparent onRequestClose={() => setDetailBadge(null)}>
-        <TouchableOpacity style={styles.badgeDetailOverlay} activeOpacity={1} onPress={() => setDetailBadge(null)}>
+        <TouchableOpacity style={styles.badgeDetailOverlay} activeOpacity={1} onPress={() => setDetailBadge(null)} accessible={false}>
           <BadgeDetail
             badge={detailBadge}
             earned={detailBadge ? earnedIds.has(detailBadge.id) : false}
@@ -1358,7 +1361,7 @@ export default function ProfileScreen() {
       {/* Add Favorite modal */}
       <Modal visible={showAddFave} animationType="slide" transparent onRequestClose={() => { setShowAddFave(false); setFaveSearch(''); setSearchResults([]); }}>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => { setShowAddFave(false); setFaveSearch(''); setSearchResults([]); }} />
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => { setShowAddFave(false); setFaveSearch(''); setSearchResults([]); }}  accessibilityElementsHidden importantForAccessibility="no"/>
           <View style={[styles.addFaveSheet, { backgroundColor: colors.card }]}>
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.addFaveHeaderRow}>
@@ -1387,7 +1390,8 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.muted}
                 value={faveSearch}
                 onChangeText={setFaveSearch}
-              />
+              
+                accessibilityLabel={t('placeholder.searchTitle')}/>
             </View>
 
             <ScrollView style={styles.addFaveList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -1450,21 +1454,21 @@ const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 2, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  cameraBtn: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#7B5CFF', borderRadius: 12, padding: 5 },
+  cameraBtn: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#7858FF', borderRadius: 12, padding: 5 },
   nameBioBlock: { flex: 1, marginLeft: 12, marginTop: 36 },
   username: { fontSize: 16, fontWeight: 'bold' },
   bioText: { fontSize: 12, marginTop: 3, lineHeight: 16 },
-  bioEditHint: { color: 'rgba(123,92,255,0.6)', fontSize: 9, marginTop: 2 },
+  bioEditHint: { color: 'rgba(120, 88, 255,0.6)', fontSize: 9, marginTop: 2 },
   bioInput: { borderWidth: 1, borderRadius: 10, padding: 8, fontSize: 12, marginTop: 4, minHeight: 44 },
-  bioSuggestion: { color: 'rgba(123,92,255,0.8)', fontSize: 10, marginTop: 4 },
+  bioSuggestion: { color: 'rgba(120, 88, 255,0.8)', fontSize: 10, marginTop: 4 },
   bioEditActions: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  bioSaveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#7B5CFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 8 },
+  bioSaveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#7858FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginRight: 8 },
   bioSaveText: { color: '#fff', fontSize: 11, fontWeight: '500', marginLeft: 4, paddingRight: 2 },
   bioCancelBtn: { padding: 5 },
   handle: { fontSize: 10, marginTop: 4 },
   themeToggle: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   themeToggleText: { fontSize: 11, marginLeft: 6 },
-  themeToggleValue: { color: '#7B5CFF', fontSize: 11, fontWeight: '500', marginLeft: 4 },
+  themeToggleValue: { color: '#7858FF', fontSize: 11, fontWeight: '500', marginLeft: 4 },
   themeOptionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
   themeChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.03)', marginRight: 8, marginBottom: 8 },
   themeChipDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
@@ -1479,8 +1483,8 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitleText: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
   seeAllRow: { flexDirection: 'row', alignItems: 'center' },
-  seeAllText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500', marginRight: 2 },
-  friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(123,92,255,0.5)', alignItems: 'center', justifyContent: 'center' },
+  seeAllText: { color: '#7858FF', fontSize: 11, fontWeight: '500', marginRight: 2 },
+  friendAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(120, 88, 255,0.5)', alignItems: 'center', justifyContent: 'center' },
   friendAvatarOnline: { borderWidth: 2, borderColor: '#1D9E75' },
   friendAvatarText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   friendAvatarImg: { width: '100%', height: '100%', borderRadius: 24 },
@@ -1508,8 +1512,8 @@ const styles = StyleSheet.create({
   streakSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   streakTitle: { fontSize: 16, fontWeight: '600' },
   streakBadges: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
-  todayBadgeText: { color: '#7B5CFF', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.1)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, marginRight: 6 },
+  todayBadgeText: { color: '#7858FF', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
   fireBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.12)', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   fireEmoji: { fontSize: 12 },
   fireBadgeText: { color: '#FF9500', fontSize: 12, fontWeight: '600', marginLeft: 4, paddingRight: 2 },
@@ -1527,7 +1531,7 @@ const styles = StyleSheet.create({
   // can resolve to 0 and the card renders as invisible black space
   // Visible border + strong letter fallback: the card must never be able to
   // read as empty space, even before the cover image resolves
-  faveFeatCard: { width: 124, alignSelf: 'center', borderRadius: 8, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(123,92,255,0.45)' },
+  faveFeatCard: { width: 124, alignSelf: 'center', borderRadius: 8, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(120, 88, 255,0.45)' },
   faveFeatGrad: { width: 124, height: 174 },
   faveFeatTitle: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
   faveFeatLetterWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
@@ -1535,7 +1539,7 @@ const styles = StyleSheet.create({
   faveMoreBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.72)', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   faveMoreBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   favesEmptyCard: { marginHorizontal: 6, height: 174, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  favesEmptyText: { color: 'rgba(123,92,255,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
+  favesEmptyText: { color: 'rgba(120, 88, 255,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
   favesPanelFoot: { alignItems: 'center', paddingTop: 8, paddingBottom: 10 },
   favesCountText: { fontSize: 11, fontWeight: '500' },
 
@@ -1586,11 +1590,11 @@ const styles = StyleSheet.create({
   badgeIcon: { fontSize: 24, marginBottom: 5 },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 },
   seeAllBadgesBtn: { paddingVertical: 8, alignItems: 'center' },
-  seeAllBadgesText: { color: '#7B5CFF', fontSize: 11, fontWeight: '500' },
+  seeAllBadgesText: { color: '#7858FF', fontSize: 11, fontWeight: '500' },
 
   // Creator
-  creatorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.08)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)', borderRadius: 16, padding: 16 },
-  creatorIconWrap: { backgroundColor: 'rgba(123,92,255,0.2)', borderRadius: 20, padding: 8 },
+  creatorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.08)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.3)', borderRadius: 16, padding: 16 },
+  creatorIconWrap: { backgroundColor: 'rgba(120, 88, 255,0.2)', borderRadius: 20, padding: 8 },
   creatorInfo: { flex: 1, marginLeft: 12 },
   creatorTitle: { fontSize: 14, fontWeight: '600' },
   creatorSub: { fontSize: 11, marginTop: 2 },
@@ -1625,7 +1629,7 @@ const styles = StyleSheet.create({
   addFaveTitle: { fontSize: 17, fontWeight: 'bold' },
   addFaveTabs: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 14 },
   addFaveTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, backgroundColor: 'rgba(255,255,255,0.06)' },
-  addFaveTabActive: { backgroundColor: '#7B5CFF' },
+  addFaveTabActive: { backgroundColor: '#7858FF' },
   addFaveTabText: { fontSize: 13, fontWeight: '600' },
   addFaveSearchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8 },
   addFaveSearchInput: { flex: 1, marginLeft: 8, fontSize: 14 },

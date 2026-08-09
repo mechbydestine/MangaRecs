@@ -6,7 +6,7 @@ import { setToastListener } from '../utils/appToast';
 const TYPE_STYLES = {
   error:   { icon: 'alert-circle',      color: '#E8527A' },
   success: { icon: 'checkmark-circle',  color: '#1D9E75' },
-  info:    { icon: 'information-circle', color: '#7B5CFF' },
+  info:    { icon: 'information-circle', color: '#7858FF' },
 };
 
 const MIN_DURATION_MS = 2200;

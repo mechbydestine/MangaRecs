@@ -1,9 +1,13 @@
 ﻿import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
+import { useAnnounceOnOpen } from '../utils/a11y';
 
 export default function PickerSheet({ visible, onClose, title, options, value, onSelect }) {
   const { colors } = useTheme();
+  const t = useT();
+  useAnnounceOnOpen(visible, title);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -14,7 +18,9 @@ export default function PickerSheet({ visible, onClose, title, options, value, o
             <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
             <TouchableOpacity
               onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={20} color={colors.muted} />
             </TouchableOpacity>
           </View>

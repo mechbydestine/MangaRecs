@@ -28,13 +28,17 @@ function IconField({ icon, secure, rightSlot, inputRef, ...props }) {
         placeholderTextColor={colors.textSecondary}
         autoCapitalize="none"
         secureTextEntry={secure ? hidden : false}
+        // The field has no visible <Text> label — the placeholder IS the label
+        // here, so it doubles as the accessible name unless a caller passes a
+        // better one. Spread last so an explicit prop still wins.
+        accessibilityLabel={props.placeholder}
         {...props}
       />
       {secure ? (
         <TouchableOpacity
           onPress={() => setHidden((h) => !h)}
           accessibilityRole="button"
-          accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
+          accessibilityLabel={hidden ? t('a11y.showPassword') : t('a11y.hidePassword')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={colors.textSecondary} />
         </TouchableOpacity>

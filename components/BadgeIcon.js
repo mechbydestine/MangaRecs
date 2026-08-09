@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { View, Image, Animated, StyleSheet } from 'react-native';
+import { useReducedMotion } from '../utils/a11y';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, {
   Path, Circle, G, Polygon,
@@ -184,9 +185,14 @@ export default function BadgeIcon({ badge, size = 64, locked = false, isNew = fa
   // ── Pulse animation for isNew ─────────────────────────────────────────────
   const pulseScale   = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0)).current;
+  const reduced      = useReducedMotion();
 
   useEffect(() => {
     if (!isNew || locked) return;
+    // Bounded to 3 iterations already, but a ring expanding out of a badge is
+    // still motion the reader asked not to see. The badge's "new" state is
+    // also carried by its own styling, so nothing is lost by holding still.
+    if (reduced) return;
     const loop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
@@ -204,7 +210,7 @@ export default function BadgeIcon({ badge, size = 64, locked = false, isNew = fa
     );
     loop.start();
     return () => loop.stop();
-  }, [isNew, locked]);
+  }, [isNew, locked, reduced, pulseScale, pulseOpacity]);
 
   const pulseRing = isNew && !locked && (
     <Animated.View

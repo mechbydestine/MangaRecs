@@ -104,12 +104,12 @@ export default function RecapCompareModal({ visible, onClose, d, id, s, period }
           <View style={styles.handle} />
           <View style={styles.headerRow}>
             {selected ? (
-              <TouchableOpacity onPress={back} style={styles.backBtn} hitSlop={10}>
+              <TouchableOpacity onPress={back} style={styles.backBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.back')}>
                 <Ionicons name="chevron-back" size={20} color="#fff" />
               </TouchableOpacity>
             ) : <View style={{ width: 20 }} />}
             <Text style={styles.title}>{selected ? `You vs @${selected.username}` : 'Compare with a friend'}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={10}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
           </View>

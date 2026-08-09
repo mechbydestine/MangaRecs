@@ -21,7 +21,7 @@ export default function BadgeDetail({
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: earned ? grade.border : colors.border }]} onStartShouldSetResponder={() => true}>
-      <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
         <Ionicons name="close" size={16} color={colors.muted} />
       </TouchableOpacity>
 
@@ -55,7 +55,7 @@ export default function BadgeDetail({
       {earned && onTogglePin && (
         <TouchableOpacity
           style={[styles.pinBtn, pinned
-            ? { backgroundColor: 'rgba(123,92,255,0.14)', borderColor: colors.primary }
+            ? { backgroundColor: 'rgba(120, 88, 255,0.14)', borderColor: colors.primary }
             : { backgroundColor: grade.bg, borderColor: grade.border },
             !pinned && !canPin && { opacity: 0.45 }]}
           onPress={() => (pinned || canPin) && onTogglePin(badge)}

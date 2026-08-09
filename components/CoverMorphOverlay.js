@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setCoverTransitionListener } from '../utils/coverTransition';
+import { useReducedMotion } from '../utils/a11y';
 
 // Matches MangaDetailScreen's hero cover exactly (its `coverWrap`/`cover`
 // styles): 128x182 at 12px radius, sitting at the hero row's left edge
@@ -28,10 +29,21 @@ export default function CoverMorphOverlay() {
   const progress = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
   const running = useRef(null);
+  // The listener below is registered once, so it would close over the value of
+  // `reduced` at mount. A ref keeps it current if the setting is flipped while
+  // the app is running.
+  const reduced = useReducedMotion();
+  const reducedRef = useRef(reduced);
+  useEffect(() => { reducedRef.current = reduced; }, [reduced]);
 
   useEffect(() => {
     const unsub = setCoverTransitionListener((payload) => {
       if (!isUsableRect(payload?.rect)) return;
+      // The whole component is a shared-element flight: a cover scaling and
+      // sliding across the screen. There is no reduced version of that worth
+      // showing — the destination screen is already pushing underneath — so
+      // with motion off the overlay simply never mounts.
+      if (reducedRef.current) return;
       // Never leave a previous run's animation attached to these nodes.
       running.current?.stop?.();
       progress.setValue(0);

@@ -31,6 +31,7 @@ import { sendDMPush } from '../utils/pushNotifications';
 import { reportError } from '../utils/crashReporting';
 import { light, medium } from '../utils/haptics';
 import { HIT_SLOP } from '../utils/tokens';
+import { useReducedMotion } from '../utils/a11y';
 
 // Same key SocialScreen reads — records when this thread was last viewed so
 // its unread badge stays cleared even across app restarts
@@ -69,7 +70,12 @@ const MESSAGE_PAGE_SIZE = 40;
 
 function TypingDots({ color }) {
   const dots = useRef([0, 1, 2].map(() => new Animated.Value(0.3))).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
+    // Three dots bouncing forever, right where the reader is looking. With
+    // motion off they stay lit — the indicator's meaning is "they are typing",
+    // which the dots convey by being present, not by moving.
+    if (reduced) { dots.forEach((v) => v.setValue(0.9)); return undefined; }
     const loops = dots.map((v, i) =>
       Animated.loop(
         Animated.sequence([
@@ -82,7 +88,7 @@ function TypingDots({ color }) {
     );
     loops.forEach((l) => l.start());
     return () => loops.forEach((l) => l.stop());
-  }, []);
+  }, [reduced, dots]);
   return (
     <View style={styles.typingDotsRow}>
       {dots.map((v, i) => (
@@ -111,7 +117,7 @@ const QUICK_PICKS = [
 function RecommendationCard({ manga, isOwn, onOpen, colors }) {
   const t = useT();
   return (
-    <View style={[styles.recCard, { backgroundColor: isOwn ? 'rgba(123,92,255,0.18)' : colors.card, borderColor: isOwn ? 'rgba(123,92,255,0.35)' : colors.border }]}>
+    <View style={[styles.recCard, { backgroundColor: isOwn ? 'rgba(120, 88, 255,0.18)' : colors.card, borderColor: isOwn ? 'rgba(120, 88, 255,0.35)' : colors.border }]}>
       <View style={styles.recRow}>
         <View style={[styles.recCoverWrap, { backgroundColor: manga.color || '#1A1A2E' }]}>
           <MangaCover
@@ -186,7 +192,7 @@ function MessageBubble({ msg, isOwn, friendColor, colors, navigation, onRetry })
   if (msg.message_type === 'recommendation' && msg.manga_data) {
     return (
       <View style={[styles.bubbleWrap, isOwn ? styles.bubbleWrapOwn : styles.bubbleWrapOther, isSending && { opacity: 0.6 }]}>
-        <View style={[styles.recLabel, { backgroundColor: isOwn ? 'rgba(123,92,255,0.2)' : colors.inputBg }]}>
+        <View style={[styles.recLabel, { backgroundColor: isOwn ? 'rgba(120, 88, 255,0.2)' : colors.inputBg }]}>
           <Ionicons name="paper-plane-outline" size={11} color={isOwn ? '#A09CE0' : colors.muted} />
           <Text style={[styles.recLabelText, { color: isOwn ? '#A09CE0' : colors.muted }]}>
             {isOwn ? 'You recommended' : 'Recommended for you'}
@@ -1091,7 +1097,8 @@ export default function DMScreen() {
                     onChangeText={setGifQuery}
                     autoCapitalize="none"
                     autoCorrect={false}
-                  />
+                  
+                    accessibilityLabel={t('placeholder.searchGifs')}/>
                 </View>
                 {gifLoading ? (
                   <View style={styles.gifLoadingWrap}>
@@ -1104,7 +1111,7 @@ export default function DMScreen() {
                 ) : (
                   <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.gifGrid}>
                     {gifResults.map((g) => (
-                      <TouchableOpacity key={g.id} onPress={() => sendGif(g.url)} activeOpacity={0.85} style={styles.gifCard}>
+                      <TouchableOpacity key={g.id} onPress={() => sendGif(g.url)} activeOpacity={0.85} style={styles.gifCard} accessibilityRole="button" accessibilityLabel={t('a11y.sendGif')}>
                         <ExpoImage source={{ uri: g.previewUrl }} style={styles.gifThumb} contentFit="cover" />
                       </TouchableOpacity>
                     ))}
@@ -1157,12 +1164,12 @@ const styles = StyleSheet.create({
   recInfo: { flex: 1, justifyContent: 'space-between' },
   recTitle: { fontSize: 13, fontWeight: '700', lineHeight: 17, marginBottom: 4 },
   recGenres: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
-  recGenreTag: { backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginRight: 4, marginBottom: 4 },
+  recGenreTag: { backgroundColor: 'rgba(120, 88, 255,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginRight: 4, marginBottom: 4 },
   recGenreText: { color: '#A09CE0', fontSize: 10, fontWeight: '600' },
   recMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   recMetaText: { fontSize: 11, marginLeft: 3 },
-  recOpenBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(123,92,255,0.12)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
-  recOpenText: { color: '#7B5CFF', fontSize: 11, fontWeight: '700' },
+  recOpenBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(120, 88, 255,0.12)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
+  recOpenText: { color: '#7858FF', fontSize: 11, fontWeight: '700' },
 
   // Quoted reply preview (shown above a bubble that replied to another message)
   quotedWrap: { flexDirection: 'row', alignItems: 'center', maxWidth: '80%', marginBottom: 3, gap: 6 },
@@ -1210,8 +1217,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     fontSize: 15, maxHeight: 100, marginRight: 8,
   },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  sendBtnDisabled: { backgroundColor: 'rgba(123,92,255,0.35)' },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7858FF', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  sendBtnDisabled: { backgroundColor: 'rgba(120, 88, 255,0.35)' },
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginRight: 6 },
   retryText: { color: '#FF453A', fontSize: 10, fontWeight: '600' },
 
@@ -1228,7 +1235,7 @@ const styles = StyleSheet.create({
   gifSearchInput: { flex: 1, fontSize: 13 },
   gifLoadingWrap: { paddingVertical: 40, alignItems: 'center' },
   gifGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingBottom: 32, gap: 8 },
-  gifCard: { width: '31%', aspectRatio: 1, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(123,92,255,0.08)' },
+  gifCard: { width: '31%', aspectRatio: 1, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(120, 88, 255,0.08)' },
   gifThumb: { width: '100%', height: '100%' },
   pickerCard: { width: '29%', borderRadius: 12, borderWidth: 1, overflow: 'hidden', padding: 8, alignItems: 'center' },
   pickerCoverWrap: { width: '100%', aspectRatio: 0.7, borderRadius: 8, overflow: 'hidden', marginBottom: 6 },

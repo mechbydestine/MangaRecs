@@ -77,7 +77,7 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
   const t = useT();
   return (
     <TouchableOpacity
-      style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(123,92,255,0.08)', borderBottomColor: colors.border }]}
+      style={[styles.row, { backgroundColor: item.read ? colors.card : 'rgba(120, 88, 255,0.08)', borderBottomColor: colors.border }]}
       activeOpacity={0.75}
       onPress={() => onNavigate && onNavigate(item)}>
       <NotifAvatar item={item} />

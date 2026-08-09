@@ -1,14 +1,21 @@
 import { useRef, useEffect } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 import { useTheme } from '../utils/ThemeContext';
+import { useReducedMotion } from '../utils/a11y';
 
 // Shimmering placeholder block. Compose these into screen-specific skeletons
 // so loading states preview the real layout instead of showing a spinner.
 export function Bone({ width = '100%', height = 14, radius = 8, style }) {
   const { isDark } = useTheme();
+  const reduced = useReducedMotion();
   const pulse = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
+    // A skeleton can be on screen for several seconds and there are usually
+    // a dozen of them pulsing at once — exactly the kind of ambient motion
+    // Reduce Motion exists to stop. Hold it at a readable mid-opacity so the
+    // placeholder still reads as "loading" rather than as real, empty content.
+    if (reduced) { pulse.setValue(0.7); return undefined; }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1,   duration: 700, useNativeDriver: true }),
@@ -17,7 +24,7 @@ export function Bone({ width = '100%', height = 14, radius = 8, style }) {
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduced, pulse]);
 
   return (
     <Animated.View

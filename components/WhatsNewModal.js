@@ -7,6 +7,7 @@ import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { useProfile } from '../utils/ProfileContext';
 import { CHANGELOG } from '../utils/changelog';
+import { useAnnounceOnOpen } from '../utils/a11y';
 
 const APP_VERSION = Constants.expoConfig?.version || '1.0.0';
 const SEEN_KEY = '@mangarecs/whatsnew_auto_shown_version';
@@ -22,6 +23,7 @@ export default function WhatsNewModal() {
   const { ceremonyActive } = useProfile();
   const [pendingEntry, setPendingEntry] = useState(null);
   const [entry, setEntry] = useState(null);
+  useAnnounceOnOpen(!!entry, t('whatsNew.title'));
 
   useEffect(() => {
     const current = CHANGELOG.find((e) => e.version === APP_VERSION);
@@ -57,7 +59,7 @@ export default function WhatsNewModal() {
                 <Text style={styles.versionPillText}>v{entry.version}</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={dismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity onPress={dismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={20} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -87,11 +89,11 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 18, fontWeight: 'bold' },
-  versionPill: { backgroundColor: 'rgba(123,92,255,0.14)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  versionPillText: { color: '#7B5CFF', fontSize: 11, fontWeight: '700' },
+  versionPill: { backgroundColor: 'rgba(120, 88, 255,0.14)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  versionPillText: { color: '#7858FF', fontSize: 11, fontWeight: '700' },
   date: { fontSize: 11, marginTop: 2, marginBottom: 14 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 9 },
   itemText: { fontSize: 12.5, lineHeight: 17.5, flex: 1, flexShrink: 1 },
-  btn: { backgroundColor: '#7B5CFF', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
+  btn: { backgroundColor: '#7858FF', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
   btnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

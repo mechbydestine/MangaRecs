@@ -8,13 +8,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const LEGACY_STORAGE_KEY = 'mangarecs_theme';
 export const THEME_STORAGE_KEY = 'mangarecs_theme_v2';
 
-// "Default" — the app's original black + purple look. Values unchanged from
-// what every user has always seen; it just has an explicit name now instead
-// of being an unlabeled mix of the old "dark" and "system" choices.
+// "Default" — the app's original black + purple look.
+//
+// One value has moved since: `primary` went #7B5CFF -> #7858FF. White label
+// text on the old #7B5CFF measured 4.36:1, just under the 4.5:1 WCAG AA bar
+// for body text, and button labels here are 14-15px semibold — too small to
+// qualify for the 3:1 large-text allowance. The fix is a 0.7% lightness step
+// on the same hue, which reads as the same purple and clears 4.53:1.
+// Verified by scripts/check-contrast.js.
 const defaultColors = {
   background: '#0D0D0F',
   card: '#13131A',
-  primary: '#7B5CFF',
+  primary: '#7858FF',
   muted: '#888892',
   border: '#1C1C1E',
   accent: '#1D9E75',
@@ -26,11 +31,16 @@ const defaultColors = {
 
 // "Dark" — a distinct, moodier option: darker surfaces and a muted, less
 // saturated purple instead of Default's vivid one.
+// `primary` was #5B4E8A, which measured 2.70:1 against the card — below the
+// 3:1 WCAG floor for a colour that carries meaning (active tabs, icons,
+// selected states), so it read as disabled to anyone with low vision.
+// `muted` was #77777F at 4.40:1 on card, just under the body-text bar.
+// Both are minimal lightness steps on the same hue.
 const darkColors = {
   background: '#000000',
   card: '#0C0C0E',
-  primary: '#5B4E8A',
-  muted: '#77777F',
+  primary: '#635495',
+  muted: '#797981',
   border: '#1A1A1C',
   accent: '#1D9E75',
   error: '#FF3B30',
@@ -39,16 +49,19 @@ const darkColors = {
   inputBg: '#000000',
 };
 
+// `muted` was #6E6E78, which is fine on background and card but only 4.24:1
+// on the grey input fill — and muted is what placeholder text uses, so the
+// one surface it failed on was the one where it matters most.
 const lightColors = {
   background: '#F5F5F7',
   card: '#FFFFFF',
-  primary: '#7B5CFF',
-  muted: '#6E6E78',
+  primary: '#7858FF',
+  muted: '#6A6A74',
   border: '#E2E2E7',
   accent: '#1D9E75',
   error: '#FF3B30',
   text: '#0D0D0F',
-  textSecondary: '#6E6E78',
+  textSecondary: '#6A6A74',
   inputBg: '#EBEBF0',
 };
 

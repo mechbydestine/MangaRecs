@@ -4,7 +4,7 @@
 // minGrade gates a theme behind reaching that badge tier (tier-up reward):
 // 'purple' = Diamond, 'gold' = Master (see GRADE_ORDER in utils/badges).
 export const PROFILE_THEMES = [
-  { id: 'default', label: 'Default', ring: '#7B5CFF', gradient: ['#7B5CFF', '#1D9E75'], banner: ['#7B5CFF', '#0D0D0F'] },
+  { id: 'default', label: 'Default', ring: '#7858FF', gradient: ['#7858FF', '#1D9E75'], banner: ['#7858FF', '#0D0D0F'] },
   { id: 'rose',    label: 'Rose',    ring: '#D4537E', gradient: ['#D4537E', '#993556'], banner: ['#D4537E', '#0D0D0F'] },
   { id: 'sky',     label: 'Sky',     ring: '#378ADD', gradient: ['#378ADD', '#185FA5'], banner: ['#378ADD', '#0D0D0F'] },
   { id: 'emerald', label: 'Emerald', ring: '#1D9E75', gradient: ['#1D9E75', '#0F6E56'], banner: ['#1D9E75', '#0D0D0F'] },

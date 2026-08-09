@@ -6,6 +6,7 @@ import { useProfile } from '../utils/ProfileContext';
 import { medium as hapticMedium, heavy as hapticHeavy, success as hapticSuccess } from '../utils/haptics';
 import { maybeAskForReview } from '../utils/reviewPrompt';
 import { useT } from '../utils/LanguageContext';
+import { useReducedMotion } from '../utils/a11y';
 
 // Full-screen unlock ceremony. The spectacle scales with the tier: Bronze gets
 // a clean pop, Diamond+ adds a particle burst, Mythic gets the full show.
@@ -58,6 +59,7 @@ export default function BadgeCeremony() {
   const glow     = useRef(new Animated.Value(0)).current;
   const textFade = useRef(new Animated.Value(0)).current;
   const spin     = useRef(new Animated.Value(0)).current;
+  const reduced  = useReducedMotion();
 
   useEffect(() => { ensureBadgeRarity().then(() => setRarityReady(true)); }, []);
 
@@ -83,6 +85,17 @@ export default function BadgeCeremony() {
     textFade.setValue(0);
     spin.setValue(0);
     (rank >= 4 ? hapticHeavy : hapticMedium)();
+    // Reduce Motion: present the badge already landed rather than springing,
+    // pulsing and (at Mythic) rotating a halo. The reward still arrives — the
+    // haptic above still fires and the card is fully readable — it just does
+    // not perform. Nothing here gates dismissal, so the queue advances the same.
+    if (reduced) {
+      scale.setValue(1);
+      glow.setValue(0.7);
+      textFade.setValue(1);
+      const tq = setTimeout(hapticSuccess, 420);
+      return () => clearTimeout(tq);
+    }
     Animated.sequence([
       Animated.spring(scale, {
         toValue: 1,
@@ -109,7 +122,7 @@ export default function BadgeCeremony() {
     const t = setTimeout(hapticSuccess, 420);
     const t2 = rank >= 5 ? setTimeout(hapticHeavy, 650) : null;
     return () => { clearTimeout(t); if (t2) clearTimeout(t2); };
-  }, [badge?.id]);
+  }, [badge?.id, reduced]);
 
   if (!badge) return null;
 
@@ -157,7 +170,7 @@ export default function BadgeCeremony() {
         )}
 
         <View style={styles.stage}>
-          {particles > 0 && <ParticleBurst color={grade.color} count={particles} radius={130 + rank * 12} />}
+          {particles > 0 && !reduced && <ParticleBurst color={grade.color} count={particles} radius={130 + rank * 12} />}
           <Animated.View style={{ transform: [{ scale }] }}>
             <BadgeIcon badge={badge} size={150 + rank * 6} />
           </Animated.View>

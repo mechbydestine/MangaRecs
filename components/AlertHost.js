@@ -3,10 +3,15 @@ import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { setAlertListener } from '../utils/appAlert';
 import { useTheme } from '../utils/ThemeContext';
 import { light } from '../utils/haptics';
+import { useAnnounceOnOpen } from '../utils/a11y';
 
 export default function AlertHost() {
   const { colors } = useTheme();
   const [alert, setAlert] = useState(null); // { title, message, buttons }
+
+  // An alert is the one thing that must never appear silently — it is asking
+  // for a decision. Title and body are already localised by the caller.
+  useAnnounceOnOpen(!!alert, alert ? [alert.title, alert.message].filter(Boolean).join('. ') : null);
 
   useEffect(() => {
     return setAlertListener((title, message, buttons) => {
@@ -63,7 +68,7 @@ const s = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
   message: { fontSize: 13.5, lineHeight: 19, textAlign: 'center', marginBottom: 20 },
   buttonRow: { gap: 8 },
-  button: { backgroundColor: '#7B5CFF', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  button: { backgroundColor: '#7858FF', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   buttonDestructive: { backgroundColor: '#E5534B' },
   buttonCancel: { backgroundColor: 'transparent', borderWidth: 1 },
   buttonText: { color: '#fff', fontSize: 14.5, fontWeight: '600' },

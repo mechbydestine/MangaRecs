@@ -165,7 +165,8 @@ export default function AllDiscussionsScreen() {
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
-          />
+          
+            accessibilityLabel={t('placeholder.searchSeries')}/>
           {searching && <ActivityIndicator size="small" color={colors.primary} />}
         </View>
       )}
@@ -268,14 +269,14 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: 'center', paddingVertical: 48, gap: 10 },
   emptyText: { fontSize: 13, textAlign: 'center', paddingHorizontal: 24 },
   discCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1 },
-  rankBadge: { position: 'absolute', top: 8, left: 8, width: 18, height: 18, borderRadius: 9, backgroundColor: '#7B5CFF', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  rankBadge: { position: 'absolute', top: 8, left: 8, width: 18, height: 18, borderRadius: 9, backgroundColor: '#7858FF', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   rankBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   discCover: { width: 52, height: 66, borderRadius: 8, marginRight: 14 },
   discInfo: { flex: 1 },
   discTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
   discChap: { fontSize: 11, marginBottom: 5 },
   discCountRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  discCount: { color: '#7B5CFF', fontSize: 11, fontWeight: '600' },
+  discCount: { color: '#7858FF', fontSize: 11, fontWeight: '600' },
   hotChip: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(239,159,39,0.15)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, marginLeft: 4 },
   hotChipText: { color: '#EF9F27', fontSize: 9, fontWeight: '700' },
 });

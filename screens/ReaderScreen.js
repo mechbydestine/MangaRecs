@@ -29,6 +29,7 @@ import { useT } from '../utils/LanguageContext';
 import { useResponsive } from '../utils/responsive';
 import { isJunkTitle } from '../utils/titleValidation';
 import { HIT_SLOP } from '../utils/tokens';
+import { useReducedMotion, useAnnounceOnOpen } from '../utils/a11y';
 
 const SAVED_SITES_KEY  = '@mangarecs/savedSites';
 const LAST_SITE_KEY    = '@mangarecs/lastSite';
@@ -76,14 +77,17 @@ const FEATURED_SITES = MANGA_SITES.filter((s) => s.featured);
 function WebtoonIcon({ active }) {
   const { colors } = useTheme();
   const arrowY = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    // The selected mode is already shown by the border colour; the drifting
+    // arrow is emphasis only.
+    if (active && !reduced) {
       Animated.loop(Animated.sequence([
         Animated.timing(arrowY, { toValue: 3, duration: 600, useNativeDriver: true }),
         Animated.timing(arrowY, { toValue: 0, duration: 600, useNativeDriver: true }),
       ])).start();
     } else { arrowY.setValue(0); }
-  }, [active]);
+  }, [active, reduced, arrowY]);
   return (
     <View style={[modeIconStyles.webtoonBox, { borderColor: active ? colors.primary : '#5C5B63' }]}>
       <Animated.View style={{ transform: [{ translateY: arrowY }] }}>
@@ -96,14 +100,15 @@ function WebtoonIcon({ active }) {
 function MangaIcon({ active }) {
   const { colors } = useTheme();
   const arrowX = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    if (active && !reduced) {
       Animated.loop(Animated.sequence([
         Animated.timing(arrowX, { toValue: 3, duration: 600, useNativeDriver: true }),
         Animated.timing(arrowX, { toValue: 0, duration: 600, useNativeDriver: true }),
       ])).start();
     } else { arrowX.setValue(0); }
-  }, [active]);
+  }, [active, reduced, arrowX]);
   return (
     <View style={modeIconStyles.mangaRow}>
       <View style={[modeIconStyles.mangaBox, { borderColor: active ? colors.primary : '#5C5B63' }]} />
@@ -135,8 +140,11 @@ function AmbienceButton({ preset, active, onPress }) {
   // While the sound is playing the icon comes alive: it pulses, bobs and
   // gently sways so the active preset is unmistakable at a glance
   const bob = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   useEffect(() => {
-    if (active) {
+    // "Unmistakable at a glance" is also carried by the preset's colour and
+    // filled icon, so the pulse/bob/sway can stop outright.
+    if (active && !reduced) {
       const pulseLoop = Animated.loop(Animated.sequence([
         Animated.timing(pulse, { toValue: 1.18, duration: 700, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 1.0,  duration: 700, useNativeDriver: true }),
@@ -151,7 +159,7 @@ function AmbienceButton({ preset, active, onPress }) {
     }
     pulse.setValue(1);
     bob.setValue(0);
-  }, [active]);
+  }, [active, reduced, pulse, bob]);
 
   const bobY  = bob.interpolate({ inputRange: [0, 1], outputRange: [1.5, -2.5] });
   const sway  = bob.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['-9deg', '0deg', '9deg'] });
@@ -840,6 +848,7 @@ function searchSites(query) {
 // ── PageImage — auto aspect ratio from the decoded image ─────────────────
 
 function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth, gutter = 0 }) {
+  const t = useT();
   const { width: fullW } = useWindowDimensions();
   const winW = renderWidth || fullW; // half-width in double-page spread mode
   const [height, setHeight] = useState(winW * 1.5);
@@ -879,7 +888,12 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth, gutte
     // gutter is the vertical whitespace AFTER this page. Webtoon treats that
     // space as a pacing instrument — tight for action, wide for an emotional
     // beat — so it's per-chapter and creator-controlled rather than a constant.
-    <Pressable onPress={handlePress} style={gutter ? { marginBottom: gutter } : null}>
+    <Pressable
+      onPress={handlePress}
+      style={gutter ? { marginBottom: gutter } : null}
+      accessibilityRole="image"
+      accessibilityLabel={t('a11y.mangaPage')}
+    >
       <Image
         source={{ uri }}
         style={{ width: winW, height }}
@@ -896,6 +910,7 @@ function PageImage({ uri, onLayout, onSingleTap, onDoubleTap, renderWidth, gutte
 // ── Double-page spread — two pages side by side, scaled to a shared row
 // height (contain, not cover) so neither image gets cropped or distorted ──
 function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
+  const t = useT();
   const [sizes, setSizes] = useState({});
   const lastTapRef = useRef(0);
   const singleTimerRef = useRef(null);
@@ -929,7 +944,13 @@ function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
   return (
     <View style={{ flexDirection: 'row', width: renderWidth * pair.length, height: rowHeight }}>
       {pair.map((uri) => (
-        <Pressable key={uri} onPress={() => handlePress(uri)} style={{ width: renderWidth, height: rowHeight }}>
+        <Pressable
+          key={uri}
+          onPress={() => handlePress(uri)}
+          style={{ width: renderWidth, height: rowHeight }}
+          accessibilityRole="image"
+          accessibilityLabel={t('a11y.mangaPage')}
+        >
           <Image
             source={{ uri }}
             style={{ width: renderWidth, height: rowHeight }}
@@ -954,6 +975,7 @@ function PagePairRow({ pair, renderWidth, onSingleTap, onDoubleTap }) {
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 function ZoomViewer({ uri, onClose }) {
+  const t = useT();
   const { width: winW, height: winH } = useWindowDimensions();
   const [imgH, setImgH] = useState(winH * 0.8);
   // Dimensions come from the decoded image (expo-image has no getSize).
@@ -1050,7 +1072,7 @@ function ZoomViewer({ uri, onClose }) {
             onGestureEvent={onPinchEvent}
             onHandlerStateChange={onPinchStateChange}>
             <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Pressable onPress={handleTap}>
+              <Pressable onPress={handleTap} accessibilityRole="image" accessibilityLabel={t('a11y.mangaPage')}>
                 <AnimatedImage
                   source={{ uri }}
                   style={{
@@ -1071,7 +1093,9 @@ function ZoomViewer({ uri, onClose }) {
       <TouchableOpacity
         style={{ position: 'absolute', top: 54, right: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 20, padding: 9 }}
         onPress={onClose}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel={t('a11y.closeZoom')}>
         <Ionicons name="close" size={20} color="#fff" />
       </TouchableOpacity>
       <Text style={{ position: 'absolute', bottom: 34, alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
@@ -1084,6 +1108,7 @@ function ZoomViewer({ uri, onClose }) {
 // ── Site card ─────────────────────────────────────────────────────────────
 
 function SiteCard({ site, active, onPress, onRemove }) {
+  const t = useT();
   const domain = site.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
   const faviconUri = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
   return (
@@ -1103,7 +1128,9 @@ function SiteCard({ site, active, onPress, onRemove }) {
         <TouchableOpacity
           style={siteCardStyles.removeBtn}
           onPress={onRemove}
-          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.removeSite')}>
           <Ionicons name="close-circle" size={16} color="#5C5B63" />
         </TouchableOpacity>
       )}
@@ -1114,7 +1141,7 @@ function SiteCard({ site, active, onPress, onRemove }) {
 const siteCardStyles = StyleSheet.create({
   wrap:       { width: '48%', marginRight: '2%', marginBottom: 8, position: 'relative' },
   card:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', paddingVertical: 10, paddingHorizontal: 10 },
-  cardActive: { borderColor: '#7B5CFF', backgroundColor: '#1A1633' },
+  cardActive: { borderColor: '#7858FF', backgroundColor: '#1A1633' },
   favicon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: '#2A2A2F' },
   info:       { flex: 1, marginLeft: 10 },
   name:       { color: '#fff', fontSize: 12, fontWeight: '600' },
@@ -1219,6 +1246,13 @@ export default function ReaderScreen({ route, navigation }) {
 
   const [showReaderSettings, setShowReaderSettings] = useState(false);
   const [showSitePicker,     setShowSitePicker]     = useState(false);
+  // Sheets slide up silently otherwise — each announces the same heading it
+  // renders, so a screen-reader user knows what just took over the screen.
+  useAnnounceOnOpen(showReaderSettings, t('reader.readerSettings'));
+  useAnnounceOnOpen(showAmbience, t('reader.ambience'));
+  useAnnounceOnOpen(showSitePicker, t('reader.readingBrowser'));
+  useAnnounceOnOpen(showChapterSelect, t('reader.chapterList'));
+  useAnnounceOnOpen(showShare, t('share.action'));
 
   // fallback chain
   const [fallbackChain, setFallbackChain] = useState([]);
@@ -3008,7 +3042,7 @@ export default function ReaderScreen({ route, navigation }) {
             <TouchableOpacity hitSlop={HIT_SLOP}
               onPress={goToPrevChapter}
               disabled={readerMode === 'api' ? currentChapterIdx <= 0 : currentChapter <= 1}
-              style={[styles.chapterArrowBtn, (readerMode === 'api' ? currentChapterIdx <= 0 : currentChapter <= 1) && styles.chapterArrowDisabled]}>
+              style={[styles.chapterArrowBtn, (readerMode === 'api' ? currentChapterIdx <= 0 : currentChapter <= 1) && styles.chapterArrowDisabled]} accessibilityRole="button" accessibilityLabel={t('reader.prevChapter')}>
               <Ionicons name="chevron-back" size={18} color={hudText} />
             </TouchableOpacity>
           </Animated.View>
@@ -3025,7 +3059,7 @@ export default function ReaderScreen({ route, navigation }) {
             <TouchableOpacity hitSlop={HIT_SLOP}
               onPress={goToNextChapter}
               disabled={readerMode === 'api' && currentChapterIdx >= apiChapters.length - 1}
-              style={[styles.chapterArrowBtn, readerMode === 'api' && currentChapterIdx >= apiChapters.length - 1 && styles.chapterArrowDisabled]}>
+              style={[styles.chapterArrowBtn, readerMode === 'api' && currentChapterIdx >= apiChapters.length - 1 && styles.chapterArrowDisabled]} accessibilityRole="button" accessibilityLabel={t('reader.nextChapter')}>
               <Ionicons name="chevron-forward" size={18} color={hudText} />
             </TouchableOpacity>
           </Animated.View>
@@ -3034,28 +3068,28 @@ export default function ReaderScreen({ route, navigation }) {
           {readerMode !== 'api' && mode === 'webtoon' && (
             <TouchableOpacity hitSlop={HIT_SLOP}
               style={[styles.bottomIconBtn, autoScroll && styles.bottomIconBtnActive]}
-              onPress={() => setAutoScroll((v) => !v)}>
+              onPress={() => setAutoScroll((v) => !v)} accessibilityRole="button" accessibilityLabel={autoScroll ? t('a11y.autoScrollPause') : t('a11y.autoScrollStart')}>
               <Ionicons name={autoScroll ? 'pause' : 'play'} size={20} color={autoScroll ? '#1D9E75' : hudMuted} />
             </TouchableOpacity>
           )}
           {readerMode !== 'api' && (
             <TouchableOpacity hitSlop={HIT_SLOP}
               style={[styles.bottomIconBtn, mode === 'manga' && styles.modeToggleActive]}
-              onPress={() => setMode((m) => m === 'webtoon' ? 'manga' : 'webtoon')}>
+              onPress={() => setMode((m) => m === 'webtoon' ? 'manga' : 'webtoon')} accessibilityRole="button" accessibilityLabel={mode === 'webtoon' ? t('a11y.switchToManga') : t('a11y.switchToWebtoon')}>
               <Ionicons name={mode === 'webtoon' ? 'reader-outline' : 'albums-outline'} size={20} color={mode === 'manga' ? colors.primary : hudMuted} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bottomIconBtn} onPress={handleBookmark}>
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bottomIconBtn} onPress={handleBookmark} accessibilityRole="button" accessibilityLabel={bookmarked ? t('a11y.removeBookmark') : t('a11y.addBookmark')}>
             <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={20} color={bookmarked ? colors.primary : hudMuted} />
           </TouchableOpacity>
-          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bottomIconBtn} onPress={() => setShowUI((v) => !v)}>
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.bottomIconBtn} onPress={() => setShowUI((v) => !v)} accessibilityRole="button" accessibilityLabel={showUI ? t('a11y.hideControls') : t('a11y.showControls')}>
             <Ionicons name={showUI ? 'eye-outline' : 'eye-off-outline'} size={20} color={showUI ? hudMuted : colors.primary} />
           </TouchableOpacity>
         </View>
       </Animated.View>
 
       {!showUI && (
-        <TouchableOpacity hitSlop={HIT_SLOP} style={[styles.eyeBtn, { backgroundColor: isDark ? 'rgba(13,13,15,0.7)' : 'rgba(255,255,255,0.85)', borderColor: hudBorder }]} onPress={() => { setShowUI(true); setReaderHidden(false); }}>
+        <TouchableOpacity hitSlop={HIT_SLOP} style={[styles.eyeBtn, { backgroundColor: isDark ? 'rgba(13,13,15,0.7)' : 'rgba(255,255,255,0.85)', borderColor: hudBorder }]} onPress={() => { setShowUI(true); setReaderHidden(false); }} accessibilityRole="button" accessibilityLabel={t('a11y.showControls')}>
           <Ionicons name="eye-outline" size={18} color={hudMuted} />
         </TouchableOpacity>
       )}
@@ -3138,7 +3172,7 @@ export default function ReaderScreen({ route, navigation }) {
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, sheetC.title]}>{t('reader.readingBrowser')}</Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => { setShowSitePicker(false); setSiteSearch(''); }}>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => { setShowSitePicker(false); setSiteSearch(''); }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3154,7 +3188,8 @@ export default function ReaderScreen({ route, navigation }) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.siteInputField}
-              />
+              
+                accessibilityLabel={t('placeholder.searchSites')}/>
               {siteSearch ? (
                 <TouchableOpacity onPress={submitSiteInput} style={styles.siteGoBtn}>
                   <Text style={styles.siteGoBtnText}>Go</Text>
@@ -3251,7 +3286,7 @@ export default function ReaderScreen({ route, navigation }) {
               <Text style={[styles.sheetTitle, sheetC.title]}>
                 {libraryImportItems?.length ? `Found ${libraryImportItems.length} series` : 'Nothing found'}
               </Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setLibraryImportItems(null)}>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setLibraryImportItems(null)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3303,7 +3338,7 @@ export default function ReaderScreen({ route, navigation }) {
               {ambienceState.presetId && (
                 <View style={styles.playingBadge}><Text style={styles.playingText}>{t('reader.playing')}</Text></View>
               )}
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAmbience(false)}>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAmbience(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3323,11 +3358,11 @@ export default function ReaderScreen({ route, navigation }) {
               const activeColor = AMBIENCE_PRESETS.find((p) => p.id === ambienceState.presetId)?.color || colors.primary;
               return (
                 <View style={styles.ambienceVolRow}>
-                  <TouchableOpacity hitSlop={HIT_SLOP} style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume - 0.1)}>
+                  <TouchableOpacity hitSlop={HIT_SLOP} style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume - 0.1)} accessibilityRole="button" accessibilityLabel={t('a11y.volumeDown')}>
                     <Ionicons name="volume-low-outline" size={16} color="#9B9AA3" />
                   </TouchableOpacity>
                   <AmbienceVolumeSlider volume={ambienceState.volume} color={activeColor} />
-                  <TouchableOpacity hitSlop={HIT_SLOP} style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume + 0.1)}>
+                  <TouchableOpacity hitSlop={HIT_SLOP} style={styles.ambienceVolBtn} onPress={() => ambienceSetVolume(ambienceState.volume + 0.1)} accessibilityRole="button" accessibilityLabel={t('a11y.volumeUp')}>
                     <Ionicons name="volume-high-outline" size={16} color="#9B9AA3" />
                   </TouchableOpacity>
                   <Text style={[styles.ambienceVolPct, { color: activeColor }]}>{Math.round(ambienceState.volume * 100)}%</Text>
@@ -3345,7 +3380,7 @@ export default function ReaderScreen({ route, navigation }) {
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, sheetC.title]}>{t('reader.readerSettings')}</Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowReaderSettings(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowReaderSettings(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
             </View>
             {readerMode !== 'api' && (
               <>
@@ -3429,13 +3464,13 @@ export default function ReaderScreen({ route, navigation }) {
                 <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.screenDimmer')}</Text>
                 <Text style={styles.settingsRowSub}>{dimmer === 0 ? 'Off' : `${Math.round(dimmer / 0.7 * 100)}% dim`}</Text>
               </View>
-              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={t('a11y.dimmerDown')}>
                 <Ionicons name="remove" size={16} color="#9B9AA3" />
               </TouchableOpacity>
               <View style={styles.dimmerTrack}>
                 <View style={[styles.dimmerFill, { width: `${Math.round(dimmer / 0.7 * 100)}%` }]} />
               </View>
-              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustDimmer(0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={t('a11y.dimmerUp')}>
                 <Ionicons name="add" size={16} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3445,13 +3480,13 @@ export default function ReaderScreen({ route, navigation }) {
                 <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.nightFilter')}</Text>
                 <Text style={styles.settingsRowSub}>{nightFilter === 0 ? 'Off' : `${Math.round(nightFilter / 0.5 * 100)}% warm`}</Text>
               </View>
-              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(-0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={t('a11y.nightFilterDown')}>
                 <Ionicons name="remove" size={16} color="#9B9AA3" />
               </TouchableOpacity>
               <View style={styles.dimmerTrack}>
                 <View style={[styles.dimmerFill, { width: `${Math.round(nightFilter / 0.5 * 100)}%`, backgroundColor: '#FF8A3D' }]} />
               </View>
-              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <TouchableOpacity style={styles.dimmerBtn} onPress={() => adjustNightFilter(0.1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={t('a11y.nightFilterUp')}>
                 <Ionicons name="add" size={16} color="#9B9AA3" />
               </TouchableOpacity>
             </View>
@@ -3515,7 +3550,7 @@ export default function ReaderScreen({ route, navigation }) {
             <View style={[styles.sheetHandle, sheetC.handle]} />
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, sheetC.title]}>{t('share.action')}</Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowShare(false)}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowShare(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}><Ionicons name="close" size={20} color="#9B9AA3" /></TouchableOpacity>
             </View>
             <View style={styles.sharePreview}>
               <Text style={styles.sharePreviewLogo}>MangaRecs</Text>
@@ -3564,7 +3599,7 @@ export default function ReaderScreen({ route, navigation }) {
       {/* ── Resolving overlay ───────────────────────────────────────────── */}
       {resolving && (
         <View style={styles.resolvingOverlay}>
-          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.resolvingBackBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.resolvingBackBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.6)" />
           </TouchableOpacity>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -3615,7 +3650,7 @@ export default function ReaderScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container:              { flex: 1, backgroundColor: '#0D0D0F' },
   progressBar:            { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#2A2A2F', zIndex: 100 },
-  progressFill:           { height: 3, backgroundColor: '#7B5CFF' },
+  progressFill:           { height: 3, backgroundColor: '#7858FF' },
   topBar:                 { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 90, backgroundColor: 'rgba(13,13,15,0.92)' },
   topRow:                 { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 10, minHeight: 56 },
   topBarLeft:             { minWidth: 80, flexDirection: 'row', alignItems: 'center' },
@@ -3643,17 +3678,17 @@ const styles = StyleSheet.create({
   bottomActions:          { flexDirection: 'row', alignItems: 'center' },
   bottomIconBtn:          { padding: 8, marginLeft: 4 },
   bottomIconBtnActive:    { backgroundColor: 'rgba(29,158,117,0.15)', borderRadius: 20 },
-  modeToggleActive:       { backgroundColor: 'rgba(123,92,255,0.15)', borderRadius: 20 },
+  modeToggleActive:       { backgroundColor: 'rgba(120, 88, 255,0.15)', borderRadius: 20 },
   eyeBtn:                 { position: 'absolute', bottom: 24, right: 16, padding: 10, borderRadius: 24, backgroundColor: 'rgba(13,13,15,0.7)', borderWidth: 1, borderColor: '#2A2A2F', zIndex: 90 },
   // Chapter floating dropdown
   chapterDropdown:        { position: 'absolute', bottom: 90, left: 16, width: '50%', height: 300, backgroundColor: '#1A1A1F', borderRadius: 16, borderWidth: 1, borderColor: '#2A2A2F', overflow: 'hidden', zIndex: 95 },
   chapterDropdownLabel:   { color: '#5C5B63', fontSize: 10, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   chapterListRow:         { flexDirection: 'row', alignItems: 'center', height: CHAPTER_ROW_H, paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#242428' },
-  chapterListRowActive:   { backgroundColor: 'rgba(123,92,255,0.12)' },
+  chapterListRowActive:   { backgroundColor: 'rgba(120, 88, 255,0.12)' },
   chapterListDotWrap:     { width: 14, alignItems: 'center', marginRight: 8 },
-  chapterListActiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: '#7B5CFF' },
+  chapterListActiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: '#7858FF' },
   chapterListNum:         { color: '#fff', fontSize: 12, fontWeight: '600' },
-  chapterListNumActive:   { color: '#7B5CFF' },
+  chapterListNumActive:   { color: '#7858FF' },
   chapterListNumRead:     { color: '#5C5B63', fontWeight: '400' },
   chapterListTitle:       { color: '#9B9AA3', fontSize: 10, marginTop: 2 },
   sheetOverlay:           { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -3675,27 +3710,27 @@ const styles = StyleSheet.create({
   // Slider: generous touch height with the thin track centered inside it
   ambienceVolSlider:      { flex: 1, height: 28, justifyContent: 'center' },
   ambienceVolTrack:       { height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden' },
-  ambienceVolFill:        { height: 4, backgroundColor: '#7B5CFF', borderRadius: 2 },
-  ambienceVolThumb:       { position: 'absolute', width: 14, height: 14, borderRadius: 7, marginLeft: -7, top: 7, backgroundColor: '#7B5CFF', elevation: 2 },
+  ambienceVolFill:        { height: 4, backgroundColor: '#7858FF', borderRadius: 2 },
+  ambienceVolThumb:       { position: 'absolute', width: 14, height: 14, borderRadius: 7, marginLeft: -7, top: 7, backgroundColor: '#7858FF', elevation: 2 },
   ambienceVolPct:         { fontSize: 11, fontWeight: '700', minWidth: 34, textAlign: 'right' },
   modeSectionLabel:       { color: '#9B9AA3', fontSize: 11, fontWeight: '600', marginBottom: 10 },
   readerRow:              { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   readerBtn:              { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, borderColor: '#2A2A2F' },
-  readerBtnActive:        { borderColor: '#7B5CFF', backgroundColor: 'rgba(123,92,255,0.15)' },
+  readerBtnActive:        { borderColor: '#7858FF', backgroundColor: 'rgba(120, 88, 255,0.15)' },
   readerBtnText:          { color: '#9B9AA3', fontSize: 12, fontWeight: '600', marginTop: 8 },
-  readerBtnTextActive:    { color: '#7B5CFF' },
+  readerBtnTextActive:    { color: '#7858FF' },
   readerBtnSub:           { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
   settingsRow:            { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2A2A2F' },
   settingsRowText:        { color: '#fff', fontSize: 14, marginLeft: 12 },
   settingsRowSub:         { color: '#9B9AA3', fontSize: 11, marginLeft: 12, marginTop: 2 },
   settingsToggle:         { width: 40, height: 22, borderRadius: 11, backgroundColor: '#2A2A2F', padding: 2, justifyContent: 'center' },
-  settingsToggleOn:       { backgroundColor: 'rgba(123,92,255,0.45)' },
+  settingsToggleOn:       { backgroundColor: 'rgba(120, 88, 255,0.45)' },
   settingsToggleDot:      { width: 18, height: 18, borderRadius: 9, backgroundColor: '#9B9AA3' },
-  settingsToggleDotOn:    { backgroundColor: '#7B5CFF', alignSelf: 'flex-end' },
+  settingsToggleDotOn:    { backgroundColor: '#7858FF', alignSelf: 'flex-end' },
   speedChip:              { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(155,154,163,0.12)', marginLeft: 6 },
-  speedChipActive:        { backgroundColor: 'rgba(123,92,255,0.25)' },
+  speedChipActive:        { backgroundColor: 'rgba(120, 88, 255,0.25)' },
   speedChipText:          { color: '#9B9AA3', fontSize: 11, fontWeight: '600' },
-  speedChipTextActive:    { color: '#7B5CFF' },
+  speedChipTextActive:    { color: '#7858FF' },
   dimmerBtn:              { padding: 4 },
   dimmerTrack:            { width: 72, height: 4, borderRadius: 2, backgroundColor: '#2A2A2F', overflow: 'hidden', marginHorizontal: 2 },
   dimmerFill:             { height: 4, backgroundColor: '#EF9F27', borderRadius: 2 },
@@ -3715,17 +3750,17 @@ const styles = StyleSheet.create({
   shareStoryText:         { color: '#fff', fontSize: 13, fontWeight: '600', marginLeft: 6 },
 
   // site picker
-  apiModeBanner:          { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(123,92,255,0.3)' },
-  apiModeBannerText:      { color: '#7B5CFF', fontSize: 12, marginLeft: 6, flex: 1 },
+  apiModeBanner:          { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.12)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.3)' },
+  apiModeBannerText:      { color: '#7858FF', fontSize: 12, marginLeft: 6, flex: 1 },
   siteInputRow:           { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0D0D0F', borderRadius: 12, borderWidth: 1, borderColor: '#2A2A2F', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
   siteInputField:         { flex: 1, color: '#fff', fontSize: 13, marginLeft: 8 },
-  siteGoBtn:              { backgroundColor: '#7B5CFF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  siteGoBtn:              { backgroundColor: '#7858FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   siteGoBtnText:          { color: '#fff', fontSize: 12, fontWeight: '600' },
   reportPageRow:          { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, alignSelf: 'flex-start' },
   reportPageText:         { color: '#9B9AA3', fontSize: 11.5 },
   libraryImportRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 10 },
   libraryImportRowText:   { color: '#fff', fontSize: 14, flex: 1 },
-  libraryImportConfirmBtn: { backgroundColor: '#7B5CFF', borderRadius: 14, marginHorizontal: 20, marginTop: 12, marginBottom: 24, paddingVertical: 14, alignItems: 'center' },
+  libraryImportConfirmBtn: { backgroundColor: '#7858FF', borderRadius: 14, marginHorizontal: 20, marginTop: 12, marginBottom: 24, paddingVertical: 14, alignItems: 'center' },
   libraryImportConfirmText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   libraryImportEmptyText: { color: '#9B9AA3', fontSize: 13, textAlign: 'center', paddingHorizontal: 30, paddingVertical: 40 },
   siteSectionRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
@@ -3738,7 +3773,7 @@ const styles = StyleSheet.create({
   pagesLoadingText:       { color: '#9B9AA3', fontSize: 13, marginTop: 12 },
   noPages:                { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 120 },
   noPagesText:            { color: '#9B9AA3', fontSize: 14, marginTop: 12, textAlign: 'center' },
-  openInBrowserBtn:       { marginTop: 16, backgroundColor: '#7B5CFF', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
+  openInBrowserBtn:       { marginTop: 16, backgroundColor: '#7858FF', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   openInBrowserText:      { color: '#fff', fontSize: 13, fontWeight: '600' },
   pageCounter:            { position: 'absolute', bottom: 78, right: 16, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
   pageCounterText:        { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600' },

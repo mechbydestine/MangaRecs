@@ -1,16 +1,20 @@
 import { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import { Animated, Easing, Platform } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Ellipse, Path, Circle } from 'react-native-svg';
+import { useReducedMotion } from '../utils/a11y';
 
 const StarLogo = forwardRef(function StarLogo({ size = 38, continuous = false }, ref) {
   const spinAnim = useRef(new Animated.Value(0)).current;
   const animRef  = useRef(null);
   const oneShot  = useRef(false);
+  const reduced  = useReducedMotion();
 
   useEffect(() => {
     if (animRef.current) { animRef.current.stop(); animRef.current = null; }
     spinAnim.setValue(0);
-    if (continuous) {
+    // `continuous` is the app-launch spinner — an endlessly rotating mark is
+    // the single most common Reduce Motion complaint, so it simply holds.
+    if (continuous && !reduced) {
       animRef.current = Animated.loop(
         Animated.timing(spinAnim, {
           toValue: 1,
@@ -22,7 +26,7 @@ const StarLogo = forwardRef(function StarLogo({ size = 38, continuous = false },
       animRef.current.start();
     }
     return () => { if (animRef.current) { animRef.current.stop(); animRef.current = null; } };
-  }, [continuous]);
+  }, [continuous, reduced, spinAnim]);
 
   // one-shot spin (header logo on tab-press / refresh)
   useImperativeHandle(ref, () => ({
@@ -50,7 +54,7 @@ const StarLogo = forwardRef(function StarLogo({ size = 38, continuous = false },
         width: size,
         height: size,
         transform: [{ rotate }],
-        shadowColor: '#7B5CFF',
+        shadowColor: '#7858FF',
         shadowOpacity: 0.7,
         shadowRadius: size * 0.35,
         shadowOffset: { width: 0, height: 0 },

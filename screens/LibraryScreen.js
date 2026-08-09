@@ -32,6 +32,7 @@ import { StarRatingInput, StarRatingDisplay } from '../components/StarRating';
 import { rateSeries, getSeriesRating } from '../utils/ratings';
 import { useResponsive, TABLET_GRID_MAX_WIDTH } from '../utils/responsive';
 import { HIT_SLOP } from '../utils/tokens';
+import { useReducedMotion, useAnnounceOnOpen } from '../utils/a11y';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
 const TABS = ['Reading', 'Bookmarked', 'Downloaded', 'Completed'];
@@ -64,6 +65,7 @@ const keyOf = (s) => s.searchKey || s.title;
 // ── GridItem with entrance animation ──────────────────────────────────────
 
 function GridItem({ series, activeTab, focusKey, onPress, onLongPress, index, opening, newChapterCount, isNewInPool, siteIcon, arranging, pinned, onSlotLayout, onDragStart, onDrop, widthPct }) {
+  const reduced = useReducedMotion();
   const { colors } = useTheme();
   const t = useT();
   const anim = useRef(new Animated.Value(0)).current;
@@ -100,6 +102,9 @@ function GridItem({ series, activeTab, focusKey, onPress, onLongPress, index, op
   // App-icon style jiggle while arrange mode is on (pinned tiles sit still)
   useEffect(() => {
     if (!arranging || pinned) return;
+    // Arrange mode is still fully usable without the jiggle — the mode is
+    // also signalled by the toolbar and the remove badges on each tile.
+    if (reduced) return;
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(wiggle, { toValue: 1,  duration: 130, useNativeDriver: true }),
       Animated.timing(wiggle, { toValue: -1, duration: 260, useNativeDriver: true }),
@@ -107,7 +112,7 @@ function GridItem({ series, activeTab, focusKey, onPress, onLongPress, index, op
     ]));
     loop.start();
     return () => { loop.stop(); wiggle.setValue(0); };
-  }, [arranging, pinned]);
+  }, [arranging, pinned, reduced, wiggle]);
 
   // Drag-to-rearrange: capture the touch before the inner Touchable when
   // arrange mode is on, follow the finger, and let the parent work out the
@@ -316,6 +321,8 @@ export default function LibraryScreen() {
   const [completedIds, setCompletedIds] = useState(new Set());
   const [contextMenu, setContextMenu] = useState({ visible: false, series: null, pos: null });
   const [rateModal, setRateModal] = useState({ visible: false, series: null, avg: 0, count: 0, yourRating: 0, loading: false, submitting: false });
+  useAnnounceOnOpen(rateModal.visible, t('library.rateSeries'));
+  useAnnounceOnOpen(searchOpen, t('common.search'));
   const [progressRows, setProgressRows] = useState([]);
   const [lastReadEntry, setLastReadEntry] = useState(null);
   const [historyItems, setHistoryItems] = useState([]);
@@ -1404,7 +1411,7 @@ export default function LibraryScreen() {
 
       {/* Long-press context menu */}
       <Modal visible={contextMenu.visible} transparent animationType="fade" onRequestClose={closeContextMenu}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeContextMenu} />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeContextMenu}  accessibilityElementsHidden importantForAccessibility="no"/>
         {contextMenu.pos && (() => {
           const { width: sw, height: sh } = Dimensions.get('window');
           const menuW = 210;
@@ -1486,7 +1493,8 @@ export default function LibraryScreen() {
                 onSubmitEditing={() => submitSearch()}
                 placeholder={t('placeholder.searchManga')}
                 placeholderTextColor={colors.muted}
-              />
+              
+                accessibilityLabel={t('placeholder.searchManga')}/>
               {query ? (
                 <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
                   <Ionicons name="close" size={16} color={colors.muted} />
@@ -1591,28 +1599,28 @@ const styles = StyleSheet.create({
   storageLine: { fontSize: 11, paddingHorizontal: 20, marginBottom: 10, marginTop: -4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(155,154,163,0.08)', borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 11, marginHorizontal: 20, marginBottom: 16 },
   searchPlaceholder: { fontSize: 13, marginLeft: 10 },
-  continueCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(123,92,255,0.15)', borderWidth: 1, borderColor: 'rgba(123,92,255,0.2)', borderRadius: 16, padding: 12, marginHorizontal: 20, marginBottom: 16 },
+  continueCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(120, 88, 255,0.15)', borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.2)', borderRadius: 16, padding: 12, marginHorizontal: 20, marginBottom: 16 },
   continueCover: { width: 48, height: 66, borderRadius: 10, marginRight: 12 },
-  continueCoverPlay: { position: 'absolute', bottom: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(123,92,255,0.88)', alignItems: 'center', justifyContent: 'center' },
+  continueCoverPlay: { position: 'absolute', bottom: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(120, 88, 255,0.88)', alignItems: 'center', justifyContent: 'center' },
   continueInfo: { flex: 1 },
-  continueLabel: { color: '#7B5CFF', fontSize: 11, fontWeight: '500' },
+  continueLabel: { color: '#7858FF', fontSize: 11, fontWeight: '500' },
   continueTitle: { fontSize: 14, fontWeight: '600', marginTop: 1 },
   continueChapter: { fontSize: 11, marginTop: 1 },
-  continuePlayBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(123,92,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  continueProgressBar: { height: 3, backgroundColor: 'rgba(123,92,255,0.18)', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
-  continueProgressFill: { height: 3, backgroundColor: '#7B5CFF', borderRadius: 2 },
+  continuePlayBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(120, 88, 255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  continueProgressBar: { height: 3, backgroundColor: 'rgba(120, 88, 255,0.18)', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  continueProgressFill: { height: 3, backgroundColor: '#7858FF', borderRadius: 2 },
   tabsRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 20, marginBottom: 10 },
   sortRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
   genreRow: { marginBottom: 14 },
   genreRowContent: { paddingHorizontal: 20 },
   sortChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, marginLeft: 6 },
-  sortChipActive: { backgroundColor: 'rgba(123,92,255,0.18)' },
+  sortChipActive: { backgroundColor: 'rgba(120, 88, 255,0.18)' },
   sortChipText: { fontSize: 10.5, fontWeight: '600' },
-  arrangeBtn: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(123,92,255,0.14)' },
-  arrangeBtnActive: { backgroundColor: '#7B5CFF' },
-  arrangeBtnText: { fontSize: 10.5, fontWeight: '700', color: '#7B5CFF', marginLeft: 4 },
+  arrangeBtn: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: 'rgba(120, 88, 255,0.14)' },
+  arrangeBtnActive: { backgroundColor: '#7858FF' },
+  arrangeBtnText: { fontSize: 10.5, fontWeight: '700', color: '#7858FF', marginLeft: 4 },
   genreFilterToggle: { marginLeft: 'auto', width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  genreFilterDot: { position: 'absolute', top: 3, right: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: '#7B5CFF' },
+  genreFilterDot: { position: 'absolute', top: 3, right: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: '#7858FF' },
   tab: { flex: 1, borderRadius: 9, overflow: 'hidden' },
   tabInner: { paddingVertical: 8, paddingHorizontal: 2, alignItems: 'center' },
   tabActive: {},
@@ -1623,8 +1631,8 @@ const styles = StyleSheet.create({
   gridItem: { marginHorizontal: `${ITEM_MARGIN_H}%`, marginBottom: 20 },
   cover: { width: '100%', aspectRatio: 0.66, borderRadius: 12, overflow: 'hidden', marginBottom: 6 },
   progressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(0,0,0,0.4)' },
-  progressFill: { height: 3, backgroundColor: '#7B5CFF' },
-  savedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(123,92,255,0.25)', borderRadius: 10, padding: 3 },
+  progressFill: { height: 3, backgroundColor: '#7858FF' },
+  savedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(120, 88, 255,0.25)', borderRadius: 10, padding: 3 },
   downloadedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, padding: 3 },
   cloudBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 },
   siteFaviconBadge: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
@@ -1647,7 +1655,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 14, fontWeight: '600' },
   emptySub: { fontSize: 11, marginTop: 6 },
-  contextMenu: { position: 'absolute', width: 210, backgroundColor: 'rgba(22,22,28,0.93)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(123,92,255,0.22)', overflow: 'hidden' },
+  contextMenu: { position: 'absolute', width: 210, backgroundColor: 'rgba(22,22,28,0.93)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(120, 88, 255,0.22)', overflow: 'hidden' },
   contextMenuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13 },
   contextMenuText: { color: '#E8E8F0', fontSize: 13, fontWeight: '500', marginLeft: 10, flex: 1 },
   contextDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)' },

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
+import { useAnnounceOnOpen } from '../utils/a11y';
 
 export const AGE_VERIFIED_KEY = '@mangarecs/age_verified';
 
@@ -29,6 +30,9 @@ function validate(mm, dd, yyyy) {
 export default function AgeGateModal({ visible, onVerified, onDismiss }) {
   const { colors } = useTheme();
   const t = useT();
+  // The same string the sheet shows as its heading, so what is spoken and what
+  // is on screen cannot drift apart.
+  useAnnounceOnOpen(visible, t('gate.ageTitle'));
   const [mm, setMm] = useState('');
   const [dd, setDd] = useState('');
   const [yyyy, setYyyy] = useState('');
@@ -71,7 +75,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={handleClose}>
       <View style={s.overlay}>
         <Animated.View style={[s.sheet, { backgroundColor: colors.card, borderColor: colors.border, transform: [{ translateX: shakeAnim }] }]}>
-          <View style={[s.iconWrap, { backgroundColor: 'rgba(123,92,255,0.15)' }]}>
+          <View style={[s.iconWrap, { backgroundColor: 'rgba(120, 88, 255,0.15)' }]}>
             <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
           </View>
           <Text style={[s.title, { color: colors.text }]}>{t('gate.ageTitle')}</Text>
@@ -95,7 +99,8 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
                 }}
                 returnKeyType="next"
                 onSubmitEditing={() => ddRef.current?.focus()}
-              />
+              
+                accessibilityLabel={t('a11y.birthMonth')}/>
             </View>
             <Text style={[s.dobSep, { color: colors.muted }]}>/</Text>
             <View style={s.fieldWrap}>
@@ -114,7 +119,8 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
                 }}
                 returnKeyType="next"
                 onSubmitEditing={() => yyyyRef.current?.focus()}
-              />
+              
+                accessibilityLabel={t('a11y.birthDay')}/>
             </View>
             <Text style={[s.dobSep, { color: colors.muted }]}>/</Text>
             <View style={[s.fieldWrap, { flex: 2 }]}>
@@ -130,7 +136,8 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
                 onChangeText={setYyyy}
                 returnKeyType="done"
                 onSubmitEditing={handleConfirm}
-              />
+              
+                accessibilityLabel={t('a11y.birthYear')}/>
             </View>
           </View>
 

@@ -10,6 +10,7 @@ const GOLD = '#FFD700';
 // Tapping the left half of a star registers the odd (half-star) point, the
 // right half registers the even (full-star) point.
 export function StarRatingInput({ value = 0, onRate, size = 20, color = GOLD, disabled = false }) {
+  const t = useT();
   return (
     <View style={styles.row}>
       {[1, 2, 3, 4, 5].map((n) => {
@@ -20,6 +21,9 @@ export function StarRatingInput({ value = 0, onRate, size = 20, color = GOLD, di
             key={n}
             disabled={disabled}
             hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.rateStars', { n })}
+            accessibilityState={{ disabled, selected: filled }}
             onPress={(e) => {
               if (disabled) return;
               const x = Math.max(0, Math.min(size, e.nativeEvent.locationX));

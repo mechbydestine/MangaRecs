@@ -2,7 +2,7 @@
 //
 // Everything in this app's styling is hand-carried literals: spacing, radii,
 // and type sizes are repeated inline across 43 screen/component files, and the
-// brand purple appears as a raw `#7B5CFF` roughly 250 times. That's why adding
+// brand purple appears as a raw `#7858FF` roughly 250 times. That's why adding
 // the "Dark" palette to ThemeContext didn't visibly do much — Dark's whole
 // differentiator is a muted primary, and the overwhelming majority of primary
 // usage never asks the theme what the primary is.
@@ -68,7 +68,7 @@ export const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 };
 // theme picker. Legitimate uses: module-scope StyleSheet.create, app.json,
 // notification tint, share-card rendering.
 export const BRAND = {
-  purple: '#7B5CFF',
+  purple: '#7858FF',
   green:  '#1D9E75',
   ink:    '#0D0D0F',
 };

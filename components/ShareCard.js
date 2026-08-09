@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { HIT_SLOP } from '../utils/tokens';
+import { useAnnounceOnOpen } from '../utils/a11y';
 
 const SHARE_CARDS = [
   { id: 'progress', label: 'Reading Progress', emoji: '📖' },
@@ -19,6 +20,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
   const { colors } = useTheme();
 
   const t = useT();
+  useAnnounceOnOpen(open, t('share.asCard'));
   const [selectedCard, setSelectedCard] = useState('progress');
   const [shared, setShared] = useState(false);
 
@@ -60,7 +62,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
 
           <View style={styles.headerRow}>
             <Text style={[styles.title, { color: colors.text }]}>{t('share.asCard')}</Text>
-            <TouchableOpacity hitSlop={HIT_SLOP} onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={onClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={18} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -75,7 +77,7 @@ export default function ShareCard({ open, onClose, series, chapter, progress }) 
                   {
                     borderColor: selectedCard === c.id ? colors.primary : colors.border,
                     backgroundColor: selectedCard === c.id
-                      ? 'rgba(123,92,255,0.1)'
+                      ? 'rgba(120, 88, 255,0.1)'
                       : 'rgba(255,255,255,0.03)',
                   },
                 ]}
@@ -277,7 +279,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 3,
-    backgroundColor: '#7B5CFF',
+    backgroundColor: '#7858FF',
     borderRadius: 2,
   },
   storyPct: { fontSize: 7, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
@@ -306,7 +308,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#7B5CFF',
+    backgroundColor: '#7858FF',
   },
   shareBtnText: { fontSize: 14, fontWeight: '600', color: '#fff', paddingRight: 2 },
 });
