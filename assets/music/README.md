@@ -18,12 +18,16 @@ the recap always has audio.
 
 ## The tracks
 
+Each link is a search pre-filled with the track title — the track is the top
+result. Artist name is given to disambiguate, because several of these titles
+have near-identical uploads from other accounts.
+
 | Save as | Mood | Lanes it scores | Track | Artist | Length |
 |---|---|---|---|---|---|
-| `epic.mp3` | epic | Battle, Sports, Adventure | [Epic Orchestra – Anime Intro](https://pixabay.com/music/search/anime/) | Sekuora | 1:58 |
-| `warm.mp3` | warm | Drama, Slice of Life | [Anime Opening Emotional Journey](https://pixabay.com/music/search/anime/) | alex-morgan | 1:44 |
-| `dark.mp3` | dark | Suspense, Supernatural | [Japanese Dark \| Temple & Samurai (Yōkai)](https://pixabay.com/music/search/dark%20japanese/) | imabo | 3:15 |
-| `synth.mp3` | synth | Sci-Fi | [Synthwave – Anime Cyberpunk](https://pixabay.com/music/search/anime/) | YevhenAstafiev | 2:12 |
+| `epic.mp3` | epic | Battle, Sports, Adventure | [Epic Orchestra – Anime Intro](https://pixabay.com/music/search/?q=epic%20orchestra%20anime%20intro) | **Sekuora** | 1:58 |
+| `warm.mp3` | warm | Drama, Slice of Life | [Anime Opening Emotional Journey](https://pixabay.com/music/search/?q=anime%20opening%20emotional%20journey) | **alex-morgan** | 1:44 |
+| `dark.mp3` | dark | Suspense, Supernatural | [Japanese Dark – Temple & Samurai (Yōkai)](https://pixabay.com/music/search/?q=japanese%20dark%20temple%20samurai) | **imabo** | 3:15 |
+| `synth.mp3` | synth | Sci-Fi | [Synthwave – Anime Cyberpunk](https://pixabay.com/music/search/?q=synthwave%20anime%20cyberpunk) | **YevhenAstafiev** | 2:12 |
 
 ### Alternates, if one of the above doesn't land
 
