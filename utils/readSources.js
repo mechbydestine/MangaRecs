@@ -232,10 +232,39 @@ async function probeMangaPill(query, matches) {
   );
 }
 
-// Both scanlation aggregators, so both are English-only in practice.
+// Added 2026-08-10. Both were audited live and answer a plain fetch with
+// server-rendered results containing the query — the same bar Weeb Central and
+// MangaPill clear. Worth having as fetch probes specifically because a fetch
+// costs a fraction of a WebView lane, so these two widen the row without
+// competing for the three lanes SourceProbe runs.
+async function probeMangaKatana(query, matches) {
+  const html = await getText(
+    `https://mangakatana.com/?search=${encodeURIComponent(query)}&search_by=book_name`
+  );
+  return firstMatchingLink(
+    html,
+    /<a\b[^>]*href="(https:\/\/mangakatana\.com\/manga\/[^"]+)"[^>]*>([\s\S]{0,200}?)<\/a>/g,
+    'https://mangakatana.com',
+    matches
+  );
+}
+
+async function probeFanfox(query, matches) {
+  const html = await getText(`https://fanfox.net/search?title=${encodeURIComponent(query)}`);
+  return firstMatchingLink(
+    html,
+    /<a\b[^>]*href="(\/manga\/[^"]+)"[^>]*>([\s\S]{0,200}?)<\/a>/g,
+    'https://fanfox.net',
+    matches
+  );
+}
+
+// All scanlation aggregators, so all English-only in practice.
 const COMMUNITY_PROBES = [
-  { name: 'Weeb Central', host: 'weebcentral.com', langs: ['en'], run: probeWeebCentral },
-  { name: 'MangaPill',    host: 'mangapill.com',   langs: ['en'], run: probeMangaPill },
+  { name: 'Weeb Central', host: 'weebcentral.com',  langs: ['en'], run: probeWeebCentral },
+  { name: 'MangaPill',    host: 'mangapill.com',    langs: ['en'], run: probeMangaPill },
+  { name: 'MangaKatana',  host: 'mangakatana.com',  langs: ['en'], run: probeMangaKatana },
+  { name: 'Fanfox',       host: 'fanfox.net',       langs: ['en'], run: probeFanfox },
 ];
 
 // ── WebView probe targets ──────────────────────────────────────────────────
@@ -260,9 +289,11 @@ export const WEBVIEW_PROBES = [
     pathRe: /^(https:\/\/asurascans\.com)?\/comics\/[^/]+$/,
   },
   {
-    name: 'Comick', host: 'comick.io', langs: ['en'],
-    search: (q) => `https://comick.io/search?q=${encodeURIComponent(q)}`,
-    pathRe: /^(https:\/\/comick\.io)?\/comic\/[^/]+$/,
+    // comick.io now 301s to comick.dev — probing the old host spent a whole
+    // lane following the redirect before it could even meet the challenge.
+    name: 'Comick', host: 'comick.dev', langs: ['en'],
+    search: (q) => `https://comick.dev/search?q=${encodeURIComponent(q)}`,
+    pathRe: /^(https:\/\/comick\.dev)?\/comic\/[^/]+$/,
   },
   {
     name: 'MangaKakalot', host: 'natomanga.com', langs: ['en'],
@@ -274,11 +305,9 @@ export const WEBVIEW_PROBES = [
     search: (q) => `https://mangahub.io/search?q=${encodeURIComponent(q)}`,
     pathRe: /^(https:\/\/mangahub\.io)?\/manga\/[^/]+$/,
   },
-  {
-    name: 'Bato.to', host: 'bato.to', langs: ['en'],
-    search: (q) => `https://bato.to/search?word=${encodeURIComponent(q)}`,
-    pathRe: /^(https:\/\/bato\.to)?\/title\/[^/]+$/,
-  },
+  // Bato.to removed 2026-08-10: the domain does not resolve. It was costing a
+  // full 9.5s lane timeout on every series to confirm that, which is a tenth
+  // of the whole probing budget spent on a site that no longer exists.
 ];
 
 // Which WebView probes are worth running for a given reader + result set.

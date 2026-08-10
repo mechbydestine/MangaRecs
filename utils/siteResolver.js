@@ -91,12 +91,12 @@ const SLUG_BUILDERS = {
   'asura.gg':        (s, b) => `${b}/manga/${s}/`,
   'asuracomic.net':  (s, b) => `${b}/manga/${s}/`,
   'asuratoon.com':   (s, b) => `${b}/manga/${s}/`,
-  'manhuaplus.com':  (s, b) => `${b}/manga/${s}/`,
   'weebcentral.com': (s, b) => `${b}/series/${s}`,
-  'zinmanga.com':    (s, b) => `${b}/manga/${s}/`,
-  'likemanga.io':    (s, b) => `${b}/manga/${s}/`,
-  'aquamanga.com':   (s, b) => `${b}/manga/${s}/`,
   'manganato.gg':    (s, b) => `${b}/manga/${s}`,
+  // Removed 2026-08-10: zinmanga.com, likemanga.io and aquamanga.com no longer
+  // resolve at all, and manhuaplus.com's /manga/{slug}/ 404s (its permalinks
+  // moved) — a direct URL that 404s costs a load plus the watchdog before the
+  // chain advances, which is slower than going straight to search.
 };
 
 export function buildDirectUrl(siteUrl, title) {
@@ -114,10 +114,10 @@ const MADARA_PATHS = {
   'asuracomic.net':  'manga',
   'asuratoon.com':   'manga',
   'weebcentral.com': 'series',
+  // manhuaplus.com stays listed so fetchMadaraUrl() can still ask its AJAX
+  // endpoint for the real permalink — it is only the guessed /manga/{slug}/
+  // URL above that was wrong.
   'manhuaplus.com':  'manga',
-  'zinmanga.com':    'manga',
-  'likemanga.io':    'manga',
-  'aquamanga.com':   'manga',
 };
 
 

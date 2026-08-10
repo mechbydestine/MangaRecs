@@ -363,7 +363,11 @@ const BOOKMARKS = [
   { name: 'MangaDex',  url: 'https://mangadex.org',              desc: 'Largest manga library',   emoji: '📚' },
   { name: 'Webtoon',   url: 'https://webtoons.com',              desc: 'Official webtoons',        emoji: '🎨' },
   { name: 'MangaPlus', url: 'https://mangaplus.shueisha.co.jp',  desc: 'Official Shueisha titles', emoji: '⭐' },
-  { name: 'Bato.to',   url: 'https://bato.to',                   desc: 'Community scanlations',    emoji: '🌐' },
+  // Bato.to was here until 2026-08-10 and its domain no longer resolves — the
+  // app was recommending a dead site. Replaced with two that were audited live
+  // and answer a plain request with real results.
+  { name: 'Weeb Central', url: 'https://weebcentral.com',        desc: 'Community scanlations',    emoji: '⚡' },
+  { name: 'MangaKatana',  url: 'https://mangakatana.com',        desc: 'Fast, ad-light reader',    emoji: '📖' },
 ];
 
 

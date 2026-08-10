@@ -50,17 +50,21 @@ const SEARCH_BUILDERS = {
   'mangafire.to':             (q) => `https://mangafire.to/filter?keyword=${encodeURIComponent(q)}`,
   'weebcentral.com':          (q) => `https://weebcentral.com/search?term=${encodeURIComponent(q)}`,
   'webtoons.com':             (q) => `https://www.webtoons.com/en/search?keyword=${encodeURIComponent(q)}`,
-  'manhuaplus.com':           (q) => `https://manhuaplus.com/search?keyword=${encodeURIComponent(q)}`,
+  // Madara's own search, not /search?keyword= — that path 404s on this site
+  // (verified live), so every ManhuaPlus search was landing on an error page.
+  'manhuaplus.com':           (q) => `https://manhuaplus.com/?s=${encodeURIComponent(q)}&post_type=wp-manga`,
   'asurascans.com':           (q) => `https://asurascans.com/?s=${encodeURIComponent(q)}&post_type=wp-manga`,
   'mangahub.io':              (q) => `https://mangahub.io/search/page/1?q=${encodeURIComponent(q)}`,
   'manganato.gg':             (q) => `https://manganato.gg/search/story/${encodeURIComponent(q).replace(/%20/g, '_')}`,
   'mangakatana.com':          (q) => `https://mangakatana.com/?search=${encodeURIComponent(q)}&search_by=book_name`,
   'mangapill.com':            (q) => `https://mangapill.com/search?q=${encodeURIComponent(q)}`,
-  'likemanga.io':             (q) => `https://likemanga.io/?s=${encodeURIComponent(q)}&post_type=wp-manga`,
-  'zinmanga.com':             (q) => `https://zinmanga.com/?s=${encodeURIComponent(q)}&post_type=wp-manga`,
   'mangago.me':               (q) => `https://www.mangago.me/search/?q=${encodeURIComponent(q)}`,
   'fanfox.net':               (q) => `https://fanfox.net/search?title=${encodeURIComponent(q)}`,
-  'bato.to':                  (q) => `https://bato.to/search?word=${encodeURIComponent(q)}`,
+  // Removed 2026-08-10, all four dead at DNS rather than merely blocked:
+  // likemanga.io, zinmanga.com, aquamanga.com, bato.to. A builder for a domain
+  // that no longer resolves costs a full navigation timeout before the
+  // fallback chain moves on, so leaving them in is slower than having no entry
+  // at all.
 };
 
 export function buildSearchUrl(siteUrl, title) {

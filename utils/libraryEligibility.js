@@ -23,13 +23,19 @@
 // each one.
 const READING_HOSTS = [
   // Aggregators the reader actually opens
+  // Dead hosts are deliberately KEPT here even though they were removed from
+  // the search/probe lists: this allowlist governs what an already-saved entry
+  // is allowed to be, and someone's library may still hold a series read on
+  // one of them. Dropping a host here would delete their history; dropping it
+  // from the probe list only stops us dialling a number that no longer rings.
   'mangadex.org', 'mangafire.to', 'asurascans.com', 'asura.gg', 'asuracomic.net',
   'asuratoon.com', 'weebcentral.com', 'mangapill.com', 'mangahub.io', 'bato.to',
-  'batotoo.com', 'comick.io', 'natomanga.com', 'mangakakalot.com', 'manganato.com',
-  'manganato.gg', 'chapmanganato.to', 'mangakatana.com', 'manhuaplus.com',
-  'zinmanga.com', 'likemanga.io', 'aquamanga.com', 'toongod.org', 'flamecomics.xyz',
-  'reaperscans.com', 'mangaread.org', 'mangapark.net', 'mangago.me', 'mangasee123.com',
-  'mangafox.me', 'mangadna.com', 'mangaclash.com', 'nitroscans.com', 'cosmicscans.com',
+  'batotoo.com', 'comick.io', 'comick.dev', 'natomanga.com', 'mangakakalot.com',
+  'manganato.com', 'manganato.gg', 'chapmanganato.to', 'mangakatana.com',
+  'manhuaplus.com', 'zinmanga.com', 'likemanga.io', 'aquamanga.com', 'toongod.org',
+  'flamecomics.xyz', 'reaperscans.com', 'mangaread.org', 'mangapark.net',
+  'mangago.me', 'mangasee123.com', 'mangafox.me', 'fanfox.net', 'mangadna.com',
+  'mangaclash.com', 'nitroscans.com', 'cosmicscans.com',
   'mangabuddy.com', 'mangajar.com', 'mgeko.cc', 'novelcool.com',
 
   // Official / licensed platforms
