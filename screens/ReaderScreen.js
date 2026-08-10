@@ -1464,6 +1464,44 @@ export default function ReaderScreen({ route, navigation }) {
   // empty every time can't put us in a reload loop.
   const blankRetriedRef = useRef(null);
 
+  // ── Stuck-load watchdog ───────────────────────────────────────────────────
+  // Every recovery mechanism in this screen — the blank-page watchdog, the
+  // search watchdog, auto-nav, the chapter extractor — is injected from
+  // onLoadEnd. When a load aborts, onLoadEnd never fires, so none of them are
+  // ever installed and nothing notices. onError sees the abort but deliberately
+  // ignores it (code -3/-999 is benign in every other case), which is exactly
+  // how the reader ends up parked on an empty page that only a manual reload
+  // clears.
+  //
+  // This is the one recovery path that cannot depend on the page: a plain
+  // timer, armed when navigation starts and disarmed when the load completes.
+  // If it ever fires, the load did not finish, whatever the WebView reported.
+  const loadTimerRef = useRef(null);
+  const stuckRetriedRef = useRef(null);
+  const STUCK_LOAD_MS = 13000;
+
+  const disarmLoadWatchdog = useCallback(() => {
+    if (loadTimerRef.current) { clearTimeout(loadTimerRef.current); loadTimerRef.current = null; }
+  }, []);
+
+  const armLoadWatchdog = useCallback((url) => {
+    disarmLoadWatchdog();
+    if (!url) return;
+    loadTimerRef.current = setTimeout(() => {
+      loadTimerRef.current = null;
+      // One reload per URL. A site that hangs twice is not a transient abort,
+      // so hand it to the fallback chain rather than retrying forever.
+      if (stuckRetriedRef.current === url) {
+        if (fallbackChainRef.current.length > 0) popAndNavigateFallback('Took too long');
+        return;
+      }
+      stuckRetriedRef.current = url;
+      webviewRef.current?.reload();
+    }, STUCK_LOAD_MS);
+  }, [disarmLoadWatchdog]);
+
+  useEffect(() => disarmLoadWatchdog, [disarmLoadWatchdog]);
+
   function navigateTo(url) {
     if (!url) return;
     setCurrentUrl(url);
@@ -2940,7 +2978,9 @@ export default function ReaderScreen({ route, navigation }) {
                 }
               }
             }}
+            onLoadStart={(e) => { armLoadWatchdog(e?.nativeEvent?.url || navUrl); }}
             onLoadEnd={() => {
+              disarmLoadWatchdog();
               webviewRef.current?.injectJavaScript(mode === 'manga' ? MANGA_MODE_JS : WEBTOON_MODE_JS);
               webviewRef.current?.injectJavaScript(AD_BLOCK_JS);
               if (forceDarkSites) webviewRef.current?.injectJavaScript(buildForceDarkJS(true));
