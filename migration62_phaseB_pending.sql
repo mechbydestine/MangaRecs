@@ -60,3 +60,13 @@ GRANT UPDATE (
 ) ON profiles TO authenticated;
 
 COMMIT;
+
+-- APPLIED 2026-08-10 via the Management API. Verified before: 6 profiles, 6
+-- user_push_settings rows, 0 profiles with a push_token and 0 notification_prefs
+-- rows lacking a user_push_settings counterpart, so nothing was lost by dropping
+-- either column. The live grant set was checked against the list above first and
+-- matched it exactly plus the two dropped columns — no drift.
+-- Verified after: 0 of push_token/notification_prefs/email remain on profiles,
+-- both row counts unchanged, `authenticated` holds exactly the 23 columns above
+-- (display_name and reading_vibe present, username absent), and `anon` has no
+-- column-level UPDATE grant at all.

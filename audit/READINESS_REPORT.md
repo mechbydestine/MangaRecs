@@ -10,7 +10,7 @@
 | Area | Was | Now | What changed |
 |---|---|---|---|
 | **Feature completeness** | 96% | **97%** | + MAL/AniList import. Creator monetisation still stubbed. |
-| **Backend / security** | 92% | **92%** | Unchanged — migration 62 phase B still needs your SQL editor. |
+| **Backend / security** | 92% | **95%** | Migration 62 phase B applied 2026-08-10; `push_token` and `notification_prefs` are off `profiles`. |
 | **UI polish** | 78% | **94%** | Tab bar no longer overlaps content on any tab. |
 | **Device compatibility** | 75% | **93%** | Feed is rotation-safe; safe-area and tablet gaps closed. |
 | **Localisation** | 70% | **99%** | 161 → **0** hardcoded strings. 375 keys × 6 languages, machine-verified. |
@@ -139,9 +139,10 @@ against both revisions: reproduces the exact builder error without it, passes wi
   has to be reworked first.
 
 **Migration 62 phase B** — [migration62_phaseB_pending.sql](../migration62_phaseB_pending.sql).
-No Supabase CLI link or credentials here, so this needs your SQL editor. All prerequisites
-are already done; until it runs, `push_token` and `notification_prefs` still sit on the
-world-readable `profiles` row.
+Applied 2026-08-10 via the Management API; see the verification footer in that file.
+`push_token` and `notification_prefs` no longer exist on the world-readable `profiles`
+row, and the UPDATE grant was re-issued without them. The filename still says
+"pending" only because two links here point at it.
 
 **91 `#7B5CFF` inside `StyleSheet.create`.** Module scope — `colors` is a hook value and
 cannot reach them. Fixing them properly means converting each screen's stylesheet to a
@@ -156,7 +157,7 @@ the `ThemeContext` palettes, and profile accents (user content, not chrome).
 
 | # | Action | Why |
 |---|---|---|
-| 1 | Run [migration62_phaseB_pending.sql](../migration62_phaseB_pending.sql) | Closes the P0 push-token exposure |
+| 1 | ~~Run [migration62_phaseB_pending.sql](../migration62_phaseB_pending.sql)~~ — **done 2026-08-10** | Closed the P0 push-token exposure |
 | 2 | Set `EXPO_PUBLIC_SENTRY_DSN` in EAS | Sentry is wired but inert without it |
 | 3 | **New native build** | Sentry and NetInfo both add native modules; everything else here is OTA-safe |
 | 4 | Test the import against your own AniList/MAL account | Only end-to-end check I couldn't run |
