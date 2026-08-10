@@ -93,7 +93,7 @@ function NotifItem({ item, onAccept, onNavigate, colors }) {
             <TouchableOpacity
               style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
               onPress={() => onAccept(item.friendshipId)}>
-              <Text style={styles.acceptText}>{t('messages.accept')}</Text>
+              <Text style={[styles.acceptText, { color: colors.onPrimary }]}>{t('messages.accept')}</Text>
             </TouchableOpacity>
           </View>
         )}

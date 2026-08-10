@@ -2,7 +2,7 @@
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, Animated, Platform, AppState, StyleSheet } from 'react-native';
+import { View, Text, Animated, Platform, AppState, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -225,10 +225,9 @@ function ThemedStatusBar() {
 
 // ── Animated tab icon ─────────────────────────────────────────────────────
 
-function AnimatedTabIcon({ name, focused, color, targetKey }) {
+function AnimatedTabIcon({ name, focused, color }) {
   const scale   = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(focused ? 1 : 0.7)).current;
-  const registerTarget = useCoachmarkTarget(targetKey);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -257,10 +256,28 @@ function AnimatedTabIcon({ name, focused, color, targetKey }) {
   }, [focused, reduced, scale, opacity]);
 
   return (
-    <Animated.View ref={registerTarget} style={{ transform: [{ scale }], opacity }}>
+    <Animated.View style={{ transform: [{ scale }], opacity }}>
       <Ionicons name={name} size={22} color={color} />
     </Animated.View>
   );
+}
+
+// The coachmark target is the whole tab button — icon, label and the padding
+// around them — not just the icon. Registering the icon meant the tour's
+// spotlight covered a 22px glyph while the thing being described was the
+// button under it, and the focused icon's 1.2x scale went into the measurement
+// too, so the same tab measured differently depending on whether it was
+// selected. This is the navigator's real button rect at whatever size the
+// current screen gives it.
+//
+// Renders a plain Pressable rather than the library's default: it is handed
+// the same onPress/android_ripple/style/a11y props, and the default's own
+// pressOpacity is passed as 1 (i.e. no press fade), so nothing visible is
+// lost. `hoverEffect`/`href` are dropped because Pressable has no use for
+// them off the web.
+function CoachTabButton({ targetKey, hoverEffect, pressOpacity, href, ...props }) {
+  const registerTarget = useCoachmarkTarget(targetKey);
+  return <Pressable {...props} ref={registerTarget} />;
 }
 
 // ── Per-tab stack navigators ──────────────────────────────────────────────
@@ -404,8 +421,12 @@ function TabNavigator() {
           else if (route.name === 'Discover') iconName = focused ? 'sparkles' : 'sparkles-outline';
           else if (route.name === 'Community') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-          return <AnimatedTabIcon name={iconName} focused={focused} color={color} targetKey={`tab-${route.name}`} />;
+          return <AnimatedTabIcon name={iconName} focused={focused} color={color} />;
         },
+        // Key format is load-bearing: components/CoachmarkOverlay.js looks
+        // tabs up as `tab-${route.name}`, so renaming a Tab.Screen below
+        // renames its tour target and that step will skip itself.
+        tabBarButton: (props) => <CoachTabButton {...props} targetKey={`tab-${route.name}`} />,
         tabBarStyle: {
           position: 'absolute',
           bottom: 0,

@@ -15,10 +15,18 @@ import { isJunkTitle } from './titleValidation';
 
 const STATE_KEY     = '@mangarecs/library_badges_v1';
 const CACHE_KEY     = '@mangarecs/updates_cache';
-const DISMISSED_KEY = '@mangarecs/updates_dismissed';
+// Retired. Tapping a cover used to record "don't badge me below this chapter",
+// which meant a single tap silenced a series the user still hadn't read. The
+// badge now lives and dies purely on read-position vs latest chapter, so the
+// old entries are deleted on hydrate rather than left to keep suppressing it.
+const LEGACY_DISMISSED_KEY = '@mangarecs/updates_dismissed';
 
+const RESUME_PFX    = '@mangarecs/resume/';
 const CACHE_TTL     = 2 * 60 * 60 * 1000; // re-check a series' latest chapter at most every 2h
-const MAX_NETWORK   = 20;                 // cap live MangaDex lookups per run
+// Every bookmarked/reading series is supposed to carry a live badge, so this
+// has to cover a real library rather than its first screenful. Only uncached
+// series spend budget, and a run is background fire-and-forget.
+const MAX_NETWORK   = 60;                 // cap live MangaDex lookups per run
 const RATE_LIMIT_MS = 500;                // pause between MangaDex calls
 
 // key -> chapters-behind count (only entries with a live badge)
@@ -72,12 +80,42 @@ export async function hydrateLibraryBadges() {
       if (parsed?.siteIcons) _siteIcons = new Map(Object.entries(parsed.siteIcons).filter(([, v]) => !!v));
     }
   } catch (_) {}
+  AsyncStorage.removeItem(LEGACY_DISMISSED_KEY).catch(() => {});
   _hydrated = true;
   notify();
 }
 
 // Stable identity for a library item, matching LibraryScreen's keyOf().
 const keyOf = (s) => s?.searchKey || s?.title;
+
+// One AsyncStorage read per series per run, shared by both resolvers below —
+// they each need the same record, and this used to be fetched twice.
+async function loadResumes(items) {
+  const out = new Map();
+  for (const s of items) {
+    const key = keyOf(s);
+    if (!key || out.has(key)) continue;
+    let parsed = null;
+    try {
+      const raw = await AsyncStorage.getItem(RESUME_PFX + encodeURIComponent(key));
+      if (raw) parsed = JSON.parse(raw);
+    } catch (_) {}
+    out.set(key, parsed);
+  }
+  return out;
+}
+
+// How far the user has actually read, or null if they've never opened this
+// series at all. Bookmarking is not reading: "NEW CHAPTER" on something never
+// started is meaningless — every chapter in it is new — so an untouched
+// bookmark gets no badge until it has been opened at least once. Everything
+// that HAS been opened is judged against the real read position, which is why
+// a badge here outlives a tap on the cover.
+function readChapterOf(s, resume) {
+  const known = [s?.currentChapter, s?.chapter, resume?.chapter]
+    .filter((v) => typeof v === 'number' && Number.isFinite(v) && v > 0);
+  return known.length ? Math.max(...known) : null;
+}
 
 function resolveSiteFavicon(site) {
   if (!site) return null;
@@ -93,40 +131,32 @@ function resolveSiteFavicon(site) {
 // Purely local (reader resume data already on-device) — no network, so this
 // runs for every item rather than a capped subset, and resolves fast enough
 // that icons are ready well before the grid paints.
-async function resolveSiteIcons(items) {
+function resolveSiteIcons(items, resumes) {
   let changed = false;
   for (const s of items) {
     const key = keyOf(s);
     if (!key) continue;
-    let raw = null;
-    try { raw = await AsyncStorage.getItem('@mangarecs/resume/' + encodeURIComponent(key)); } catch (_) {}
-    if (!raw) continue; // no info either way — leave any existing entry alone
-    try {
-      const favicon = resolveSiteFavicon(JSON.parse(raw).site);
-      if (favicon) {
-        if (_siteIcons.get(key) !== favicon) { _siteIcons.set(key, favicon); changed = true; }
-      } else if (_siteIcons.has(key)) {
-        _siteIcons.delete(key); changed = true;
-      }
-    } catch (_) {}
+    const resume = resumes.get(key);
+    if (!resume) continue; // no info either way — leave any existing entry alone
+    const favicon = resolveSiteFavicon(resume.site);
+    if (favicon) {
+      if (_siteIcons.get(key) !== favicon) { _siteIcons.set(key, favicon); changed = true; }
+    } else if (_siteIcons.has(key)) {
+      _siteIcons.delete(key); changed = true;
+    }
   }
   return changed;
 }
 
 // Caches the expensive part (MangaDex's "latest chapter" lookup) but always
-// compares it against the item's LIVE current chapter, so a badge clears the
-// moment the user reads up to it rather than lingering until the cache entry
-// expires.
-async function resolveChapterUpdates(items) {
+// compares it against the item's LIVE read position, so a badge appears for
+// every started series that has chapters the user hasn't reached and clears
+// only once they actually read up to it — nothing else takes it away.
+async function resolveChapterUpdates(items, resumes) {
   let cache = {};
-  let dismissed = {};
   try {
-    const [cacheRaw, dismissedRaw] = await Promise.all([
-      AsyncStorage.getItem(CACHE_KEY),
-      AsyncStorage.getItem(DISMISSED_KEY),
-    ]);
+    const cacheRaw = await AsyncStorage.getItem(CACHE_KEY);
     cache = cacheRaw ? JSON.parse(cacheRaw) : {};
-    dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : {};
   } catch (_) {}
 
   const now = Date.now();
@@ -137,6 +167,15 @@ async function resolveChapterUpdates(items) {
     const key = keyOf(s);
     if (!key) continue;
 
+    const resume = resumes.get(key);
+    const readCh = readChapterOf(s, resume);
+    // Never opened — no badge, and no network spent working that out, which
+    // leaves the whole budget for series the user is actually following.
+    if (readCh == null) {
+      if (_updates.has(key)) { _updates.delete(key); changed = true; }
+      continue;
+    }
+
     const cached = cache[key];
     let latest = null;
 
@@ -146,18 +185,10 @@ async function resolveChapterUpdates(items) {
       networkBudget--;
       // Prefer the id the reader already resolved (resume data); fall back to
       // a title search — same approach as the push-notification checker in
-      // utils/chapterUpdates.js — so bookmarked or never-opened-via-API
-      // series still get checked instead of being silently skipped.
+      // utils/chapterUpdates.js — so series read on a web source, never
+      // opened via the API reader, still get checked instead of being skipped.
       let mangaId = cached?.mangaId || null;
-      if (!mangaId) {
-        try {
-          const resumeRaw = await AsyncStorage.getItem('@mangarecs/resume/' + encodeURIComponent(key));
-          if (resumeRaw) {
-            const resume = JSON.parse(resumeRaw);
-            if (resume?.mode === 'api' && resume?.mangaId) mangaId = resume.mangaId;
-          }
-        } catch (_) {}
-      }
+      if (!mangaId && resume?.mode === 'api' && resume?.mangaId) mangaId = resume.mangaId;
       if (!mangaId) {
         try { mangaId = (await searchMangaDex(key))?.id || null; } catch (_) {}
       }
@@ -172,10 +203,8 @@ async function resolveChapterUpdates(items) {
       continue;
     }
 
-    const currentCh = s.chapter || s.currentChapter || 1;
-    const dismissedAt = dismissed[key];
-    const isNew = latest != null && latest > currentCh && (dismissedAt == null || latest > dismissedAt);
-    const count = isNew ? Math.max(1, Math.floor(latest) - Math.floor(currentCh)) : 0;
+    const isNew = latest != null && latest > readCh;
+    const count = isNew ? Math.max(1, Math.floor(latest) - Math.floor(readCh)) : 0;
 
     if (count > 0) {
       if (_updates.get(key) !== count) { _updates.set(key, count); changed = true; }
@@ -200,10 +229,11 @@ export function refreshLibraryBadges(items) {
 
   _inFlight = (async () => {
     try {
+      const resumes = await loadResumes(list);
       // Icons first: local-only and near-instant, so they show immediately
       // instead of waiting behind the rate-limited chapter lookups.
-      if (await resolveSiteIcons(list)) { notify(); await persist(); }
-      if (await resolveChapterUpdates(list)) { notify(); await persist(); }
+      if (resolveSiteIcons(list, resumes)) { notify(); await persist(); }
+      if (await resolveChapterUpdates(list, resumes)) { notify(); await persist(); }
     } catch (_) {
     } finally {
       _inFlight = null;
@@ -211,26 +241,6 @@ export function refreshLibraryBadges(items) {
   })();
 
   return _inFlight;
-}
-
-// Opening a series clears its badge immediately rather than only once read
-// up to, recorded against the currently-known latest chapter so a genuinely
-// newer chapter later still re-shows it. Scoped to this one key — every
-// other series keeps its badge until individually opened.
-export async function dismissLibraryUpdate(key) {
-  if (!key) return;
-  if (_updates.has(key)) { _updates.delete(key); notify(); persist(); }
-  try {
-    const [cacheRaw, dismissedRaw] = await Promise.all([
-      AsyncStorage.getItem(CACHE_KEY),
-      AsyncStorage.getItem(DISMISSED_KEY),
-    ]);
-    const latest = (cacheRaw ? JSON.parse(cacheRaw) : {})[key]?.latest;
-    if (latest == null) return;
-    const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : {};
-    dismissed[key] = latest;
-    await AsyncStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissed));
-  } catch (_) {}
 }
 
 // Boot-time warm-up: gathers the same item set the Library grid will show
@@ -257,10 +267,14 @@ export async function prewarmLibraryBadges(userId) {
       for (const r of data || []) {
         if (!r.series_title) continue;
         const pool = findPoolEntry(r.series_title);
+        // A bookmarked row only carries a chapter if the user has actually
+        // read some of it; defaulting it to 1 like the reading/completed rows
+        // would make every untouched bookmark look started and badge it.
+        const started = r.status === 'reading' || r.status === 'completed';
         add({
           title: r.series_title,
           searchKey: pool?.searchKey || r.series_title,
-          currentChapter: r.current_chapter || 1,
+          currentChapter: r.current_chapter || (started ? 1 : null),
           chapters: r.total_chapters || pool?.chapters || 999,
         });
       }

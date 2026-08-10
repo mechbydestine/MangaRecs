@@ -112,7 +112,7 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
           accessibilityLabel="Create account"
           accessibilityState={{ disabled: loading, busy: loading }}
           disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaBtnText}>{t('onboarding.createAccount')}</Text>}
+          {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.ctaBtnText, { color: colors.onPrimary }]}>{t('onboarding.createAccount')}</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -128,7 +128,7 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
   return (
     <View style={[styles.screenPad, { alignItems: 'center' }]}>
       <View style={[styles.gateOrb, { backgroundColor: colors.primary }]}>
-        <Ionicons name="sparkles" size={32} color="#fff" />
+        <Ionicons name="sparkles" size={32} color={colors.onPrimary} />
       </View>
 
       <Text style={[styles.headline, { color: colors.text, textAlign: 'center' }]}>{t('onboarding.saveJourney')}</Text>
@@ -157,8 +157,8 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
         onPress={() => setMode('form')}
         accessibilityRole="button"
         accessibilityLabel="Sign up — it's free">
-        <Text style={styles.ctaBtnText}>Sign Up — It's Free</Text>
-        <Ionicons name="chevron-forward" size={16} color="#fff" />
+        <Text style={[styles.ctaBtnText, { color: colors.onPrimary }]}>Sign Up — It's Free</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.onPrimary} />
       </TouchableOpacity>
       {/* "Skip for now, explore first" used to just jump to the genre picker —
           it skipped the signup FORM, not onboarding, so nobody could actually
@@ -261,7 +261,7 @@ function ScreenUsername({ username, onChange, status }) {
   return (
     <View style={styles.screenPad}>
       <View style={[styles.gateOrb, { backgroundColor: colors.primary }]}>
-        <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>@</Text>
+        <Text style={{ color: colors.onPrimary, fontSize: 22, fontWeight: 'bold' }}>@</Text>
       </View>
       <Text style={[styles.headline, { color: colors.text }]}>{t('onboarding.whatToCallYou')}</Text>
       <Text style={[styles.highlightText, { color: colors.primary }]}>{t('onboarding.chooseUsername')}</Text>
@@ -459,11 +459,11 @@ export default function OnboardingScreen({ onComplete }) {
           accessibilityState={{ disabled: !canProceed() || finishing, busy: finishing }}
           disabled={!canProceed() || finishing}>
           {finishing ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
             <>
-              <Text style={styles.ctaBtnText}>{ctaLabel()}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#fff" />
+              <Text style={[styles.ctaBtnText, { color: colors.onPrimary }]}>{ctaLabel()}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.onPrimary} />
             </>
           )}
         </TouchableOpacity>

@@ -20,7 +20,7 @@ function ErrorFallback({ onRetry }) {
         onPress={onRetry}
         accessibilityRole="button"
         accessibilityLabel={t('errorBoundary.retry')}>
-        <Text style={styles.btnText}>{t('errorBoundary.retry')}</Text>
+        <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('errorBoundary.retry')}</Text>
       </TouchableOpacity>
     </View>
   );

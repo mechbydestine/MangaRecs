@@ -929,7 +929,7 @@ export default function SettingsScreen({ navigation }) {
                 style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
                 onPress={() => setShowAgeGate(true)}
                 activeOpacity={0.8}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('settings.verifyAge')}</Text>
+                <Text style={{ color: colors.onPrimary, fontSize: 12, fontWeight: '600' }}>{t('settings.verifyAge')}</Text>
               </TouchableOpacity>
             )}
           </View>

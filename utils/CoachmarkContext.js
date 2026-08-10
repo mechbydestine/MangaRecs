@@ -17,16 +17,35 @@ export function CoachmarkProvider({ children }) {
     else delete nodes.current[key];
   }, []);
 
-  const measureTarget = useCallback((key) => (
+  // Retries rather than giving up on the first miss. A target legitimately
+  // measures as absent for a few frames — the tab bar mounts after the screen
+  // it belongs to, a header button is inside a list that is still laying out —
+  // and a single-shot measure turned that into a step silently dropping itself
+  // from the tour. Resolves null only once the target really isn't coming.
+  const measureTarget = useCallback((key, { attempts = 6, interval = 120 } = {}) => (
     new Promise((resolve) => {
-      const node = nodes.current[key];
-      if (!node || typeof node.measureInWindow !== 'function') { resolve(null); return; }
-      try {
-        node.measureInWindow((x, y, width, height) => {
-          if (!width && !height) resolve(null);
-          else resolve({ x, y, width, height });
-        });
-      } catch (_) { resolve(null); }
+      let tries = 0;
+
+      function retry() {
+        if (++tries >= attempts) { resolve(null); return; }
+        setTimeout(attempt, interval);
+      }
+
+      function attempt() {
+        const node = nodes.current[key];
+        if (!node || typeof node.measureInWindow !== 'function') { retry(); return; }
+        try {
+          node.measureInWindow((x, y, width, height) => {
+            // A node that exists but hasn't been laid out reports zeros, and
+            // one inside a collapsed parent reports NaN — neither is a rect
+            // worth spotlighting, so both are worth waiting one more frame for.
+            if (!width || !height || !Number.isFinite(x) || !Number.isFinite(y)) retry();
+            else resolve({ x, y, width, height });
+          });
+        } catch (_) { retry(); }
+      }
+
+      attempt();
     })
   ), []);
 

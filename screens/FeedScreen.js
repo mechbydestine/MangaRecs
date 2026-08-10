@@ -429,11 +429,16 @@ function SkeletonFeed() {
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.65] });
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24 }}>
+      {/* Every bar is an alpha step on the SAME accent rather than a mix of
+          theme colour and hardcoded purples. Those literals didn't move with
+          the theme, so the moment Dark's accent stopped being purple the
+          skeleton was half one palette and half another. Alphas are picked to
+          land where the old literals were under Default. */}
       <Animated.View style={{ width: coverW, height: coverH, borderRadius: 18, backgroundColor: colors.primary, opacity }} />
-      <Animated.View style={{ width: coverW * 0.65, height: 22, borderRadius: 8, backgroundColor: '#A09CE0', opacity, marginTop: 8 }} />
+      <Animated.View style={{ width: coverW * 0.65, height: 22, borderRadius: 8, backgroundColor: colors.primary + 'B3', opacity, marginTop: 8 }} />
       <Animated.View style={{ width: coverW * 0.45, height: 14, borderRadius: 6, backgroundColor: colors.primary, opacity }} />
-      <Animated.View style={{ width: coverW * 0.9, height: 36, borderRadius: 10, backgroundColor: '#2D2A4A', opacity }} />
-      <Animated.View style={{ width: coverW * 0.55, height: 12, borderRadius: 6, backgroundColor: '#3B3672', opacity }} />
+      <Animated.View style={{ width: coverW * 0.9, height: 36, borderRadius: 10, backgroundColor: colors.primary + '4D', opacity }} />
+      <Animated.View style={{ width: coverW * 0.55, height: 12, borderRadius: 6, backgroundColor: colors.primary + '66', opacity }} />
     </View>
   );
 }
@@ -2106,7 +2111,7 @@ export default function FeedScreen() {
                 onPress={() => { setShareSheetOpen(false); setCardShareOpen(true); }}
                 activeOpacity={0.75}>
                 <View style={[feedSendStyles.destIcon, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="albums-outline" size={20} color="#fff" />
+                  <Ionicons name="albums-outline" size={20} color={colors.onPrimary} />
                 </View>
                 <Text style={[feedSendStyles.destLabel, { color: colors.muted }]}>{t('feed.card')}</Text>
               </TouchableOpacity>

@@ -313,7 +313,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Log in"
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('auth.logIn')}</Text>}
+                {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('auth.logIn')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -380,7 +380,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Create account"
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('onboarding.createAccount')}</Text>}
+                {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('onboarding.createAccount')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -416,7 +416,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Send reset code"
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('auth.sendCode')}</Text>}
+                {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('auth.sendCode')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -460,7 +460,7 @@ export default function AuthScreen() {
                 accessibilityLabel="Reset password"
                 accessibilityState={{ disabled: loading || resetCode.length < 6 || !newPassword, busy: loading }}
                 disabled={loading || resetCode.length < 6 || !newPassword}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('auth.resetPassword')}</Text>}
+                {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('auth.resetPassword')}</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity

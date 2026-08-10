@@ -408,8 +408,8 @@ export default function LeaderboardScreen() {
               activeOpacity={0.85}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}>
-              <Ionicons name={s.icon} size={14} color={active ? '#fff' : colors.muted} />
-              <Text style={[styles.scopeText, { color: active ? '#fff' : colors.muted }]}>{s.label}</Text>
+              <Ionicons name={s.icon} size={14} color={active ? colors.onPrimary : colors.muted} />
+              <Text style={[styles.scopeText, { color: active ? colors.onPrimary : colors.muted }]}>{s.label}</Text>
             </TouchableOpacity>
           );
         })}

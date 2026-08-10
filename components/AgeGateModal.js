@@ -144,7 +144,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
           {!!error && <Text style={[s.error, { color: colors.error }]}>{error}</Text>}
 
           <TouchableOpacity style={[s.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
-            <Text style={s.confirmBtnText}>{t('gate.confirmAge')}</Text>
+            <Text style={[s.confirmBtnText, { color: colors.onPrimary }]}>{t('gate.confirmAge')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.cancelBtn} onPress={handleClose} activeOpacity={0.7}>
             <Text style={[s.cancelBtnText, { color: colors.muted }]}>{t('common.cancel')}</Text>

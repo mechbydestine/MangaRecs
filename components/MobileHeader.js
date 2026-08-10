@@ -29,7 +29,7 @@ export default function MobileHeader({ title, right, leftContent, noBorder = fal
         ) : (
           <View style={styles.logoWrap}>
             <View style={[styles.logoMark, { backgroundColor: colors.primary }]}>
-              <Ionicons name="book" size={13} color="#fff" />
+              <Ionicons name="book" size={13} color={colors.onPrimary} />
             </View>
             <Text style={[styles.logoText, { color: colors.text }]}>MangaRecs</Text>
           </View>

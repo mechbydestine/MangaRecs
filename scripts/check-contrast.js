@@ -75,7 +75,7 @@ function pairsFor(c) {
     [c.accent, c.card, AA_LARGE, 'success accent on card'],
     [c.error, c.background, AA_LARGE, 'error on background'],
     [c.error, c.card, AA_LARGE, 'error on card'],
-    ['#FFFFFF', c.primary, AA_TEXT, 'button label on primary'],
+    [c.onPrimary || '#FFFFFF', c.primary, AA_TEXT, 'button label on primary'],
   ];
 }
 

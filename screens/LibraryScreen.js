@@ -22,7 +22,7 @@ import { searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils
 import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
 import {
-  getLibraryBadgesSnapshot, subscribeLibraryBadges, refreshLibraryBadges, dismissLibraryUpdate,
+  getLibraryBadgesSnapshot, subscribeLibraryBadges, refreshLibraryBadges,
 } from '../utils/libraryBadges';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { isJunkTitle } from '../utils/titleValidation';
@@ -881,7 +881,6 @@ export default function LibraryScreen() {
   // being read offline is just a step in the way.
   function openDetail(series) {
     if (series.downloadDir) { openReader(series); return; }
-    dismissLibraryUpdate(keyOf(series));
     navigation.navigate('MangaDetail', {
       title: series.title,
       searchKey: series.searchKey || series.title,
@@ -899,7 +898,6 @@ export default function LibraryScreen() {
 
   async function openReader(series) {
     setOpeningId(series.id);
-    dismissLibraryUpdate(keyOf(series));
 
     // Offline: open directly from local filesystem without API calls
     if (series.downloadDir) {

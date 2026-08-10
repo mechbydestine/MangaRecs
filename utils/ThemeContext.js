@@ -20,6 +20,7 @@ const defaultColors = {
   background: '#0D0D0F',
   card: '#13131A',
   primary: '#7858FF',
+  onPrimary: '#FFFFFF',
   muted: '#888892',
   border: '#1C1C1E',
   accent: '#1D9E75',
@@ -29,17 +30,26 @@ const defaultColors = {
   inputBg: '#080808',
 };
 
-// "Dark" — a distinct, moodier option: darker surfaces and a muted, less
-// saturated purple instead of Default's vivid one.
-// `primary` was #5B4E8A, which measured 2.70:1 against the card — below the
-// 3:1 WCAG floor for a colour that carries meaning (active tabs, icons,
-// selected states), so it read as disabled to anyone with low vision.
+// "Dark" — a distinct, moodier option: true-black surfaces and a monochrome
+// accent instead of Default's vivid purple.
+//
+// `primary` has been through three values here. #5B4E8A measured 2.70:1
+// against the card, below the 3:1 WCAG floor for a colour that carries meaning
+// (active tabs, icons, selected states), so it read as disabled. #635495
+// cleared the bar but was still a desaturated purple — muddy next to Default's
+// and not really its own look. White is: it's the sharpest possible accent on
+// true black, and it makes Dark read as deliberately monochrome rather than as
+// Default with the colour drained out of it.
+//
+// This is why `onPrimary` exists. Everywhere primary is a *fill* — button
+// backgrounds, the logo mark, filled pills — white-on-white would be invisible,
+// so the foreground has to come from the palette instead of a hardcoded #fff.
 // `muted` was #77777F at 4.40:1 on card, just under the body-text bar.
-// Both are minimal lightness steps on the same hue.
 const darkColors = {
   background: '#000000',
   card: '#0C0C0E',
-  primary: '#635495',
+  primary: '#FFFFFF',
+  onPrimary: '#000000',
   muted: '#797981',
   border: '#1A1A1C',
   accent: '#1D9E75',
@@ -56,6 +66,7 @@ const lightColors = {
   background: '#F5F5F7',
   card: '#FFFFFF',
   primary: '#7858FF',
+  onPrimary: '#FFFFFF',
   muted: '#6A6A74',
   border: '#E2E2E7',
   accent: '#1D9E75',
