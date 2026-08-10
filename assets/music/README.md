@@ -1,73 +1,65 @@
 # Recap soundtrack
 
-Four tracks, one per mood. The recap runs **~69 seconds** (the sum of
+Four tracks, one per mood, mapped from the reader's genre lane in
+`utils/recapMusic.js`. The recap runs **~69 seconds** (the sum of
 `SLIDE_DURATIONS` in `screens/RecapScreen.js`) plus a manual finale slide, so
-anything from about 1:30 up covers a full play without ever looping.
+every track below covers a full play; `loop` is on only for a reader who holds
+to pause.
 
-## How to add them
+## What's shipping
 
-1. Open a track page below, hit **Download** (a free Pixabay account is needed
-   for some tracks — the download itself is free).
-2. Save it into this folder under the **exact filename** in the table.
-3. In `utils/recapMusic.js`, repoint that mood's `require()` at the new file
-   and flip `USING_REAL_MUSIC` to `true` (that raises the mix from 0.18 to
-   0.34 — ambience volume is too quiet for music).
+All four are **CC0 1.0 (public domain)** from Freesound, each verified on its
+own Freesound page rather than trusted from a search filter. CC0 means no
+attribution is owed, no credits screen is required, and no licence can be
+revoked later.
 
-Until step 2 happens, each mood falls back to the ambience loop it replaces, so
-the recap always has audio.
-
-## The tracks
-
-Each link is a search pre-filled with the track title — the track is the top
-result. Artist name is given to disambiguate, because several of these titles
-have near-identical uploads from other accounts.
-
-| Save as | Mood | Lanes it scores | Track | Artist | Length |
+| File | Mood | Lanes it scores | Source | Length | Size |
 |---|---|---|---|---|---|
-| `epic.mp3` | epic | Battle, Sports, Adventure | [Epic Orchestra – Anime Intro](https://pixabay.com/music/search/?q=epic%20orchestra%20anime%20intro) | **Sekuora** | 1:58 |
-| `warm.mp3` | warm | Drama, Slice of Life | [Anime Opening Emotional Journey](https://pixabay.com/music/search/?q=anime%20opening%20emotional%20journey) | **alex-morgan** | 1:44 |
-| `dark.mp3` | dark | Suspense, Supernatural | [Japanese Dark – Temple & Samurai (Yōkai)](https://pixabay.com/music/search/?q=japanese%20dark%20temple%20samurai) | **imabo** | 3:15 |
-| `synth.mp3` | synth | Sci-Fi | [Synthwave – Anime Cyberpunk](https://pixabay.com/music/search/?q=synthwave%20anime%20cyberpunk) | **YevhenAstafiev** | 2:12 |
+| `epic.mp3` | epic | Battle, Sports, Adventure | [Epic Synth/Orchestral Music](https://freesound.org/s/545459/) | 1:14 | 1.7 MB |
+| `warm.mp3` | warm | Drama, Slice of Life | [Atmospheric Piano & Violin 01](https://freesound.org/s/478255/) | 2:00 | 2.8 MB |
+| `dark.mp3` | dark | Suspense, Supernatural | [Suspense Orchestral – Hurricane](https://freesound.org/s/608813/) | 1:56 | 2.7 MB |
+| `synth.mp3` | synth | Sci-Fi | [Circuit Synthwave Alt](https://freesound.org/s/460358/) | 1:56 | 2.7 MB |
 
-### Alternates, if one of the above doesn't land
+Total added to the bundle: **~9.4 MB**, on top of the ~7 MB of ambience loops.
 
-- **epic** — "Heroic Anime Main Theme BGM" (Sekuora) · "Epic Anime Battle Intro"
-  (Sekuora) · "Epic Anime Rock Song with Piano Elements" (HauntSync, 2:22)
-- **warm** — "Sakura" (SoulProdMusic, 2:40) · "Fireflies in the City, 2 min edit"
-  (kaazoom, 2:00) · "Petals On The Water – Japanese Fusion LoFi" (kaazoom, 3:07)
-- **dark** — "180122 – Piano Dark Japan" (WELC0MEИ0, 1:29) · "broken mirrors –
-  dark ambient piano" (HarumachiMusic, 3:22) · "The Last Ronin" (9JackJack8, 2:23)
-- **synth** — "Electronic – Anime Cyberpunk Music" (HitsLab, 1:42)
+### These were chosen on metadata, not by ear
 
-## Licence
+Nobody has listened to them yet. They were picked from title, duration, genre
+tags and uploader — which is enough to be confident they're *appropriate*, and
+not enough to be confident they're *good*. Play the recap and swap anything
+that doesn't land; each swap is one line in `utils/recapMusic.js`.
 
-All of the above are under the **Pixabay Content Licence**:
+## Better-fitting alternatives (Pixabay)
 
-- Free for commercial use
-- **No attribution required**
-- Modification and adaptation allowed
-- Prohibited: selling or distributing the audio *"on a Standalone basis"*
+These suit an anime recap considerably better than public-domain stock — they
+were written for the genre rather than adapted to it. They can't be fetched
+automatically (Pixabay's terms prohibit automated downloading), so they need a
+few manual clicks. Each link is a search pre-filled with the title; artist is
+bolded because several titles have near-identical uploads from other accounts.
 
-Shipping a track as an app's background score is incorporation into a larger
-work, which the licence permits. What it forbids is selling the music *as
-music* — not something MangaRecs does. No credits screen is required.
+| Replaces | Track | Artist | Length |
+|---|---|---|---|
+| `epic.mp3` | [Epic Orchestra – Anime Intro](https://pixabay.com/music/search/?q=epic%20orchestra%20anime%20intro) | **Sekuora** | 1:58 |
+| `warm.mp3` | [Anime Opening Emotional Journey](https://pixabay.com/music/search/?q=anime%20opening%20emotional%20journey) | **alex-morgan** | 1:44 |
+| `dark.mp3` | [Japanese Dark – Temple & Samurai (Yōkai)](https://pixabay.com/music/search/?q=japanese%20dark%20temple%20samurai) | **imabo** | 3:15 |
+| `synth.mp3` | [Synthwave – Anime Cyberpunk](https://pixabay.com/music/search/?q=synthwave%20anime%20cyberpunk) | **YevhenAstafiev** | 2:12 |
 
-### Two things to be careful about
+To swap: download, overwrite the file of the same name in this folder, ship an
+OTA. No code change at all — the filenames are the contract.
+
+The Pixabay Content Licence allows commercial use with no attribution and
+permits incorporating content into a larger work; it only forbids selling the
+audio *"on a Standalone basis"*, which an app soundtrack is not. So swapping
+introduces no credits obligation either.
+
+## Two traps worth remembering
 
 **Don't substitute YouTube Audio Library tracks.** Its standard licence is
-restricted to YouTube videos; using those in an app breaks the terms. Only its
-CC-BY 4.0 subset is usable elsewhere, and that obliges permanent in-app
+restricted to YouTube videos, so using those in an app breaks the terms. Only
+its CC-BY 4.0 subset is usable elsewhere, and that obliges permanent in-app
 attribution.
 
-**Pixabay is user-upload.** Moderation is decent but not perfect, and
-occasionally someone uploads audio they don't own. Prefer uploaders with large
-established catalogues (kaazoom, FASSounds, Sekuora, vjgalaxy all qualify) and
-skip anything tagged **AI Music** unless you're comfortable with it — several
-Pixabay results carry that tag.
-
-## Encoding
-
-Keep these small. The four ambience loops already cost ~7 MB of bundle; the
-recap is a twice-a-year screen and should not double that. 128 kbps stereo MP3
-is transparent enough under a 0.34 mix — roughly 1–3 MB per track. If a chosen
-track is much longer than needed, trim it to ~90 s before importing.
+**Watch the bundle.** There's no `ffmpeg` in this environment, so nothing here
+was trimmed or re-encoded — these are the files as published. If you swap in
+longer tracks, trim them to ~90 s first; the recap can never play more than
+that, and the rest is dead weight in every install.

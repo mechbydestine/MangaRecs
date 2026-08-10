@@ -23,27 +23,23 @@
 // carry attribution in-app forever, which is a product decision, not a free
 // one — see the README.
 
-// ── Drop-in point ──────────────────────────────────────────────────────────
-// Metro resolves require() at bundle time, so these can only ever point at
-// files that exist. Until the real tracks are downloaded into assets/music/,
-// each mood falls back to the ambience loop it replaces — the recap keeps its
-// audio and nothing breaks. Swapping one in is a single-line edit:
-//
-//     epic: require('../assets/music/epic.mp3'),
-//
-// assets/music/README.md prescribes the exact filenames so the swap stays
-// mechanical.
+// ── The tracks ─────────────────────────────────────────────────────────────
+// All four are CC0 1.0 (public domain), verified track-by-track on Freesound
+// rather than trusted from a search filter. CC0 means no attribution is owed
+// and no credits screen is required — see assets/music/README.md for the
+// source of each, and for the better-fitting Pixabay alternatives, which are
+// a drop-in replacement whenever someone wants to swap them.
 const TRACK_FILES = {
-  epic:  require('../assets/sounds/ocean.mp3'),  // → ../assets/music/epic.mp3
-  warm:  require('../assets/sounds/forest.mp3'), // → ../assets/music/warm.mp3
-  dark:  require('../assets/sounds/rain.mp3'),   // → ../assets/music/dark.mp3
-  synth: require('../assets/sounds/night.mp3'),  // → ../assets/music/synth.mp3
+  epic:  require('../assets/music/epic.mp3'),
+  warm:  require('../assets/music/warm.mp3'),
+  dark:  require('../assets/music/dark.mp3'),
+  synth: require('../assets/music/synth.mp3'),
 };
 
-// True once real music has replaced the placeholders. Only affects mixing:
-// nature loops sit under everything at a whisper, music needs to be present
-// enough to carry a beat without burying the slide it's under.
-export const USING_REAL_MUSIC = false;
+// Music, not ambience. Nature loops sit under everything at a whisper; music
+// has to be present enough to carry a beat without burying the slide it's
+// under.
+export const USING_REAL_MUSIC = true;
 
 export const MUSIC_VOLUME = USING_REAL_MUSIC ? 0.34 : 0.18;
 
