@@ -269,6 +269,133 @@ const AD_NETWORK_PATTERNS = [
 
 // ── Injected JS ───────────────────────────────────────────────────────────
 
+// Runs BEFORE any of the page's own scripts (injectedJavaScriptBeforeContentLoaded).
+//
+// Everything in AD_BLOCK_JS below is cleanup: it runs after the document has
+// loaded, which means every ad script has already been fetched, parsed and
+// executed by the time it gets removed. The banner disappears, but the request
+// was still made, the tracker still fired, and a popunder scheduled on a timer
+// has already been armed. That is the difference between hiding ads and
+// blocking them, and it is why this needed a second layer rather than a longer
+// selector list.
+//
+// This layer patches the four ways a page fetches a subresource, before the
+// page can hold a reference to the originals. onShouldStartLoadWithRequest on
+// the native side only ever sees top-level navigations, so without this an XHR
+// to an ad network is entirely unpoliced.
+const AD_BLOCK_EARLY_JS = `
+(function() {
+  if (window.__inkABEarly) return true;
+  window.__inkABEarly = true;
+
+  var AD = ${JSON.stringify(AD_NETWORK_PATTERNS)};
+  function isAd(u) {
+    if (!u) return false;
+    var s = String(u).toLowerCase();
+    for (var i = 0; i < AD.length; i++) if (s.indexOf(AD[i]) !== -1) return true;
+    return false;
+  }
+  // Exposed so the later, DOM-side pass shares one definition instead of
+  // carrying a second copy of the list that can drift.
+  window.__inkIsAd = isAd;
+
+  // fetch
+  try {
+    var _fetch = window.fetch;
+    if (_fetch) {
+      Object.defineProperty(window, 'fetch', {
+        value: function(input, init) {
+          var url = (input && input.url) ? input.url : input;
+          if (isAd(url)) return Promise.reject(new TypeError('blocked'));
+          return _fetch.apply(this, arguments);
+        },
+        writable: false, configurable: false,
+      });
+    }
+  } catch (_) {}
+
+  // XMLHttpRequest — the ad networks that predate fetch still use it.
+  try {
+    var _open = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      if (isAd(url)) { this.__inkBlocked = true; }
+      return _open.apply(this, arguments);
+    };
+    var _send = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function() {
+      // Abort rather than throw: a throw propagates into the page's own error
+      // handling and some sites treat that as "reader failed to load".
+      if (this.__inkBlocked) { try { this.abort(); } catch (_) {} return; }
+      return _send.apply(this, arguments);
+    };
+  } catch (_) {}
+
+  // sendBeacon — fire-and-forget analytics, invisible to everything else.
+  try {
+    if (navigator.sendBeacon) {
+      var _beacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = function(url) {
+        if (isAd(url)) return true; // claim success; nothing is sent
+        return _beacon.apply(null, arguments);
+      };
+    }
+  } catch (_) {}
+
+  // new Image().src = tracker — the oldest pixel trick there is.
+  try {
+    var _ImgSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    if (_ImgSrc && _ImgSrc.set) {
+      Object.defineProperty(HTMLImageElement.prototype, 'src', {
+        get: _ImgSrc.get,
+        set: function(v) { if (isAd(v)) return; return _ImgSrc.set.call(this, v); },
+        configurable: true,
+      });
+    }
+  } catch (_) {}
+
+  // A script element whose src is an ad network never gets to load: neutering
+  // it at creation stops the request instead of removing the tag afterwards.
+  try {
+    var _create = document.createElement.bind(document);
+    document.createElement = function(tag) {
+      var el = _create.apply(null, arguments);
+      if (String(tag).toLowerCase() === 'script') {
+        try {
+          var d = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+          if (d && d.set) {
+            Object.defineProperty(el, 'src', {
+              get: d.get,
+              set: function(v) { if (isAd(v)) return; return d.set.call(this, v); },
+              configurable: true,
+            });
+          }
+        } catch (_) {}
+      }
+      return el;
+    };
+  } catch (_) {}
+
+  // window.open locked here too, not just in the late pass — a popunder armed
+  // by an inline script in <head> fires long before the late pass exists.
+  try {
+    Object.defineProperty(window, 'open', {
+      value: function(url) {
+        if (!url) return null;
+        var u = String(url);
+        if (!/^https?:/.test(u) || isAd(u)) return null;
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openWindow', url: u }));
+        }
+        return null;
+      },
+      writable: false, configurable: false,
+    });
+  } catch (_) {}
+
+  true;
+})();
+`;
+
 const AD_BLOCK_JS = `
 (function() {
   if (window.__inkAB) return true;
@@ -2767,7 +2894,14 @@ export default function ReaderScreen({ route, navigation }) {
             style={styles.webview}
             containerStyle={{ backgroundColor: '#0D0D0F' }}
             injectedJavaScript={AD_BLOCK_JS + TAP_TOGGLE_JS}
+            // The network layer has to be in place before the page's own
+            // scripts run, or the ad request is already away by the time
+            // anything can object.
+            injectedJavaScriptBeforeContentLoaded={AD_BLOCK_EARLY_JS}
             injectedJavaScriptForMainFrameOnly={false}
+            // Ads on these sites are overwhelmingly served from iframes, which
+            // the main-frame-only default leaves completely unpoliced.
+            injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
             startInLoadingState
             domStorageEnabled
             javaScriptEnabled
