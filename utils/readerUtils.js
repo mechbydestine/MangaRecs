@@ -1,6 +1,7 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import { isJunkTitle } from './titleValidation';
+import { isReadingHost, libraryKey, dedupeEntries } from './libraryEligibility';
 
 const _openedThisSession = new Set();
 const GENRE_PREFS_KEY = '@mangarecs_genre_prefs';
@@ -94,6 +95,14 @@ export async function setLastRead(entry) {
   // the default "Reader" screen title
   if (isJunkTitle(entry.title)) return;
   if (/\.(com|to|net|io|org|me|pro|xyz|app|moe|gg)\b/.test(titleLower)) return;
+  // The reader is a real browser and people use it as one. Anything reached by
+  // browsing — a YouTube video, a wiki, a search result — still parses a title
+  // out of the page, and that is how non-comics ended up as Library cards. A
+  // saved entry that came from a URL has to be on a site that publishes comics.
+  //
+  // No URL means the caller is Library or search, i.e. the user explicitly
+  // opened a known series, so there is nothing to vet.
+  if (entry.url && !isReadingHost(entry.url)) return;
   const data = {
     title: entry.title,
     searchKey: entry.searchKey || entry.title,
@@ -111,7 +120,23 @@ export async function setLastRead(entry) {
     await AsyncStorage.setItem(LAST_READ_KEY, JSON.stringify(data));
     const raw = await AsyncStorage.getItem(HISTORY_KEY);
     const history = raw ? JSON.parse(raw) : {};
-    history[data.searchKey] = data;
+    // Keyed on the normalised title, not searchKey. searchKey is whatever the
+    // site printed, so one series read on two sites — "Demon Slayer" here,
+    // "Demon Slayer: Kimetsu no Yaiba" there — became two Library cards with
+    // two covers and two chapter counts. libraryKey() collapses exactly the
+    // part sites disagree about and nothing more.
+    const key = libraryKey(data.title) || data.searchKey;
+    const prior = history[key];
+    // Merge rather than replace: a site that reports no chapter total would
+    // otherwise wipe a total another site already established.
+    history[key] = prior
+      ? {
+          ...prior,
+          ...data,
+          title: String(prior.title).length > String(data.title).length ? prior.title : data.title,
+          chapters: data.chapters && data.chapters !== 999 ? data.chapters : prior.chapters,
+        }
+      : data;
     await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   } catch (_) {}
 }
@@ -121,7 +146,25 @@ export async function getReadingHistory() {
     const raw = await AsyncStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const history = JSON.parse(raw);
-    return Object.values(history).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const all = Object.values(history);
+
+    // Heal what's already stored. Every library written before the host gate
+    // and the dedupe key existed still contains browsed pages and split
+    // duplicates, and those don't disappear on their own — the writer only
+    // governs new entries. Filtering on read costs nothing and means the mess
+    // is gone the first time Library opens.
+    const cleaned = dedupeEntries(
+      all.filter((e) => e?.title && !isJunkTitle(e.title) && (!e.url || isReadingHost(e.url))),
+    ).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    // Rewrite only when something actually changed, so the common case is a
+    // pure read.
+    if (cleaned.length !== all.length) {
+      const rebuilt = {};
+      for (const e of cleaned) rebuilt[libraryKey(e.title) || e.searchKey] = e;
+      AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(rebuilt)).catch(() => {});
+    }
+    return cleaned;
   } catch (_) {
     return [];
   }

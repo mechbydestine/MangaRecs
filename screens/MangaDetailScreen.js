@@ -70,7 +70,11 @@ function InfoRow({ icon, label, value, colors }) {
 
 export default function MangaDetailScreen() {
   const { params } = useRoute();
-  const { title, searchKey, lang, mangaId: routeMangaId, color, coverUrl: knownCoverUrl, chapters: routeChapters } = params || {};
+  const {
+    title, searchKey, lang, mangaId: routeMangaId, color, coverUrl: knownCoverUrl, chapters: routeChapters,
+    // Set when Library opened this screen for a series already in progress.
+    resumeUrl, resumeSite, resumeChapter,
+  } = params || {};
   const navigation = useNavigation();
   const { colors } = useTheme();
 
@@ -333,6 +337,13 @@ export default function MangaDetailScreen() {
       chapters: details?.lastChapter || routeChapters || 1,
       mangaId: details?.id || routeMangaId,
       lang: details?.lang || lang || 'ja',
+      // Library passes these for a series already in progress. Without them,
+      // arriving here from Library and pressing Read restarts the series from
+      // the resolver's first choice rather than resuming the chapter and site
+      // the reader was actually on.
+      ...(resumeUrl ? { resumeUrl } : null),
+      ...(resumeSite ? { resumeSite } : null),
+      ...(resumeChapter ? { resumeChapter } : null),
     });
     if (userId) {
       updateProfile({ currently_reading: title });

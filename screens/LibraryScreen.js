@@ -175,11 +175,7 @@ function GridItem({ series, activeTab, focusKey, onPress, onLongPress, index, op
             <View style={styles.downloadedBadge}>
               <Ionicons name="checkmark-circle" size={12} color="#1D9E75" />
             </View>
-          ) : (
-            <View style={styles.cloudBadge}>
-              <Ionicons name="cloud-outline" size={12} color="rgba(255,255,255,0.6)" />
-            </View>
-          )}
+          ) : null}
 
           {siteIcon && (
             <View style={styles.siteFaviconBadge}>
@@ -874,6 +870,33 @@ export default function LibraryScreen() {
     hapticSuccess();
   }
 
+  // Tapping a card goes to the series page, not straight into the chapter.
+  // The detail screen is where the source row lives, so this is the only place
+  // a reader can choose *where* to read — jumping past it into whichever site
+  // was used last meant a series that had since broken on that site had no
+  // recoverable path except backing out and hunting for another one.
+  //
+  // Downloaded series skip it: the pages are already on disk, there is no
+  // source to choose, and a detail screen offering web sources for something
+  // being read offline is just a step in the way.
+  function openDetail(series) {
+    if (series.downloadDir) { openReader(series); return; }
+    dismissLibraryUpdate(keyOf(series));
+    navigation.navigate('MangaDetail', {
+      title: series.title,
+      searchKey: series.searchKey || series.title,
+      lang: series.lang || 'ja',
+      color: series.color,
+      mangaId: series.mangaId,
+      chapters: series.chapters,
+      // Carried so the detail screen's Read button resumes where they were
+      // instead of restarting the series.
+      resumeUrl: series.url || null,
+      resumeSite: series.site || null,
+      resumeChapter: series.currentChapter || null,
+    });
+  }
+
   async function openReader(series) {
     setOpeningId(series.id);
     dismissLibraryUpdate(keyOf(series));
@@ -1376,7 +1399,7 @@ export default function LibraryScreen() {
                   activeTab={activeTab}
                   index={index}
                   widthPct={gridItemWidthPct}
-                  onPress={() => { if (!arranging) openReader(series); }}
+                  onPress={() => { if (!arranging) openDetail(series); }}
                   onLongPress={handleLongPress}
                   opening={openingId === series.id}
                   newChapterCount={updatesMap.get(metaKey) || 0}
@@ -1634,7 +1657,6 @@ const styles = StyleSheet.create({
   progressFill: { height: 3, backgroundColor: '#7858FF' },
   savedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(120, 88, 255,0.25)', borderRadius: 10, padding: 3 },
   downloadedBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(29,158,117,0.25)', borderRadius: 10, padding: 3 },
-  cloudBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 },
   siteFaviconBadge: { position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   siteFaviconImg: { width: 20, height: 20 },
   updateBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: '#1D9E75', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
