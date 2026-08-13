@@ -293,10 +293,13 @@
     flex: none; scroll-snap-align: start;
     width: clamp(150px, 22vw, 210px);
   }
+  /* Ratio matches the exported screenshots exactly (720x1496) so nothing gets
+     cropped and the frame reserves the right space before the image lands. */
   .shot-frame {
     border-radius: 20px; border: 1px solid var(--line); background: var(--bg-panel);
-    box-shadow: var(--shadow); overflow: hidden; aspect-ratio: 9/19.5;
+    box-shadow: var(--shadow); overflow: hidden; aspect-ratio: 720/1496;
   }
+  .shot-frame picture { display: block; width: 100%; height: 100%; }
   .shot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .shot-label { text-align: center; margin-top: 10px; font-size: 0.84rem; font-weight: 600; color: var(--ink-muted); }
 
@@ -996,27 +999,27 @@
     </div>
     <div class="showcase-strip">
       <div class="shot" data-reveal>
-        <div class="shot-frame"><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/library.webp" type="image/webp" /><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.library">Library</p>
       </div>
       <div class="shot" data-reveal>
-        <div class="shot-frame"><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/comms.webp" type="image/webp" /><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.community">Community</p>
       </div>
       <div class="shot" data-reveal>
-        <div class="shot-frame"><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/discussion.webp" type="image/webp" /><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.discussions">Discussions</p>
       </div>
       <div class="shot" data-reveal>
-        <div class="shot-frame"><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/profile.webp" type="image/webp" /><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.profile">Profile</p>
       </div>
       <div class="shot" data-reveal>
-        <div class="shot-frame"><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/home.webp" type="image/webp" /><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.home">Home</p>
       </div>
       <div class="shot" data-reveal>
-        <div class="shot-frame"><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="360" height="780" /></div>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.forYou">For You</p>
       </div>
     </div>
@@ -1203,7 +1206,8 @@
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
 <script src="/assets/anilist.js?v=8" defer></script>
-<script src="/assets/badges.js?v=1" defer></script>
+<!-- badges.js is loaded on demand from the progress card below, not here —
+     it's only useful to a signed-in visitor. -->
 <script src="/assets/motion.js?v=2" defer></script>
 <script>
 (function () {
@@ -1347,8 +1351,25 @@ document.addEventListener('DOMContentLoaded', function () {
       { grade: 'blue', label: 'Gold', color: '#FFD700' },
       { grade: 'mythic', label: 'Mythic', color: '#7B5CFF' },
     ];
+    // badges.js is 48KB of badge definitions that only a signed-in visitor's
+    // progress card can use, so it's fetched on demand instead of shipping to
+    // every anonymous reader who lands on the marketing page.
+    var badgesPromise = null;
+    function loadBadges() {
+      if (badgesPromise) return badgesPromise;
+      badgesPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = '/assets/badges.js?v=1';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return badgesPromise;
+    }
+
     onAuthChange(function (user) {
       if (!user) return;
+      loadBadges().then(function () {
       sb.from('profiles')
         .select('chapters_read,hours_read,streak_count,series_count,friends_count,comments_count,likes_given,completed_count,night_reads,genres_count,shares_count,manga_count,ratings_count,created_at,avatar_url')
         .eq('id', user.id).maybeSingle()
@@ -1370,6 +1391,7 @@ document.addEventListener('DOMContentLoaded', function () {
           document.getElementById('progressChaptersVal').textContent = stats.chapters_read.toLocaleString();
           document.getElementById('progressChaptersBar').style.width = Math.min(100, (stats.chapters_read / 500) * 100) + '%';
         });
+      }).catch(function () { /* badge card just stays on its sample numbers */ });
 
       sb.from('reading_progress')
         .select('series_title,current_chapter,total_chapters,status,updated_at')

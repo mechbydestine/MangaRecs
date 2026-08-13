@@ -90,5 +90,24 @@
 <footer>
   <a href="/">Home</a> · <a href="/catalog/">Full Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
 </footer>
+<script data-deeplink-fallback>
+// A mangarecs:// link is a no-op on desktop and on phones without the app
+// installed. Race the handoff: if we're still visible 1.2s later, nothing
+// caught it, so send them to the download section instead of nowhere.
+document.addEventListener('click', function (e) {
+  var a = e.target.closest ? e.target.closest('a[href^="mangarecs://"]') : null;
+  if (!a) return;
+  e.preventDefault();
+  var timer = setTimeout(function () {
+    if (!document.hidden) location.href = '/#download';
+  }, 1200);
+  function cancel() { clearTimeout(timer); }
+  window.addEventListener('pagehide', cancel, { once: true });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) cancel();
+  }, { once: true });
+  location.href = a.getAttribute('href');
+});
+</script>
 </body>
 </html>
