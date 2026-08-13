@@ -1,3 +1,6 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
 <script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Features — MangaRecs</title>
@@ -17,7 +20,6 @@
 <meta name="theme-color" content="#6B46F0" />
 <link rel="canonical" href="https://mangarecs.net/features/" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
 <noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
 <link rel="stylesheet" href="/assets/base.css?v=1" />
@@ -220,7 +222,7 @@
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="/assets/supabase.js?v=2" defer></script>
 <script src="/assets/auth.js?v=2" defer></script>
 <script src="/assets/nav-widgets.js?v=3" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
@@ -230,3 +232,4 @@ document.addEventListener('DOMContentLoaded', function () {
   initAccountPanel('accountBtn', 'accountPanel');
 });
 </script>
+</html>

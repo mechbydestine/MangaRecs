@@ -112,21 +112,52 @@ function statusLabel(s) {
 }
 
 // ── Poster card ───────────────────────────────────────────────────────
+// One-line pull-quote out of the AniList synopsis — first sentence only,
+// with HTML, AniList's ~!spoiler!~ markers and the trailing "(Source: …)"
+// credit stripped. A card that says something about the story beats one
+// that just repeats the year and chapter count.
+function blurbOf(m) {
+  var raw = (m.description || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/~!|!~|__|\*\*|\*/g, '')
+    .replace(/\(Source:[\s\S]*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!raw) return '';
+  var end = raw.search(/[.!?](\s|$)/);
+  var s = end > 0 ? raw.slice(0, end + 1) : raw;
+  if (s.length > 120) s = s.slice(0, 116).replace(/\s+\S*$/, '') + '…';
+  return s;
+}
+
 // Depends on isSavedLocally (assets/auth.js) — auth.js must load first.
 function posterCard(m) {
   var score = m.averageScore ? (m.averageScore / 10).toFixed(1) : null;
   var saved = isSavedLocally(m.id);
+  var fmt = formatLabel(m);
+  var blurb = blurbOf(m);
+  var cover = (m.coverImage.extraLarge || m.coverImage.large);
+  var meta = (m.startDate && m.startDate.year ? m.startDate.year : '') + (m.chapters ? ' · ' + m.chapters + ' ch' : '');
+  var tags = (m.genres || []).slice(0, 2).map(function (g) { return '<span>' + esc(g) + '</span>'; }).join('');
   return '<a class="poster" data-title="' + esc(titleOf(m)) + '" href="#/title/' + m.id + '" onclick="navigate(\'/title/' + m.id + '\');return false;">' +
     '<div class="poster-img-wrap">' +
-      '<img src="' + m.coverImage.large + '" alt="' + esc(titleOf(m)) + ' cover art" loading="lazy" />' +
-      '<span class="poster-badge">' + formatLabel(m) + '</span>' +
-      (score ? '<span class="poster-score"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + score + '</span>' : '') +
-      '<button class="poster-save' + (saved ? ' active' : '') + '" type="button" aria-label="' + (saved ? 'Remove from Library' : 'Save to Library') + '" data-id="' + m.id + '">' +
-        '<svg viewBox="0 0 24 24" fill="' + (saved ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
-      '</button>' +
+      '<img src="' + cover + '" alt="' + esc(titleOf(m)) + ' cover art" loading="lazy" />' +
+      '<div class="poster-chips">' +
+        '<span class="poster-badge" data-fmt="' + fmt + '">' + fmt + '</span>' +
+        '<span class="poster-chips-right">' +
+          (score ? '<span class="poster-score"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + score + '</span>' : '') +
+          '<button class="poster-save' + (saved ? ' active' : '') + '" type="button" aria-label="' + (saved ? 'Remove from Library' : 'Save to Library') + '" data-id="' + m.id + '">' +
+            '<svg viewBox="0 0 24 24" fill="' + (saved ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
+          '</button>' +
+        '</span>' +
+      '</div>' +
+      '<div class="poster-body">' +
+        '<div class="poster-title">' + esc(titleOf(m)) + '</div>' +
+        (blurb ? '<div class="poster-blurb">“' + esc(blurb) + '”</div>' : '') +
+        (tags || meta ? '<div class="poster-tags">' + tags + (meta ? '<span class="poster-meta">' + meta + '</span>' : '') + '</div>' : '') +
+      '</div>' +
     '</div>' +
-    '<div class="poster-title">' + esc(titleOf(m)) + '</div>' +
-    '<div class="poster-meta">' + (m.startDate.year || '') + (m.chapters ? ' · ' + m.chapters + ' ch' : '') + '</div>' +
   '</a>';
 }
 
@@ -160,6 +191,6 @@ function wirePosterSaveButtons() {
 
 function skeletonGrid(n) {
   var out = '<div class="grid">';
-  for (var i = 0; i < n; i++) out += '<div class="poster"><div class="poster-img-wrap skeleton"></div><div style="height:12px;width:80%;border-radius:4px;" class="skeleton"></div></div>';
+  for (var i = 0; i < n; i++) out += '<div class="poster"><div class="poster-img-wrap skeleton"></div></div>';
   return out + '</div>';
 }
