@@ -259,12 +259,59 @@ async function probeFanfox(query, matches) {
   );
 }
 
+// ── Asura Scans ────────────────────────────────────────────────────────────
+// Asura has no usable search: every search URL it exposes returns the entire
+// catalogue unfiltered (verified byte-for-byte against its homepage), because
+// the site is a Next.js app that filters client-side. That made it the one
+// source that could never be confirmed, and — before the auto-nav title guard
+// — the one that would happily open a different series.
+//
+// It does have a public JSON API behind api.asurascans.com, and it answers a
+// slug lookup directly. Slugging the title and asking for that one series is a
+// single request that returns the exact hashed web URL in `public_url`, which
+// is otherwise unguessable (/comics/solo-leveling-7e1f454a).
+//
+// Checked against eight titles: every one Asura actually carries resolved on
+// the first try, and the three that missed were genuinely absent from its
+// 400-series catalogue rather than slugged differently. The catalogue could be
+// walked instead, but that is 21 pages and about a megabyte to answer one
+// question — the slug lookup is ~50x cheaper and was not measurably worse.
+function asuraSlug(title) {
+  return (title || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+async function probeAsura(query, matches) {
+  const slug = asuraSlug(query);
+  if (slug.length < 2) return null;
+  const raw = await getText(`https://api.asurascans.com/api/series/${slug}`, {
+    Accept: 'application/json',
+  });
+  if (!raw) return null;
+  let series;
+  try { series = JSON.parse(raw)?.series; } catch (_) { return null; }
+  if (!series?.public_url) return null;
+  // A slug guess can land on a real but different series, so the answer is
+  // still checked against every name Asura knows for it — the API returns a
+  // long alt_titles list, which is exactly what makes this reliable.
+  const names = [series.title, ...(series.alt_titles || []), ...(series.alternative_titles || [])];
+  if (!names.some((n) => matches(n))) return null;
+  const path = String(series.public_url).replace(/^\/+/, '');
+  return `https://asurascans.com/${path}`;
+}
+
 // All scanlation aggregators, so all English-only in practice.
 const COMMUNITY_PROBES = [
   { name: 'Weeb Central', host: 'weebcentral.com',  langs: ['en'], run: probeWeebCentral },
   { name: 'MangaPill',    host: 'mangapill.com',    langs: ['en'], run: probeMangaPill },
   { name: 'MangaKatana',  host: 'mangakatana.com',  langs: ['en'], run: probeMangaKatana },
   { name: 'Fanfox',       host: 'fanfox.net',       langs: ['en'], run: probeFanfox },
+  { name: 'Asura Scans',  host: 'asurascans.com',   langs: ['en'], run: probeAsura },
 ];
 
 // ── WebView probe targets ──────────────────────────────────────────────────
@@ -283,11 +330,9 @@ export const WEBVIEW_PROBES = [
     search: (q) => `https://mangafire.to/filter?keyword=${encodeURIComponent(q)}`,
     pathRe: /^(https:\/\/mangafire\.to)?\/manga\/[^/]+$/,
   },
-  {
-    name: 'Asura Scans', host: 'asurascans.com', langs: ['en'],
-    search: (q) => `https://asurascans.com/browse?name=${encodeURIComponent(q)}`,
-    pathRe: /^(https:\/\/asurascans\.com)?\/comics\/[^/]+$/,
-  },
+  // Asura moved to COMMUNITY_PROBES (probeAsura): its JSON API answers in one
+  // fetch, where the WebView probe spent a full lane on a search page that
+  // returns the whole catalogue and can therefore never confirm anything.
   {
     // comick.io now 301s to comick.dev — probing the old host spent a whole
     // lane following the redirect before it could even meet the challenge.

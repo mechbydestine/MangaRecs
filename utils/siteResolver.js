@@ -87,10 +87,12 @@ function buildSlug(title) {
 }
 
 const SLUG_BUILDERS = {
-  'asurascans.com':  (s, b) => `${b}/manga/${s}/`,
-  'asura.gg':        (s, b) => `${b}/manga/${s}/`,
-  'asuracomic.net':  (s, b) => `${b}/manga/${s}/`,
-  'asuratoon.com':   (s, b) => `${b}/manga/${s}/`,
+  // Asura is NOT a Madara/WordPress site any more — it is a Next.js app, and
+  // the old guesses were all wrong: /manga/{slug}/ 404s and so does
+  // /wp-admin/admin-ajax.php, so both the direct URL and the AJAX permalink
+  // lookup were dead ends. Its real page lives at /comics/{slug}-{hash} where
+  // the hash cannot be guessed, so it is resolved through fetchAsuraUrl()
+  // below instead of being built from a pattern.
   'weebcentral.com': (s, b) => `${b}/series/${s}`,
   'manganato.gg':    (s, b) => `${b}/manga/${s}`,
   // Removed 2026-08-10: zinmanga.com, likemanga.io and aquamanga.com no longer
@@ -109,10 +111,8 @@ export function buildDirectUrl(siteUrl, title) {
 }
 
 const MADARA_PATHS = {
-  'asurascans.com':  'manga',
-  'asura.gg':        'manga',
-  'asuracomic.net':  'manga',
-  'asuratoon.com':   'manga',
+  // Asura removed: its admin-ajax.php returns 404, so asking it for a
+  // permalink only ever cost a round-trip.
   'weebcentral.com': 'series',
   // manhuaplus.com stays listed so fetchMadaraUrl() can still ask its AJAX
   // endpoint for the real permalink — it is only the guessed /manga/{slug}/
@@ -150,6 +150,39 @@ export async function fetchMangaHubUrl(title) {
       rows.find((r) => (r.title || '').toLowerCase().startsWith(q)) ||
       rows[0];
     return best?.slug ? `https://mangahub.io/manga/${best.slug}` : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// Asura's real series URL, via its public JSON API.
+//
+// The site itself cannot be searched — every search URL it exposes returns the
+// full catalogue unfiltered — and its page path carries an unguessable hash
+// (/comics/solo-leveling-7e1f454a). The API answers a slug lookup in one
+// request and hands back that exact path in `public_url`, which turns Asura
+// from a site the reader could only stumble onto into one it can open directly.
+export async function fetchAsuraUrl(title) {
+  const slug = (title || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  if (slug.length < 2) return null;
+  try {
+    const resp = await withTimeout(
+      fetch(`https://api.asurascans.com/api/series/${slug}`, {
+        headers: { Accept: 'application/json' },
+      }),
+      5000
+    );
+    if (!resp?.ok) return null;
+    const json = await resp.json();
+    const path = json?.series?.public_url;
+    if (!path) return null;
+    return `https://asurascans.com/${String(path).replace(/^\/+/, '')}`;
   } catch (_) {
     return null;
   }
@@ -664,6 +697,7 @@ export async function resolveMangaUrl(title, { defaultSiteUrl, mangaDexUrl, mang
 
   const isDex    = defaultSiteUrl?.includes('mangadex.org');
   const isHub    = defaultSiteUrl?.includes('mangahub.io');
+  const isAsura  = /asurascans\.com|asura\.gg|asuracomic\.net|asuratoon\.com/.test(defaultSiteUrl || '');
   const isMadara = defaultSiteUrl
     ? Object.keys(MADARA_PATHS).some((k) => defaultSiteUrl.includes(k))
     : false;
@@ -672,7 +706,19 @@ export async function resolveMangaUrl(title, { defaultSiteUrl, mangaDexUrl, mang
   let primaryUrl;
   const fallbacks = [];
 
-  if (isMadara) {
+  if (isAsura) {
+    // The API path is the only one that can land on the right series here, so
+    // it leads. Search is still queued behind it, but only as a last resort:
+    // Asura's search page returns its whole catalogue, so the title guard in
+    // AUTO_NAV_SEARCH_JS is what stops it opening something unrelated.
+    const asuraUrl = await fetchAsuraUrl(title);
+    if (asuraUrl) {
+      primaryUrl = asuraUrl;
+      fallbacks.push(buildSearchUrl(defaultSiteUrl, title));
+    } else {
+      primaryUrl = buildSearchUrl(defaultSiteUrl, title);
+    }
+  } else if (isMadara) {
     // Direct slug URL → AJAX permalink → search page
     // Direct URL is the fastest path and avoids Cloudflare challenge pages on search.
     const directUrl = buildDirectUrl(defaultSiteUrl, title);
