@@ -43,6 +43,7 @@ import {
 } from '../utils/badges';
 import BadgeIcon from '../components/BadgeIcon';
 import { buildIdentity, surfaceFor, rgba } from '../utils/recapIdentity';
+import { getPeriod, isRecapOpen, recapReleaseDate, RECAP_ALWAYS_OPEN } from '../utils/recapSchedule';
 import { getState as ambienceState } from '../utils/ambiencePlayer';
 import { trackFor, fadeIn, fadeOutAndStop, MUSIC_VOLUME } from '../utils/recapMusic';
 import {
@@ -70,11 +71,6 @@ const SLIDE_DURATIONS = [6200, 7800, 6800, 8400, 8800, 7600, 7400, 8600, 7200, 0
 
 // ── period + stat maths ──────────────────────────────────────────────────
 
-function getPeriod(now = new Date()) {
-  const y = now.getFullYear(), m = now.getMonth();
-  if (m >= 6) return { label: `First Half ${y}`, short: `Jan – Jun ${y}`, start: new Date(y, 0, 1), end: new Date(y, 6, 0, 23, 59, 59) };
-  return { label: `Second Half ${y - 1}`, short: `Jul – Dec ${y - 1}`, start: new Date(y - 1, 6, 1), end: new Date(y, 0, 0, 23, 59, 59) };
-}
 
 // ── TEMP TESTING TOGGLE ──────────────────────────────────────────────────
 // Flip this back to false to restore the real half-year recap. While true,
@@ -1617,10 +1613,45 @@ export default function RecapScreen() {
         if (dead) return;
 
         const genres = genreBreakdown(topSeries);
-        const identity = buildIdentity(seeds, {
-          genre: genres[0]?.label || profile?.favorite_genre || null,
-          genres: genres.map((g) => g.label),
-        });
+
+        // ── Identity is derived once, then it is theirs ──────────────────────
+        // The palette is the centre of mass of the reader's real cover colours,
+        // which is the right idea, but those colours arrive over the network.
+        // Whichever titles happened to resolve — or time out — on a given open
+        // moved that centre of mass, so the same reader got red one time and
+        // orange the next. For someone with no resolvable art it was worse
+        // still: the seeds fell back to LIVE TRENDING covers, which change by
+        // the hour, so their recap had no fixed identity at all.
+        //
+        // So it is computed once per reader per period and kept. Recomputed
+        // only when a later run resolves strictly MORE cover art than the run
+        // that produced the stored one — that way an unlucky first open (two
+        // covers, half the shelf missing) can still be improved on, while a
+        // complete one never drifts again.
+        const identityKey = `@mangarecs/recap_identity/${userId || 'anon'}/${period.label}`;
+        let identity = null;
+        let storedSeedCount = -1;
+        try {
+          const rawId = await AsyncStorage.getItem(identityKey);
+          if (rawId) {
+            const parsed = JSON.parse(rawId);
+            if (parsed?.identity) {
+              identity = parsed.identity;
+              storedSeedCount = parsed.seedCount ?? 0;
+            }
+          }
+        } catch (_) {}
+
+        if (!identity || seeds.length > storedSeedCount) {
+          identity = buildIdentity(seeds, {
+            genre: genres[0]?.label || profile?.favorite_genre || null,
+            genres: genres.map((g) => g.label),
+          });
+          AsyncStorage.setItem(
+            identityKey,
+            JSON.stringify({ identity, seedCount: seeds.length }),
+          ).catch(() => {});
+        }
 
         const sortedKeys = inRange.slice().sort();
         const firstDay = sortedKeys.length ? new Date(`${sortedKeys[0]}T00:00:00`) : null;
