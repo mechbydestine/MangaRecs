@@ -298,6 +298,10 @@ function ScreenUsername({ username, onChange, status }) {
 export default function OnboardingScreen({ onComplete }) {
   const { colors } = useTheme();
   const t = useT();
+  // Used by both return branches below for the safe-area padding. It was only
+  // ever declared inside SignUpGate, a sibling component, so reaching either
+  // of those returns threw a ReferenceError.
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(-1);
   const [genres, setGenres] = useState([]);
   const [vibe, setVibe] = useState('mix');

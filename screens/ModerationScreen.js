@@ -21,6 +21,10 @@ const CONTENT_TYPE_LABELS = {
 
 function ReportsTab({ colors, insets }) {
   const t = useT();
+  // Read here rather than taken as a prop: this component's own JSX uses
+  // isTablet, and only the parent ever declared it — so rendering this tab
+  // threw a ReferenceError.
+  const { isTablet } = useResponsive();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -106,6 +110,9 @@ function ReportsTab({ colors, insets }) {
 
 function TrendingTab({ colors, insets }) {
   const t = useT();
+  // Same as ReportsTab: isTablet is used below but was only ever declared in
+  // the parent component.
+  const { isTablet } = useResponsive();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

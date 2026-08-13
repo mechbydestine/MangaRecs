@@ -23,6 +23,8 @@ import {
   Easing, ActivityIndicator, PanResponder, useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reportError } from '../utils/crashReporting';
 import { useNavigation } from '@react-navigation/native';
 import { useT } from '../utils/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1435,6 +1437,9 @@ export default function RecapScreen() {
   const { profile, userId, loading: profileLoading } = useProfile();
 
   const [status, setStatus] = useState('loading');
+  // Bumped once when a build fails, which re-runs the effect below. A recap
+  // build touches six network calls; a single flaky one used to be terminal.
+  const [buildAttempt, setBuildAttempt] = useState(0);
   const [data, setData] = useState(null);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -1647,10 +1652,17 @@ export default function RecapScreen() {
             genre: genres[0]?.label || profile?.favorite_genre || null,
             genres: genres.map((g) => g.label),
           });
-          AsyncStorage.setItem(
-            identityKey,
-            JSON.stringify({ identity, seedCount: seeds.length }),
-          ).catch(() => {});
+          // Persisting is an optimisation, never a requirement. It sits in its
+          // own try because a throw here reaches the builder's outer catch and
+          // fails the ENTIRE recap — which is exactly what happened when this
+          // was written: AsyncStorage was used here without being imported, so
+          // every recap died on a colour cache.
+          try {
+            AsyncStorage.setItem(
+              identityKey,
+              JSON.stringify({ identity, seedCount: seeds.length }),
+            ).catch(() => {});
+          } catch (_) {}
         }
 
         const sortedKeys = inRange.slice().sort();
@@ -1777,12 +1789,22 @@ export default function RecapScreen() {
           dnaCode: base.dnaCode,
         });
       } catch (e) {
-        if (!dead) setStatus('error');
+        if (dead) return;
+        // Report it. This catch used to swallow the failure whole, which is
+        // how a missing AsyncStorage import shipped and broke every recap
+        // without producing a single error anywhere — the user saw a message
+        // and nobody else ever knew.
+        reportError(e, 'recap.build', { attempt: buildAttempt });
+        // One silent retry before conceding anything. Most failures here are a
+        // timed-out fetch, and retrying costs the reader nothing but the
+        // loading state they are already looking at.
+        if (buildAttempt === 0) { setBuildAttempt(1); return; }
+        setStatus('error');
       }
     })();
 
     return () => { dead = true; };
-  }, [profileLoading, userId, profile]);
+  }, [profileLoading, userId, profile, buildAttempt]);
 
   // ── soundtrack ─────────────────────────────────────────────────────────
   // A dedicated player, never the shared ambience singleton — hijacking that
@@ -1928,8 +1950,16 @@ export default function RecapScreen() {
   if (status === 'signedout' || status === 'error' || !data) {
     return (
       <View style={[styles.root, styles.center]}>
+        {/* Never a technical failure. "Couldn't build your MangaRecap" told
+            the reader the app broke, which is both alarming and useless to
+            them — there is nothing they can do about it, and the retry it
+            suggested already happened silently. The recap is a gift, so when
+            it isn't ready the honest framing is that it isn't ready yet.
+            The actual error goes to Sentry, where it can be acted on. */}
         <Text style={styles.fallbackText}>
-          {status === 'signedout' ? 'Sign in to see your MangaRecap.' : "Couldn't build your MangaRecap. Try again in a moment."}
+          {status === 'signedout'
+            ? 'Sign in to see your MangaRecap.'
+            : 'Your MangaRecap is still being put together — keep reading and check back soon.'}
         </Text>
         <TouchableOpacity style={[styles.btnGhost, { borderColor: 'rgba(255,255,255,0.34)' }]} onPress={close} accessibilityRole="button" accessibilityLabel={t('common.close')}>
           <Text style={[styles.btnGhostText, { color: '#fff' }]}>{t('common.close')}</Text>
