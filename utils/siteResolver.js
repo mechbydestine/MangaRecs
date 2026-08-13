@@ -390,36 +390,80 @@ export const AUTO_NAV_SEARCH_JS = `
     return false;
   }
 
+  // ── Does this link actually lead to what was searched for? ───────────────
+  // Until this existed, the targeted selectors clicked whichever series
+  // happened to be first in the DOM and the generic pass fell back to the same
+  // thing. On any site whose search does not filter server-side — Asura Scans
+  // returns its full catalogue for every query, byte for byte — that means
+  // searching for one series silently opens a different one. Landing on the
+  // wrong manga is far worse than reporting "not here" and trying the next
+  // site, because nothing about it looks like a failure.
+  //
+  // Re-read __mangarecsQuery on every call: the query is injected separately
+  // and may land a tick after this script runs.
+  function normTxt(s) {
+    return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();
+  }
+  function hasQuery() {
+    return normTxt(window.__mangarecsQuery || '').length >= 3;
+  }
+  function titleMatches(el) {
+    if (!hasQuery()) return true; // no query (resume/direct open) — nothing to check against
+    var q = normTxt(window.__mangarecsQuery);
+    var qSlug = q.replace(/ /g, '-');
+    var href = (el.href || '').toLowerCase();
+    if (href.indexOf(qSlug) !== -1) return true;
+    if (normTxt(href).indexOf(q) !== -1) return true;
+
+    // Link text, including an image alt — most cards put the title there.
+    var txt = normTxt(el.textContent);
+    if (!txt) {
+      var img = el.querySelector && el.querySelector('img');
+      if (img) txt = normTxt(img.getAttribute('alt') || img.getAttribute('title'));
+    }
+    if (!txt) return false;
+    if (txt.indexOf(q) !== -1 || q.indexOf(txt) !== -1) return true;
+
+    // Word-overlap, so "Demon Slayer" still matches a card titled
+    // "Demon Slayer: Kimetsu no Yaiba". Every word of the query must appear;
+    // that keeps "Solo Leveling" from matching "Solo Max Level Newbie", which
+    // is exactly the wrong-series case seen live on Asura.
+    var qw = q.split(' ').filter(function(w) { return w.length > 1; });
+    if (qw.length === 0) return false;
+    for (var k = 0; k < qw.length; k++) {
+      if (txt.indexOf(qw[k]) === -1) return false;
+    }
+    return true;
+  }
+
   function tryNav() {
     for (var i = 0; i < SELS.length; i++) {
-      var el = document.querySelector(SELS[i]);
-      if (el && isValidMangaHref(el.href)) {
-        window.__mangarecsNavDone = true;
-        el.click();
-        return true;
+      // querySelectorAll, not querySelector: with a title check in play, the
+      // first element matching a selector is often not the right series, and
+      // taking only the first would skip a correct card further down the list.
+      var els = document.querySelectorAll(SELS[i]);
+      for (var e = 0; e < els.length; e++) {
+        if (isValidMangaHref(els[e].href) && titleMatches(els[e])) {
+          window.__mangarecsNavDone = true;
+          els[e].click();
+          return true;
+        }
       }
     }
-    // Generic fallback: prefer links whose href slug or text matches the search query.
-    // Re-read __mangarecsQuery on every call because the query injection may arrive
-    // slightly after this script runs (first interval tick gives it time to land).
-    var rawQ = (window.__mangarecsQuery || '').toLowerCase();
-    var qSlug = rawQ.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    // Generic pass over every link on the page, same matching rule.
     var links = document.querySelectorAll('a[href]');
     var firstValid = null;
     var titleMatch = null;
     for (var j = 0; j < links.length; j++) {
-      var lHref = links[j].href || '';
-      if (!isValidMangaHref(lHref)) continue;
+      if (!isValidMangaHref(links[j].href || '')) continue;
       if (!firstValid) firstValid = links[j];
-      if (!titleMatch && qSlug.length >= 3) {
-        var hlow = lHref.toLowerCase();
-        var tlow = (links[j].textContent || '').trim().toLowerCase();
-        if (hlow.indexOf(qSlug) !== -1 || tlow.indexOf(rawQ) !== -1) {
-          titleMatch = links[j];
-        }
-      }
+      if (!titleMatch && titleMatches(links[j])) titleMatch = links[j];
     }
-    var picked = titleMatch || firstValid;
+    // With a query in hand, a non-matching link is never the right answer, so
+    // there is no fallback to "the first series on the page". Returning false
+    // lets the retry loop keep waiting and eventually fire searchFailed, which
+    // moves to the next site — the correct outcome when a site doesn't have it.
+    var picked = titleMatch || (hasQuery() ? null : firstValid);
     if (picked) {
       window.__mangarecsNavDone = true;
       picked.click();
