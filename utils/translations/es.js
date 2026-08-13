@@ -49,9 +49,11 @@ export default {
   },
 
   feed: {
+    trending: 'En tendencia',
     video: {
       play: 'Reproducir {title}',
-      stop: 'Detener vídeo',
+      mute: 'Silenciar vídeo',
+      unmute: 'Activar sonido',
       openExternal: 'Abrir',
       embedFailed: 'Este vídeo no se puede reproducir aquí. Toca Abrir para verlo.',
     },

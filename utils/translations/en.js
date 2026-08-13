@@ -52,9 +52,11 @@ export default {
   },
 
   feed: {
+    trending: 'Trending',
     video: {
       play: 'Play {title}',
-      stop: 'Stop video',
+      mute: 'Mute video',
+      unmute: 'Unmute video',
       openExternal: 'Open',
       embedFailed: "This video can't play here — tap Open to watch it.",
     },

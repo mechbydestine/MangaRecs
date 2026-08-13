@@ -50,9 +50,11 @@ export default {
   },
 
   feed: {
+    trending: '趋势',
     video: {
       play: '播放 {title}',
-      stop: '停止播放',
+      mute: '静音',
+      unmute: '取消静音',
       openExternal: '打开',
       embedFailed: '该视频无法在此播放，点击打开观看。',
     },

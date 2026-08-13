@@ -49,9 +49,11 @@ export default {
   },
 
   feed: {
+    trending: 'Tendances',
     video: {
       play: 'Lire {title}',
-      stop: 'Arrêter la vidéo',
+      mute: 'Couper le son',
+      unmute: 'Activer le son',
       openExternal: 'Ouvrir',
       embedFailed: "Cette vidéo ne peut pas être lue ici — appuyez sur Ouvrir pour la regarder.",
     },

@@ -49,9 +49,11 @@ export default {
   },
 
   feed: {
+    trending: '急上昇',
     video: {
       play: '{title} を再生',
-      stop: '動画を停止',
+      mute: 'ミュート',
+      unmute: 'ミュート解除',
       openExternal: '開く',
       embedFailed: 'この動画はここでは再生できません。「開く」から視聴してください。',
     },

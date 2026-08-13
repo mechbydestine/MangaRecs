@@ -22,6 +22,7 @@ import { supabase } from '../supabase';
 import { syncReadOpen, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
 import { loadVideoPool, interleaveVideos } from '../utils/shortVideos';
+import { buildTrending } from '../utils/trendingFeed';
 import ShortVideoCard from '../components/ShortVideoCard';
 import { requireAccount } from '../utils/guestGate';
 import { useNotifications } from '../utils/NotificationsContext';
@@ -82,10 +83,9 @@ const _recentBuffer = [];
 const RECENT_BUFFER_SIZE = 150;
 let _feedCounter = 0;
 
-// Section rotation state — persists across refreshes so each pull reveals new content
-const _hotSeen      = new Set();
-const _trendingSeen = new Set();
-const _popularSeen  = new Set();
+// Trending rotation lives in utils/trendingFeed.js — it is persisted, unlike
+// the three in-memory Sets that used to live here (one per section), which
+// reset on every cold start and so replayed the same openers every launch.
 
 // Feed queue constants
 const MAX_FEED_LENGTH = 120;  // max cards kept in state — prevents RAM growth
@@ -264,52 +264,26 @@ function dequeueItems(n, savedIds = new Set()) {
   }));
 }
 
-function parseReaderCount(str) {
-  const n = parseFloat(str || '0');
-  if ((str || '').includes('M')) return n * 1_000_000;
-  if ((str || '').includes('K')) return n * 1_000;
-  return n;
-}
+// Builds the initial (and refresh) feed: one Trending block, then the
+// algorithmic batch. Trending is live and language-quota'd — see
+// utils/trendingFeed.js for why it is one section instead of the three
+// near-identical ones this used to open with.
+async function buildSectionedFeed(savedIds, likedSet) {
+  const trending = await buildTrending();
+  const usedThisBuild = new Set(trending.map((m) => m.id));
 
-// Builds the initial (and refresh) feed in ordered sections:
-// Hot Picks → Trending → Popular → algorithmic algo batch
-//
-// Each section tracks its own seen set (_hotSeen / _trendingSeen / _popularSeen)
-// so successive refreshes advance to the next 5 items in each ranked list,
-// cycling back to the beginning only when all items have been shown.
-function buildSectionedFeed(savedIds, likedSet) {
-  const pool = MANGA_POOL.filter((m) => !m.nsfw);
-  const usedThisBuild = new Set(); // prevents the same item appearing in multiple sections
-
-  function takeSorted(sorted, n, section, sectionSeen) {
-    // Prefer items not yet shown in this section AND not already used in another section
-    let picks = sorted.filter((m) => !usedThisBuild.has(m.id) && !sectionSeen.has(m.id));
-    if (picks.length < n) {
-      // All items in this section have been cycled — reset and start over
-      sectionSeen.clear();
-      picks = sorted.filter((m) => !usedThisBuild.has(m.id));
-    }
-    picks = picks.slice(0, n);
-    picks.forEach((m) => {
-      usedThisBuild.add(m.id);
-      sectionSeen.add(m.id);
-      _seenIds.add(m.id);
-      _recentBuffer.push(m.id);
-      if (_recentBuffer.length > RECENT_BUFFER_SIZE) _recentBuffer.shift();
-    });
-    return picks.map((m) => ({ ...m, _section: section }));
-  }
-
-  const hotPicks = takeSorted([...pool].sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0)), 5, 'hot', _hotSeen);
-  const trending = takeSorted([...pool].sort((a, b) => parseReaderCount(b.readers) - parseReaderCount(a.readers)), 5, 'trending', _trendingSeen);
-  const popular  = takeSorted([...pool].sort((a, b) => (b.rating || 0) - (a.rating || 0)), 5, 'popular', _popularSeen);
+  trending.forEach((m) => {
+    _seenIds.add(m.id);
+    _recentBuffer.push(m.id);
+    if (_recentBuffer.length > RECENT_BUFFER_SIZE) _recentBuffer.shift();
+  });
 
   // Purge section picks from the Supabase queue so the algo batch never repeats them
   _feedQueue = _feedQueue.filter((m) => !usedThisBuild.has(m.id));
 
-  const algoBatch = dequeueItems(BATCH_SIZE, savedIds);
+  const algoBatch = dequeueItems(BATCH_SIZE, savedIds).filter((m) => !usedThisBuild.has(m.id));
 
-  return [...hotPicks, ...trending, ...popular, ...algoBatch].map((item) => ({
+  return [...trending, ...algoBatch].map((item) => ({
     ...item,
     likeCount:    item._fromSupabase ? (item.likeCount ?? 0) : 0,
     commentCount: 0,
@@ -347,6 +321,10 @@ export async function augmentPoolFromApi() {
     );
     items.forEach((item) => {
       if (seenIds.has(String(item.id))) return;
+      // No cover means a card that can only render a letter in a box. The
+      // static pool was just swept clean of exactly those, so runtime
+      // augmentation must not put them straight back.
+      if (!item.coverUrl) return;
       const t = norm(item.searchKey || item.title);
       if (seenTitles.has(t)) return;
       MANGA_POOL.push(item);
@@ -715,16 +693,14 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
 
         {/* Info below cover */}
         <View style={[styles.cardInfo, { maxWidth: metrics.contentW }]}>
-          {item._section && item._section !== 'creator' && (
-            <View style={[
-              styles.sectionBadge,
-              item._section === 'hot'      && styles.sectionBadgeHot,
-              item._section === 'trending' && styles.sectionBadgeTrending,
-              item._section === 'popular'  && styles.sectionBadgePopular,
-            ]}>
-              <Text style={styles.sectionBadgeText}>
-                {item._section === 'hot' ? 'Hot Pick' : item._section === 'trending' ? 'Trending' : 'Popular'}
-              </Text>
+          {/* One label. "Hot Pick", "Trending" and "Popular" ranked the same
+              catalogue three ways and returned near-identical lists — 22 of
+              the top 25 were shared between Hot and Trending — so to a reader
+              they were three names for one idea. */}
+          {item._section === 'trending' && (
+            <View style={[styles.sectionBadge, styles.sectionBadgeTrending]}>
+              <Ionicons name="trending-up" size={11} color="#fff" />
+              <Text style={styles.sectionBadgeText}>{t('feed.trending')}</Text>
             </View>
           )}
           {item._section === 'creator' && (
@@ -1186,7 +1162,7 @@ export default function FeedScreen() {
       // first batch can already carry video instead of only getting it once
       // the user scrolls far enough to trigger loadMore.
       await Promise.all([refillQueue(), loadVideoPool()]);
-      let firstBatch = buildSectionedFeed(savedIds, likedSet);
+      let firstBatch = await buildSectionedFeed(savedIds, likedSet);
 
       // Prepend creator series (max 3, before hot picks)
       try {
@@ -1784,7 +1760,7 @@ export default function FeedScreen() {
     // network blip) — otherwise pulling to refresh brings back manga only.
     await Promise.all([refillQueue(), loadVideoPool()]);
     const savedIds = new Set(savedMap.keys());
-    const batch = interleaveVideos(buildSectionedFeed(savedIds, likedIds), 0);
+    const batch = interleaveVideos(await buildSectionedFeed(savedIds, likedIds), 0);
     setFeed(batch);
     syncLiveCounts(batch);
     setRefreshing(false);
@@ -2367,9 +2343,7 @@ const styles = StyleSheet.create({
   actionCount: { fontSize: 12, fontWeight: '600', marginTop: 4 },
   cardInfo: { paddingTop: 14, width: '100%', alignSelf: 'center' },
   sectionBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 8, borderWidth: 1, gap: 5 },
-  sectionBadgeHot:      { backgroundColor: 'rgba(255, 86, 24, 0.27)', borderColor: 'rgba(255, 81, 1, 0.57)' },
   sectionBadgeTrending: { backgroundColor: 'rgba(46, 31, 212, 0.49)',  borderColor: 'rgba(10, 0, 104, 0.81)' },
-  sectionBadgePopular:  { backgroundColor: 'rgba(255, 217, 0, 0.25)',  borderColor: 'rgba(255, 217, 0, 0.55)' },
   sectionBadgeCreator:  { backgroundColor: 'rgba(120, 88, 255,0.22)',  borderColor: 'rgba(160,156,224,0.45)' },
   sectionBadgeIcon: { fontSize: 11 },
   sectionBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },

@@ -49,9 +49,11 @@ export default {
   },
 
   feed: {
+    trending: '인기 급상승',
     video: {
       play: '{title} 재생',
-      stop: '동영상 정지',
+      mute: '음소거',
+      unmute: '음소거 해제',
       openExternal: '열기',
       embedFailed: '이 동영상은 여기서 재생할 수 없습니다. 열기를 눌러 시청하세요.',
     },

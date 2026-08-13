@@ -373,6 +373,70 @@ async function writeCache(key, data) {
   } catch (_) {}
 }
 
+// ── Trending, per original language ────────────────────────────────────────
+//
+// fetchPopularManga below asks for the most-followed manga overall, which is a
+// ranking of all-time fame: it returns the same handful of Japanese classics
+// every time, in every language, forever. That is why the feed read as
+// nothing but shonen no matter how often it was refreshed.
+//
+// This asks a different question — "what is being followed AND actively
+// updating, within one original language" — so manhwa and manhua get their own
+// ranked lists instead of competing against One Piece for a slot. The activity
+// window is what makes it current rather than historical: on `ko` it narrows
+// 7,458 all-time titles down to ~450 that have shipped a chapter recently.
+const TRENDING_WINDOW_DAYS = 90;
+// Deliberately far more than any one build shows. The caller samples from this
+// head at random, so a wide window is what stops two builds ever matching —
+// with a limit of 6 there would be nothing to sample and every refresh would
+// return the identical six titles.
+const TRENDING_POOL = 100;
+
+function trendingCacheKey(lang, offset) {
+  return `@mangarecs/mdex_trending_v1_${lang}_${offset}`;
+}
+
+// `offset` pages deeper into the ranking. Callers rotate it so a returning
+// user is sampling from a different slice of the list than last session,
+// rather than re-shuffling the same 100 rows.
+export async function fetchTrendingByLanguage(lang, { offset = 0, allowNsfw = false } = {}) {
+  const cached = await readCache(trendingCacheKey(lang, offset));
+  if (cached) return cached;
+  try {
+    const ratings = allowNsfw
+      ? 'contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica'
+      : 'contentRating[]=safe&contentRating[]=suggestive';
+    const since = new Date(Date.now() - TRENDING_WINDOW_DAYS * 86400000)
+      .toISOString().slice(0, 19);
+    const resp = await withTimeout(
+      fetch(
+        `${BASE}/manga?originalLanguage[]=${encodeURIComponent(lang)}`
+        + `&order[followedCount]=desc&updatedAtSince=${since}`
+        + `&limit=${TRENDING_POOL}&offset=${offset}`
+        + `&includes[]=cover_art&includes[]=author&${ratings}`,
+        { headers: { Accept: 'application/json' } }
+      ),
+      TIMEOUT
+    );
+    if (!resp?.ok) return [];
+    const json = await resp.json();
+    const data = (json?.data || []).map(normalizeManga);
+    // Without a cover the card falls back to a letter in a box, which is the
+    // exact "missing identity" this whole pass exists to remove.
+    const usable = data.filter((d) => d.coverUrl);
+    if (usable.length) {
+      const stats = await getMangaStatistics(usable.map((d) => d.id));
+      usable.forEach((d) => {
+        const s = stats[d.id];
+        if (s?.rating) d.rating = s.rating;
+        if (s?.readers) d.readers = s.readers;
+      });
+      await writeCache(trendingCacheKey(lang, offset), usable);
+    }
+    return usable;
+  } catch (_) { return []; }
+}
+
 // Returns up to `limit` most-followed manga from MangaDex, normalized to app shape.
 // Results are cached for 6 hours in AsyncStorage.
 export async function fetchPopularManga({ limit = 30, allowNsfw = false } = {}) {
