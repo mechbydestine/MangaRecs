@@ -56,6 +56,27 @@
   .features-hero h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); margin-top: 10px; }
   .features-hero p { color: var(--ink-muted); max-width: 50ch; margin: 14px auto 0; font-size: 1.02rem; }
 
+  /* ── Metric row ──────────────────────────────────────────────────────
+     The four numbers behind the list below — scope of the thing, stated
+     once, on the page that's already about what MangaRecs does. */
+  .metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: clamp(26px, 4vw, 38px); text-align: left; }
+  .metric {
+    position: relative; overflow: hidden; padding: 14px 16px 13px;
+    border-radius: 14px; background: var(--bg-panel); border: 1px solid var(--line);
+  }
+  .metric::after {
+    content: ''; position: absolute; right: -34px; bottom: -44px; width: 120px; height: 120px;
+    border-radius: 50%; pointer-events: none; filter: blur(22px);
+    background: color-mix(in srgb, var(--m-c, var(--accent)) 22%, transparent);
+  }
+  .metric svg { width: 16px; height: 16px; color: var(--m-c, var(--accent)); opacity: 0.85; margin-bottom: 9px; }
+  .metric b {
+    display: block; font-family: 'Panel Display', sans-serif; font-size: 1.5rem; line-height: 1;
+    color: var(--m-c, var(--accent));
+  }
+  .metric span { display: block; font-size: 0.74rem; color: var(--ink-muted); font-weight: 600; margin-top: 6px; }
+  @media (max-width: 700px) { .metric-row { grid-template-columns: repeat(2, 1fr); } }
+
   .feature-list { padding-bottom: clamp(56px, 9vw, 96px); }
   .feature-row { display: flex; align-items: flex-start; gap: 18px; padding: 22px 0; border-top: 1px solid var(--line); }
   .feature-row:first-child { border-top: none; }
@@ -127,6 +148,24 @@
     <div class="eyebrow">What's inside</div>
     <h1 class="display">Everything MangaRecs Does</h1>
     <p>One feature, one sentence — no fluff. Everything below is live in the app today.</p>
+    <div class="metric-row">
+      <div class="metric" style="--m-c:#9B70FF;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/></svg>
+        <b data-countup="250">0</b><span>Badges to earn</span>
+      </div>
+      <div class="metric" style="--m-c:#E8A83C;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>
+        <b data-countup="7">0</b><span>Medal tiers</span>
+      </div>
+      <div class="metric" style="--m-c:#3FC9C0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <b data-countup="5">0</b><span>Formats tracked</span>
+      </div>
+      <div class="metric" style="--m-c:#E85FA8;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <b data-countup="6">0</b><span>Languages</span>
+      </div>
+    </div>
   </section>
 
   <section class="feature-list">
