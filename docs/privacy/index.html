@@ -64,7 +64,8 @@
   <div class="notice">Written in plain language, and accurate to what MangaRecs actually does today. No ads, no trackers, nothing sold to anyone.</div>
 
   <h2>What we collect</h2>
-  <p>If you just browse the catalog without signing in, we don't collect anything about you. Titles you save are kept only in your browser's local storage on your own device.</p>
+  <p>If you just browse the catalog without signing in, we don't collect anything that identifies you. Titles you save are kept only in your browser's local storage on your own device.</p>
+  <p>We do count page views, using our own database rather than Google Analytics or any other third party. Each view records four things: the page path, the site that linked you here (the domain only, never the full address), a rough screen-size bucket like "small" or "large", and your browser's language. No cookie, no identifier, no profile, and nothing that can be traced back to you or joined up across visits — which is also why there's no cookie banner. If your browser sends "Do Not Track" or Global Privacy Control, we skip it entirely.</p>
   <p>If you create an account (email/password, or "Continue with Google"), we collect and store, via our database provider Supabase:</p>
   <ul>
     <li>Your email address, used to sign you in. If you sign up with a password, Supabase handles and stores it securely — we never see or store your raw password.</li>
@@ -88,7 +89,7 @@
   </ul>
 
   <h2>Cookies &amp; local storage</h2>
-  <p>We use your browser's local storage for two things: remembering your theme choice, and — if you're not signed in — keeping a local list of titles you've saved so it survives a page reload. We don't use advertising or third-party tracking cookies.</p>
+  <p>We use your browser's local storage for three things: remembering your theme choice, remembering your language choice, and — if you're not signed in — keeping a local list of titles you've saved so it survives a page reload. We don't use advertising or third-party tracking cookies, and our page counter (above) doesn't set anything at all.</p>
 
   <h2>Your choices</h2>
   <p>You can remove saved titles at any time and sign out whenever you like.</p>
@@ -112,4 +113,5 @@
 <script src="/assets/nav-widgets.js?v=3" defer></script>
 <script src="/assets/motion.js?v=2" defer></script>
 <script>document.addEventListener('DOMContentLoaded', function () { initThemeToggle('themeToggle'); });</script>
+<script src="/assets/analytics.js?v=1" defer></script>
 </html>
