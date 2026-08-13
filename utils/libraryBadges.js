@@ -117,14 +117,27 @@ function readChapterOf(s, resume) {
   return known.length ? Math.max(...known) : null;
 }
 
-function resolveSiteFavicon(site) {
-  if (!site) return null;
-  if (typeof site === 'object') return siteFaviconUrl(site.url);
-  if (typeof site === 'string') {
+// The favicon for whatever site a series was last read on.
+//
+// This used to resolve a bare site NAME by looking it up in
+// ALL_SUPPORTED_SITES, which is a six-entry list of the sites offered in the
+// picker. The reader opens far more than six — MangaKatana, Fanfox, MangaPill,
+// Comick, Natomanga and everything in the fallback chain — so for most of them
+// the lookup simply failed and the cover showed no icon at all.
+//
+// `url` is the second argument for exactly that reason: the resume blob also
+// stores the page URL the reader was on, and a host is all a favicon needs. Any
+// site resolves from it, listed or not.
+function resolveSiteFavicon(site, url) {
+  if (typeof site === 'object' && site?.url) return siteFaviconUrl(site.url);
+  if (typeof site === 'string' && site) {
     if (/^https?:\/\//i.test(site)) return siteFaviconUrl(site);
     const match = ALL_SUPPORTED_SITES.find((s) => s.name.toLowerCase() === site.toLowerCase());
-    return match ? siteFaviconUrl(match.url) : null;
+    if (match) return siteFaviconUrl(match.url);
   }
+  // Fall back to the URL actually being read. This is what makes an icon
+  // appear for the long tail of sites rather than only the picker's six.
+  if (url && /^https?:\/\//i.test(url)) return siteFaviconUrl(url);
   return null;
 }
 
@@ -137,12 +150,20 @@ function resolveSiteIcons(items, resumes) {
     const key = keyOf(s);
     if (!key) continue;
     const resume = resumes.get(key);
-    if (!resume) continue; // no info either way — leave any existing entry alone
-    const favicon = resolveSiteFavicon(resume.site);
-    if (favicon) {
-      if (_siteIcons.get(key) !== favicon) { _siteIcons.set(key, favicon); changed = true; }
-    } else if (_siteIcons.has(key)) {
-      _siteIcons.delete(key); changed = true;
+    // No resume yet, but the library entry itself may already know the site —
+    // it is saved alongside the reading history. Falling back to it is what
+    // keeps the icon present on a device that has the series but no resume
+    // blob for it yet (a fresh install that restored history, say).
+    const site = resume?.site ?? s?.site;
+    const url = resume?.url ?? s?.url;
+    if (!site && !url) continue; // nothing to go on — leave any existing entry alone
+    const favicon = resolveSiteFavicon(site, url);
+    // Only ever set. A failure to resolve is not evidence the series has no
+    // site — it used to delete a perfectly good icon, which is why icons
+    // appeared to reset on their own.
+    if (favicon && _siteIcons.get(key) !== favicon) {
+      _siteIcons.set(key, favicon);
+      changed = true;
     }
   }
   return changed;
