@@ -16,6 +16,39 @@
 -- Safe to re-run.
 -- ============================================================================
 
+-- ── 0. Waitlist table ───────────────────────────────────────────────────────
+-- docs/assets/auth.js has been inserting into launch_notify since the launch
+-- page shipped, but the table never existed in this project — so every
+-- "Notify me at launch" submission failed and showed the generic error. The
+-- unique constraint on email is load-bearing: notifyLaunch() reads Postgres
+-- error 23505 to tell "already signed up" apart from a real failure.
+create table if not exists public.launch_notify (
+  id         bigserial primary key,
+  email      text        not null unique,
+  created_at timestamptz not null default now()
+);
+
+alter table public.launch_notify
+  drop constraint if exists launch_notify_email_shape;
+alter table public.launch_notify
+  add constraint launch_notify_email_shape check (
+    length(email) between 5 and 254 and position('@' in email) > 1
+  );
+
+alter table public.launch_notify enable row level security;
+
+-- Anon may add themselves and nothing else. No select policy exists, so the
+-- list of emails is unreadable from the browser even with the anon key.
+drop policy if exists "anon can join the launch list" on public.launch_notify;
+create policy "anon can join the launch list"
+  on public.launch_notify
+  for insert
+  to anon, authenticated
+  with check (true);
+
+grant insert on public.launch_notify to anon, authenticated;
+grant usage, select on sequence public.launch_notify_id_seq to anon, authenticated;
+
 -- ── 1. Page counter ─────────────────────────────────────────────────────────
 create table if not exists public.site_events (
   id            bigserial primary key,
