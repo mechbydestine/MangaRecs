@@ -2,21 +2,25 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } 
 import { Image as ExpoImage } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { light } from '../utils/haptics';
 
 // A full-bleed video card that sits between manga entries in the feed.
 //
-// Tap-to-play, deliberately. The feed is a pagingEnabled FlatList with
-// windowSize 5, so autoplay would mean up to five live WebViews — each one a
-// full browser context — resident at once, which is both a memory problem and
-// a scroll-jank problem on mid-range Android. Until the card is tapped it is
-// an image and a play button, which costs nothing.
+// Autoplays when it becomes the active card, muted, the way Shorts and Reels
+// do. This used to be tap-to-play on the grounds that the feed's windowSize of
+// 5 would keep five WebViews alive — but the card is handed
+// `isActive={index === activeIndex}`, so gating the player on that means
+// exactly one WebView exists at any moment no matter how wide the window is.
+// The other four cards are a thumbnail and nothing else.
 //
-// It also unmounts the player the moment the card stops being the active one
-// (`isActive` goes false), so audio can never follow you up the feed.
+// Muted is not a preference, it is the only way autoplay starts at all: both
+// WebKit and Chrome refuse sound-on autoplay without a user-engagement signal,
+// which a WebView loading local HTML never has. So it starts muted with a
+// visible control, and the first tap unmutes — the same bargain every silent-
+// autoplay feed makes.
 
 const TOPIC_LABEL = {
   manga: 'Manga',
@@ -31,24 +35,58 @@ function formatDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// YouTube's IFrame embed. `playsinline=1` keeps it in the card on iOS instead
-// of throwing to the native fullscreen player; `rel=0` keeps the end screen
-// from advertising unrelated channels.
-function youtubeHtml(videoId) {
+// The origin the embed is served under. Loading `source={{ html }}` without a
+// baseUrl leaves the document on `about:blank`, and YouTube's player rejects
+// an embed with no valid origin — which is the "Video unavailable" black card.
+// Setting it is the entire fix, and it has to be a youtube.com origin.
+const YT_ORIGIN = 'https://www.youtube.com';
+
+// YouTube's IFrame embed, driven through the IFrame API so the page can report
+// back. `playsinline=1` keeps it in the card on iOS instead of throwing to the
+// native fullscreen player; `rel=0` keeps the end screen from advertising
+// unrelated channels; `mute` starts silent so autoplay is actually permitted.
+//
+// The API is loaded rather than using a bare <iframe src> because a plain
+// iframe gives the app no way to know the video failed: onError/onHttpError
+// only observe the outer document, which is this HTML and always succeeds. An
+// embed-disabled or deleted video would sit there as a dead frame forever.
+// onPlayerError posts the code out so the card can fall back to its thumbnail.
+function youtubeHtml(videoId, muted) {
   return `<!DOCTYPE html>
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
       html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
-      iframe{border:0;width:100%;height:100%}
+      #p{width:100%;height:100%}
     </style>
   </head>
   <body>
-    <iframe
-      src="https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1"
-      allow="autoplay; encrypted-media; picture-in-picture"
-      allowfullscreen></iframe>
+    <div id="p"></div>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+      function post(m){ try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); } catch(e){} }
+      var player;
+      function onYouTubeIframeAPIReady(){
+        player = new YT.Player('p', {
+          videoId: ${JSON.stringify(videoId)},
+          playerVars: {
+            autoplay: 1, mute: ${muted ? 1 : 0}, playsinline: 1,
+            rel: 0, modestbranding: 1, controls: 0, loop: 1,
+            playlist: ${JSON.stringify(videoId)},
+            origin: ${JSON.stringify(YT_ORIGIN)}
+          },
+          events: {
+            onReady: function(e){ e.target.playVideo(); post({t:'ready'}); },
+            onError: function(e){ post({t:'error', code: e.data}); },
+            onStateChange: function(e){ if (e.data === YT.PlayerState.ENDED) e.target.playVideo(); }
+          }
+        });
+      }
+      window.setMuted = function(m){ try { m ? player.mute() : player.unMute(); } catch(e){} };
+      // The API script itself can fail to load (no network, blocked host).
+      setTimeout(function(){ if (!player) post({t:'error', code:'noapi'}); }, 8000);
+    </script>
   </body>
 </html>`;
 }
@@ -59,17 +97,17 @@ function providerUrl(item) {
   return null;
 }
 
+// Sound is a session-wide choice, not a per-card one: unmuting one video and
+// then having the next one start silent again is the one behaviour no
+// short-form feed has. Module scope, so it survives cards unmounting.
+let _mutedPreference = true;
+
 const ShortVideoCard = memo(function ShortVideoCard({ item, height, isActive, tabBarHeight = 0 }) {
   const { isDark } = useTheme();
   const t = useT();
-  const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  // Scrolling away tears the player down. Without this a video keeps playing
-  // (and keeps its WebView alive) several cards up the feed.
-  useEffect(() => {
-    if (!isActive && playing) setPlaying(false);
-  }, [isActive, playing]);
+  const [muted, setMuted] = useState(_mutedPreference);
+  const webRef = useRef(null);
 
   const duration = formatDuration(item.durationSecs);
   const url = providerUrl(item);
@@ -78,30 +116,64 @@ const ShortVideoCard = memo(function ShortVideoCard({ item, height, isActive, ta
   // blockquote plus a script and refuses to autoplay — so those cards open the
   // app/site rather than pretending to be inline.
   const canEmbed = item.provider === 'youtube' && !failed;
+  // The player exists only while this is the card on screen. Everything else
+  // in the render window is the thumbnail, so scrolling away both stops the
+  // audio and frees the WebView, with no explicit teardown needed.
+  const playing = isActive && canEmbed;
 
-  function onPlay() {
+  // Re-arm the fallback when the card is recycled onto a different video —
+  // one dead embed shouldn't condemn every later video on the same card.
+  useEffect(() => { setFailed(false); }, [item.videoId]);
+
+  // Pick up a mute choice made on an earlier card without remounting.
+  useEffect(() => { if (isActive) setMuted(_mutedPreference); }, [isActive]);
+
+  function toggleMute() {
     light();
-    if (canEmbed) { setPlaying(true); return; }
+    const next = !muted;
+    _mutedPreference = next;
+    setMuted(next);
+    // Told to the live player directly. Re-rendering the HTML instead would
+    // reload the iframe and restart the video from zero.
+    webRef.current?.injectJavaScript(`window.setMuted && window.setMuted(${next}); true;`);
+  }
+
+  function onMessage(e) {
+    let msg = null;
+    try { msg = JSON.parse(e.nativeEvent.data); } catch (_) { return; }
+    // Codes 100/101/150 are "deleted" and "embedding disabled" — nothing a
+    // retry fixes, so the card reverts to a thumbnail that opens YouTube.
+    if (msg?.t === 'error') setFailed(true);
+  }
+
+  function openExternal() {
+    light();
     if (url) Linking.openURL(url).catch(() => {});
   }
 
   return (
     <View style={[styles.card, { height, backgroundColor: '#000' }]}>
-      {playing && canEmbed ? (
+      {playing ? (
         <WebView
+          ref={webRef}
           style={styles.fill}
-          source={{ html: youtubeHtml(item.videoId) }}
+          // baseUrl is what makes the embed play at all — see YT_ORIGIN above.
+          source={{ html: youtubeHtml(item.videoId, muted), baseUrl: YT_ORIGIN }}
+          originWhitelist={['*']}
+          onMessage={onMessage}
           // The embed is the only thing this WebView should ever load; a tap
           // that tries to leave (channel link, end-screen card) goes to the
           // real browser instead of navigating inside the feed.
+          // A tap that tries to leave (channel link, end-screen card) opens the
+          // real browser instead of navigating away inside the feed. Everything
+          // the player itself needs — the IFrame API script, the embed frame,
+          // thumbnails — is on a YouTube host and loads normally.
           onShouldStartLoadWithRequest={(req) => {
-            if (req.url.startsWith('about:') || req.url.startsWith('data:')) return true;
-            if (req.url.includes('youtube.com/embed/')) return true;
             if (req.navigationType === 'click') { Linking.openURL(req.url).catch(() => {}); return false; }
             return true;
           }}
-          onError={() => { setFailed(true); setPlaying(false); }}
-          onHttpError={() => { setFailed(true); setPlaying(false); }}
+          onError={() => setFailed(true)}
+          onHttpError={() => setFailed(true)}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled
@@ -117,7 +189,7 @@ const ShortVideoCard = memo(function ShortVideoCard({ item, height, isActive, ta
         <TouchableOpacity
           style={styles.fill}
           activeOpacity={0.9}
-          onPress={onPlay}
+          onPress={openExternal}
           accessibilityRole="button"
           accessibilityLabel={t('feed.video.play', { title: item.title })}>
           {item.thumbnailUrl ? (
@@ -136,11 +208,17 @@ const ShortVideoCard = memo(function ShortVideoCard({ item, height, isActive, ta
           <View style={styles.scrimTop} pointerEvents="none" />
           <View style={styles.scrimBottom} pointerEvents="none" />
 
-          <View style={styles.playWrap} pointerEvents="none">
-            <View style={styles.playCircle}>
-              <Ionicons name="play" size={30} color="#fff" style={{ marginLeft: 4 }} />
+          {/* Only shown when there is genuinely nothing to play inline — a
+              TikTok card, or an embed the player rejected. An embeddable video
+              that simply isn't the active card yet gets a clean thumbnail,
+              because a play button on something about to autoplay is a lie. */}
+          {!canEmbed && (
+            <View style={styles.playWrap} pointerEvents="none">
+              <View style={styles.playCircle}>
+                <Ionicons name="play" size={30} color="#fff" style={{ marginLeft: 4 }} />
+              </View>
             </View>
-          </View>
+          )}
         </TouchableOpacity>
       )}
 
@@ -166,13 +244,18 @@ const ShortVideoCard = memo(function ShortVideoCard({ item, height, isActive, ta
             <Text style={styles.chipText}>{duration}</Text>
           </View>
         )}
+        {/* Sound toggle, not a stop button. Stopping is what scrolling does,
+            and it is the only control a silent-autoplay card actually owes the
+            viewer: a way to hear it, and a way to see that it is silent. */}
         {playing && (
           <TouchableOpacity
-            style={[styles.chip, styles.stopChip]}
-            onPress={() => setPlaying(false)}
+            style={[styles.chip, styles.muteChip]}
+            onPress={toggleMute}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
-            accessibilityLabel={t('feed.video.stop')}>
-            <Ionicons name="close" size={12} color="#fff" />
+            accessibilityState={{ checked: !muted }}
+            accessibilityLabel={t(muted ? 'feed.video.unmute' : 'feed.video.mute')}>
+            <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={13} color="#fff" />
           </TouchableOpacity>
         )}
       </View>
@@ -243,7 +326,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     borderRadius: 20, paddingHorizontal: 9, paddingVertical: 4,
   },
-  stopChip: { marginLeft: 'auto', paddingHorizontal: 7 },
+  muteChip: { marginLeft: 'auto', paddingHorizontal: 8 },
   chipText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
 
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18 },
