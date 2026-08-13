@@ -111,6 +111,16 @@ function toggleSave(id, title, cover) {
 // ── Launch notify list — insert-only public table (see repo root for the
 // migration SQL); RLS allows anon insert but not select, so signups can't
 // read each other's emails back. 23505 = unique_violation (already signed up).
+// Signup count for the launch page's social-proof line. RLS deliberately
+// blocks anon SELECT on launch_notify, so this goes through a security-definer
+// function that can only ever hand back a number, never an email. Resolves
+// null (rather than throwing) until that function exists in the project.
+function launchNotifyCount() {
+  return sb.rpc('launch_notify_count')
+    .then(function (res) { return res.error ? null : res.data; })
+    .catch(function () { return null; });
+}
+
 function notifyLaunch(email) {
   return sb.from('launch_notify').insert({ email: email }).then(function (res) {
     if (!res.error) return { ok: true, already: false };

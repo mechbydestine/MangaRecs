@@ -35,6 +35,36 @@ function initThemeToggle(btnId) {
   });
 }
 
+// ── Mobile nav menu ──────────────────────────────────────────────────
+// Only visible under 480px (see .menu-wrap in each page's CSS), where the
+// inline nav links don't fit next to the CTA. Safe to call on pages that
+// don't have the markup — it no-ops.
+function initNavMenu(btnId, panelId) {
+  var btn = document.getElementById(btnId);
+  var panel = document.getElementById(panelId);
+  if (!btn || !panel) return;
+
+  function setOpen(open) {
+    panel.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    setOpen(!panel.classList.contains('open'));
+  });
+  document.addEventListener('click', function (e) {
+    if (!panel.contains(e.target) && e.target !== btn) setOpen(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') setOpen(false);
+  });
+  // A tap on a link inside the panel navigates; close it so the panel isn't
+  // still hanging open behind an in-page anchor jump.
+  panel.addEventListener('click', function (e) {
+    if (e.target.closest('a')) setOpen(false);
+  });
+}
+
 // ── Account panel ────────────────────────────────────────────────────
 function initAccountPanel(btnId, panelId) {
   var btn = document.getElementById(btnId);
@@ -175,8 +205,14 @@ function initAccountPanel(btnId, panelId) {
   onAuthChange(function (user) {
     render(user);
     btn.classList.toggle('signed-in', !!user);
-    var libLink = document.getElementById('libraryNavLink');
-    if (libLink) libLink.style.display = user ? '' : 'none';
+    // Two copies of the Library link exist on pages with a mobile menu (the
+    // inline nav one and the one inside the menu panel), so toggle every
+    // marked link rather than the single id — otherwise the menu copy stays
+    // hidden for signed-in visitors on a phone.
+    var libLinks = document.querySelectorAll('[data-library-link], #libraryNavLink');
+    Array.prototype.forEach.call(libLinks, function (el) {
+      el.style.display = user ? '' : 'none';
+    });
   });
   onPasswordRecovery(function () {
     setMode('recovery');
