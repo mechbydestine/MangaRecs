@@ -15,6 +15,16 @@ function applyTheme(theme) {
   if (theme) document.documentElement.setAttribute('data-theme', theme);
   else document.documentElement.removeAttribute('data-theme');
 }
+// The topbar button and the drawer's Dark Mode switch are two controls over
+// one setting, and either can be on screen while the other is. Route every
+// change through setTheme() so both repaint from the same event instead of
+// drifting out of sync.
+var THEME_EVENT = 'mangarecs:themechange';
+function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  applyTheme(theme);
+  window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: theme }));
+}
 function initThemeToggle(btnId) {
   var btn = document.getElementById(btnId);
   if (!btn) return;
@@ -23,45 +33,177 @@ function initThemeToggle(btnId) {
   var saved = localStorage.getItem(THEME_KEY);
   if (saved) applyTheme(saved);
   paint();
+  window.addEventListener(THEME_EVENT, paint);
   btn.addEventListener('click', function () {
     var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
     icon.classList.add('icon-flip');
-    setTimeout(function () {
-      localStorage.setItem(THEME_KEY, next);
-      applyTheme(next);
-      paint();
-    }, 140);
+    setTimeout(function () { setTheme(next); }, 140);
     setTimeout(function () { icon.classList.remove('icon-flip'); }, 320);
   });
 }
 
-// ── Mobile nav menu ──────────────────────────────────────────────────
-// Only visible under 480px (see .menu-wrap in each page's CSS), where the
-// inline nav links don't fit next to the CTA. Safe to call on pages that
-// don't have the markup — it no-ops.
-function initNavMenu(btnId, panelId) {
-  var btn = document.getElementById(btnId);
-  var panel = document.getElementById(panelId);
-  if (!btn || !panel) return;
+// ── Nav drawer ───────────────────────────────────────────────────────
+// One sectioned menu behind the hamburger, on every page and at every
+// width, so the top bar can stay short: brand, search, a couple of links,
+// the utility icons. Everything else — the formats, badges, the app, the
+// legal pages — lives here rather than crowding the bar or hiding in a
+// footer. Built in JS because seven pages would otherwise carry seven
+// copies of the same 60 lines of markup and drift apart within a month.
 
-  function setOpen(open) {
-    panel.classList.toggle('open', open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+var DRAWER_ICONS = {
+  catalog: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  library: '<path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+  badges: '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>',
+  features: '<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/>',
+  about: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>',
+  app: '<rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M12 18h.01"/>',
+  format: '<path d="M2 6h20M2 12h20M2 18h12"/>'
+};
+
+var DRAWER_SECTIONS = [
+  {
+    heading: 'Browse',
+    links: [
+      { label: 'Browse Catalog', href: '/catalog/', icon: 'catalog' },
+      { label: 'My Library', href: '/catalog/#/library', icon: 'library', library: true },
+      { label: 'Badges & Medals', href: '/badges/', icon: 'badges' }
+    ]
+  },
+  {
+    heading: 'By format',
+    links: [
+      { label: 'Manga', href: '/catalog/manga/', icon: 'format' },
+      { label: 'Manhwa', href: '/catalog/manhwa/', icon: 'format' },
+      { label: 'Manhua', href: '/catalog/manhua/', icon: 'format' },
+      { label: 'Webcomics', href: '/catalog/webcomic/', icon: 'format' }
+    ]
+  },
+  {
+    heading: 'MangaRecs',
+    links: [
+      { label: 'Features', href: '/features/', icon: 'features' },
+      { label: 'About', href: '/about/', icon: 'about' },
+      { label: 'Get the App', href: '/#download', icon: 'app', tag: 'Soon' }
+    ]
   }
-  btn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    setOpen(!panel.classList.contains('open'));
+];
+
+function svgIcon(paths) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+}
+
+function drawerMarkup() {
+  var here = location.pathname.replace(/\/+$/, '') || '/';
+  var html = '' +
+    '<div class="nav-drawer-head">' +
+      '<div class="nav-drawer-title" id="navDrawerTitle">' +
+        svgIcon('<path d="M4 7h16M4 12h16M4 17h16"/>') + 'Menu' +
+      '</div>' +
+      '<button class="nav-drawer-close" id="navDrawerClose" type="button" aria-label="Close menu">' +
+        svgIcon('<path d="M18 6 6 18M6 6l12 12"/>') +
+      '</button>' +
+    '</div>' +
+    '<div class="nav-drawer-body">' +
+      '<button class="nav-theme-row" id="navThemeRow" type="button" aria-pressed="false">' +
+        '<span>Dark Mode</span>' +
+        '<span class="nav-switch" aria-hidden="true">' + svgIcon(MOON_PATH) + '</span>' +
+      '</button>';
+
+  for (var i = 0; i < DRAWER_SECTIONS.length; i++) {
+    var section = DRAWER_SECTIONS[i];
+    html += '<div class="nav-drawer-section"><div class="nav-drawer-heading">' + section.heading + '</div>';
+    for (var j = 0; j < section.links.length; j++) {
+      var link = section.links[j];
+      var path = link.href.split('#')[0].replace(/\/+$/, '') || '/';
+      // Only a plain path marks the current page; /#download and
+      // /catalog/#/library are routes within a page, not the page itself.
+      var current = link.href.indexOf('#') === -1 && path === here;
+      html += '<a class="nav-drawer-link" href="' + link.href + '"' +
+        (link.library ? ' data-library-link style="display:none;"' : '') +
+        (current ? ' aria-current="page"' : '') + '>' +
+        '<span class="nav-drawer-ico">' + svgIcon(DRAWER_ICONS[link.icon]) + '</span>' +
+        '<span>' + link.label + '</span>' +
+        (link.tag ? '<span class="nav-tag">' + link.tag + '</span>' : '') +
+        '</a>';
+    }
+    html += '</div>';
+  }
+
+  return html +
+    '</div>' +
+    '<div class="nav-drawer-foot">' +
+      '<a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · ' +
+      '<a href="mailto:hello@mangarecs.net">Contact</a><br />' +
+      'Built by readers, for readers.' +
+    '</div>';
+}
+
+// Safe to call on any page — it no-ops when the trigger button is absent.
+function initNavDrawer(btnId) {
+  var btn = document.getElementById(btnId || 'menuBtn');
+  if (!btn || document.getElementById('navDrawer')) return;
+
+  var scrim = document.createElement('div');
+  scrim.className = 'nav-scrim';
+  scrim.id = 'navScrim';
+
+  var drawer = document.createElement('aside');
+  drawer.className = 'nav-drawer';
+  drawer.id = 'navDrawer';
+  drawer.setAttribute('role', 'dialog');
+  drawer.setAttribute('aria-modal', 'true');
+  drawer.setAttribute('aria-labelledby', 'navDrawerTitle');
+  drawer.setAttribute('aria-hidden', 'true');
+  drawer.innerHTML = drawerMarkup();
+
+  document.body.appendChild(scrim);
+  document.body.appendChild(drawer);
+
+  var themeRow = drawer.querySelector('#navThemeRow');
+  function paintTheme() { themeRow.setAttribute('aria-pressed', effectiveTheme() === 'dark' ? 'true' : 'false'); }
+  paintTheme();
+  window.addEventListener(THEME_EVENT, paintTheme);
+  themeRow.addEventListener('click', function () {
+    setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark');
   });
-  document.addEventListener('click', function (e) {
-    if (!panel.contains(e.target) && e.target !== btn) setOpen(false);
+
+  var isOpen = false;
+  function focusables() {
+    return Array.prototype.filter.call(
+      drawer.querySelectorAll('a[href], button:not([disabled])'),
+      function (el) { return el.offsetParent !== null; }
+    );
+  }
+  function setOpen(open) {
+    isOpen = open;
+    drawer.classList.toggle('open', open);
+    scrim.classList.toggle('open', open);
+    drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.documentElement.classList.toggle('nav-drawer-open', open);
+    if (open) drawer.querySelector('#navDrawerClose').focus();
+    else btn.focus();
+  }
+
+  btn.addEventListener('click', function (e) { e.stopPropagation(); setOpen(!isOpen); });
+  scrim.addEventListener('click', function () { setOpen(false); });
+  drawer.querySelector('#navDrawerClose').addEventListener('click', function () { setOpen(false); });
+  // A tap on a link navigates; close so the drawer isn't left hanging open
+  // over an in-page anchor jump or a catalog hash route.
+  drawer.addEventListener('click', function (e) {
+    if (e.target.closest('a[href]')) setOpen(false);
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') setOpen(false);
-  });
-  // A tap on a link inside the panel navigates; close it so the panel isn't
-  // still hanging open behind an in-page anchor jump.
-  panel.addEventListener('click', function (e) {
-    if (e.target.closest('a')) setOpen(false);
+    if (!isOpen) return;
+    if (e.key === 'Escape') { setOpen(false); return; }
+    if (e.key !== 'Tab') return;
+    var items = focusables();
+    if (!items.length) return;
+    var first = items[0];
+    var last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 }
 

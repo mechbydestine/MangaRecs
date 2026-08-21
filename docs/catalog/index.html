@@ -28,10 +28,10 @@
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://uploads.mangadex.org" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260813a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260813a" /></noscript>
+<link rel="preload" href="/assets/fonts.css?v=20260821a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821a" /></noscript>
 <style>
-  /* fonts loaded async via /assets/fonts.css?v=20260813a link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260821a link tag in <head> */
 
   :root {
     --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
@@ -109,10 +109,10 @@
   .brand svg { width: 24px; height: 24px; }
   .brand span { font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; }
   .brand b { color: var(--accent); }
-  .searchwrap { flex: 1; position: relative; max-width: 480px; }
+  .searchwrap { flex: 1 1 240px; position: relative; max-width: 520px; min-width: 0; }
   .searchwrap input {
     width: 100%; background: var(--bg-panel); border: 1px solid var(--line);
-    border-radius: 999px; padding: 10px 16px 10px 40px; color: var(--ink);
+    border-radius: 999px; padding: 10px 44px 10px 40px; color: var(--ink);
     font-size: 0.88rem; font-family: inherit;
   }
   .searchwrap input:focus { outline: none; border-color: var(--accent); }
@@ -133,6 +133,9 @@
   .search-dd-all { display: block; text-align: center; padding: 10px; font-size: 0.82rem; font-weight: 700; color: var(--accent); text-decoration: none; }
   .search-dd-all:hover { background: var(--bg-sunken); }
   .navtabs { display: flex; gap: 4px; flex: none; }
+  /* Was `gap: 20px` on a flat row, so at 1440px a third of the bar sat empty
+     to the right of the account button. The clusters in /assets/nav.css pin
+     the actions to the right edge instead. */
   .navtab {
     padding: 8px 13px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;
     color: var(--ink-muted); border: 1px solid transparent;
@@ -322,7 +325,7 @@
     background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.86);
   }
   .poster-tags .poster-meta { background: none; padding: 3px 0; color: rgba(255,255,255,0.5); font-weight: 600; }
-  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -10px var(--accent); transform: translateY(-2px); }
+  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -14px rgba(0, 0, 0, 0.55); transform: translateY(-2px); }
   .poster-img-wrap { transition: box-shadow 0.2s ease, transform 0.2s ease; }
   @media (max-width: 560px) {
     .poster-body { padding: 12px 11px 11px; gap: 4px; }
@@ -912,7 +915,8 @@
     .recap-hero-bg, .recap-speedlines-spin, .recap-fan-card { animation: none; }
   }
 </style>
-<link rel="stylesheet" href="/assets/motion.css?v=20260813a" />
+<link rel="stylesheet" href="/assets/nav.css?v=20260821a" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260821a" />
 
 <nav class="topbar">
   <div class="topbar-inner">
@@ -927,23 +931,33 @@
     <div class="searchwrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" type="text" placeholder="Search manga, manhwa, manhua, webcomics…" autocomplete="off" />
+      <kbd class="search-kbd" aria-hidden="true">/</kbd>
     </div>
     <div class="navtabs" id="navTabs"></div>
-    <a class="nav-link" href="/features/">Features</a>
-    <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
-    <a class="nav-link" id="libraryNavLink" href="#/library" style="display:none;">Library</a>
-    <div class="account-wrap" id="notifWrap" style="display:none;">
-      <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button" style="position:relative;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="notif-dot" id="notifDot" style="display:none;"></span>
-      </button>
-      <div class="notif-panel" id="notifPanel"></div>
-    </div>
-    <div class="account-wrap">
-      <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </button>
-      <div class="account-panel" id="accountPanel"></div>
+    <div class="nav-actions">
+      <div class="nav-links">
+        <a class="nav-link" href="/features/">Features</a>
+        <a class="nav-link" id="libraryNavLink" data-library-link href="#/library" style="display:none;">Library</a>
+      </div>
+      <div class="nav-utils">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+        <div class="account-wrap" id="notifWrap" style="display:none;">
+          <button class="icon-btn" id="notifBtn" aria-label="Notifications" type="button" style="position:relative;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-dot" id="notifDot" style="display:none;"></span>
+          </button>
+          <div class="notif-panel" id="notifPanel"></div>
+        </div>
+        <div class="account-wrap">
+          <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          <div class="account-panel" id="accountPanel"></div>
+        </div>
+        <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
     </div>
   </div>
   <div class="catrail" id="catRailMobile" style="max-width:1180px;margin:0 auto;padding:0 20px 12px;"></div>
@@ -979,17 +993,18 @@
   </div>
 </footer>
 
-<script src="/assets/supabase.js?v=20260813a" defer></script>
-<script src="/assets/auth.js?v=20260813a" defer></script>
-<script src="/assets/nav-widgets.js?v=20260813a" defer></script>
-<script src="/assets/anilist.js?v=20260813a" defer></script>
-<script src="/assets/badges.js?v=20260813a" defer></script>
-<script src="/assets/motion.js?v=20260813a" defer></script>
+<script src="/assets/supabase.js?v=20260821a" defer></script>
+<script src="/assets/auth.js?v=20260821a" defer></script>
+<script src="/assets/nav-widgets.js?v=20260821a" defer></script>
+<script src="/assets/anilist.js?v=20260821a" defer></script>
+<script src="/assets/badges.js?v=20260821a" defer></script>
+<script src="/assets/motion.js?v=20260821a" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
 
   initThemeToggle('themeToggle');
+  initNavDrawer('menuBtn');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
 
@@ -2750,7 +2765,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Real "Top Series" ranking from the reader's own reading_progress
       // rows, with a best-effort real art lookup per title via the
-      // lightweight recapArtFor query (see docs/assets/anilist.js?v=20260813a) — text-
+      // lightweight recapArtFor query (see docs/assets/anilist.js?v=20260821a) — text-
       // only fallback if a title doesn't resolve cleanly, never a wrong or
       // guessed cover.
       var topSeriesRaw = progressRows.slice()
@@ -3188,6 +3203,18 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   window.addEventListener('hashchange', closeSearchDropdown);
 
+  // "/" jumps to search from anywhere on the page — the hint chip inside the
+  // field (.search-kbd) is the promise, this is the payment. Ignored while
+  // you're already typing somewhere, so it never eats a literal slash.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    var el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  });
+
   if (window.__SHARE_ID__) {
     history.replaceState(null, '', '/catalog/#/title/' + window.__SHARE_ID__);
   }
@@ -3213,5 +3240,5 @@ document.addEventListener('click', function (e) {
   location.href = a.getAttribute('href');
 });
 </script>
-<script src="/assets/analytics.js?v=20260813a" defer></script>
+<script src="/assets/analytics.js?v=20260821a" defer></script>
 </html>

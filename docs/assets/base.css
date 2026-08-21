@@ -24,6 +24,19 @@
   --rail-track: rgba(107,70,240,0.14);
   --brand-accent: #6B46F0;
   --brand-accent-soft: #8A63FF;
+
+  /* Corner radii. The site had drifted to thirteen distinct values — 2, 7, 8,
+     9, 10, 11, 12, 14, 16, 18, 20, 22, 999 — with no scale behind them, which
+     is the sort of near-miss inconsistency that reads as "assembled" rather
+     than designed even when nobody can name what's off. Five steps, and every
+     surface picks one. Theme-independent, so they sit outside the palette
+     blocks below and are not redefined per theme. */
+  --r-xs: 8px;    /* tags, chips, small thumbs */
+  --r-sm: 12px;   /* buttons, inputs, icon tiles */
+  --r-md: 16px;   /* cards */
+  --r-lg: 20px;   /* panels, sheets, large containers */
+  --r-pill: 999px;
+
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {

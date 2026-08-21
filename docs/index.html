@@ -45,15 +45,15 @@
 <link rel="preconnect" href="https://graphql.anilist.co" />
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260813a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260813a" /></noscript>
-<link rel="stylesheet" href="/assets/base.css?v=20260813a" />
+<link rel="preload" href="/assets/fonts.css?v=20260821a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821a" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260821a" />
 <style>
   /* ── Type: Big Shoulders (display, wt 900 only) + Libre Franklin (variable, body/UI) ── */
-  /* fonts loaded async via /assets/fonts.css?v=20260813a link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260821a link tag in <head> */
 
   /* Tokens, box-sizing reset, :focus-visible, .display/.eyebrow, and
-     .icon-btn* now live in /assets/base.css?v=20260813a (linked above) so every page
+     .icon-btn* now live in /assets/base.css?v=20260821a (linked above) so every page
      shares one cached copy instead of re-inlining ~90 identical lines. */
 
   /* ── Reset ──────────────────────────────────────────────────────────── */
@@ -116,9 +116,13 @@
     display: inline-flex; align-items: center; gap: 8px;
     background: var(--accent); color: #fff;
     font-weight: 700; font-size: 0.86rem;
-    padding: 9px 18px; border-radius: 999px;
+    padding: 9px 18px; border-radius: var(--r-pill);
     text-decoration: none; border: none;
-    box-shadow: 0 8px 20px -8px var(--accent);
+    /* Neutral, not accent-tinted. A purple button resting on its own purple
+       glow is the other half of the generated-page look; a plain shadow gives
+       the same lift without it. Content-derived glows (the --tile-c / --fc
+       hovers further down) stay coloured on purpose — those carry meaning. */
+    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45);
   }
   .nav-cta:hover { filter: brightness(1.08); }
   .nav-link { color: var(--ink-muted); text-decoration: none; font-weight: 700; font-size: 0.86rem; }
@@ -135,13 +139,13 @@
     gap: clamp(32px, 5vw, 64px);
     align-items: center;
   }
-  .hero-mark { width: 64px; height: 64px; margin-bottom: 22px; filter: drop-shadow(0 0 22px var(--accent-wash)); }
+  .hero-mark { width: 64px; height: 64px; margin-bottom: 22px; }
   .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); }
-  .hero h1 .accent {
-    background: linear-gradient(120deg, var(--accent-soft), #FF7ED4 60%, var(--accent-soft));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 28px var(--accent-wash));
-  }
+  /* Solid, not a gradient fill. Gradient-clipped headline text is the single
+     most recognisable "generated landing page" signature going, and readers
+     clock it before they read the words. One accent-coloured word carries the
+     same emphasis without the tell. */
+  .hero h1 .accent { color: var(--accent); }
   .hero-tag {
     margin-top: 18px;
     font-size: clamp(1.02rem, 1.6vw, 1.2rem);
@@ -153,9 +157,9 @@
     display: inline-flex; align-items: center; gap: 10px;
     background: var(--accent); color: #fff;
     font-weight: 700; font-size: 0.98rem;
-    padding: 15px 26px; border-radius: 999px;
+    padding: 15px 26px; border-radius: var(--r-pill);
     text-decoration: none; border: none;
-    box-shadow: 0 14px 30px -12px var(--accent);
+    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.5);
   }
   .btn-primary:hover { filter: brightness(1.07); }
   .btn-primary svg { width: 18px; height: 18px; }
@@ -163,7 +167,7 @@
     display: inline-flex; align-items: center; gap: 8px;
     background: transparent; color: var(--ink);
     font-weight: 600; font-size: 0.98rem;
-    padding: 15px 22px; border-radius: 999px;
+    padding: 15px 22px; border-radius: var(--r-pill);
     text-decoration: none; border: 1.5px solid var(--line-strong);
   }
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -178,7 +182,7 @@
   .demo-stack { position: relative; width: min(78%, 260px); height: 88%; }
   .demo-card {
     position: absolute; inset: 0;
-    border-radius: 14px;
+    border-radius: var(--r-md);
     border: 1px solid rgba(255,255,255,0.14);
     background: var(--bg-panel);
     box-shadow: var(--shadow), 0 0 50px -14px var(--sw1, var(--accent));
@@ -195,7 +199,7 @@
     position: absolute; top: 16px; right: 16px;
     font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
     background: var(--accent-wash); color: var(--accent);
-    padding: 4px 9px; border-radius: 999px;
+    padding: 4px 9px; border-radius: var(--r-pill);
   }
   .demo-card .genre { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.3rem; }
   .demo-card .sub { font-size: 0.82rem; color: var(--ink-muted); margin-top: 4px; }
@@ -227,7 +231,7 @@
   .chapter-visual {
     background: var(--bg-panel);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: var(--r-md);
     box-shadow: var(--shadow);
     padding: clamp(20px, 3vw, 30px);
     min-height: 260px;
@@ -235,7 +239,7 @@
   }
   .panel-row { display: flex; gap: 10px; }
   .swatch {
-    flex: 1; aspect-ratio: 3/4; border-radius: 9px;
+    flex: 1; aspect-ratio: 3/4; border-radius: var(--r-xs);
     background: linear-gradient(160deg, var(--sw1), var(--sw2));
     position: relative; overflow: hidden;
     border: 1px solid var(--line);
@@ -244,13 +248,13 @@
   .swatch::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.05) 45%, transparent 70%); z-index: 1; }
   .swatch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.5s ease; }
   .swatch img.loaded { opacity: 1; }
-  .swatch-score { position: absolute; top: 6px; right: 6px; z-index: 2; display: flex; align-items: center; gap: 3px; font-size: 0.62rem; font-weight: 800; padding: 3px 6px; border-radius: 999px; background: rgba(0,0,0,0.55); color: #FFD34D; }
+  .swatch-score { position: absolute; top: 6px; right: 6px; z-index: 2; display: flex; align-items: center; gap: 3px; font-size: 0.62rem; font-weight: 800; padding: 3px 6px; border-radius: var(--r-pill); background: rgba(0,0,0,0.55); color: #FFD34D; }
   .swatch-score svg { width: 8px; height: 8px; }
-  .meter { height: 8px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; }
-  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-soft)); border-radius: 999px; }
+  .meter { height: 8px; border-radius: var(--r-pill); background: var(--bg-sunken); overflow: hidden; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-soft)); border-radius: var(--r-pill); }
   .stat-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--ink-muted); }
   .badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .medal { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; font-weight: 700; transition: opacity 0.2s ease, box-shadow 0.2s ease; }
+  .medal { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-sunken); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 6px 12px; font-size: 0.76rem; font-weight: 700; transition: opacity 0.2s ease, box-shadow 0.2s ease; }
   .medal i { width: 8px; height: 8px; border-radius: 50%; background: var(--medal-c); }
   .medal.is-current { box-shadow: 0 0 0 1.5px var(--medal-c); }
   .medal.is-dim { opacity: 0.4; }
@@ -259,7 +263,7 @@
   .thread + .thread { margin-top: 0; }
   .thread .who { font-weight: 700; font-size: 0.88rem; }
   .thread .msg { font-size: 0.86rem; color: var(--ink-muted); margin-top: 2px; }
-  .rail-visual { position: relative; height: 210px; margin: 0 auto; width: 60%; background: var(--bg-sunken); border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .rail-visual { position: relative; height: 210px; margin: 0 auto; width: 60%; background: var(--bg-sunken); border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); }
   .rail-visual .fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, var(--brand-accent-soft), var(--brand-accent)); transition: height 0.6s cubic-bezier(.2,.8,.2,1); }
   .rail-visual .dim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, transparent 22%, transparent 78%, rgba(0,0,0,0.28) 100%); }
   .rail-panels { position: absolute; inset: 9% 9%; z-index: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
@@ -275,10 +279,41 @@
   .rail-dimmer-tag {
     position: absolute; top: 8px; left: 8px; z-index: 2;
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
-    padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,0.45); color: #fff;
+    padding: 3px 8px; border-radius: var(--r-pill); background: rgba(0,0,0,0.45); color: #fff;
     display: flex; align-items: center; gap: 4px;
   }
   .rail-dimmer-tag svg { width: 9px; height: 9px; }
+
+  /* ── Relic Vault ──────────────────────────────────────────────────────
+     The copy above has always claimed the relics are original art we drew
+     ourselves; until now the page never showed one, which made it a claim
+     rather than evidence. These are the real PNGs out of assets/badges/relics,
+     resized for web. Each render carries its own tier-coloured aura, so the
+     tiles deliberately have no glow, border, or gradient of their own — the
+     artwork is the decoration.
+     It also breaks the left/right chapter alternation: five mirrored sections
+     in a row is the giveaway rhythm of a template. */
+  .relics { padding: clamp(44px, 7vw, 72px) 0; border-top: 1px solid var(--line); }
+  .relics-head { text-align: center; max-width: 560px; margin: 0 auto clamp(28px, 4vw, 42px); }
+  .relics-head h2 { font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900; text-transform: uppercase; font-size: clamp(1.7rem, 3vw, 2.3rem); margin-top: 6px; }
+  .relics-head p { margin-top: 12px; color: var(--ink-muted); font-size: 0.98rem; }
+  .relic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: clamp(10px, 2vw, 22px);
+  }
+  .relic { text-align: center; }
+  .relic img {
+    width: 100%; max-width: 120px; height: auto; margin: 0 auto 8px;
+    aspect-ratio: 1; object-fit: contain;
+  }
+  .relic-name { font-size: 0.82rem; font-weight: 700; line-height: 1.25; }
+  .relic-tier { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--tier-c, var(--ink-faint)); margin-top: 2px; }
+  .relics-foot { margin-top: clamp(24px, 4vw, 36px); text-align: center; font-size: 0.86rem; color: var(--ink-faint); }
+  @media (max-width: 560px) {
+    .relic-grid { grid-template-columns: repeat(3, 1fr); }
+    .relic:nth-child(n+10) { display: none; }
+  }
 
   /* ── Maker's note (why-we-built-it blurb) ─────────────────────────────── */
   .maker-note { padding: clamp(40px, 7vw, 64px) 0; border-top: 1px solid var(--line); }
@@ -297,7 +332,7 @@
     -webkit-overflow-scrolling: touch;
   }
   .showcase-strip::-webkit-scrollbar { height: 8px; }
-  .showcase-strip::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
+  .showcase-strip::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: var(--r-pill); }
   .shot {
     flex: none; scroll-snap-align: start;
     width: clamp(150px, 22vw, 210px);
@@ -305,7 +340,7 @@
   /* Ratio matches the exported screenshots exactly (720x1496) so nothing gets
      cropped and the frame reserves the right space before the image lands. */
   .shot-frame {
-    border-radius: 20px; border: 1px solid var(--line); background: var(--bg-panel);
+    border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--bg-panel);
     box-shadow: var(--shadow); overflow: hidden; aspect-ratio: 720/1496;
   }
   .shot-frame picture { display: block; width: 100%; height: 100%; }
@@ -316,7 +351,7 @@
   .download {
     margin: clamp(56px, 9vw, 96px) 0;
     padding: clamp(40px, 7vw, 64px);
-    border-radius: 22px;
+    border-radius: var(--r-lg);
     background: linear-gradient(160deg, var(--accent-wash), transparent 60%), var(--bg-panel);
     border: 1px solid var(--line);
     text-align: center;
@@ -333,7 +368,7 @@
   .store-badges { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
   .store-badge {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 11px 20px; border-radius: 14px;
+    padding: 11px 20px; border-radius: var(--r-md);
     border: 1px solid var(--line); background: var(--bg-sunken);
     color: var(--ink-muted); font-size: 0.9rem;
   }
@@ -342,7 +377,7 @@
   .store-badge > span {
     font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--accent); background: var(--accent-wash);
-    padding: 3px 8px; border-radius: 999px;
+    padding: 3px 8px; border-radius: var(--r-pill);
   }
   .notify-fineprint { margin-top: 12px !important; font-size: 0.78rem; color: var(--ink-faint); }
   .notify-fineprint a { color: var(--ink-muted); }
@@ -357,14 +392,14 @@
   .whatsnew-head { margin-bottom: 18px; }
   .whatsnew-head h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); margin-top: 4px; }
   .whatsnew-card {
-    border: 1px solid var(--line); border-radius: 18px; background: var(--bg-panel);
+    border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-panel);
     padding: clamp(20px, 3vw, 28px); box-shadow: var(--shadow);
   }
   .whatsnew-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .whatsnew-version {
     font-weight: 800; font-size: 0.8rem; letter-spacing: 0.02em;
     color: var(--accent); background: var(--accent-wash);
-    padding: 4px 10px; border-radius: 999px;
+    padding: 4px 10px; border-radius: var(--r-pill);
   }
   .whatsnew-date { font-size: 0.8rem; color: var(--ink-faint); }
   .whatsnew-list { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
@@ -374,7 +409,7 @@
   }
   .whatsnew-list li::before {
     content: ''; position: absolute; left: 4px; top: 0.62em;
-    width: 7px; height: 7px; border-radius: 999px; background: var(--accent);
+    width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--accent);
   }
   .whatsnew-foot { margin-top: 16px; font-size: 0.8rem; color: var(--ink-faint); }
 
@@ -394,41 +429,25 @@
   }
 
   /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ──
-     .icon-btn* base rules now live in /assets/base.css?v=20260813a. */
-  .nav-actions { display: flex; align-items: center; gap: 14px; }
-  /* Under 480px the inline nav links don't fit beside the CTA, so they move
-     into this menu instead of disappearing — a phone visitor arriving from a
-     social link still needs a way into the catalog. */
-  .menu-wrap { position: relative; display: none; }
-  .menu-panel {
-    position: absolute; top: calc(100% + 10px); right: 0; width: 200px;
-    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
-    box-shadow: var(--shadow); padding: 8px; z-index: 70;
-    display: none; flex-direction: column; gap: 2px;
-  }
-  .menu-panel.open { display: flex; }
-  .menu-panel a {
-    display: block; padding: 10px 12px; border-radius: 9px;
-    color: var(--ink); text-decoration: none; font-weight: 700; font-size: 0.9rem;
-  }
-  .menu-panel a:hover, .menu-panel a:focus-visible { background: var(--accent-wash); color: var(--accent); }
+     .icon-btn* base rules now live in /assets/base.css?v=20260821a, and the
+     .nav-actions / .nav-links / .nav-utils clustering in /assets/nav.css.
+     The old .menu-panel dropdown is gone: every destination that used to
+     hide inside it now lives in the shared drawer (initNavDrawer), which
+     is reachable at every width instead of only under 480px. */
   @media (max-width: 480px) {
-    .nav-actions { gap: 8px; }
-    .nav-actions .nav-link { display: none; }
-    .menu-wrap { display: block; }
     .nav-cta { padding: 9px 14px; font-size: 0.82rem; }
   }
   .account-wrap { position: relative; flex: none; }
   .account-panel {
     position: absolute; top: calc(100% + 10px); right: 0; width: 260px;
-    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--r-md);
     box-shadow: var(--shadow); padding: 16px; display: none; z-index: 60; text-align: left;
   }
   .account-panel.open { display: block; }
   .account-tabtitle { font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
   .account-panel input {
     width: 100%; background: var(--bg-sunken); border: 1px solid var(--line);
-    border-radius: 8px; padding: 9px 12px; color: var(--ink); font-size: 0.86rem;
+    border-radius: var(--r-xs); padding: 9px 12px; color: var(--ink); font-size: 0.86rem;
     font-family: inherit; margin-bottom: 8px; box-sizing: border-box;
   }
   .account-panel input:focus { outline: none; border-color: var(--accent); }
@@ -436,7 +455,7 @@
   .account-hint { font-size: 0.78rem; color: var(--ink-muted); margin: -4px 0 10px; line-height: 1.4; }
   .btn-primary-sm, .btn-ghost-sm {
     width: 100%; text-align: center; font-size: 0.86rem; font-weight: 700;
-    padding: 9px 14px; border-radius: 8px; cursor: pointer; font-family: inherit;
+    padding: 9px 14px; border-radius: var(--r-xs); cursor: pointer; font-family: inherit;
   }
   .btn-primary-sm { background: var(--accent); color: #fff; border: none; }
   .btn-primary-sm:disabled { opacity: 0.6; }
@@ -462,7 +481,7 @@
   .quicknav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
   .qn-tile {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 9px 10px; border-radius: 11px; background: var(--bg-panel);
+    padding: 9px 10px; border-radius: var(--r-sm); background: var(--bg-panel);
     border: 1px solid var(--line); text-decoration: none; color: var(--ink);
     font-size: 0.74rem; font-weight: 700; text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -474,7 +493,7 @@
   }
   .qn-icon {
     display: flex; align-items: center; justify-content: center; flex: none;
-    width: 24px; height: 24px; border-radius: 8px;
+    width: 24px; height: 24px; border-radius: var(--r-xs);
     background: color-mix(in srgb, var(--tile-c, var(--accent)) 18%, transparent);
   }
   .qn-tile svg { width: 13px; height: 13px; color: var(--tile-c, var(--accent)); }
@@ -482,7 +501,7 @@
   /* ── Feature cards ─────────────────────────────────────────────────── */
   .feature-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
   .fcard {
-    display: block; text-decoration: none; color: inherit; padding: 16px; border-radius: 16px;
+    display: block; text-decoration: none; color: inherit; padding: 16px; border-radius: var(--r-md);
     border: 1px solid var(--line);
     background: linear-gradient(155deg, color-mix(in srgb, var(--fc, var(--accent)) 12%, var(--bg-panel)), var(--bg-panel) 62%);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -494,7 +513,7 @@
   }
   .fcard-icon {
     display: flex; align-items: center; justify-content: center;
-    width: 38px; height: 38px; border-radius: 11px; margin-bottom: 12px;
+    width: 38px; height: 38px; border-radius: var(--r-sm); margin-bottom: 12px;
     background: linear-gradient(150deg, var(--fc, var(--accent)), color-mix(in srgb, var(--fc, var(--accent)) 55%, #000));
     box-shadow: 0 8px 18px -10px var(--fc, var(--accent));
   }
@@ -505,7 +524,7 @@
 
   /* ── Latest updates carousel ───────────────────────────────────────── */
   .updates {
-    border-radius: 16px; border: 1px solid var(--line); padding: 16px 18px 13px;
+    border-radius: var(--r-md); border: 1px solid var(--line); padding: 16px 18px 13px;
     background: linear-gradient(150deg, var(--accent-wash), transparent 55%), var(--bg-panel);
   }
   .updates-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
@@ -519,7 +538,7 @@
   }
   .update-icon {
     flex: none; display: flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; border-radius: 10px;
+    width: 34px; height: 34px; border-radius: var(--r-sm);
     background: linear-gradient(150deg, var(--u-c, var(--accent)), color-mix(in srgb, var(--u-c, var(--accent)) 50%, #000));
     box-shadow: 0 8px 18px -10px var(--u-c, var(--accent));
   }
@@ -534,7 +553,7 @@
     display: flex; align-items: center; justify-content: center;
   }
   .updates-dot::before {
-    content: ''; display: block; width: 7px; height: 7px; border-radius: 999px;
+    content: ''; display: block; width: 7px; height: 7px; border-radius: var(--r-pill);
     background: var(--line-strong); transition: width 0.25s ease, background 0.25s ease;
   }
   .updates-dot.active::before { width: 18px; background: var(--accent); }
@@ -553,7 +572,7 @@
   .trending-home { position: relative; padding: 0 0 clamp(48px, 8vw, 80px); }
   .format-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
   .format-pill {
-    padding: 8px 15px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
+    padding: 8px 15px; border-radius: var(--r-pill); font-size: 0.8rem; font-weight: 700;
     color: var(--ink-muted); border: 1px solid var(--line); background: var(--bg-panel); cursor: pointer;
   }
   .format-pill.active { background: var(--accent-wash); color: var(--accent); border-color: var(--accent); }
@@ -563,7 +582,7 @@
      pick. Home-only — /catalog/ has its own always-on genre rail. */
   .mood-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 2px 0 0; }
   .mood-toggle {
-    display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px; border-radius: var(--r-pill);
     font-family: inherit; font-size: 0.8rem; font-weight: 700; color: var(--ink);
     background: var(--bg-panel); border: 1px solid var(--line); cursor: pointer;
   }
@@ -586,7 +605,7 @@
   @media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 22px; } }
   .poster { display: block; text-decoration: none; color: inherit; }
   .poster-img-wrap {
-    position: relative; aspect-ratio: 5/7; border-radius: 16px; overflow: hidden;
+    position: relative; aspect-ratio: 5/7; border-radius: var(--r-md); overflow: hidden;
     background: var(--bg-sunken); border: 1px solid var(--line); box-shadow: var(--shadow);
   }
   .poster-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
@@ -604,7 +623,7 @@
   .poster-chips-right { display: flex; align-items: center; gap: 6px; }
   .poster-badge {
     font-size: 0.64rem; font-weight: 800; letter-spacing: 0.03em; padding: 4px 9px;
-    border-radius: 999px; white-space: nowrap; color: #fff; backdrop-filter: blur(4px);
+    border-radius: var(--r-pill); white-space: nowrap; color: #fff; backdrop-filter: blur(4px);
     background: color-mix(in srgb, var(--fmt-c, var(--accent)) 42%, rgba(0,0,0,0.6));
     border: 1px solid color-mix(in srgb, var(--fmt-c, var(--accent)) 60%, transparent);
   }
@@ -614,13 +633,13 @@
   .poster-badge[data-fmt="Novel"] { --fmt-c: #5B8DEF; }
   .poster-score {
     display: flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 800;
-    padding: 4px 8px; border-radius: 999px; background: rgba(0,0,0,0.62); color: #FFD34D;
+    padding: 4px 8px; border-radius: var(--r-pill); background: rgba(0,0,0,0.62); color: #FFD34D;
     backdrop-filter: blur(4px);
   }
   .poster-score svg { width: 10px; height: 10px; }
   .poster-save {
     flex: none; width: 27px; height: 27px; padding: 0;
-    display: flex; align-items: center; justify-content: center; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center; border-radius: var(--r-pill);
     background: rgba(0,0,0,0.55); border: none; color: #fff; cursor: pointer; backdrop-filter: blur(4px);
   }
   .poster-save svg { width: 13px; height: 13px; }
@@ -641,11 +660,11 @@
   }
   .poster-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   .poster-tags span {
-    font-size: 0.64rem; font-weight: 700; padding: 3px 8px; border-radius: 7px;
+    font-size: 0.64rem; font-weight: 700; padding: 3px 8px; border-radius: var(--r-xs);
     background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.86);
   }
   .poster-tags .poster-meta { background: none; padding: 3px 0; color: rgba(255,255,255,0.5); font-weight: 600; }
-  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -10px var(--accent); transform: translateY(-2px); }
+  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -14px rgba(0, 0, 0, 0.55); transform: translateY(-2px); }
   .poster-img-wrap { transition: box-shadow 0.2s ease, transform 0.2s ease; }
   @media (max-width: 560px) {
     .poster-body { padding: 12px 11px 11px; gap: 4px; }
@@ -668,7 +687,7 @@
   .footer-social { display: flex; gap: 10px; margin-top: 4px; }
   .footer-social a {
     display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-    border-radius: 999px; background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted);
+    border-radius: var(--r-pill); background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted);
   }
   .footer-social a:hover { color: var(--accent); border-color: var(--accent); }
   .footer-social svg { width: 15px; height: 15px; }
@@ -700,15 +719,15 @@
   .notify-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
   .notify-form input {
     flex: 1; min-width: 220px; max-width: 320px; background: var(--bg-sunken); border: 1px solid var(--line);
-    border-radius: 999px; padding: 13px 20px; color: var(--ink); font-size: 0.92rem; font-family: inherit;
+    border-radius: var(--r-pill); padding: 13px 20px; color: var(--ink); font-size: 0.92rem; font-family: inherit;
   }
   .notify-form input:focus { outline: none; border-color: var(--accent); }
   .notify-msg { margin-top: 12px; font-size: 0.82rem; color: var(--ink-muted); min-height: 1.2em; }
   .notify-msg.error { color: #E0554F; }
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
-<link rel="stylesheet" href="/assets/motion.css?v=20260813a" />
-<script src="/assets/i18n.js?v=20260813a" defer></script>
+<link rel="stylesheet" href="/assets/motion.css?v=20260821a" />
+<script src="/assets/i18n.js?v=20260821a" defer></script>
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
 
@@ -728,26 +747,22 @@
       <span class="brand-word">Manga<b>Recs</b></span>
     </a>
     <div class="nav-actions">
-      <a class="nav-link" href="/catalog/" data-i18n="nav.catalog">Browse Catalog</a>
-      <a class="nav-link" href="/features/" data-i18n="nav.features">Features</a>
-      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
-      <a class="nav-link" id="libraryNavLink" data-library-link href="/catalog/#/library" style="display:none;" data-i18n="nav.library">Library</a>
-      <div class="menu-wrap">
-        <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="menuPanel" type="button">
+      <div class="nav-links">
+        <a class="nav-link" href="/catalog/" data-i18n="nav.catalog">Browse Catalog</a>
+        <a class="nav-link" href="/features/" data-i18n="nav.features">Features</a>
+        <a class="nav-link" id="libraryNavLink" data-library-link href="/catalog/#/library" style="display:none;" data-i18n="nav.library">Library</a>
+      </div>
+      <div class="nav-utils">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
+        <div class="account-wrap">
+          <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          <div class="account-panel" id="accountPanel"></div>
+        </div>
+        <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <div class="menu-panel" id="menuPanel">
-          <a href="/catalog/" data-i18n="nav.catalog">Browse Catalog</a>
-          <a href="/features/" data-i18n="nav.features">Features</a>
-          <a href="/catalog/#/library" data-library-link style="display:none;" data-i18n="nav.library">Library</a>
-          <a href="/about/">About</a>
-        </div>
-      </div>
-      <div class="account-wrap">
-        <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </button>
-        <div class="account-panel" id="accountPanel"></div>
       </div>
       <a class="nav-cta" href="#download" data-i18n="nav.cta">Coming Soon</a>
     </div>
@@ -778,7 +793,7 @@
       </svg>
       </div>
       <h1 class="display">Manga<span class="accent">Recs</span></h1>
-      <p class="hero-tag" data-i18n="hero.tag">Your manga & manhwa library, but social. Track what you're reading, Rec it to friends, and talk chapters as a community instead of scattered across a dozen group chats.</p>
+      <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
       <div class="hero-actions">
         <a class="btn-primary" href="#download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -786,7 +801,7 @@
         </a>
         <a class="btn-ghost" href="/catalog/" data-i18n="hero.browse">Browse the Catalog</a>
       </div>
-      <p class="hero-fineprint" data-i18n="hero.fineprint">Not on the stores yet — MangaRecs is heading to the App Store and Google Play.</p>
+      <p class="hero-fineprint" data-i18n="hero.fineprint">Heading to the App Store and Google Play. Not there yet.</p>
     </div>
 
     <div class="demo">
@@ -837,14 +852,14 @@
             <span class="update-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
             <span class="update-copy">
               <span class="update-title" data-i18n="updates.t1">The catalog is live</span>
-              <span class="update-desc" data-i18n-html="updates.d1">Manga, manhwa, manhua, webcomics and novels — browsable right now, <em>no account needed</em>.</span>
+              <span class="update-desc" data-i18n-html="updates.d1">Manga, manhwa, manhua, webcomics and novels, browsable right now with <em>no account needed</em>.</span>
             </span>
           </a>
           <a class="update-item" href="/badges/" style="--u-c:#E8A83C;">
             <span class="update-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/></svg></span>
             <span class="update-copy">
               <span class="update-title" data-i18n="updates.t2">Every badge, listed</span>
-              <span class="update-desc" data-i18n-html="updates.d2">All 250 badges across seven tiers — sign in and the page fills in <em>your own progress</em>.</span>
+              <span class="update-desc" data-i18n-html="updates.d2">All 250 badges across seven tiers. Sign in and the page fills in <em>your own progress</em>.</span>
             </span>
           </a>
           <a class="update-item" href="/catalog/#/library" style="--u-c:#3FC9C0;">
@@ -858,7 +873,7 @@
             <span class="update-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
             <span class="update-copy">
               <span class="update-title" data-i18n="updates.t4">Heading to the stores</span>
-              <span class="update-desc" data-i18n-html="updates.d4">MangaRecs is in final testing — <em>leave your email</em> and we'll ping you the day it lands.</span>
+              <span class="update-desc" data-i18n-html="updates.d4">MangaRecs is in final testing. <em>Leave your email</em> and we'll ping you the day it lands.</span>
             </span>
           </a>
         </div>
@@ -889,7 +904,7 @@
     <div class="showcase-head">
       <p class="eyebrow" data-i18n="shots.eyebrow">See it in action</p>
       <h2 data-i18n="shots.title">Straight From the App</h2>
-      <p data-i18n="shots.sub">No mockups — this is what's actually on your phone.</p>
+      <p data-i18n="shots.sub">Real screens, pulled straight from the current build.</p>
     </div>
     <div class="showcase-strip">
       <div class="shot" data-reveal>
@@ -923,7 +938,7 @@
     <div class="chapter-copy">
       <p class="eyebrow" data-i18n="ch1.eyebrow">Chapter 1</p>
       <h2 class="chapter-title display" data-i18n="ch1.title">Collect</h2>
-      <p class="chapter-desc" data-i18n="ch1.desc">Add it once and it's yours everywhere — reading, completed, bookmarked, downloaded, all on shelves your friends can actually see. Lose your phone tomorrow and none of it's gone; sign in on the new one and it's all still there.</p>
+      <p class="chapter-desc" data-i18n="ch1.desc">Add it once and it's yours everywhere: reading, completed, bookmarked, downloaded, all on shelves your friends can actually see. Lose your phone tomorrow and none of it's gone. Sign in on the new one and it's all still there.</p>
       <ul class="chapter-list">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li1">Download chapters and read with the wifi off</span></li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li2">Custom sort per shelf, progress tracked series by series</span></li>
@@ -941,10 +956,10 @@
     <div class="chapter-copy">
       <p class="eyebrow" data-i18n="ch2.eyebrow">Chapter 2</p>
       <h2 class="chapter-title display" data-i18n="ch2.title">Connect</h2>
-      <p class="chapter-desc" data-i18n="ch2.desc">See what your friends are actually reading right now, not just what they finished months ago. Send them the chapter that wrecked you, or "Rec" them a whole series straight into their library. Threads are spoiler-tagged by chapter, so someone three behind can still scroll through without getting burned.</p>
+      <p class="chapter-desc" data-i18n="ch2.desc">See what your friends are reading right now, while they’re still in it. Send them the chapter that wrecked you, or "Rec" them a whole series straight into their library. Threads are spoiler-tagged by chapter, so someone three behind can still scroll through without getting burned.</p>
       <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li1">Rec a title straight to a friend's library — not just a link, an actual save</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li2">Live reading activity, not a stale "last seen" timestamp</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li1">Rec a title straight into a friend's library, saved and waiting</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li2">Live reading activity that updates while they read</span></li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li3">Spoiler-tagged discussion threads, per chapter, per series</span></li>
       </ul>
     </div>
@@ -959,11 +974,11 @@
     <div class="chapter-copy">
       <p class="eyebrow" data-i18n="ch3.eyebrow">Chapter 3</p>
       <h2 class="chapter-title display" data-i18n="ch3.title">Progress</h2>
-      <p class="chapter-desc" data-i18n="ch3.desc">250 badges to actually chase, not one trophy icon that just changes color. Climb Bronze to Mythic, keep a streak alive, and unlock relics — original weapon art we drew ourselves, not stock icon-pack junk. It's also the foundation for the community modes we're building next: think server-wide events, not just a personal streak counter.</p>
+      <p class="chapter-desc" data-i18n="ch3.desc">250 badges worth chasing. Climb Bronze to Mythic, keep a streak alive, and unlock relics: original weapon art we drew ourselves, one piece at a time. It's also the groundwork for the community modes we're building next, starting with server-wide events.</p>
       <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li1">Bronze → Silver → Gold → Mythic, a real ladder, not a progress bar</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li1">Bronze → Silver → Gold → Mythic, a real ladder with real rungs</span></li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li2">Streaks and a live leaderboard against your friends</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li3">The Relic Vault: hand-drawn rewards, nothing you've seen in a hundred other apps</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li3">The Relic Vault: hand-drawn rewards, made for this app and nowhere else</span></li>
       </ul>
     </div>
     <div class="chapter-visual">
@@ -981,14 +996,39 @@
     </div>
   </section>
 
+  <!-- Tier colours are copied from BADGE_GRADES in /assets/badges.js, which is
+       the same table the app renders from. If a tier's colour changes there,
+       change it here too — these are literals precisely because this band has
+       to render with no JS. -->
+  <section class="relics" id="relics" data-reveal="stagger">
+    <div class="relics-head">
+      <p class="eyebrow" data-i18n="relics.eyebrow">Drawn, not generated</p>
+      <h2 data-i18n="relics.title">The Relic Vault</h2>
+      <p data-i18n="relics.sub">Past Gold, badges stop being icons. Every relic below is a one-off piece we drew for a single achievement, and it exists nowhere else.</p>
+    </div>
+    <div class="relic-grid">
+      <div class="relic"><img src="/assets/relics/wv_katana_1.png" alt="Twilight Fang, a relic katana" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Twilight Fang</div><div class="relic-tier" style="--tier-c:#F2B93B">Gold</div></div>
+      <div class="relic"><img src="/assets/relics/wv_bow_1.png" alt="Twin-Moon Bow, a relic bow" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Twin-Moon Bow</div><div class="relic-tier" style="--tier-c:#4ECDC0">Platinum</div></div>
+      <div class="relic"><img src="/assets/relics/wv_greatsword_1.png" alt="Ashborn Cleaver, a relic greatsword" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Ashborn Cleaver</div><div class="relic-tier" style="--tier-c:#7CC6FF">Diamond</div></div>
+      <div class="relic"><img src="/assets/relics/wv_tome_1.png" alt="Forbidden Grimoire, a relic tome" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Forbidden Grimoire</div><div class="relic-tier" style="--tier-c:#7CC6FF">Diamond</div></div>
+      <div class="relic"><img src="/assets/relics/wv_scythe_1.png" alt="Reaper&#39;s Toll, a relic scythe" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Reaper&#39;s Toll</div><div class="relic-tier" style="--tier-c:#B48CFF">Master</div></div>
+      <div class="relic"><img src="/assets/relics/wv_crown_1.png" alt="Vanguard Circlet, a relic crown" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Vanguard Circlet</div><div class="relic-tier" style="--tier-c:#B48CFF">Master</div></div>
+      <div class="relic"><img src="/assets/relics/wv_daggers_2.png" alt="Twin Voidfangs, a pair of relic daggers" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Twin Voidfangs</div><div class="relic-tier" style="--tier-c:#B48CFF">Master</div></div>
+      <div class="relic"><img src="/assets/relics/wv_spear_2.png" alt="Heaven&#39;s Lance, a relic spear" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Heaven&#39;s Lance</div><div class="relic-tier" style="--tier-c:#FF5C7A">Mythic</div></div>
+      <div class="relic"><img src="/assets/relics/wv_greatsword_2.png" alt="World Ender, a relic greatsword" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">World Ender</div><div class="relic-tier" style="--tier-c:#FF5C7A">Mythic</div></div>
+      <div class="relic"><img src="/assets/relics/wv_crown_2.png" alt="Crown of the Infinite, a relic crown" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Crown of the Infinite</div><div class="relic-tier" style="--tier-c:#FF5C7A">Mythic</div></div>
+    </div>
+    <p class="relics-foot" data-i18n-html="relics.foot">Fifteen relics exist so far, across the top five tiers. <a href="/badges/">See all 250 badges</a>.</p>
+  </section>
+
   <section class="chapter flip" id="discover" data-reveal="stagger">
     <div class="chapter-copy">
       <p class="eyebrow" data-i18n="ch4.eyebrow">Chapter 4</p>
       <h2 class="chapter-title display" data-i18n="ch4.title">Discover</h2>
-      <p class="chapter-desc" data-i18n="ch4.desc">Once your library's got a shape, the feed uses it. Swipe right to save, left to skip — it keeps adjusting instead of asking you to fill out a genre survey once and forget it. Tap a mood chip and it reshuffles on the spot.</p>
+      <p class="chapter-desc" data-i18n="ch4.desc">Once your library's got a shape, the feed uses it. Swipe right to save, left to skip, and it re-reads you with every card. Tap a mood chip and it reshuffles on the spot.</p>
       <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch4.li1">Like, comment, and share straight from the card — no tab-switching</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch4.li2">A taste radar that keeps adjusting, not a genre filter you set once and forget</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch4.li1">Like, comment, and share straight from the card</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch4.li2">A taste radar that keeps adjusting as your taste does</span></li>
       </ul>
     </div>
     <div class="chapter-visual">
@@ -1006,9 +1046,9 @@
     <div class="chapter-copy">
       <p class="eyebrow" data-i18n="ch5.eyebrow">Chapter 5</p>
       <h2 class="chapter-title display" data-i18n="ch5.title">Read</h2>
-      <p class="chapter-desc" data-i18n="ch5.desc">However you found it — your library, a friend's Rec, or the feed — read it right in the app. Scroll it like a webtoon or flip it like paged manga, your call per series. Ambient sound, a screen dimmer, and auto-scroll for the chapters you're reading at 1am and don't want to keep tapping.</p>
+      <p class="chapter-desc" data-i18n="ch5.desc">However you found it, whether that's your library, a friend's Rec, or the feed, read it right in the app. Scroll it like a webtoon or flip it like paged manga, your call per series. Ambient sound, a screen dimmer, and auto-scroll for the chapters you're reading at 1am and don't want to keep tapping.</p>
       <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch5.li1">Works as a clean, ad-blocked reader on other sites too — not just the ones we've built native support for</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch5.li1">Works as a clean, ad-blocked reader on other sites too, well beyond the ones with native support</span></li>
       </ul>
     </div>
     <div class="chapter-visual">
@@ -1030,7 +1070,7 @@
         <svg viewBox="0 0 120 120"><path d="M60 34c-14-8-32-9-42-4v54c10-5 28-4 42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34c14-8 32-9 42-4v54c-10-5-28-4-42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34v54" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
       </div>
       <p class="eyebrow" data-i18n="why.eyebrow">Why this exists</p>
-      <p class="maker-note-text" data-i18n="why.body">We kept losing track of what we were reading across a dozen sites and thirty open tabs, and every app we tried was either a spreadsheet with a login or so much slop we'd close it without finding a single thing worth reading. So we started building the one we actually wanted — founded by manga and manhwa readers, for manga and manhwa readers. A library that remembers exactly where you left off. Friends who hand you real recommendations, and who can see what you're deep in right now. A discussion board for the chapter that just dropped, mini-games, badges worth chasing, and a reading streak you'll be annoyed to break.</p>
+      <p class="maker-note-text" data-i18n="why.body">We kept losing track of what we were reading across a dozen sites and thirty open tabs, and every app we tried was either a spreadsheet with a login or so much slop we'd close it without finding a single thing worth reading. So we started building the one we actually wanted. Founded by manga and manhwa readers, for manga and manhwa readers. A library that remembers exactly where you left off. Friends who hand you real recommendations, and who can see what you're deep in right now. A discussion board for the chapter that just dropped, mini-games, badges worth chasing, and a reading streak you'll be annoyed to break.</p>
     </div>
   </section>
 
@@ -1046,7 +1086,7 @@
         <span class="whatsnew-date">August 5, 2026</span>
       </div>
       <ul class="whatsnew-list">
-        <li data-i18n="whatsnew.li1">Import your whole library from AniList or MyAnimeList in one tap — it only ever moves you forward, so it can't undo progress you already have.</li>
+        <li data-i18n="whatsnew.li1">Import your whole library from AniList or MyAnimeList in one tap. It only ever moves you forward, so it can't undo progress you already have.</li>
         <li data-i18n="whatsnew.li2">The app is now genuinely translated in all six languages, down to the pop-ups and error screens.</li>
         <li data-i18n="whatsnew.li3">Reading ambience keeps playing when your screen locks mid-chapter, and a banner tells you the moment you lose connection.</li>
       </ul>
@@ -1072,7 +1112,7 @@
       <input type="email" id="notifyEmail" placeholder="you@email.com" autocomplete="email" required />
       <button class="btn-primary" type="submit" data-i18n="download.notify">Notify me at launch</button>
     </form>
-    <p class="notify-fineprint" data-i18n-html="download.fineprint">One email, on launch day — nothing else, ever. See the <a href="/privacy/">Privacy Policy</a>.</p>
+    <p class="notify-fineprint" data-i18n-html="download.fineprint">One email, on launch day, and nothing else ever. See the <a href="/privacy/">Privacy Policy</a>.</p>
     <p class="notify-msg" id="notifyMsg" role="status" aria-live="polite"></p>
     <p class="notify-count" id="notifyCount" hidden></p>
   </section>
@@ -1082,15 +1122,15 @@
     <h2 class="display" data-i18n="faq.title">Questions, Answered</h2>
     <details class="faq-item" open>
       <summary data-i18n="faq.q1">Is MangaRecs an app or a website?</summary>
-      <p data-i18n="faq.a1">MangaRecs is a mobile app for iOS and Android. This website is its companion — browse the catalog, and once you sign in here, your library stays in sync with the app.</p>
+      <p data-i18n="faq.a1">MangaRecs is a mobile app for iOS and Android. This website is its companion: browse the catalog, and once you sign in here, your library stays in sync with the app.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q2">Is it free?</summary>
-      <p data-i18n="faq.a2">Yes. Browsing the catalog here never requires a login, and the app itself is free — no paywall to track your library, talk to friends, or read.</p>
+      <p data-i18n="faq.a2">Yes. Browsing the catalog here never requires a login, and the app itself is free. There's no paywall to track your library, talk to friends, or read.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q3">Does MangaRecs host the actual chapters?</summary>
-      <p data-i18n="faq.a3">No. MangaRecs helps you discover titles and keep track of what you're reading — it doesn't host or distribute manga, manhwa, manhua, or webcomic content itself.</p>
+      <p data-i18n="faq.a3">No. MangaRecs helps you discover titles and keep track of what you're reading. It doesn't host or distribute manga, manhwa, manhua, or webcomic content itself.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q7">Is it legal, then?</summary>
@@ -1098,11 +1138,11 @@
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q4">What formats does it support?</summary>
-      <p data-i18n="faq.a4">Manga, manhwa, manhua, webcomics, and novels — five formats, all in one catalog and one library.</p>
+      <p data-i18n="faq.a4">Manga, manhwa, manhua, webcomics, and novels. Five formats, all in one catalog and one library.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q5">When does it launch, and where?</summary>
-      <p data-i18n="faq.a5">MangaRecs is in final testing now, heading to the App Store and Google Play. No sideloaded APK — it'll be a normal store install on both platforms.</p>
+      <p data-i18n="faq.a5">MangaRecs is in final testing now, heading to the App Store and Google Play. There's no sideloaded APK; it'll be a normal store install on both platforms.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q6">Do I need an account?</summary>
@@ -1110,11 +1150,11 @@
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q8">Can I delete my account and everything in it?</summary>
-      <p data-i18n-html="faq.a8">Yes, in the app, without emailing anyone: Settings → Account → Delete. It permanently removes your account, reading history, badges, friends, and saved data — it doesn't just hide them. The full detail is in the <a href="/privacy/">Privacy Policy</a>.</p>
+      <p data-i18n-html="faq.a8">Yes, in the app, without emailing anyone: Settings → Account → Delete. It permanently removes your account, reading history, badges, friends, and saved data rather than just hiding them. The full detail is in the <a href="/privacy/">Privacy Policy</a>.</p>
     </details>
     <details class="faq-item">
       <summary data-i18n="faq.q9">What happens to my reading data?</summary>
-      <p data-i18n="faq.a9">It stays your library and the activity you share with friends you've added — that's it. No ads, nothing sold or rented to anyone, and no training data. Delete your account and all of it goes with you.</p>
+      <p data-i18n="faq.a9">It stays your library and the activity you share with friends you've added, and that's it. No ads, nothing sold or rented to anyone, and no training data. Delete your account and all of it goes with you.</p>
     </details>
   </section>
 
@@ -1124,7 +1164,7 @@
   <div class="footer-grid">
     <div>
       <span class="footer-brand-word">Manga<b>Recs</b></span>
-      <p class="footer-tagline" data-i18n="footer.tagline">The social home for your manga &amp; manhwa library — track it, Rec it, talk about it. Built by readers, updated constantly.</p>
+      <p class="footer-tagline" data-i18n="footer.tagline">The social home for your manga &amp; manhwa library. Track it, Rec it, talk about it. Built by readers, updated constantly.</p>
     </div>
     <div class="footer-col">
       <div class="footer-col-title" data-i18n="footer.browseTitle">Browse</div>
@@ -1197,28 +1237,28 @@
       "@type": "FAQPage",
       "@id": "https://mangarecs.net/#faq",
       "mainEntity": [
-        { "@type": "Question", "name": "Is MangaRecs an app or a website?", "acceptedAnswer": { "@type": "Answer", "text": "MangaRecs is a mobile app for iOS and Android. This website is its companion — browse the catalog, and once you sign in here, your library stays in sync with the app." } },
-        { "@type": "Question", "name": "Is it free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Browsing the catalog here never requires a login, and the app itself is free — no paywall to track your library, talk to friends, or read." } },
-        { "@type": "Question", "name": "Does MangaRecs host the actual chapters?", "acceptedAnswer": { "@type": "Answer", "text": "No. MangaRecs helps you discover titles and keep track of what you're reading — it doesn't host or distribute manga, manhwa, manhua, or webcomic content itself." } },
+        { "@type": "Question", "name": "Is MangaRecs an app or a website?", "acceptedAnswer": { "@type": "Answer", "text": "MangaRecs is a mobile app for iOS and Android. This website is its companion: browse the catalog, and once you sign in here, your library stays in sync with the app." } },
+        { "@type": "Question", "name": "Is it free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Browsing the catalog here never requires a login, and the app itself is free. There's no paywall to track your library, talk to friends, or read." } },
+        { "@type": "Question", "name": "Does MangaRecs host the actual chapters?", "acceptedAnswer": { "@type": "Answer", "text": "No. MangaRecs helps you discover titles and keep track of what you're reading. It doesn't host or distribute manga, manhwa, manhua, or webcomic content itself." } },
         { "@type": "Question", "name": "Is it legal, then?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Catalog data comes from AniList's public API, and where a title lists somewhere to read, that link goes to an official or third-party site we don't run. The one thing hosted by us is original work uploaded by verified creators through the Creator Dashboard, with their permission." } },
-        { "@type": "Question", "name": "What formats does it support?", "acceptedAnswer": { "@type": "Answer", "text": "Manga, manhwa, manhua, webcomics, and novels — five formats, all in one catalog and one library." } },
-        { "@type": "Question", "name": "When does it launch, and where?", "acceptedAnswer": { "@type": "Answer", "text": "MangaRecs is in final testing now, heading to the App Store and Google Play. No sideloaded APK — it'll be a normal store install on both platforms." } },
+        { "@type": "Question", "name": "What formats does it support?", "acceptedAnswer": { "@type": "Answer", "text": "Manga, manhwa, manhua, webcomics, and novels. Five formats, all in one catalog and one library." } },
+        { "@type": "Question", "name": "When does it launch, and where?", "acceptedAnswer": { "@type": "Answer", "text": "MangaRecs is in final testing now, heading to the App Store and Google Play. There's no sideloaded APK; it'll be a normal store install on both platforms." } },
         { "@type": "Question", "name": "Do I need an account?", "acceptedAnswer": { "@type": "Answer", "text": "Not to browse. Sign in only when you want your saved titles and reading progress to sync between this site and the app." } },
-        { "@type": "Question", "name": "Can I delete my account and everything in it?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, in the app, without emailing anyone: Settings → Account → Delete. It permanently removes your account, reading history, badges, friends, and saved data — it doesn't just hide them. The full detail is in the Privacy Policy." } },
-        { "@type": "Question", "name": "What happens to my reading data?", "acceptedAnswer": { "@type": "Answer", "text": "It stays your library and the activity you share with friends you've added — that's it. No ads, nothing sold or rented to anyone, and no training data. Delete your account and all of it goes with you." } }
+        { "@type": "Question", "name": "Can I delete my account and everything in it?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, in the app, without emailing anyone: Settings → Account → Delete. It permanently removes your account, reading history, badges, friends, and saved data rather than just hiding them. The full detail is in the Privacy Policy." } },
+        { "@type": "Question", "name": "What happens to my reading data?", "acceptedAnswer": { "@type": "Answer", "text": "It stays your library and the activity you share with friends you've added, and that's it. No ads, nothing sold or rented to anyone, and no training data. Delete your account and all of it goes with you." } }
       ]
     }
   ]
 }
 </script>
 
-<script src="/assets/supabase.js?v=20260813a" defer></script>
-<script src="/assets/auth.js?v=20260813a" defer></script>
-<script src="/assets/nav-widgets.js?v=20260813a" defer></script>
-<script src="/assets/anilist.js?v=20260813a" defer></script>
+<script src="/assets/supabase.js?v=20260821a" defer></script>
+<script src="/assets/auth.js?v=20260821a" defer></script>
+<script src="/assets/nav-widgets.js?v=20260821a" defer></script>
+<script src="/assets/anilist.js?v=20260821a" defer></script>
 <!-- badges.js is loaded on demand from the progress card below, not here —
      it's only useful to a signed-in visitor. -->
-<script src="/assets/motion.js?v=20260813a" defer></script>
+<script src="/assets/motion.js?v=20260821a" defer></script>
 <script>
 (function () {
   var railFill = document.getElementById('railFill');
@@ -1344,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.navigate = function (path) { location.href = '/catalog/#' + path; };
 
   initThemeToggle('themeToggle');
-  initNavMenu('menuBtn', 'menuPanel');
+  initNavDrawer('menuBtn');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
 
@@ -1369,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (badgesPromise) return badgesPromise;
       badgesPromise = new Promise(function (resolve, reject) {
         var s = document.createElement('script');
-        s.src = '/assets/badges.js?v=20260813a';
+        s.src = '/assets/badges.js?v=20260821a';
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);
@@ -1654,5 +1694,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body><script src="/assets/analytics.js?v=20260813a" defer></script>
+</body><script src="/assets/analytics.js?v=20260821a" defer></script>
 </html>

@@ -3,11 +3,12 @@
 // their own sessionStorage cache in anilist.js and need to stay fresh).
 // Bump the cache name whenever the precache list changes so old clients
 // pick up the new shell instead of serving stale assets forever.
-var CACHE_NAME = 'mangarecs-shell-v3';
+var CACHE_NAME = 'mangarecs-shell-v4';
 var PRECACHE = [
   '/',
   '/catalog/',
   '/assets/base.css',
+  '/assets/nav.css',
   '/assets/motion.css',
   '/assets/motion.js',
   '/assets/anilist.js',
