@@ -77,11 +77,16 @@ var DRAWER_SECTIONS = [
   },
   {
     heading: 'By format',
+    // The SPA browse route, not /catalog/<format>/. Those are standalone SEO
+    // landing pages — a different, thinner view than the live browse grid the
+    // in-app tabs reach, so sending menu traffic there dumped people on the
+    // wrong page. #/browse/<id> is what the catalog's own tabs use, and the
+    // router reads the hash on a cold load too, so it works from any page.
     links: [
-      { label: 'Manga', href: '/catalog/manga/', icon: 'manga' },
-      { label: 'Manhwa', href: '/catalog/manhwa/', icon: 'manhwa' },
-      { label: 'Manhua', href: '/catalog/manhua/', icon: 'manhua' },
-      { label: 'Webcomics', href: '/catalog/webcomic/', icon: 'webcomic' }
+      { label: 'Manga', href: '/catalog/#/browse/manga', icon: 'manga' },
+      { label: 'Manhwa', href: '/catalog/#/browse/manhwa', icon: 'manhwa' },
+      { label: 'Manhua', href: '/catalog/#/browse/manhua', icon: 'manhua' },
+      { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' }
     ]
   },
   {

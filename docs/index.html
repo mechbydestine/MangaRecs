@@ -45,15 +45,15 @@
 <link rel="preconnect" href="https://graphql.anilist.co" />
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260821b" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821b" /></noscript>
-<link rel="stylesheet" href="/assets/base.css?v=20260821b" />
+<link rel="preload" href="/assets/fonts.css?v=20260821c" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821c" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260821c" />
 <style>
   /* ── Type: Big Shoulders (display, wt 900 only) + Libre Franklin (variable, body/UI) ── */
-  /* fonts loaded async via /assets/fonts.css?v=20260821b link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260821c link tag in <head> */
 
   /* Tokens, box-sizing reset, :focus-visible, .display/.eyebrow, and
-     .icon-btn* now live in /assets/base.css?v=20260821b (linked above) so every page
+     .icon-btn* now live in /assets/base.css?v=20260821c (linked above) so every page
      shares one cached copy instead of re-inlining ~90 identical lines. */
 
   /* ── Reset ──────────────────────────────────────────────────────────── */
@@ -284,37 +284,6 @@
   }
   .rail-dimmer-tag svg { width: 9px; height: 9px; }
 
-  /* ── Relic Vault ──────────────────────────────────────────────────────
-     The copy above has always claimed the relics are original art we drew
-     ourselves; until now the page never showed one, which made it a claim
-     rather than evidence. These are the real PNGs out of assets/badges/relics,
-     resized for web. Each render carries its own tier-coloured aura, so the
-     tiles deliberately have no glow, border, or gradient of their own — the
-     artwork is the decoration.
-     It also breaks the left/right chapter alternation: five mirrored sections
-     in a row is the giveaway rhythm of a template. */
-  .relics { padding: clamp(44px, 7vw, 72px) 0; border-top: 1px solid var(--line); }
-  .relics-head { text-align: center; max-width: 560px; margin: 0 auto clamp(28px, 4vw, 42px); }
-  .relics-head h2 { font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900; text-transform: uppercase; font-size: clamp(1.7rem, 3vw, 2.3rem); margin-top: 6px; }
-  .relics-head p { margin-top: 12px; color: var(--ink-muted); font-size: 0.98rem; }
-  .relic-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: clamp(10px, 2vw, 22px);
-  }
-  .relic { text-align: center; }
-  .relic img {
-    width: 100%; max-width: 120px; height: auto; margin: 0 auto 8px;
-    aspect-ratio: 1; object-fit: contain;
-  }
-  .relic-name { font-size: 0.82rem; font-weight: 700; line-height: 1.25; }
-  .relic-tier { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--tier-c, var(--ink-faint)); margin-top: 2px; }
-  .relics-foot { margin-top: clamp(24px, 4vw, 36px); text-align: center; font-size: 0.86rem; color: var(--ink-faint); }
-  @media (max-width: 560px) {
-    .relic-grid { grid-template-columns: repeat(3, 1fr); }
-    .relic:nth-child(n+10) { display: none; }
-  }
-
   /* ── Maker's note (why-we-built-it blurb) ─────────────────────────────── */
   .maker-note { padding: clamp(40px, 7vw, 64px) 0; border-top: 1px solid var(--line); }
   .maker-note-inner { max-width: 640px; margin: 0 auto; text-align: center; }
@@ -429,7 +398,7 @@
   }
 
   /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ──
-     .icon-btn* base rules now live in /assets/base.css?v=20260821b, and the
+     .icon-btn* base rules now live in /assets/base.css?v=20260821c, and the
      .nav-actions / .nav-links / .nav-utils clustering in /assets/nav.css.
      The old .menu-panel dropdown is gone: every destination that used to
      hide inside it now lives in the shared drawer (initNavDrawer), which
@@ -726,9 +695,9 @@
   .notify-msg.error { color: #E0554F; }
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
-<link rel="stylesheet" href="/assets/nav.css?v=20260821b" />
-<link rel="stylesheet" href="/assets/motion.css?v=20260821b" />
-<script src="/assets/i18n.js?v=20260821b" defer></script>
+<link rel="stylesheet" href="/assets/nav.css?v=20260821c" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260821c" />
+<script src="/assets/i18n.js?v=20260821c" defer></script>
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
 
@@ -975,11 +944,10 @@
     <div class="chapter-copy">
       <p class="eyebrow" data-i18n="ch3.eyebrow">Chapter 3</p>
       <h2 class="chapter-title display" data-i18n="ch3.title">Progress</h2>
-      <p class="chapter-desc" data-i18n="ch3.desc">250 badges worth chasing. Climb Bronze to Mythic, keep a streak alive, and unlock relics: original weapon art we drew ourselves, one piece at a time. It's also the groundwork for the community modes we're building next, starting with server-wide events.</p>
+      <p class="chapter-desc" data-i18n="ch3.desc">250 badges worth chasing. Climb Bronze to Mythic and keep a streak alive. It's also the groundwork for the community modes we're building next, starting with server-wide events.</p>
       <ul class="chapter-list">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li1">Bronze → Silver → Gold → Mythic, a real ladder with real rungs</span></li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li2">Streaks and a live leaderboard against your friends</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li3">The Relic Vault: hand-drawn rewards, made for this app and nowhere else</span></li>
       </ul>
     </div>
     <div class="chapter-visual">
@@ -997,30 +965,6 @@
     </div>
   </section>
 
-  <!-- Tier colours are copied from BADGE_GRADES in /assets/badges.js, which is
-       the same table the app renders from. If a tier's colour changes there,
-       change it here too — these are literals precisely because this band has
-       to render with no JS. -->
-  <section class="relics" id="relics" data-reveal="stagger">
-    <div class="relics-head">
-      <p class="eyebrow" data-i18n="relics.eyebrow">Drawn, not generated</p>
-      <h2 data-i18n="relics.title">The Relic Vault</h2>
-      <p data-i18n="relics.sub">Past Gold, badges stop being icons. Every relic below is a one-off piece we drew for a single achievement, and it exists nowhere else.</p>
-    </div>
-    <div class="relic-grid">
-      <div class="relic"><img src="/assets/relics/wv_katana_1.png" alt="Twilight Fang, a relic katana" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Twilight Fang</div><div class="relic-tier" style="--tier-c:#F2B93B">Gold</div></div>
-      <div class="relic"><img src="/assets/relics/wv_bow_1.png" alt="Twin-Moon Bow, a relic bow" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Twin-Moon Bow</div><div class="relic-tier" style="--tier-c:#4ECDC0">Platinum</div></div>
-      <div class="relic"><img src="/assets/relics/wv_greatsword_1.png" alt="Ashborn Cleaver, a relic greatsword" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Ashborn Cleaver</div><div class="relic-tier" style="--tier-c:#7CC6FF">Diamond</div></div>
-      <div class="relic"><img src="/assets/relics/wv_tome_1.png" alt="Forbidden Grimoire, a relic tome" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Forbidden Grimoire</div><div class="relic-tier" style="--tier-c:#7CC6FF">Diamond</div></div>
-      <div class="relic"><img src="/assets/relics/wv_scythe_1.png" alt="Reaper&#39;s Toll, a relic scythe" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Reaper&#39;s Toll</div><div class="relic-tier" style="--tier-c:#B48CFF">Master</div></div>
-      <div class="relic"><img src="/assets/relics/wv_crown_1.png" alt="Vanguard Circlet, a relic crown" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Vanguard Circlet</div><div class="relic-tier" style="--tier-c:#B48CFF">Master</div></div>
-      <div class="relic"><img src="/assets/relics/wv_daggers_2.png" alt="Twin Voidfangs, a pair of relic daggers" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Twin Voidfangs</div><div class="relic-tier" style="--tier-c:#B48CFF">Master</div></div>
-      <div class="relic"><img src="/assets/relics/wv_spear_2.png" alt="Heaven&#39;s Lance, a relic spear" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Heaven&#39;s Lance</div><div class="relic-tier" style="--tier-c:#FF5C7A">Mythic</div></div>
-      <div class="relic"><img src="/assets/relics/wv_greatsword_2.png" alt="World Ender, a relic greatsword" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">World Ender</div><div class="relic-tier" style="--tier-c:#FF5C7A">Mythic</div></div>
-      <div class="relic"><img src="/assets/relics/wv_crown_2.png" alt="Crown of the Infinite, a relic crown" width="240" height="240" loading="lazy" decoding="async" /><div class="relic-name">Crown of the Infinite</div><div class="relic-tier" style="--tier-c:#FF5C7A">Mythic</div></div>
-    </div>
-    <p class="relics-foot" data-i18n-html="relics.foot">Fifteen relics exist so far, across the top five tiers. <a href="/badges/">See all 250 badges</a>.</p>
-  </section>
 
   <section class="chapter flip" id="discover" data-reveal="stagger">
     <div class="chapter-copy">
@@ -1253,13 +1197,13 @@
 }
 </script>
 
-<script src="/assets/supabase.js?v=20260821b" defer></script>
-<script src="/assets/auth.js?v=20260821b" defer></script>
-<script src="/assets/nav-widgets.js?v=20260821b" defer></script>
-<script src="/assets/anilist.js?v=20260821b" defer></script>
+<script src="/assets/supabase.js?v=20260821c" defer></script>
+<script src="/assets/auth.js?v=20260821c" defer></script>
+<script src="/assets/nav-widgets.js?v=20260821c" defer></script>
+<script src="/assets/anilist.js?v=20260821c" defer></script>
 <!-- badges.js is loaded on demand from the progress card below, not here —
      it's only useful to a signed-in visitor. -->
-<script src="/assets/motion.js?v=20260821b" defer></script>
+<script src="/assets/motion.js?v=20260821c" defer></script>
 <script>
 (function () {
   var railFill = document.getElementById('railFill');
@@ -1410,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (badgesPromise) return badgesPromise;
       badgesPromise = new Promise(function (resolve, reject) {
         var s = document.createElement('script');
-        s.src = '/assets/badges.js?v=20260821b';
+        s.src = '/assets/badges.js?v=20260821c';
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);
@@ -1695,5 +1639,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body><script src="/assets/analytics.js?v=20260821b" defer></script>
+</body><script src="/assets/analytics.js?v=20260821c" defer></script>
 </html>
