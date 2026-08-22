@@ -57,7 +57,13 @@ var DRAWER_ICONS = {
   features: '<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/>',
   about: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>',
   app: '<rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M12 18h.01"/>',
-  format: '<path d="M2 6h20M2 12h20M2 18h12"/>'
+  // One mark per format. Four identical rows read as filler; these say
+  // something about each: a bound volume, a phone you scroll vertically,
+  // an ink brush, a browser window.
+  manga: '<path d="M12 6.5S9.5 4 6 4H3v14h3c3.5 0 6 2 6 2s2.5-2 6-2h3V4h-3c-3.5 0-6 2.5-6 2.5z"/><path d="M12 6.5V20"/>',
+  manhwa: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 7h5M9.5 11h5M9.5 15h3"/>',
+  manhua: '<path d="M4 20c2.5 0 4-1.2 4-3.2 0-1.4-1-2.4-2.3-2.4C4.3 14.4 3 15.6 3 17"/><path d="m8.6 15.4 9.6-9.6a2 2 0 0 0-2.8-2.8l-9.6 9.6"/>',
+  webcomic: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/><path d="M5.5 6.5h.01M8 6.5h.01"/>'
 };
 
 var DRAWER_SECTIONS = [
@@ -72,10 +78,10 @@ var DRAWER_SECTIONS = [
   {
     heading: 'By format',
     links: [
-      { label: 'Manga', href: '/catalog/manga/', icon: 'format' },
-      { label: 'Manhwa', href: '/catalog/manhwa/', icon: 'format' },
-      { label: 'Manhua', href: '/catalog/manhua/', icon: 'format' },
-      { label: 'Webcomics', href: '/catalog/webcomic/', icon: 'format' }
+      { label: 'Manga', href: '/catalog/manga/', icon: 'manga' },
+      { label: 'Manhwa', href: '/catalog/manhwa/', icon: 'manhwa' },
+      { label: 'Manhua', href: '/catalog/manhua/', icon: 'manhua' },
+      { label: 'Webcomics', href: '/catalog/webcomic/', icon: 'webcomic' }
     ]
   },
   {

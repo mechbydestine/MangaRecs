@@ -47,6 +47,36 @@
   .nav-actions > .nav-cta { margin-left: 10px; }
 }
 
+/* Under 560px the bar cannot hold four icon circles and the CTA without
+   clipping it. The drawer carries Dark Mode as a labelled switch row, so the
+   duplicate toggle drops out of the bar rather than the primary action. */
+@media (max-width: 560px) {
+  .nav-utils > #themeToggle { display: none; }
+}
+
+/* At 360px the bar overflowed its own container by 15px (measured: the inner
+   scrollWidth ran to 375), and even 390px fit with zero slack — one more
+   character in the CTA label and it would clip. Buying ~30px back at the
+   small-phone end keeps the primary action whole without dropping the
+   wordmark, which is the usual and worse trade. */
+@media (max-width: 420px) {
+  .topnav-inner, .topbar-inner { padding-left: 14px; padding-right: 14px; }
+  .nav-utils { gap: 5px; }
+  .nav-actions > .nav-cta { margin-left: 8px; padding: 8px 12px; font-size: 0.78rem; }
+}
+/* Below 400px the star carries the brand alone — the alternative was clipping
+   the CTA or dropping the language switcher, and an icon-only mark in a phone
+   bar is the ordinary trade. Clipped rather than display:none so the brand
+   link keeps an accessible name; its <svg> is aria-hidden and would otherwise
+   leave the anchor announcing as empty. */
+@media (max-width: 400px) {
+  .brand-word,
+  .brand > span {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+
 /* The language pill sits shoulder to shoulder with 36px icon circles, so
    it has to be exactly as tall as they are or the row looks unaligned. */
 .nav-utils .lang-btn { height: 36px; border-color: var(--line-strong); border-radius: var(--r-pill, 999px); }
@@ -88,10 +118,16 @@
   border-left: 1px solid var(--line);
   box-shadow: -24px 0 60px -30px rgba(10, 6, 32, 0.7);
   transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  /* visibility, not just the transform: a translated-off drawer is still
+     hit-testable, still in the tab order, and still counts as layout
+     overflow to the right of the viewport. Without this its links are
+     reachable by keyboard while aria-hidden="true" is set on them, which
+     is precisely the combination screen readers choke on. */
+  visibility: hidden;
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.28s;
   overflow-y: auto; overscroll-behavior: contain;
 }
-.nav-drawer.open { transform: none; }
+.nav-drawer.open { transform: none; visibility: visible; }
 @media (prefers-reduced-motion: reduce) {
   .nav-drawer, .nav-scrim { transition: none; }
 }

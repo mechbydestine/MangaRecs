@@ -28,10 +28,10 @@
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://uploads.mangadex.org" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260821a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821a" /></noscript>
+<link rel="preload" href="/assets/fonts.css?v=20260821b" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821b" /></noscript>
 <style>
-  /* fonts loaded async via /assets/fonts.css?v=20260821a link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260821b link tag in <head> */
 
   :root {
     --bg: #F6F3FB; --bg-panel: #FFFFFF; --bg-sunken: #EFEAFA;
@@ -109,11 +109,11 @@
   .brand svg { width: 24px; height: 24px; }
   .brand span { font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; }
   .brand b { color: var(--accent); }
-  .searchwrap { flex: 1 1 240px; position: relative; max-width: 520px; min-width: 0; }
+  .searchwrap { flex: 1 1 0; position: relative; max-width: 440px; min-width: 0; }
   .searchwrap input {
     width: 100%; background: var(--bg-panel); border: 1px solid var(--line);
     border-radius: 999px; padding: 10px 44px 10px 40px; color: var(--ink);
-    font-size: 0.88rem; font-family: inherit;
+    font-size: 0.88rem; font-family: inherit; min-width: 0;
   }
   .searchwrap input:focus { outline: none; border-color: var(--accent); }
   .searchwrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--ink-faint); }
@@ -141,7 +141,7 @@
     color: var(--ink-muted); border: 1px solid transparent;
   }
   .navtab.active { background: var(--accent-wash); color: var(--accent); border-color: var(--line); }
-  @media (max-width: 900px) { .navtabs { display: none; } }
+  @media (max-width: 1320px) { .navtabs { display: none; } }
   @media (max-width: 480px) { .topbar-inner { gap: 10px; } }
 
   main { max-width: 1320px; margin: 0 auto; padding: 24px 20px 64px; min-height: 70vh; }
@@ -157,7 +157,7 @@
   }
   .catchip.active { background: var(--accent); color: #fff; border-color: transparent; }
   #catRailMobile { display: none; }
-  @media (max-width: 900px) { #catRailMobile { display: flex; } }
+  @media (max-width: 1320px) { #catRailMobile { display: flex; } }
   .navtabs.lib-hide, #catRailMobile.lib-hide { display: none !important; }
 
   .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
@@ -915,8 +915,8 @@
     .recap-hero-bg, .recap-speedlines-spin, .recap-fan-card { animation: none; }
   }
 </style>
-<link rel="stylesheet" href="/assets/nav.css?v=20260821a" />
-<link rel="stylesheet" href="/assets/motion.css?v=20260821a" />
+<link rel="stylesheet" href="/assets/nav.css?v=20260821b" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260821b" />
 
 <nav class="topbar">
   <div class="topbar-inner">
@@ -993,12 +993,12 @@
   </div>
 </footer>
 
-<script src="/assets/supabase.js?v=20260821a" defer></script>
-<script src="/assets/auth.js?v=20260821a" defer></script>
-<script src="/assets/nav-widgets.js?v=20260821a" defer></script>
-<script src="/assets/anilist.js?v=20260821a" defer></script>
-<script src="/assets/badges.js?v=20260821a" defer></script>
-<script src="/assets/motion.js?v=20260821a" defer></script>
+<script src="/assets/supabase.js?v=20260821b" defer></script>
+<script src="/assets/auth.js?v=20260821b" defer></script>
+<script src="/assets/nav-widgets.js?v=20260821b" defer></script>
+<script src="/assets/anilist.js?v=20260821b" defer></script>
+<script src="/assets/badges.js?v=20260821b" defer></script>
+<script src="/assets/motion.js?v=20260821b" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
@@ -2765,7 +2765,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Real "Top Series" ranking from the reader's own reading_progress
       // rows, with a best-effort real art lookup per title via the
-      // lightweight recapArtFor query (see docs/assets/anilist.js?v=20260821a) — text-
+      // lightweight recapArtFor query (see docs/assets/anilist.js?v=20260821b) — text-
       // only fallback if a title doesn't resolve cleanly, never a wrong or
       // guessed cover.
       var topSeriesRaw = progressRows.slice()
@@ -3240,5 +3240,5 @@ document.addEventListener('click', function (e) {
   location.href = a.getAttribute('href');
 });
 </script>
-<script src="/assets/analytics.js?v=20260821a" defer></script>
+<script src="/assets/analytics.js?v=20260821b" defer></script>
 </html>
