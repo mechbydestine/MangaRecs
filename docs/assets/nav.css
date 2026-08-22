@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════
-   Top bar clusters + the slide-in nav drawer.
+   Top bar cluster + the slide-in nav drawer.
 
    Loaded on every page INCLUDING /catalog/ (which deliberately skips
    base.css — see the note at the top of that file). Everything here is
@@ -7,13 +7,10 @@
 
    The bar used to be one flat flex row with a single 14–20px gap, which
    put a text link between two icon buttons and left a third of the bar
-   empty on wide screens. It now reads as three zones instead:
+   empty on wide screens. The destination links have since moved into the
+   drawer entirely, so the bar carries only chrome and the CTA:
 
-     brand ·· [search / browse tabs] ·········· links │ utilities · CTA
-
-   Grouping is the whole point — .nav-links holds destinations, .nav-utils
-   holds chrome (theme, language, notifications, account, menu), and the
-   hairline between them is what keeps the two from blurring together.
+     brand ·· [search / browse tabs] ··················· utilities · CTA
    ══════════════════════════════════════════════════════════════════════ */
 
 .nav-actions {
@@ -21,37 +18,20 @@
   margin-left: auto;              /* kills the dead space on wide screens */
   min-width: 0;
 }
-.nav-links { display: flex; align-items: center; gap: 22px; padding-right: 20px; }
-.nav-utils { display: flex; align-items: center; gap: 8px; padding-left: 20px; position: relative; }
-/* A short centred hairline, not a full-height border: the divider should
-   read as a tick between two clusters, not as a table cell edge. */
-.nav-utils::before {
-  content: ''; position: absolute; left: 0; top: 50%;
-  width: 1px; height: 20px; margin-top: -10px;
-  background: var(--line-strong);
-}
-/* Nothing to divide from on the legal/404 pages, whose bar is just the brand
-   and the utility icons — no stray tick floating at the cluster's edge. */
-.nav-links:empty + .nav-utils,
-.nav-utils:first-child { padding-left: 0; }
-.nav-links:empty + .nav-utils::before,
-.nav-utils:first-child::before { display: none; }
+.nav-utils { display: flex; align-items: center; gap: 8px; }
 .nav-actions > .nav-cta { margin-left: 18px; flex: none; }
 
-/* Below 760px the destinations move into the drawer wholesale rather than
-   wrapping the bar onto a second line. */
 @media (max-width: 760px) {
-  .nav-links { display: none; }
-  .nav-utils { padding-left: 0; gap: 6px; }
-  .nav-utils::before { display: none; }
+  .nav-utils { gap: 6px; }
   .nav-actions > .nav-cta { margin-left: 10px; }
 }
 
-/* Under 560px the bar cannot hold four icon circles and the CTA without
-   clipping it. The drawer carries Dark Mode as a labelled switch row, so the
-   duplicate toggle drops out of the bar rather than the primary action. */
+/* Under 560px a bar carrying the CTA cannot also hold four icon circles
+   without clipping it. The drawer has Dark Mode as a labelled switch row, so
+   the duplicate toggle drops rather than the primary action. Scoped to
+   .has-cta: measured, every other bar fits at 320px with the toggle intact. */
 @media (max-width: 560px) {
-  .nav-utils > #themeToggle { display: none; }
+  .has-cta .nav-utils > #themeToggle { display: none; }
 }
 
 /* At 360px the bar overflowed its own container by 15px (measured: the inner
@@ -64,14 +44,14 @@
   .nav-utils { gap: 5px; }
   .nav-actions > .nav-cta { margin-left: 8px; padding: 8px 12px; font-size: 0.78rem; }
 }
-/* Below 400px the star carries the brand alone — the alternative was clipping
-   the CTA or dropping the language switcher, and an icon-only mark in a phone
-   bar is the ordinary trade. Clipped rather than display:none so the brand
+/* Below 400px, and only on the bar with the CTA, the star carries the brand
+   alone — the alternative was clipping the CTA or dropping the language
+   switcher, and an icon-only mark in a phone bar is the ordinary trade. Clipped rather than display:none so the brand
    link keeps an accessible name; its <svg> is aria-hidden and would otherwise
    leave the anchor announcing as empty. */
 @media (max-width: 400px) {
-  .brand-word,
-  .brand > span {
+  .has-cta .brand-word,
+  .has-cta .brand > span {
     position: absolute; width: 1px; height: 1px;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap;
   }

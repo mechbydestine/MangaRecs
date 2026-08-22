@@ -253,11 +253,38 @@ function initAccountPanel(btnId, panelId) {
       '<div class="account-error" id="accError"></div>' +
       '<div class="btn-row"><button class="btn-primary-sm" id="accSubmit" type="button">Save password</button></div>';
   }
+  // Escapes text bound for innerHTML. The email comes back from Supabase and
+  // is shape-constrained, so this is belt-and-braces rather than a live hole —
+  // but an address is user-supplied data and has no business being concatenated
+  // into markup unescaped.
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function signedInHtml(user) {
     return '' +
-      '<div class="account-email">' + (user.email || 'Signed in') + '</div>' +
+      '<div class="account-email">' + esc(user.email || 'Signed in') + '</div>' +
       '<a class="btn-ghost-sm" href="/catalog/#/profile" style="display:block;box-sizing:border-box;text-decoration:none;margin-bottom:8px;">My Profile</a>' +
       '<button class="btn-ghost-sm" id="accSignOut" type="button">Sign out</button>';
+  }
+
+  // Enter submits, from any input in the panel. The panel builds its markup as
+  // loose <input>s rather than a <form>, so nothing gave the Enter key meaning
+  // and typing a password then pressing Enter did nothing at all — which reads
+  // as the site being broken, because every other sign-in box on the web
+  // submits. Bound per-render because the panel replaces its own innerHTML.
+  function submitOnEnter() {
+    var inputs = panel.querySelectorAll('input');
+    Array.prototype.forEach.call(inputs, function (el) {
+      el.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var btn = document.getElementById('accSubmit');
+        if (btn && !btn.disabled) btn.click();
+      });
+    });
   }
 
   function wireCredentials() {
@@ -294,6 +321,7 @@ function initAccountPanel(btnId, panelId) {
     });
 
     googleBtn.addEventListener('click', function () { signInWithGoogle(); });
+    submitOnEnter();
   }
 
   function wireForgot() {
@@ -303,6 +331,7 @@ function initAccountPanel(btnId, panelId) {
     switchBtn.addEventListener('click', function () { setMode('signin'); });
     submit.addEventListener('click', function () {
       var email = document.getElementById('accEmail').value.trim();
+      errEl.style.color = '';
       errEl.textContent = '';
       if (!email) { errEl.textContent = 'Enter your email.'; return; }
       submit.disabled = true;
@@ -312,6 +341,7 @@ function initAccountPanel(btnId, panelId) {
         if (!res.error) { errEl.style.color = 'var(--accent)'; errEl.textContent = 'Check your email for a reset link.'; }
       });
     });
+    submitOnEnter();
   }
 
   function wireRecovery() {
@@ -329,6 +359,7 @@ function initAccountPanel(btnId, panelId) {
         setMode('signin');
       });
     });
+    submitOnEnter();
   }
 
   function setMode(m) {

@@ -45,15 +45,15 @@
 <link rel="preconnect" href="https://graphql.anilist.co" />
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260821c" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821c" /></noscript>
-<link rel="stylesheet" href="/assets/base.css?v=20260821c" />
+<link rel="preload" href="/assets/fonts.css?v=20260821d" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821d" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260821d" />
 <style>
   /* ── Type: Big Shoulders (display, wt 900 only) + Libre Franklin (variable, body/UI) ── */
-  /* fonts loaded async via /assets/fonts.css?v=20260821c link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260821d link tag in <head> */
 
   /* Tokens, box-sizing reset, :focus-visible, .display/.eyebrow, and
-     .icon-btn* now live in /assets/base.css?v=20260821c (linked above) so every page
+     .icon-btn* now live in /assets/base.css?v=20260821d (linked above) so every page
      shares one cached copy instead of re-inlining ~90 identical lines. */
 
   /* ── Reset ──────────────────────────────────────────────────────────── */
@@ -125,8 +125,6 @@
     box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45);
   }
   .nav-cta:hover { filter: brightness(1.08); }
-  .nav-link { color: var(--ink-muted); text-decoration: none; font-weight: 700; font-size: 0.86rem; }
-  .nav-link:hover { color: var(--accent); }
 
   main { max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
   @media (min-width: 1440px) { main { max-width: 1480px; } }
@@ -398,7 +396,7 @@
   }
 
   /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ──
-     .icon-btn* base rules now live in /assets/base.css?v=20260821c, and the
+     .icon-btn* base rules now live in /assets/base.css?v=20260821d, and the
      .nav-actions / .nav-links / .nav-utils clustering in /assets/nav.css.
      The old .menu-panel dropdown is gone: every destination that used to
      hide inside it now lives in the shared drawer (initNavDrawer), which
@@ -695,13 +693,13 @@
   .notify-msg.error { color: #E0554F; }
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
-<link rel="stylesheet" href="/assets/nav.css?v=20260821c" />
-<link rel="stylesheet" href="/assets/motion.css?v=20260821c" />
-<script src="/assets/i18n.js?v=20260821c" defer></script>
+<link rel="stylesheet" href="/assets/nav.css?v=20260821d" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260821d" />
+<script src="/assets/i18n.js?v=20260821d" defer></script>
 
 <div class="rail" aria-hidden="true"><div class="rail-fill" id="railFill"></div></div>
 
-<nav class="topnav">
+<nav class="topnav has-cta">
   <div class="topnav-inner">
     <a class="brand" href="#top">
       <svg viewBox="0 0 1024 1024" aria-hidden="true">
@@ -717,11 +715,6 @@
       <span class="brand-word">Manga<b>Recs</b></span>
     </a>
     <div class="nav-actions">
-      <div class="nav-links">
-        <a class="nav-link" href="/catalog/" data-i18n="nav.catalog">Browse Catalog</a>
-        <a class="nav-link" href="/features/" data-i18n="nav.features">Features</a>
-        <a class="nav-link" id="libraryNavLink" data-library-link href="/catalog/#/library" style="display:none;" data-i18n="nav.library">Library</a>
-      </div>
       <div class="nav-utils">
         <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
         <div class="account-wrap">
@@ -1197,13 +1190,13 @@
 }
 </script>
 
-<script src="/assets/supabase.js?v=20260821c" defer></script>
-<script src="/assets/auth.js?v=20260821c" defer></script>
-<script src="/assets/nav-widgets.js?v=20260821c" defer></script>
-<script src="/assets/anilist.js?v=20260821c" defer></script>
+<script src="/assets/supabase.js?v=20260821d" defer></script>
+<script src="/assets/auth.js?v=20260821d" defer></script>
+<script src="/assets/nav-widgets.js?v=20260821d" defer></script>
+<script src="/assets/anilist.js?v=20260821d" defer></script>
 <!-- badges.js is loaded on demand from the progress card below, not here —
      it's only useful to a signed-in visitor. -->
-<script src="/assets/motion.js?v=20260821c" defer></script>
+<script src="/assets/motion.js?v=20260821d" defer></script>
 <script>
 (function () {
   var railFill = document.getElementById('railFill');
@@ -1354,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (badgesPromise) return badgesPromise;
       badgesPromise = new Promise(function (resolve, reject) {
         var s = document.createElement('script');
-        s.src = '/assets/badges.js?v=20260821c';
+        s.src = '/assets/badges.js?v=20260821d';
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);
@@ -1639,5 +1632,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body><script src="/assets/analytics.js?v=20260821c" defer></script>
+</body><script src="/assets/analytics.js?v=20260821d" defer></script>
 </html>
