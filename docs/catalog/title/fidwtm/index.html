@@ -3,24 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Applies the saved theme before first paint, exactly as docs/index.html and
+     the catalog SPA do. Without it a visitor who chose Light on the homepage
+     watched every title page flash back to their OS theme. -->
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Appa, Na I Gyeolhon An Hallaeyo! — MangaRecs</title>
-<meta name="description" content="Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she g…" />
+<meta name="description" content="Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she…" />
 <link rel="canonical" href="https://mangarecs.net/catalog/title/fidwtm/" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://mangarecs.net/catalog/title/fidwtm/" />
 <meta property="og:title" content="Appa, Na I Gyeolhon An Hallaeyo! — MangaRecs" />
-<meta property="og:description" content="Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she g…" />
+<meta property="og:description" content="Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she…" />
 <meta property="og:image" content="https://uploads.mangadex.org/covers/fbecdece-de6a-4213-946b-62bf541dd60f/d13a020e-65ee-4572-b724-9de76bf587cf.jpg.512.jpg" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://uploads.mangadex.org/covers/fbecdece-de6a-4213-946b-62bf541dd60f/d13a020e-65ee-4572-b724-9de76bf587cf.jpg.512.jpg" />
-<meta name="theme-color" content="#6B46F0" />
-<link rel="preload" href="/assets/fonts.css?v=20260821d" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821d" /></noscript>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Book","name":"Appa, Na I Gyeolhon An Hallaeyo!","description":"Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she gets the chance to change the course of her story. In order to avoid the tragic end she knows awaits her, she breaks up with her lover and gives up trying to win her f","inLanguage":"ko","bookFormat":"https://schema.org/GraphicNovel","genre":["Comedy","Drama"],"url":"https://mangarecs.net/catalog/title/fidwtm/","image":"https://uploads.mangadex.org/covers/fbecdece-de6a-4213-946b-62bf541dd60f/d13a020e-65ee-4572-b724-9de76bf587cf.jpg.512.jpg","author":[{"@type":"Person","name":"Yu-Ri"}]}</script>
+<meta name="theme-color" content="#F6F3FB" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0D0C11" media="(prefers-color-scheme: dark)" />
+<link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Book","name":"Appa, Na I Gyeolhon An Hallaeyo!","description":"Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she gets the chance to change the course of her story.","inLanguage":"ko","bookFormat":"https://schema.org/GraphicNovel","genre":["Comedy","Drama"],"url":"https://mangarecs.net/catalog/title/fidwtm/","image":"https://uploads.mangadex.org/covers/fbecdece-de6a-4213-946b-62bf541dd60f/d13a020e-65ee-4572-b724-9de76bf587cf.jpg.512.jpg","author":[{"@type":"Person","name":"Yu-Ri"}]}</script>
 <style>
-  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0D0C11; --bg-panel:#17151F; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --bg-sunken:#EFEAFA; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
+  /* Three states, same as the rest of the site: no attribute = follow the OS,
+     data-theme = the visitor chose, and the choice has to win both ways. */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:'Strip Text', -apple-system, system-ui, sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
   a { color: inherit; }
@@ -50,17 +58,44 @@
   .card { text-decoration:none; color:var(--ink); }
   .card .cover { width:100%; aspect-ratio:2/3; margin-bottom:8px; }
   .card .t { font-size:0.86rem; font-weight:700; }
+  .topnav { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .topnav-in { max-width:760px; margin:0 auto; padding:10px clamp(20px,5vw,32px); display:flex; align-items:center; gap:14px; }
+  .topnav .brand { margin:0; flex:none; font-size:0.95rem; }
+  .navsearch { flex:1; min-width:0; display:flex; }
+  .navsearch input { width:100%; font:inherit; font-size:0.85rem; padding:7px 12px; border-radius:999px; border:1px solid var(--line); background:var(--bg-panel); color:var(--ink); }
+  .navsearch input::placeholder { color:var(--ink-faint); }
+  .navlinks { display:flex; align-items:center; gap:14px; flex:none; font-size:0.84rem; }
+  .navlinks a { color:var(--ink-muted); text-decoration:none; }
+  .navlinks a:hover { color:var(--accent); }
+  .theme-btn { background:none; border:1px solid var(--line); border-radius:999px; color:var(--ink-muted); cursor:pointer; font:inherit; font-size:0.78rem; padding:5px 11px; }
+  .theme-btn:hover { color:var(--accent); }
+  @media (max-width:640px) { .navlinks .opt { display:none; } }
+  .related { margin-top:48px; border-top:1px solid var(--line); padding-top:26px; }
+  .related h2 { font-size:1.05rem; margin:0 0 4px; }
+  .related p.sub { margin:0; font-size:0.84rem; color:var(--ink-muted); }
   footer { max-width:760px; margin:0 auto; padding: 0 clamp(20px,5vw,32px) 40px; font-size:0.78rem; color:var(--ink-faint); }
   footer a { color: var(--ink-muted); text-decoration:none; }
   footer a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
+      <span>Manga<b>Recs</b></span>
+    </a>
+    <form class="navsearch" action="/catalog/" method="get" role="search" onsubmit="return mrSearch(this);">
+      <input type="search" name="q" placeholder="Search the catalog…" aria-label="Search the catalog" autocomplete="off" />
+    </form>
+    <nav class="navlinks">
+      <a class="opt" href="/catalog/">Catalog</a>
+      <a class="opt" href="/features/">Features</a>
+      <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch between light and dark theme">Theme</button>
+    </nav>
+  </div>
+</header>
 <main>
-  <a class="brand" href="/">
-    <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
-    <span>Manga<b>Recs</b></span>
-  </a>
   
   <div class="crumb"><a href="/catalog/">Catalog</a> / <a href="/catalog/manhwa/">Manhwa</a> / Appa, Na I Gyeolhon An Hallaeyo!</div>
   <div class="hero">
@@ -84,30 +119,58 @@
       </div>
     </div>
   </div>
-  <p class="desc">Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she gets the chance to change the course of her story. In order to avoid the tragic end she knows awaits her, she breaks up with her lover and gives up trying to win her f</p>
+  <p class="desc">Juvelian is a villainess so hated by everyone that even her lover and father leave her to die a pitiful death. Just as she’s about to face her fate, she gets the chance to change the course of her story.</p>
+  <section class="related">
+    <h2>More manhwa like this</h2>
+    <p class="sub">Picked on shared genres with Appa, Na I Gyeolhon An Hallaeyo!.</p>
+    <div class="grid">
+      <a class="card" href="/catalog/title/sob/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/67e56a7a-c7ea-4db8-84f0-db19c2034729/86f85502-4640-4947-b740-69a2149c2eb3.jpg.512.jpg" alt="Seasons of Blossom cover art" loading="lazy" /></div>
+        <div class="t">Seasons of Blossom</div>
+      </a><a class="card" href="/catalog/title/py/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120440-PdrYcdsMheyO.jpg" alt="Positively Yours cover art" loading="lazy" /></div>
+        <div class="t">Positively Yours</div>
+      </a><a class="card" href="/catalog/title/syim1l/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/28567105-e14a-49af-92c1-d3196dc6b446/76a95215-b870-46da-ae36-37e6670cf5ec.jpg.512.jpg" alt="See You in My 19th Life cover art" loading="lazy" /></div>
+        <div class="t">See You in My 19th Life</div>
+      </a><a class="card" href="/catalog/title/mmtb/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/220282a9-a2ff-4a6b-9bed-f4a9da24c661/f1200311-3b79-436e-8edf-4f3a9465e2e5.jpg.512.jpg" alt="Maybe Meant to Be cover art" loading="lazy" /></div>
+        <div class="t">Maybe Meant to Be</div>
+      </a><a class="card" href="/catalog/title/btv/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/2af0ef15-7476-496e-b3be-2c9f259b773e/09207e3e-02c4-4fce-9a49-e157354f1da5.jpg.512.jpg" alt="Beware the Villainess! cover art" loading="lazy" /></div>
+        <div class="t">Beware the Villainess!</div>
+      </a><a class="card" href="/catalog/title/mdppl/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/63e911a1-92af-4d97-a424-5a9e9855ac53/3a26d9a4-8c17-418a-8748-29f5fc795a04.png.512.jpg" alt="Midnight Poppy Land cover art" loading="lazy" /></div>
+        <div class="t">Midnight Poppy Land</div>
+      </a>
+    </div>
+  </section>
   
 </main>
 <footer>
   <a href="/">Home</a> · <a href="/catalog/">Full Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
 </footer>
-<script data-deeplink-fallback>
-// A mangarecs:// link is a no-op on desktop and on phones without the app
-// installed. Race the handoff: if we're still visible 1.2s later, nothing
-// caught it, so send them to the download section instead of nowhere.
-document.addEventListener('click', function (e) {
-  var a = e.target.closest ? e.target.closest('a[href^="mangarecs://"]') : null;
-  if (!a) return;
-  e.preventDefault();
-  var timer = setTimeout(function () {
-    if (!document.hidden) location.href = '/#download';
-  }, 1200);
-  function cancel() { clearTimeout(timer); }
-  window.addEventListener('pagehide', cancel, { once: true });
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) cancel();
-  }, { once: true });
-  location.href = a.getAttribute('href');
-});
+<script>
+  // The catalog is a hash-routed SPA, so a plain GET would land on /catalog/?q=
+  // and lose the term. Hand it straight to the route the SPA already has.
+  function mrSearch(form){
+    var q = (form.q.value || '').trim();
+    window.location.href = q ? '/catalog/#/search/' + encodeURIComponent(q) : '/catalog/';
+    return false;
+  }
+  (function(){
+    var btn = document.getElementById('themeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+      var root = document.documentElement;
+      var cur = root.getAttribute('data-theme');
+      if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('mangarecs_theme', next); } catch (e) {}
+    });
+  })();
 </script>
+<script src="/assets/analytics.js" defer></script>
 </body>
 </html>

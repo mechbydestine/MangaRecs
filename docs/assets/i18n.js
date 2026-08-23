@@ -774,7 +774,20 @@
     } catch (e) {}
   }
 
+  // A page counts as translated if it binds at least one key. features/ and
+  // badges/ loaded this file, so the switcher appeared, but neither carried a
+  // single data-i18n attribute: picking 日本語 confirmed the choice and left
+  // the page 100% English. Offering a language you do not have is worse than
+  // not offering one, so the switcher is built only where it does something.
+  //
+  // Checked at build time rather than per page so any new page gets the same
+  // treatment automatically.
+  function pageIsTranslated() {
+    return !!document.querySelector('[data-i18n], [data-i18n-html], [data-i18n-attr]');
+  }
+
   function buildSwitcher() {
+    if (!pageIsTranslated()) return;
     // Prefer the utility cluster (theme / account / menu) — the switcher is
     // chrome, not a destination, and .nav-actions now holds both groups.
     var host = document.querySelector('.nav-utils') || document.querySelector('.nav-actions');

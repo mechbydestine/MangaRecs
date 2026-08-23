@@ -3,24 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Applies the saved theme before first paint, exactly as docs/index.html and
+     the catalog SPA do. Without it a visitor who chose Light on the homepage
+     watched every title page flash back to their OS theme. -->
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Ajin: Demi-Human — MangaRecs</title>
-<meta name="description" content="High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human. Ins…" />
+<meta name="description" content="High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human.…" />
 <link rel="canonical" href="https://mangarecs.net/catalog/title/ad/" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://mangarecs.net/catalog/title/ad/" />
 <meta property="og:title" content="Ajin: Demi-Human — MangaRecs" />
-<meta property="og:description" content="High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human. Ins…" />
+<meta property="og:description" content="High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human.…" />
 <meta property="og:image" content="https://uploads.mangadex.org/covers/331deec0-fb1a-4680-9248-8a0fc55b5b07/92d36b68-c314-4df1-8473-386fdec980e8.jpg.512.jpg" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://uploads.mangadex.org/covers/331deec0-fb1a-4680-9248-8a0fc55b5b07/92d36b68-c314-4df1-8473-386fdec980e8.jpg.512.jpg" />
-<meta name="theme-color" content="#6B46F0" />
-<link rel="preload" href="/assets/fonts.css?v=20260821d" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821d" /></noscript>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Book","name":"Ajin: Demi-Human","description":"High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human. Instead, he may be a mysterious almost immortal being granted not only the powers of rejuvination but the abilities to see super-natural beings. Scared, he runs away, an","inLanguage":"ja","bookFormat":"https://schema.org/GraphicNovel","genre":["Action","Horror"],"url":"https://mangarecs.net/catalog/title/ad/","image":"https://uploads.mangadex.org/covers/331deec0-fb1a-4680-9248-8a0fc55b5b07/92d36b68-c314-4df1-8473-386fdec980e8.jpg.512.jpg","author":[{"@type":"Person","name":"Gamon Sakurai"}]}</script>
+<meta name="theme-color" content="#F6F3FB" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0D0C11" media="(prefers-color-scheme: dark)" />
+<link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Book","name":"Ajin: Demi-Human","description":"High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human. Instead, he may be a mysterious almost immortal being granted not only the powers of rejuvination but the abilities to see super-natural beings.","inLanguage":"ja","bookFormat":"https://schema.org/GraphicNovel","genre":["Action","Horror"],"url":"https://mangarecs.net/catalog/title/ad/","image":"https://uploads.mangadex.org/covers/331deec0-fb1a-4680-9248-8a0fc55b5b07/92d36b68-c314-4df1-8473-386fdec980e8.jpg.512.jpg","author":[{"@type":"Person","name":"Gamon Sakurai"}]}</script>
 <style>
-  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0D0C11; --bg-panel:#17151F; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --bg-sunken:#EFEAFA; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
+  /* Three states, same as the rest of the site: no attribute = follow the OS,
+     data-theme = the visitor chose, and the choice has to win both ways. */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:'Strip Text', -apple-system, system-ui, sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
   a { color: inherit; }
@@ -50,17 +58,44 @@
   .card { text-decoration:none; color:var(--ink); }
   .card .cover { width:100%; aspect-ratio:2/3; margin-bottom:8px; }
   .card .t { font-size:0.86rem; font-weight:700; }
+  .topnav { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .topnav-in { max-width:760px; margin:0 auto; padding:10px clamp(20px,5vw,32px); display:flex; align-items:center; gap:14px; }
+  .topnav .brand { margin:0; flex:none; font-size:0.95rem; }
+  .navsearch { flex:1; min-width:0; display:flex; }
+  .navsearch input { width:100%; font:inherit; font-size:0.85rem; padding:7px 12px; border-radius:999px; border:1px solid var(--line); background:var(--bg-panel); color:var(--ink); }
+  .navsearch input::placeholder { color:var(--ink-faint); }
+  .navlinks { display:flex; align-items:center; gap:14px; flex:none; font-size:0.84rem; }
+  .navlinks a { color:var(--ink-muted); text-decoration:none; }
+  .navlinks a:hover { color:var(--accent); }
+  .theme-btn { background:none; border:1px solid var(--line); border-radius:999px; color:var(--ink-muted); cursor:pointer; font:inherit; font-size:0.78rem; padding:5px 11px; }
+  .theme-btn:hover { color:var(--accent); }
+  @media (max-width:640px) { .navlinks .opt { display:none; } }
+  .related { margin-top:48px; border-top:1px solid var(--line); padding-top:26px; }
+  .related h2 { font-size:1.05rem; margin:0 0 4px; }
+  .related p.sub { margin:0; font-size:0.84rem; color:var(--ink-muted); }
   footer { max-width:760px; margin:0 auto; padding: 0 clamp(20px,5vw,32px) 40px; font-size:0.78rem; color:var(--ink-faint); }
   footer a { color: var(--ink-muted); text-decoration:none; }
   footer a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
+      <span>Manga<b>Recs</b></span>
+    </a>
+    <form class="navsearch" action="/catalog/" method="get" role="search" onsubmit="return mrSearch(this);">
+      <input type="search" name="q" placeholder="Search the catalog…" aria-label="Search the catalog" autocomplete="off" />
+    </form>
+    <nav class="navlinks">
+      <a class="opt" href="/catalog/">Catalog</a>
+      <a class="opt" href="/features/">Features</a>
+      <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch between light and dark theme">Theme</button>
+    </nav>
+  </div>
+</header>
 <main>
-  <a class="brand" href="/">
-    <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
-    <span>Manga<b>Recs</b></span>
-  </a>
   
   <div class="crumb"><a href="/catalog/">Catalog</a> / <a href="/catalog/manga/">Manga</a> / Ajin: Demi-Human</div>
   <div class="hero">
@@ -84,30 +119,58 @@
       </div>
     </div>
   </div>
-  <p class="desc">High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human. Instead, he may be a mysterious almost immortal being granted not only the powers of rejuvination but the abilities to see super-natural beings. Scared, he runs away, an</p>
+  <p class="desc">High school student Kei Nagai is struck dead in a grisly traffic accident, but immediately revives to learn that he may not be like every other human. Instead, he may be a mysterious almost immortal being granted not only the powers of rejuvination but the abilities to see super-natural beings.</p>
+  <section class="related">
+    <h2>More manga like this</h2>
+    <p class="sub">Picked on shared genres with Ajin: Demi-Human.</p>
+    <div class="grid">
+      <a class="card" href="/catalog/title/cm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/a77742b1-befd-49a4-bff5-1ad4e6b0ef7b/6e518bd1-5f60-446b-8832-bfe6bf74834b.jpg.512.jpg" alt="Chainsaw Man cover art" loading="lazy" /></div>
+        <div class="t">Chainsaw Man</div>
+      </a><a class="card" href="/catalog/title/hlsng/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/6fcfaa0e-6023-403e-97f9-5301dd3c258c/b1c48d29-de5e-40d9-9a22-8b181b499738.jpg.512.jpg" alt="Hellsing cover art" loading="lazy" /></div>
+        <div class="t">Hellsing</div>
+      </a><a class="card" href="/catalog/title/iaah/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/ff5ef336-72d7-45a2-bc69-c2ae8fbfeec8/e8ea3a56-09db-47bf-85f0-0bfa17b3ccc1.jpg.512.jpg" alt="I Am a Hero cover art" loading="lazy" /></div>
+        <div class="t">I Am a Hero</div>
+      </a><a class="card" href="/catalog/title/ber/">
+        <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg" alt="Berserk cover art" loading="lazy" /></div>
+        <div class="t">Berserk</div>
+      </a><a class="card" href="/catalog/title/op/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.512.jpg" alt="One Piece cover art" loading="lazy" /></div>
+        <div class="t">One Piece</div>
+      </a><a class="card" href="/catalog/title/vns/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/5d1fc77e-706a-4fc5-bea8-486c9be0145d/7fa60f5d-285a-40c5-8a1d-9cf375eaf897.jpg.512.jpg" alt="Vinland Saga cover art" loading="lazy" /></div>
+        <div class="t">Vinland Saga</div>
+      </a>
+    </div>
+  </section>
   
 </main>
 <footer>
   <a href="/">Home</a> · <a href="/catalog/">Full Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
 </footer>
-<script data-deeplink-fallback>
-// A mangarecs:// link is a no-op on desktop and on phones without the app
-// installed. Race the handoff: if we're still visible 1.2s later, nothing
-// caught it, so send them to the download section instead of nowhere.
-document.addEventListener('click', function (e) {
-  var a = e.target.closest ? e.target.closest('a[href^="mangarecs://"]') : null;
-  if (!a) return;
-  e.preventDefault();
-  var timer = setTimeout(function () {
-    if (!document.hidden) location.href = '/#download';
-  }, 1200);
-  function cancel() { clearTimeout(timer); }
-  window.addEventListener('pagehide', cancel, { once: true });
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) cancel();
-  }, { once: true });
-  location.href = a.getAttribute('href');
-});
+<script>
+  // The catalog is a hash-routed SPA, so a plain GET would land on /catalog/?q=
+  // and lose the term. Hand it straight to the route the SPA already has.
+  function mrSearch(form){
+    var q = (form.q.value || '').trim();
+    window.location.href = q ? '/catalog/#/search/' + encodeURIComponent(q) : '/catalog/';
+    return false;
+  }
+  (function(){
+    var btn = document.getElementById('themeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+      var root = document.documentElement;
+      var cur = root.getAttribute('data-theme');
+      if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('mangarecs_theme', next); } catch (e) {}
+    });
+  })();
 </script>
+<script src="/assets/analytics.js" defer></script>
 </body>
 </html>

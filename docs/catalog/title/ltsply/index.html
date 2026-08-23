@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Applies the saved theme before first paint, exactly as docs/index.html and
+     the catalog SPA do. Without it a visitor who chose Light on the homepage
+     watched every title page flash back to their OS theme. -->
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Let&#39;s Play — MangaRecs</title>
 <meta name="description" content="A game developer whose life is ruined by a negative review from a famous streamer who ends up moving in next door must decide whether revenge is worth it." />
 <link rel="canonical" href="https://mangarecs.net/catalog/title/ltsply/" />
@@ -14,13 +18,17 @@
 <meta property="og:image" content="https://uploads.mangadex.org/covers/c7ec2aa6-a64e-45a9-9052-f03dd2d7aa56/64146945-3560-41e0-a460-7b84ca146c54.jpg.512.jpg" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://uploads.mangadex.org/covers/c7ec2aa6-a64e-45a9-9052-f03dd2d7aa56/64146945-3560-41e0-a460-7b84ca146c54.jpg.512.jpg" />
-<meta name="theme-color" content="#6B46F0" />
-<link rel="preload" href="/assets/fonts.css?v=20260821d" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821d" /></noscript>
+<meta name="theme-color" content="#F6F3FB" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0D0C11" media="(prefers-color-scheme: dark)" />
+<link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Book","name":"Let's Play","description":"A game developer whose life is ruined by a negative review from a famous streamer who ends up moving in next door must decide whether revenge is worth it.","inLanguage":"en","bookFormat":"https://schema.org/GraphicNovel","genre":["Romance","Comedy"],"url":"https://mangarecs.net/catalog/title/ltsply/","image":"https://uploads.mangadex.org/covers/c7ec2aa6-a64e-45a9-9052-f03dd2d7aa56/64146945-3560-41e0-a460-7b84ca146c54.jpg.512.jpg","author":[{"@type":"Person","name":"Mongie"}]}</script>
 <style>
-  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0D0C11; --bg-panel:#17151F; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --bg-sunken:#EFEAFA; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
+  /* Three states, same as the rest of the site: no attribute = follow the OS,
+     data-theme = the visitor chose, and the choice has to win both ways. */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:'Strip Text', -apple-system, system-ui, sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
   a { color: inherit; }
@@ -50,17 +58,44 @@
   .card { text-decoration:none; color:var(--ink); }
   .card .cover { width:100%; aspect-ratio:2/3; margin-bottom:8px; }
   .card .t { font-size:0.86rem; font-weight:700; }
+  .topnav { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .topnav-in { max-width:760px; margin:0 auto; padding:10px clamp(20px,5vw,32px); display:flex; align-items:center; gap:14px; }
+  .topnav .brand { margin:0; flex:none; font-size:0.95rem; }
+  .navsearch { flex:1; min-width:0; display:flex; }
+  .navsearch input { width:100%; font:inherit; font-size:0.85rem; padding:7px 12px; border-radius:999px; border:1px solid var(--line); background:var(--bg-panel); color:var(--ink); }
+  .navsearch input::placeholder { color:var(--ink-faint); }
+  .navlinks { display:flex; align-items:center; gap:14px; flex:none; font-size:0.84rem; }
+  .navlinks a { color:var(--ink-muted); text-decoration:none; }
+  .navlinks a:hover { color:var(--accent); }
+  .theme-btn { background:none; border:1px solid var(--line); border-radius:999px; color:var(--ink-muted); cursor:pointer; font:inherit; font-size:0.78rem; padding:5px 11px; }
+  .theme-btn:hover { color:var(--accent); }
+  @media (max-width:640px) { .navlinks .opt { display:none; } }
+  .related { margin-top:48px; border-top:1px solid var(--line); padding-top:26px; }
+  .related h2 { font-size:1.05rem; margin:0 0 4px; }
+  .related p.sub { margin:0; font-size:0.84rem; color:var(--ink-muted); }
   footer { max-width:760px; margin:0 auto; padding: 0 clamp(20px,5vw,32px) 40px; font-size:0.78rem; color:var(--ink-faint); }
   footer a { color: var(--ink-muted); text-decoration:none; }
   footer a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
+      <span>Manga<b>Recs</b></span>
+    </a>
+    <form class="navsearch" action="/catalog/" method="get" role="search" onsubmit="return mrSearch(this);">
+      <input type="search" name="q" placeholder="Search the catalog…" aria-label="Search the catalog" autocomplete="off" />
+    </form>
+    <nav class="navlinks">
+      <a class="opt" href="/catalog/">Catalog</a>
+      <a class="opt" href="/features/">Features</a>
+      <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch between light and dark theme">Theme</button>
+    </nav>
+  </div>
+</header>
 <main>
-  <a class="brand" href="/">
-    <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
-    <span>Manga<b>Recs</b></span>
-  </a>
   
   <div class="crumb"><a href="/catalog/">Catalog</a> / <a href="/catalog/webcomic/">Webcomic</a> / Let&#39;s Play</div>
   <div class="hero">
@@ -85,29 +120,57 @@
     </div>
   </div>
   <p class="desc">A game developer whose life is ruined by a negative review from a famous streamer who ends up moving in next door must decide whether revenge is worth it.</p>
+  <section class="related">
+    <h2>More webcomic like this</h2>
+    <p class="sub">Picked on shared genres with Let&#39;s Play.</p>
+    <div class="grid">
+      <a class="card" href="/catalog/title/pndwld/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/d3d3730c-76a7-491a-a926-0cca4cf208aa/d3633475-9abb-4245-a938-5cf51a1910eb.jpg.512.jpg" alt="Punderworld cover art" loading="lazy" /></div>
+        <div class="t">Punderworld</div>
+      </a><a class="card" href="/catalog/title/dnrth/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/8a50f05e-900b-4cf8-b80b-80f8e0af04bf/9ee0afef-fae1-4c22-bfa5-24e62599b89c.jpg.512.jpg" alt="Down to Earth cover art" loading="lazy" /></div>
+        <div class="t">Down to Earth</div>
+      </a><a class="card" href="/catalog/title/loly/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/ef525177-734a-4ae0-bc66-b2d377f3ada9/a45f9d3a-18cf-4467-a9f9-900df5a0f793.jpg.512.jpg" alt="Lore Olympus cover art" loading="lazy" /></div>
+        <div class="t">Lore Olympus</div>
+      </a><a class="card" href="/catalog/title/alwhm/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/3a97a0d0-2ebe-4bc5-91c5-87097823d0ae/71d0c681-ec9a-4e23-afdd-b86c8ad84ac4.jpg.512.jpg" alt="Always Human cover art" loading="lazy" /></div>
+        <div class="t">Always Human</div>
+      </a><a class="card" href="/catalog/title/ily/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/5116edf9-4dd1-491a-bf81-b8fc4ea2dec0/094f137d-f4e3-49be-8df8-2e9c8da2c890.jpg.512.jpg" alt="I Love Yoo cover art" loading="lazy" /></div>
+        <div class="t">I Love Yoo</div>
+      </a><a class="card" href="/catalog/title/subz/">
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/7f28b6ec-0675-4505-bda4-7ae6be7b5264/0c54343b-0a03-4866-909a-cbd1afd03685.jpg.512.jpg" alt="SubZero cover art" loading="lazy" /></div>
+        <div class="t">SubZero</div>
+      </a>
+    </div>
+  </section>
   
 </main>
 <footer>
   <a href="/">Home</a> · <a href="/catalog/">Full Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
 </footer>
-<script data-deeplink-fallback>
-// A mangarecs:// link is a no-op on desktop and on phones without the app
-// installed. Race the handoff: if we're still visible 1.2s later, nothing
-// caught it, so send them to the download section instead of nowhere.
-document.addEventListener('click', function (e) {
-  var a = e.target.closest ? e.target.closest('a[href^="mangarecs://"]') : null;
-  if (!a) return;
-  e.preventDefault();
-  var timer = setTimeout(function () {
-    if (!document.hidden) location.href = '/#download';
-  }, 1200);
-  function cancel() { clearTimeout(timer); }
-  window.addEventListener('pagehide', cancel, { once: true });
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) cancel();
-  }, { once: true });
-  location.href = a.getAttribute('href');
-});
+<script>
+  // The catalog is a hash-routed SPA, so a plain GET would land on /catalog/?q=
+  // and lose the term. Hand it straight to the route the SPA already has.
+  function mrSearch(form){
+    var q = (form.q.value || '').trim();
+    window.location.href = q ? '/catalog/#/search/' + encodeURIComponent(q) : '/catalog/';
+    return false;
+  }
+  (function(){
+    var btn = document.getElementById('themeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+      var root = document.documentElement;
+      var cur = root.getAttribute('data-theme');
+      if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('mangarecs_theme', next); } catch (e) {}
+    });
+  })();
 </script>
+<script src="/assets/analytics.js" defer></script>
 </body>
 </html>

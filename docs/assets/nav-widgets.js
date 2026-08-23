@@ -225,6 +225,44 @@ function initAccountPanel(btnId, panelId) {
   if (!btn || !panel) return;
   var mode = 'signin';
 
+  // The nav drawer sitting next to this had aria-expanded, Escape and a focus
+  // trap; this panel had none of the three, so a keyboard user could tab
+  // straight out of an open sign-in form into the page behind it and screen
+  // readers were never told the control expanded anything.
+  //
+  // Every open/close goes through here — the auth callbacks used to poke
+  // classList directly, which is exactly how the state and the ARIA drift.
+  panel.setAttribute('aria-hidden', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-haspopup', 'dialog');
+
+  function panelFocusables() {
+    return Array.prototype.filter.call(
+      panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea'),
+      function (el) { return el.offsetParent !== null; }
+    );
+  }
+
+  function isPanelOpen() { return panel.classList.contains('open'); }
+
+  function setPanelOpen(open, opts) {
+    var wasOpen = isPanelOpen();
+    panel.classList.toggle('open', open);
+    panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      // Focus the first real control so the form is immediately usable, but
+      // not on a re-render of an already-open panel — that would yank the
+      // caret out of whatever the visitor is typing in.
+      if (!wasOpen) {
+        var items = panelFocusables();
+        if (items.length) items[0].focus();
+      }
+    } else if (wasOpen && !(opts && opts.silent)) {
+      btn.focus();
+    }
+  }
+
   function credentialsHtml() {
     return '' +
       '<div class="account-tabtitle" id="accTitle">Sign in</div>' +
@@ -316,7 +354,7 @@ function initAccountPanel(btnId, panelId) {
         submit.disabled = false;
         if (res.error) { errEl.textContent = res.error.message; return; }
         if (mode === 'signup' && !res.data.session) { errEl.textContent = 'Check your email to confirm your account.'; return; }
-        panel.classList.remove('open');
+        setPanelOpen(false, { silent: true });
       }).catch(function () { submit.disabled = false; errEl.textContent = 'Something went wrong. Try again.'; });
     });
 
@@ -355,7 +393,7 @@ function initAccountPanel(btnId, panelId) {
       updatePassword(pw).then(function (res) {
         submit.disabled = false;
         if (res.error) { errEl.textContent = res.error.message; return; }
-        panel.classList.remove('open');
+        setPanelOpen(false, { silent: true });
         setMode('signin');
       });
     });
@@ -379,7 +417,7 @@ function initAccountPanel(btnId, panelId) {
     if (user) {
       panel.innerHTML = signedInHtml(user);
       document.getElementById('accSignOut').addEventListener('click', function () {
-        signOut().then(function () { mode = 'signin'; panel.classList.remove('open'); });
+        signOut().then(function () { mode = 'signin'; setPanelOpen(false, { silent: true }); });
       });
     } else {
       setMode('signin');
@@ -400,14 +438,27 @@ function initAccountPanel(btnId, panelId) {
   });
   onPasswordRecovery(function () {
     setMode('recovery');
-    panel.classList.add('open');
+    setPanelOpen(true);
   });
 
   btn.addEventListener('click', function (e) {
     e.stopPropagation();
-    panel.classList.toggle('open');
+    setPanelOpen(!isPanelOpen());
   });
   document.addEventListener('click', function (e) {
-    if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('open');
+    // A click outside dismisses, but must not steal focus back to the button —
+    // the visitor is already on their way somewhere else.
+    if (!panel.contains(e.target) && e.target !== btn) setPanelOpen(false, { silent: true });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (!isPanelOpen()) return;
+    if (e.key === 'Escape') { setPanelOpen(false); return; }
+    if (e.key !== 'Tab') return;
+    var items = panelFocusables();
+    if (!items.length) return;
+    var first = items[0];
+    var last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 }

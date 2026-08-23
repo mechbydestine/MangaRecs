@@ -2,4339 +2,3589 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://mangarecs.net/</loc>
-    <lastmod>2026-08-13</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/</loc>
-    <lastmod>2026-08-13</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/features/</loc>
-    <lastmod>2026-08-13</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/badges/</loc>
-    <lastmod>2026-08-21</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/about/</loc>
-    <lastmod>2026-08-13</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/privacy/</loc>
-    <lastmod>2026-08-13</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/terms/</loc>
-    <lastmod>2026-08-13</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/manga/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/manhwa/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/manhua/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/webcomic/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/op/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nar/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/drgbl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blch/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/aot/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kny/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mha/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/opm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fft/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blck/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hxh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sev7/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fma/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hqq/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/jojo/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pny/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hrmya/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gntm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nisko/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sxf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wtat/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kgya/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/qnts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/krkbs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/jjk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/komi/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ovlrd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mp100/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/onk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fri/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/skd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ber/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tog/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wmmpq/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/orv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rempr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lks/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mths/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sssh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bsnsp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vldst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gohs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/yrthr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/srnlm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rwthr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/arms/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wbrk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/itclss/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rlna/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nob/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trtns/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/chstr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lvlg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/aband/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/merc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pgss/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mdppl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lvalm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/scls/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vlhgl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ele/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/grxds/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hskng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hwpl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dcels/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dcreb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/flngk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bnstl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mup/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/slr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mxlvl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tsoul/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/swhm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hlbnd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nvlr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/klhr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dcrd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rcdem/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ovgr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vilk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gam/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mdcbk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vmage/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/doul/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bttw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blcs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tdg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pfw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tgcf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ldgdk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dpz/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wdqk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kngav/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sbdst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/atg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mwdq/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nshb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/agmgn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/soul2/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mage/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fatv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/swst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/abrs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/grtl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/chswd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mdzs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lotm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cold/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blhvn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ssv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/issh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/awe/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/xhls/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/zetic/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ruic/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/batf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/slt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pbs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/strmg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dlir/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rec/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/goma/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/spglt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/goslt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/loly/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ltsply/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tbate/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ily/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/prplh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/unord/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/subz/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/srnlmt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/alwhm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mgdmq/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/orgns/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/egnod/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ocnms/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bwtrk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mdpsc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/grmpk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/muted/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lumin/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mabdr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/suarm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wckrd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dnrth/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/evrfn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/nvrsf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/spstr/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/hrstpr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/avadm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/invnc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sgac/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/spboy/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/prnce/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pndwld/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/hmstk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vns/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vgbnd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mnstr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/c20b/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/yuyu/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rksh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/iysh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rnm12/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/magi/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/khr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/slev/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dgm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/krsj/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bnstd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nrg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tkgh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tkyrvn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/aohrd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/knmtd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/skpbt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ohshc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/frtsbk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nana/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ylip/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/asln/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gpnpn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/brkm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ytsb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/slvsp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/uzuki/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/akra/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gtsh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nsc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/btlal/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/plnts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mdia/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mshsh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dndmsh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/clymr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sldnk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hjnip/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/eyes/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cptts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/uzm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tom/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/thbnhk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tlntn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/soln/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trko/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rvmst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/slrm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ccsk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bstrd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hrret/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hclvl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bwrvl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nvlxt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dngrst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cnstn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/swdmst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lgnd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mxhro/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/plrnu/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rgmn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dmnrc/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/crmgd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mrmrpg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/jglj/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rfmdn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ishr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/brkrng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mygbt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/udtok/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/authpv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vlnlv/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/bvlnct/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wlsdnk/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/nmempr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mgcgrl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trpdts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/itsml/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mkhdr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lgmsc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rdstrm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sprfng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/unlbld/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/anrsmn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sncl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/reincr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tmngtgr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/actlrl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/ssmrch/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/flwr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/yretrl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dbtinc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tluns/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vlctn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/grd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rbrch/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/rmrmds/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/whrht/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/illb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/prncbrd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/thrlv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bhnsc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/strnfr/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/zmbc/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gnstl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/plyr/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/mrgdmn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vltynt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/svrvln/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/acwkmg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wrldftr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tutrhl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/aedt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/hssb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/empdm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cltvch/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/svsvs/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wgj/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/ancsth/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/plmg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dksnl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/schts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/btybd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/frstrd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gdvlwd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trrinfn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/glbevl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/endmge/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mydscpl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lttyrnt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gdfsh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/zhnlng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/spblmt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dsert/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/chrmsp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gtrv/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/btlemp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/stpst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hdnmrg/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/mlldvl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/eldmst/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/eowrcf/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/shrswr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/skfrav/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hvnjch/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/skfsp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lwyw/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/dvrhvn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/drgtrn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/divphys/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/fghll/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mrtsmt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/cltvon/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/hstrynm/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/strswd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/villnpmp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gdlvldm/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/grmstfd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/iyshkgm/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/invdrgmp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/almsys/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/risedmgd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/prncmddr/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/fxcnst/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/rghtevilpl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/hdmrg/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/mycelst/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/verypure/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ninehvn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rncrtnprd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lgndmsw/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/adrfgds/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/mlcmprss/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/phntmrm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sndman/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wtchmn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/vvnd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/twlkdead/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/maus/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/blnkts/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/nimona/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wckdvn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/pprgrls/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/lckky/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/descndr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/etstwst/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/blksc/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/smtklch/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gdnflls/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/dpttrt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gntdys/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/lmbrjns/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gnnkrtc/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/stndstll/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/lckdsy/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/ccmbqst/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/prntrn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/glsscnt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/strngfp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/chkpls/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wytchs/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/bttrrt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/ohmstr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/die/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/lagrd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/angcty/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/alexada/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fncvw/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/amrngds/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/squire/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/angelic/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/kllmnst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dand/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hpj/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ds/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/doro/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ge/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tdoh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lotl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wha/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tffbwd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/king/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tfoe/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/homu/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/twoth/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ror/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gbd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kagu/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ff/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/biy/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bott/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cotn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gach/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wlihfo/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blam/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ad/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/jnknbj/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mmam/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ba/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ph/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/reli/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ac/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/yotd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/plut/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tye/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tgswii/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/glt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bnng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/omk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/beas/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cx/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/agk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/teis/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tiag/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/aynik/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tgftos/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tad/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mier/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/jaga/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/baku/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sotevr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/goku/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/be/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/happ/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/iaah/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kwlmbi/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fmttm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ddddd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/or/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/th/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/armsbs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/itmn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/locf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rotbb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pmu/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tss/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/db/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tb1/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tim/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tara4y/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trotdh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mbrl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tllmts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tmlhsb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tss1/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/luwtg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tags/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mmtb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trot8c/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/btv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rotmd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mio/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/6yaotd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tkolt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ft/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ismtf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/htuar/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gotw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/taup/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trmhap/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/levi/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/msh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/roxa/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/htwmho/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/taor/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dfd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sob/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bmotma/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/iatsk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/asm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tmgwrb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/do/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/stgaab/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tlsr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/py/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ba1/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mmm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pigp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fidwtm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tottdg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gob/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/syim1l/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/otl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mbgotl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hua/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tdb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/1t/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mwitdq/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ytim/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/litf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rtw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pohzco/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/siact/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mwifat/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ntus/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/motd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/as/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/irntdl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rotum/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lmiscf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pbmmv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trot/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gi/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ri/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tdnc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/soul/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rftr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tgticf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/igbbtg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trots/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wtbtee/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pimh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/1ytily/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ee/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/soaat/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dxacga/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tboewa/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mar/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tlm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cvs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/troiel/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ahtsl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mwiate/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/aiaw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tlodk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wbma/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ao/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/drslmp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/knkmn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ctyhtr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fnrst/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/stseiya/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lpn3/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/drmn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cryshn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dtcnn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kindch/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blzbb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nrhmg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/shmnkg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ygo/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pkmnadv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/prtns/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ashjoe/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/intld/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bakigr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kngnash/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/airgr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/crsgm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/acdmnd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gntklg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/real/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/chhyf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mrchln/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blgnt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ndmcnt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/prdksk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/beck/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/pngpng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/snctry/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/drftrs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hlsng/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trgn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blklgn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/jrmgnd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/btm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kkgrui/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rntgf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wnvlrn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ymdkn7/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/gto/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/schrmbl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/crmrti/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/undunl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rnkngs/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/given/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sskmy/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/chrmgc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bnnfsh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/trnblo/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vmprkn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/krnvl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/anglsd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/hgrsh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dngrnp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mshktn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rssgh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/goblnslr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ngnl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rstwrld/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cmpfrck/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/frmlaw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/bygog/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/iawms/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/arfrht/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/knsba/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/aoad/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dpseries/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/midgb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wntrwd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/yumicl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mrmhb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vlmrnt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dysofhn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mydts/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/extracd/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fksnt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/dscrms/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rprdftm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tignk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sklsldr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/cndrlcl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sbapod/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/vdscmi/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/misvk/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/dwrwf/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gnwpbk/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/blbday/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/agdstr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wrtngm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/srndpt/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/kubera/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/athclns/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dngndf/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/sdkick/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/blsw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/symbrp/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rbaep/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/ibwml/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dclim/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/numendk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/tscog/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/untchbl/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/rssscr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/apths/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/wrlckmw/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/svtr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lohp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/thrnma/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/fltmm/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/dtpb/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/dmwg/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/oem/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/mwbc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fqcl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/spl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/chluxg/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/nspig/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/flthr/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/rttrw/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/mddya/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/irs/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/prsorc/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/nsgk/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/gdlr/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/rmji/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/grlgns/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/qsblct/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/nmsk/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/k6bd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/sndwoo/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wddrshn/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/unsndd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/slplsd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wldlf/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/sfrthy/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/skndp/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/rcby/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/vattu/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/erma/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/chshcr/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/meek/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/frfl/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/ordstk/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/sldmnd/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/wwsg/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/sblt/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/mrntrn/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/fshplb/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/knite/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/offwht/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/smfzzy/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/lici/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/lfg/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/twknds/</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://mangarecs.net/catalog/title/tpoh/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mangarecs.net/catalog/title/shdwslv/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

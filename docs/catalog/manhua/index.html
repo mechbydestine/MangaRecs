@@ -3,24 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Applies the saved theme before first paint, exactly as docs/index.html and
+     the catalog SPA do. Without it a visitor who chose Light on the homepage
+     watched every title page flash back to their OS theme. -->
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Manhua — MangaRecs Catalog</title>
-<meta name="description" content="Browse 170 manhua titles on MangaRecs — track progress, rate, and get personalized recs." />
+<meta name="description" content="Browse 120 manhua titles on MangaRecs — track progress, rate, and get personalized recs." />
 <link rel="canonical" href="https://mangarecs.net/catalog/manhua/" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://mangarecs.net/catalog/manhua/" />
 <meta property="og:title" content="Manhua — MangaRecs Catalog" />
-<meta property="og:description" content="Browse 170 manhua titles on MangaRecs — track progress, rate, and get personalized recs." />
+<meta property="og:description" content="Browse 120 manhua titles on MangaRecs — track progress, rate, and get personalized recs." />
 <meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
-<meta name="theme-color" content="#6B46F0" />
-<link rel="preload" href="/assets/fonts.css?v=20260821d" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260821d" /></noscript>
+<meta name="theme-color" content="#F6F3FB" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0D0C11" media="(prefers-color-scheme: dark)" />
+<link rel="preload" href="/assets/fonts.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css" /></noscript>
 
 <style>
-  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0D0C11; --bg-panel:#17151F; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root { --bg:#F6F3FB; --bg-panel:#FFFFFF; --bg-sunken:#EFEAFA; --ink:#16121F; --ink-muted:#5B5570; --ink-faint:#8A84A0; --accent:#6B46F0; --line:rgba(107,70,240,0.16); color-scheme: light; }
+  /* Three states, same as the rest of the site: no attribute = follow the OS,
+     data-theme = the visitor chose, and the choice has to win both ways. */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg:#0D0C11; --bg-panel:#17151F; --bg-sunken:#1D1A26; --ink:#F3F1F8; --ink-muted:#A39DB8; --ink-faint:#6D6785; --accent:#7B5CFF; --line:rgba(123,92,255,0.18); color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family:'Strip Text', -apple-system, system-ui, sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
   a { color: inherit; }
@@ -50,40 +58,52 @@
   .card { text-decoration:none; color:var(--ink); }
   .card .cover { width:100%; aspect-ratio:2/3; margin-bottom:8px; }
   .card .t { font-size:0.86rem; font-weight:700; }
+  .topnav { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .topnav-in { max-width:760px; margin:0 auto; padding:10px clamp(20px,5vw,32px); display:flex; align-items:center; gap:14px; }
+  .topnav .brand { margin:0; flex:none; font-size:0.95rem; }
+  .navsearch { flex:1; min-width:0; display:flex; }
+  .navsearch input { width:100%; font:inherit; font-size:0.85rem; padding:7px 12px; border-radius:999px; border:1px solid var(--line); background:var(--bg-panel); color:var(--ink); }
+  .navsearch input::placeholder { color:var(--ink-faint); }
+  .navlinks { display:flex; align-items:center; gap:14px; flex:none; font-size:0.84rem; }
+  .navlinks a { color:var(--ink-muted); text-decoration:none; }
+  .navlinks a:hover { color:var(--accent); }
+  .theme-btn { background:none; border:1px solid var(--line); border-radius:999px; color:var(--ink-muted); cursor:pointer; font:inherit; font-size:0.78rem; padding:5px 11px; }
+  .theme-btn:hover { color:var(--accent); }
+  @media (max-width:640px) { .navlinks .opt { display:none; } }
+  .related { margin-top:48px; border-top:1px solid var(--line); padding-top:26px; }
+  .related h2 { font-size:1.05rem; margin:0 0 4px; }
+  .related p.sub { margin:0; font-size:0.84rem; color:var(--ink-muted); }
   footer { max-width:760px; margin:0 auto; padding: 0 clamp(20px,5vw,32px) 40px; font-size:0.78rem; color:var(--ink-faint); }
   footer a { color: var(--ink-muted); text-decoration:none; }
   footer a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
+<header class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
+      <span>Manga<b>Recs</b></span>
+    </a>
+    <form class="navsearch" action="/catalog/" method="get" role="search" onsubmit="return mrSearch(this);">
+      <input type="search" name="q" placeholder="Search the catalog…" aria-label="Search the catalog" autocomplete="off" />
+    </form>
+    <nav class="navlinks">
+      <a class="opt" href="/catalog/">Catalog</a>
+      <a class="opt" href="/features/">Features</a>
+      <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch between light and dark theme">Theme</button>
+    </nav>
+  </div>
+</header>
 <main>
-  <a class="brand" href="/">
-    <svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" /><circle cx="512" cy="512" r="46" fill="#0E0820" /></svg>
-    <span>Manga<b>Recs</b></span>
-  </a>
   
   <div class="crumb"><a href="/catalog/">Catalog</a> / Manhua</div>
   <h1>Manhua</h1>
-  <p class="desc" style="margin-top:6px;">170 titles, curated and tracked on MangaRecs.</p>
+  <p class="desc" style="margin-top:6px;">120 titles, curated and tracked on MangaRecs.</p>
   <div class="grid">
-    <a class="card" href="/catalog/title/fghll/">
-        <div class="cover"></div>
-        <div class="t">Fog Hill of the Five Elements</div>
-      </a><a class="card" href="/catalog/title/zetic/">
+    <a class="card" href="/catalog/title/zetic/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/38367fae-d72b-41e9-850e-f64163da583a/9494ee09-a2b5-44fe-9e7c-56a6ba58405e.png.512.jpg" alt="Way of Choices cover art" loading="lazy" /></div>
         <div class="t">Way of Choices</div>
-      </a><a class="card" href="/catalog/title/wgj/">
-        <div class="cover"></div>
-        <div class="t">Wu Geng Ji</div>
-      </a><a class="card" href="/catalog/title/eldmst/">
-        <div class="cover"></div>
-        <div class="t">The Eldest Martial Sister Gave Up Treatment</div>
-      </a><a class="card" href="/catalog/title/rghtevilpl/">
-        <div class="cover"></div>
-        <div class="t">The Righteous Player</div>
-      </a><a class="card" href="/catalog/title/mlcmprss/">
-        <div class="cover"></div>
-        <div class="t">The Rebirth of the Malicious Empress of Military Lineage</div>
       </a><a class="card" href="/catalog/title/pfw/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/2c1f49cb-232e-4fb2-9c09-78bd9cdc15ba/5adef075-ee3e-4f68-b32d-3eb1a6fac01b.jpg.512.jpg" alt="Perfect World cover art" loading="lazy" /></div>
         <div class="t">Perfect World</div>
@@ -99,30 +119,6 @@
       </a><a class="card" href="/catalog/title/dlir/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/026e6baa-6ff1-4f58-9921-114abf82977a/490e3f56-f981-4ef0-8fb1-2fee8a9a35e6.jpg.512.jpg" alt="The Daily Life of the Immortal King cover art" loading="lazy" /></div>
         <div class="t">The Daily Life of the Immortal King</div>
-      </a><a class="card" href="/catalog/title/hssb/">
-        <div class="cover"></div>
-        <div class="t">History&#39;s Strongest Senior Brother</div>
-      </a><a class="card" href="/catalog/title/schts/">
-        <div class="cover"></div>
-        <div class="t">Scholar&#39;s Advanced Technological System</div>
-      </a><a class="card" href="/catalog/title/endmge/">
-        <div class="cover"></div>
-        <div class="t">End of the Magic Era</div>
-      </a><a class="card" href="/catalog/title/mlldvl/">
-        <div class="cover"></div>
-        <div class="t">The Male Lead&#39;s Villainess FiancÃ©e</div>
-      </a><a class="card" href="/catalog/title/cltvon/">
-        <div class="cover"></div>
-        <div class="t">Cultivation Online</div>
-      </a><a class="card" href="/catalog/title/hstrynm/">
-        <div class="cover"></div>
-        <div class="t">History&#39;s Number One Master</div>
-      </a><a class="card" href="/catalog/title/villnpmp/">
-        <div class="cover"></div>
-        <div class="t">The Villain&#39;s Pampering Is Too Fierce</div>
-      </a><a class="card" href="/catalog/title/iyshkgm/">
-        <div class="cover"></div>
-        <div class="t">My Iyashikei Game</div>
       </a><a class="card" href="/catalog/title/wdqk/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/d7862895-2632-4376-9eea-609d43587f18/a743488d-ed1c-4c97-8616-a923916b2566.png.512.jpg" alt="Martial Universe cover art" loading="lazy" /></div>
         <div class="t">Martial Universe</div>
@@ -132,96 +128,27 @@
       </a><a class="card" href="/catalog/title/strmg/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/267db3f7-fd9c-4395-ac36-9ffacd772473/92888290-1aa6-41b5-bb37-31dbd20ba725.jpg.512.jpg" alt="Star Martial God Technique cover art" loading="lazy" /></div>
         <div class="t">Star Martial God Technique</div>
-      </a><a class="card" href="/catalog/title/aedt/">
-        <div class="cover"></div>
-        <div class="t">Alchemy Emperor of the Divine Dao</div>
       </a><a class="card" href="/catalog/title/glbevl/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx192159-49kl3FWfVSOQ.png" alt="Global Evolution cover art" loading="lazy" /></div>
         <div class="t">Global Evolution</div>
-      </a><a class="card" href="/catalog/title/gdfsh/">
-        <div class="cover"></div>
-        <div class="t">God of Fishing</div>
-      </a><a class="card" href="/catalog/title/gtrv/">
-        <div class="cover"></div>
-        <div class="t">Gate of Revelation</div>
-      </a><a class="card" href="/catalog/title/eowrcf/">
-        <div class="cover"></div>
-        <div class="t">The End of the World&#39;s Reborn Cannon Fodder Counter-Attacks</div>
-      </a><a class="card" href="/catalog/title/shrswr/">
-        <div class="cover"></div>
-        <div class="t">Shura&#39;s Wrath</div>
       </a><a class="card" href="/catalog/title/drgtrn/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/9486e1f1-d67c-4ff9-8760-8336b9670a96/78285e14-aee4-4755-a5bc-799089a15e95.jpg.512.jpg" alt="Dragon Throne cover art" loading="lazy" /></div>
         <div class="t">Dragon Throne</div>
-      </a><a class="card" href="/catalog/title/divphys/">
-        <div class="cover"></div>
-        <div class="t">The Divine Physician&#39;s Overbearing Wife</div>
       </a><a class="card" href="/catalog/title/mrtsmt/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx113164-vMqQwe414lAK.png" alt="Martial Arts Master cover art" loading="lazy" /></div>
         <div class="t">Martial Arts Master</div>
-      </a><a class="card" href="/catalog/title/strswd/">
-        <div class="cover"></div>
-        <div class="t">Star and Sword</div>
-      </a><a class="card" href="/catalog/title/gdlvldm/">
-        <div class="cover"></div>
-        <div class="t">God Level Demon</div>
-      </a><a class="card" href="/catalog/title/grmstfd/">
-        <div class="cover"></div>
-        <div class="t">The Grandmaster&#39;s Female Disciple</div>
-      </a><a class="card" href="/catalog/title/fxcnst/">
-        <div class="cover"></div>
-        <div class="t">Fox Consort&#39;s Stunning Reversal</div>
-      </a><a class="card" href="/catalog/title/hdmrg/">
-        <div class="cover"></div>
-        <div class="t">Heaven Defying Dark Empress</div>
       </a><a class="card" href="/catalog/title/lgndmsw/">
-        <div class="cover"></div>
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/774451cf-f308-4f98-a657-b3a5d85d779b/7996f786-4c2b-4c60-ac2d-6132646a28d3.jpg.512.jpg" alt="Legendary Master&#39;s Wife cover art" loading="lazy" /></div>
         <div class="t">Legendary Master&#39;s Wife</div>
-      </a><a class="card" href="/catalog/title/adrfgds/">
-        <div class="cover"></div>
-        <div class="t">Adorable Food Goddess</div>
-      </a><a class="card" href="/catalog/title/phntmrm/">
-        <div class="cover"></div>
-        <div class="t">Phantom Realm</div>
       </a><a class="card" href="/catalog/title/igbbtg/">
-        <div class="cover"></div>
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/73965527-b393-4f65-9bc3-2439ec44935a/2eb7463e-40e3-4306-ba38-6df573d5e68d.png.512.jpg" alt="I Got Blackmailed by the Green Tea Bitch in Class cover art" loading="lazy" /></div>
         <div class="t">I Got Blackmailed by the Green Tea Bitch in Class</div>
-      </a><a class="card" href="/catalog/title/goslt/">
-        <div class="cover"></div>
-        <div class="t">God of Slaughter</div>
-      </a><a class="card" href="/catalog/title/ancsth/">
-        <div class="cover"></div>
-        <div class="t">Ancient Strengthening Technique</div>
       </a><a class="card" href="/catalog/title/btybd/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx131843-g5vlN2rcdxCR.jpg" alt="Beauty and the Bodyguard cover art" loading="lazy" /></div>
         <div class="t">Beauty and the Bodyguard</div>
-      </a><a class="card" href="/catalog/title/gdvlwd/">
-        <div class="cover"></div>
-        <div class="t">God and Devil World</div>
-      </a><a class="card" href="/catalog/title/btlemp/">
-        <div class="cover"></div>
-        <div class="t">Battle Emperor</div>
       </a><a class="card" href="/catalog/title/lwyw/">
-        <div class="cover"></div>
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/e9c6ba84-e78a-4fa5-99f8-087ab6d31a7d/ae9cc9d2-9b03-4abb-bbe2-ed86721d24df.jpg.512.jpg" alt="Long Way of the Warrior cover art" loading="lazy" /></div>
         <div class="t">Long Way of the Warrior</div>
-      </a><a class="card" href="/catalog/title/dvrhvn/">
-        <div class="cover"></div>
-        <div class="t">Devouring the Heavens</div>
-      </a><a class="card" href="/catalog/title/invdrgmp/">
-        <div class="cover"></div>
-        <div class="t">The Invincible Dragon Emperor</div>
-      </a><a class="card" href="/catalog/title/almsys/">
-        <div class="cover"></div>
-        <div class="t">The Almighty Martial Arts System</div>
-      </a><a class="card" href="/catalog/title/risedmgd/">
-        <div class="cover"></div>
-        <div class="t">Rise of the Demon God</div>
-      </a><a class="card" href="/catalog/title/mycelst/">
-        <div class="cover"></div>
-        <div class="t">My Celestial Ascension</div>
-      </a><a class="card" href="/catalog/title/verypure/">
-        <div class="cover"></div>
-        <div class="t">Very Pure and Ambiguous: The Prequel</div>
       </a><a class="card" href="/catalog/title/tgcf/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/6702b8fd-2b11-466c-9fd7-1d96361b874d/18bace5c-f69a-4f87-905f-90e3e6190192.png.512.jpg" alt="Heaven Official&#39;s Blessing cover art" loading="lazy" /></div>
         <div class="t">Heaven Official&#39;s Blessing</div>
@@ -229,20 +156,14 @@
         <div class="cover"><img src="https://uploads.mangadex.org/covers/33d1ba42-be1f-4a99-9943-aa8da1a02bdf/b6d134cf-c288-4aef-b25f-d11711c86224.jpg.512.jpg" alt="Here U Are cover art" loading="lazy" /></div>
         <div class="t">Here U Are</div>
       </a><a class="card" href="/catalog/title/rtw/">
-        <div class="cover"></div>
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/aafb046c-9de4-4c3d-990c-6d75b079c0b9/ee278e22-9bfb-4b1b-9681-f8782b93e57b.jpg.512.jpg" alt="Release that Witch cover art" loading="lazy" /></div>
         <div class="t">Release that Witch</div>
       </a><a class="card" href="/catalog/title/mwiate/">
-        <div class="cover"></div>
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/ad004a13-f46a-4392-b786-97a6cab09fc2/28cd180e-e519-4a12-a367-28336c8cb0a5.jpg.512.jpg" alt="My Wife Is Actually the Empress? cover art" loading="lazy" /></div>
         <div class="t">My Wife Is Actually the Empress?</div>
-      </a><a class="card" href="/catalog/title/rmji/">
-        <div class="cover"></div>
-        <div class="t">A Record of a Mortal&#39;s Journey to Immortality</div>
       </a><a class="card" href="/catalog/title/1t/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/dc90853b-a3e6-4d5b-8b47-1fa15aa15923/3d8d6fd0-e0bd-405e-93d9-3645c2053773.jpg.512.jpg" alt="19 Days cover art" loading="lazy" /></div>
         <div class="t">19 Days</div>
-      </a><a class="card" href="/catalog/title/spl/">
-        <div class="cover"></div>
-        <div class="t">Sha Po Lang</div>
       </a><a class="card" href="/catalog/title/mdzs/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101563-nTBq5IEYYWbX.png" alt="Grandmaster of Demonic Cultivation: Mo Dao Zu Shi cover art" loading="lazy" /></div>
         <div class="t">Grandmaster of Demonic Cultivation: Mo Dao Zu Shi</div>
@@ -252,9 +173,6 @@
       </a><a class="card" href="/catalog/title/lohp/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/4f22d62e-cf9d-41ae-be80-2fdf4645b258/e9689868-8290-46ff-a2f5-b24448d56918.jpg.512.jpg" alt="Library of Heaven&#39;s Path cover art" loading="lazy" /></div>
         <div class="t">Library of Heaven&#39;s Path</div>
-      </a><a class="card" href="/catalog/title/gdlr/">
-        <div class="cover"></div>
-        <div class="t">Great Doctor Ling Ran</div>
       </a><a class="card" href="/catalog/title/mage/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/69e218ec-93eb-4025-ae39-33d47b1160e0/b60fd7d0-d3b0-492b-8542-f22d2a9f2205.jpg.512.jpg" alt="Magic Emperor cover art" loading="lazy" /></div>
         <div class="t">Magic Emperor</div>
@@ -273,9 +191,6 @@
       </a><a class="card" href="/catalog/title/pimh/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/b5b47967-913f-4a87-a37b-cfcc809a489c/351d1d06-e962-4860-9bb0-b20166bd83b3.png.512.jpg" alt="Pirouette into My Heart cover art" loading="lazy" /></div>
         <div class="t">Pirouette into My Heart</div>
-      </a><a class="card" href="/catalog/title/fltmm/">
-        <div class="cover"></div>
-        <div class="t">Full-Time Magister</div>
       </a><a class="card" href="/catalog/title/pbmmv/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx141756-vIDusikh4O38.png" alt="Please Bully Me, Miss Villainess! cover art" loading="lazy" /></div>
         <div class="t">Please Bully Me, Miss Villainess!</div>
@@ -285,21 +200,12 @@
       </a><a class="card" href="/catalog/title/lmiscf/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b154258-UirlUQqaOwVR.jpg" alt="Lucky Me: I Secretly Cultivated for 1,000 Years cover art" loading="lazy" /></div>
         <div class="t">Lucky Me: I Secretly Cultivated for 1,000 Years</div>
-      </a><a class="card" href="/catalog/title/thrnma/">
-        <div class="cover"></div>
-        <div class="t">Throne of Magical Arcana</div>
-      </a><a class="card" href="/catalog/title/chluxg/">
-        <div class="cover"></div>
-        <div class="t">Chu Liuxiang</div>
       </a><a class="card" href="/catalog/title/mwifat/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146267-m1Ijqd82Vyer.jpg" alt="My Wife Is from a thousand Years ago cover art" loading="lazy" /></div>
         <div class="t">My Wife Is from a thousand Years ago</div>
       </a><a class="card" href="/catalog/title/dtpb/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/11801062-d961-460a-b2b5-f0a477f45b66/288bb3b6-6b3f-4103-a3a7-45ac2d0fc86c.png.512.jpg" alt="Divine Throne of Primordial Blood cover art" loading="lazy" /></div>
         <div class="t">Divine Throne of Primordial Blood</div>
-      </a><a class="card" href="/catalog/title/prsorc/">
-        <div class="cover"></div>
-        <div class="t">Praise the Orc</div>
       </a><a class="card" href="/catalog/title/tdg/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/812f9696-048f-496d-9ed4-84c99345d1fb/4dcdd628-9195-4fa8-8079-50541ed60515.jpg.512.jpg" alt="Tales of Demons and Gods cover art" loading="lazy" /></div>
         <div class="t">Tales of Demons and Gods</div>
@@ -315,9 +221,6 @@
       </a><a class="card" href="/catalog/title/dxacga/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx133837-8qVbpvPp2USW.jpg" alt="Demon X Angel Can&#39;t Get Along! cover art" loading="lazy" /></div>
         <div class="t">Demon X Angel Can&#39;t Get Along!</div>
-      </a><a class="card" href="/catalog/title/nspig/">
-        <div class="cover"></div>
-        <div class="t">National School Prince Is a Girl</div>
       </a><a class="card" href="/catalog/title/blcs/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101408-Ym79QPjdXk8F.jpg" alt="The Spring-Autumn Apotheosis cover art" loading="lazy" /></div>
         <div class="t">The Spring-Autumn Apotheosis</div>
@@ -330,9 +233,6 @@
       </a><a class="card" href="/catalog/title/apths/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/01e01102-53d1-4bdf-847b-90cfe5b6415d/b6800926-c706-41eb-8bbe-5a031cdffc20.png.512.jpg" alt="Apotheosis cover art" loading="lazy" /></div>
         <div class="t">Apotheosis</div>
-      </a><a class="card" href="/catalog/title/flthr/">
-        <div class="cover"></div>
-        <div class="t">Full-Time Hunter</div>
       </a><a class="card" href="/catalog/title/pohzco/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101408-Ym79QPjdXk8F.jpg" alt="Principles of Heavens: Zen’s Cultivation of Immortality cover art" loading="lazy" /></div>
         <div class="t">Principles of Heavens: Zen’s Cultivation of Immortality</div>
@@ -345,12 +245,6 @@
       </a><a class="card" href="/catalog/title/ahtsl/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136499-OFtjS1mJXKZ1.jpg" alt="All Hail The Sect Leader cover art" loading="lazy" /></div>
         <div class="t">All Hail The Sect Leader</div>
-      </a><a class="card" href="/catalog/title/mwbc/">
-        <div class="cover"></div>
-        <div class="t">My Wife is a Beautiful CEO</div>
-      </a><a class="card" href="/catalog/title/rttrw/">
-        <div class="cover"></div>
-        <div class="t">Rebirth of the Thief Who Roamed the World</div>
       </a><a class="card" href="/catalog/title/lotm/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/4452195d-58ab-4b76-85d5-297add0e9b06/7524e572-1b00-44ab-8635-48fc3b9cce54.jpg.512.jpg" alt="Lord of the Mysteries cover art" loading="lazy" /></div>
         <div class="t">Lord of the Mysteries</div>
@@ -358,7 +252,7 @@
         <div class="cover"><img src="https://uploads.mangadex.org/covers/0f01506d-9fb0-428d-8304-9f2a1f2a29da/54ff9042-d984-43cd-9f1d-c48dba520468.jpg.512.jpg" alt="My Disciples Are All Big Villains cover art" loading="lazy" /></div>
         <div class="t">My Disciples Are All Big Villains</div>
       </a><a class="card" href="/catalog/title/irs/">
-        <div class="cover"></div>
+        <div class="cover"><img src="https://uploads.mangadex.org/covers/e71b1e63-15b8-4e92-9fc6-07041a025559/aee2fbed-3340-458d-a2c7-f116250c08a5.png.512.jpg" alt="I&#39;m Really a Superstar cover art" loading="lazy" /></div>
         <div class="t">I&#39;m Really a Superstar</div>
       </a><a class="card" href="/catalog/title/mp/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/b1461071-bfbb-43e7-a5b6-a7ba5904649f/d175e74d-4ab7-47f4-8196-371aa51d8c2d.png.512.jpg" alt="Martial Peak cover art" loading="lazy" /></div>
@@ -393,9 +287,6 @@
       </a><a class="card" href="/catalog/title/ao/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/0de7b6a4-ca45-4b9b-9547-697128b0acec/bf19cf1f-93f2-475b-8cb2-06b5cff34dd6.png.512.jpg" alt="Apocalypse Online cover art" loading="lazy" /></div>
         <div class="t">Apocalypse Online</div>
-      </a><a class="card" href="/catalog/title/svtr/">
-        <div class="cover"></div>
-        <div class="t">Sovereign of the Three Realms</div>
       </a><a class="card" href="/catalog/title/mwitdq/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/16800ea3-d7cb-4a03-801e-bfbb4dc12bea/eabf8a7a-fe9b-4803-8bb3-3db608862aa3.png.512.jpg" alt="My Wife is the Demon Queen cover art" loading="lazy" /></div>
         <div class="t">My Wife is the Demon Queen</div>
@@ -420,9 +311,6 @@
       </a><a class="card" href="/catalog/title/spblmt/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/6439c33f-1f77-4aef-ac54-b3632bb17d0f/e9996db8-71c5-46da-8f9d-421b3379be28.png.512.jpg" alt="Spirit Blade Mountain cover art" loading="lazy" /></div>
         <div class="t">Spirit Blade Mountain</div>
-      </a><a class="card" href="/catalog/title/dmwg/">
-        <div class="cover"></div>
-        <div class="t">Dragon-Marked War God</div>
       </a><a class="card" href="/catalog/title/sbdst/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx108799-fJUS66fwVcb5.jpg" alt="Soul Land 4: Ultimate Fighting cover art" loading="lazy" /></div>
         <div class="t">Soul Land 4: Ultimate Fighting</div>
@@ -567,9 +455,6 @@
       </a><a class="card" href="/catalog/title/tboewa/">
         <div class="cover"><img src="https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b118512-htbpVHyCMULS.jpg" alt="The Blade of Evolution Walking Alone In The Dungeon cover art" loading="lazy" /></div>
         <div class="t">The Blade of Evolution Walking Alone In The Dungeon</div>
-      </a><a class="card" href="/catalog/title/stpst/">
-        <div class="cover"></div>
-        <div class="t">Step Into the Past</div>
       </a><a class="card" href="/catalog/title/skfrav/">
         <div class="cover"><img src="https://uploads.mangadex.org/covers/4b6085e7-8f74-43e1-a5e4-3c11cdcf6f9e/6a357b7d-9307-49b2-a1f7-5803c83af5e6.png.512.jpg" alt="Skyfire Avenue cover art" loading="lazy" /></div>
         <div class="t">Skyfire Avenue</div>
@@ -583,5 +468,27 @@
 <footer>
   <a href="/">Home</a> · <a href="/catalog/">Full Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
 </footer>
+<script>
+  // The catalog is a hash-routed SPA, so a plain GET would land on /catalog/?q=
+  // and lose the term. Hand it straight to the route the SPA already has.
+  function mrSearch(form){
+    var q = (form.q.value || '').trim();
+    window.location.href = q ? '/catalog/#/search/' + encodeURIComponent(q) : '/catalog/';
+    return false;
+  }
+  (function(){
+    var btn = document.getElementById('themeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+      var root = document.documentElement;
+      var cur = root.getAttribute('data-theme');
+      if (!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      var next = cur === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('mangarecs_theme', next); } catch (e) {}
+    });
+  })();
+</script>
+<script src="/assets/analytics.js" defer></script>
 </body>
 </html>
