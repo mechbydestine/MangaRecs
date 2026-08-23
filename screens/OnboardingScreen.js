@@ -109,7 +109,7 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
           style={[styles.ctaBtn, { backgroundColor: colors.primary }, loading && styles.ctaBtnDisabled]}
           onPress={handleRegister}
           accessibilityRole="button"
-          accessibilityLabel="Create account"
+          accessibilityLabel={t('auth.createAccount')}
           accessibilityState={{ disabled: loading, busy: loading }}
           disabled={loading}>
           {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.ctaBtnText, { color: colors.onPrimary }]}>{t('onboarding.createAccount')}</Text>}
@@ -118,8 +118,8 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
         <TouchableOpacity
           onPress={() => setMode('prompt')}
           accessibilityRole="button"
-          accessibilityLabel="Back">
-          <Text style={[styles.backLink, { color: colors.textSecondary }]}>← Back</Text>
+          accessibilityLabel={t('common.back')}>
+          <Text style={[styles.backLink, { color: colors.textSecondary }]}>{t('onboarding.backLink')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -132,16 +132,14 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
       </View>
 
       <Text style={[styles.headline, { color: colors.text, textAlign: 'center' }]}>{t('onboarding.saveJourney')}</Text>
-      <Text style={[styles.sub, { color: colors.textSecondary, textAlign: 'center' }]}>
-        Sign up to save your reading progress, genre preferences, friends, and library — all synced to your account.
-      </Text>
+      <Text style={[styles.sub, { color: colors.textSecondary, textAlign: 'center' }]}>{t('onboarding.signUpPitch')}</Text>
 
       <View style={styles.gateFeatureList}>
         {[
-          'Reading progress synced across devices',
-          'Personalized recommendations',
-          'Connect with friends',
-          'Earn badges & build streaks',
+          t('onboarding.benefitSync'),
+          t('onboarding.benefitRecs'),
+          t('onboarding.benefitFriends'),
+          t('onboarding.benefitBadges'),
         ].map((f) => (
           <View key={f} style={styles.gateFeatureRow}>
             <View style={[styles.gateFeatureCheck, { backgroundColor: colors.accent + '33' }]}>
@@ -156,8 +154,8 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
         style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
         onPress={() => setMode('form')}
         accessibilityRole="button"
-        accessibilityLabel="Sign up — it's free">
-        <Text style={[styles.ctaBtnText, { color: colors.onPrimary }]}>Sign Up — It's Free</Text>
+        accessibilityLabel={t('onboarding.signUpFree')}>
+        <Text style={[styles.ctaBtnText, { color: colors.onPrimary }]}>{t('onboarding.signUpFree')}</Text>
         <Ionicons name="chevron-forward" size={16} color={colors.onPrimary} />
       </TouchableOpacity>
       {/* "Skip for now, explore first" used to just jump to the genre picker —
@@ -167,14 +165,14 @@ function SignUpGate({ onDone, onBrowse, browsing }) {
       <TouchableOpacity
         onPress={onDone}
         accessibilityRole="button"
-        accessibilityLabel="Set up my taste first">
+        accessibilityLabel={t('onboarding.tasteFirstBtn')}>
         <Text style={[styles.skipText, { color: colors.textSecondary }]}>{t('onboarding.tasteFirstBtn')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         onPress={onBrowse}
         disabled={browsing}
         accessibilityRole="button"
-        accessibilityLabel="Start reading without an account"
+        accessibilityLabel={t('a11y.startWithoutAccount')}
         accessibilityState={{ disabled: !!browsing, busy: !!browsing }}>
         <Text style={[styles.skipText, { color: colors.primary, fontWeight: '600' }]}>
           {browsing ? 'Opening…' : 'Start reading — no account'}
@@ -290,7 +288,7 @@ function ScreenUsername({ username, onChange, status }) {
       {status === 'available' && <Text style={[styles.usernamePreview, { color: colors.accent }]}>@{username} is available — looks great!</Text>}
       {status === 'taken' && <Text style={[styles.usernamePreview, { color: colors.error }]}>@{username} is already taken — try another.</Text>}
       {status === 'invalid' && <Text style={[styles.usernamePreview, { color: colors.textSecondary }]}>{t('onboarding.usernameTooShort')}</Text>}
-      <Text style={[styles.sub, { color: colors.textSecondary }]}>This is permanent and can't be changed later — choose carefully. Already have one? Leave this blank.</Text>
+      <Text style={[styles.sub, { color: colors.textSecondary }]}>{t('onboarding.usernamePermanent')}</Text>
     </View>
   );
 }
@@ -415,7 +413,7 @@ export default function OnboardingScreen({ onComplete }) {
         <TouchableOpacity
           onPress={finishOnboarding}
           accessibilityRole="button"
-          accessibilityLabel="Skip setup"
+          accessibilityLabel={t('a11y.skipSetup')}
           accessibilityState={{ disabled: finishing, busy: finishing }}
           disabled={finishing}>
           <Text style={[styles.skipText, { color: colors.textSecondary, marginTop: 0 }]}>{t('common.skip')}</Text>
@@ -428,7 +426,7 @@ export default function OnboardingScreen({ onComplete }) {
         style={styles.dotsRow}
         accessible
         accessibilityRole="progressbar"
-        accessibilityLabel={`Step ${step + 1} of ${totalSteps}`}>
+        accessibilityLabel={t('a11y.stepOf', { n: step + 1, total: totalSteps })}>
         {Array.from({ length: totalSteps }).map((_, i) => {
           const active = i === step;
           return (
@@ -475,8 +473,8 @@ export default function OnboardingScreen({ onComplete }) {
           <TouchableOpacity
             onPress={() => setStep((s) => s - 1)}
             accessibilityRole="button"
-            accessibilityLabel="Back">
-            <Text style={[styles.backLink, { color: colors.textSecondary }]}>← Back</Text>
+            accessibilityLabel={t('common.back')}>
+            <Text style={[styles.backLink, { color: colors.textSecondary }]}>{t('onboarding.backLink')}</Text>
           </TouchableOpacity>
         )}
       </View>

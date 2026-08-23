@@ -33,7 +33,6 @@ export const PREF_GROUPS = [
       // whenever like notifications do ship.)
       { key: 'replies',    icon: 'return-down-forward-outline', types: ['reply'] },
       { key: 'comments',   icon: 'chatbubble-outline',          types: ['comment'] },
-      { key: 'followers',  icon: 'person-add-outline',          types: ['follow'] },
       { key: 'friendActivity', icon: 'people-outline',          types: ['friend_request', 'friend_accepted'] },
       { key: 'directMessages', icon: 'mail-outline',            types: ['direct_message'] },
     ],

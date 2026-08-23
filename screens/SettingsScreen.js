@@ -19,7 +19,6 @@ import { clearBadgeCache } from '../utils/badgeEngine';
 import { clearAllLocalDataAndSignOut } from '../utils/accountSession';
 import { registerPushToken, getPushStatus, enablePush } from '../utils/pushNotifications';
 import { PREF_GROUPS, PREF_ITEMS, NOTIF_PREF_DEFAULTS, NOTIFS_KEY, normalizePrefs, publishPrefs } from '../utils/notificationPrefs';
-import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system/legacy';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
@@ -40,6 +39,20 @@ const APP_VERSION     = Constants.expoConfig?.version || '1.0.0';
 const currentChangelog = CHANGELOG.find((e) => e.version === APP_VERSION) || CHANGELOG[0];
 // Single-admin app — same id report-alert (Supabase edge function) hardcodes.
 const ADMIN_USER_ID   = '4975b6bc-31df-4c97-ba04-8a5dfc2dc1f0';
+
+// Planned Pro pricing. Not purchasable yet — the CTA says so, and there is no
+// IAP path — but the numbers still have to be honest, because a discount you
+// don't actually give is a consumer-protection problem in both stores.
+//
+// The badge used to be hardcoded "50% OFF" while the real saving is 37%
+// ($3.99 x 12 = $47.88 vs $29.99). Deriving it means the badge can't drift
+// away from the prices again the next time either one is edited.
+const PRO_MONTHLY_USD = 3.99;
+const PRO_YEARLY_USD  = 29.99;
+const PRO_YEARLY_SAVING_PCT = Math.round(
+  (1 - PRO_YEARLY_USD / (PRO_MONTHLY_USD * 12)) * 100
+);
+const fmtUsd = (n) => `$${n.toFixed(2)}`;
 
 function WebtoonIcon({ active }) {
   const { colors } = useTheme();
@@ -371,7 +384,6 @@ export default function SettingsScreen({ navigation }) {
 
   async function adjustGenreWeight(genre, delta) {
     if (!userId) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setGenrePrefs((prev) => {
       const next = prev.map((g) => (g.genre === genre ? { ...g, weight: Math.max(0, g.weight + delta) } : g));
       return next.sort((a, b) => b.weight - a.weight);
@@ -388,13 +400,11 @@ export default function SettingsScreen({ navigation }) {
   }
 
   async function toggleAiRec(value) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAiRecState(value);
     await AsyncStorage.setItem(AI_REC_KEY, value ? 'true' : 'false');
   }
 
   async function toggleNsfw(value) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAllowNsfwState(value);
     await AsyncStorage.setItem(NSFW_KEY, value ? 'true' : 'false');
     invalidateNsfwCache();
@@ -438,7 +448,7 @@ export default function SettingsScreen({ navigation }) {
           ]
         );
       } else if (!res.ok && res.reason === 'failed') {
-        showAppAlert(t('common.error'), t('settings.notifications.pushFailed'), [{ text: 'OK' }]);
+        showAppAlert(t('common.error'), t('settings.notifications.pushFailed'), [{ text: t('common.ok') }]);
       }
       await refreshPushStatus();
     } finally {
@@ -447,7 +457,6 @@ export default function SettingsScreen({ navigation }) {
   }
 
   async function toggleNotif(key) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const wasAllOff = allNotifsOff;
     // `=== false` rather than `!notifs[key]` so a key that has never been set
     // (undefined, rendered as on) toggles to off, not back to on.
@@ -476,12 +485,10 @@ export default function SettingsScreen({ navigation }) {
   const isBusy = !!profile?.is_busy;
 
   async function toggleShowActivity(value) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await updateProfile({ show_activity: value });
   }
 
   async function toggleBusy(value) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await updateProfile({ is_busy: value });
   }
 
@@ -540,11 +547,11 @@ export default function SettingsScreen({ navigation }) {
 
   function handleClearCache() {
     showAppAlert(
-      'Clear cache?',
-      'This frees up cached cover images. Your library, ratings, reading progress, and downloaded chapters are not affected.',
+      t('settings.clearCacheTitle'),
+      t('settings.clearCacheBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: performClearCache },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('settings.clearAction'), style: 'destructive', onPress: performClearCache },
       ]
     );
   }
@@ -642,7 +649,7 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <MobileHeader title="Settings" />
+      <MobileHeader title={t('settings.title')} />
 
       <ScrollView showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}>
         <View style={isTablet ? styles.tabletWrap : null}>
@@ -650,9 +657,7 @@ export default function SettingsScreen({ navigation }) {
         {/* ── Guest upgrade ───────────────────────────────────────────── */}
         {isAnonymous && (
           <SectionCard title={t('profile.guest')} icon="person-add-outline">
-            <Text style={[styles.cardSub, { color: colors.muted }]}>
-              Create a real account to keep your reading progress, badges, and friends safe if you switch devices or reinstall.
-            </Text>
+            <Text style={[styles.cardSub, { color: colors.muted }]}>{t('settings.guestUpgradeDesc')}</Text>
             <TouchableOpacity
               style={[styles.smallCta, { alignSelf: 'flex-start', marginTop: 10 }]}
               onPress={() => setShowUpgradeModal(true)}>
@@ -664,7 +669,7 @@ export default function SettingsScreen({ navigation }) {
 
         {/* ── Display Name ──────────────────────────────────────────────── */}
         <SectionCard title={t('settings.displayNameSection')} icon="person-outline">
-          <Text style={[styles.cardSub, { color: colors.muted }]}>Shown across MangaRecs — change this anytime</Text>
+          <Text style={[styles.cardSub, { color: colors.muted }]}>{t('settings.displayNameDesc')}</Text>
           <View style={styles.urlRow}>
             <TextInput
               style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
@@ -719,7 +724,7 @@ export default function SettingsScreen({ navigation }) {
                     { borderColor: colors.border },
                     active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
                   ]}
-                  onPress={() => { Haptics.selectionAsync(); setTheme(t.id); }}
+                  onPress={() => setTheme(t.id)}
                   activeOpacity={0.8}>
                   <Ionicons name={t.icon} size={20} color={active ? colors.primary : colors.muted} />
                   <Text style={[styles.themeBtnText, { color: active ? colors.primary : colors.muted }]}>{t.label}</Text>
@@ -740,7 +745,7 @@ export default function SettingsScreen({ navigation }) {
                 <TouchableOpacity
                   key={mode.id}
                   style={[styles.readerBtn, { borderColor: colors.border }, active && styles.readerBtnActive]}
-                  onPress={() => { Haptics.selectionAsync(); setReaderMode(mode.id); AsyncStorage.setItem(READER_MODE_KEY, mode.id); }}
+                  onPress={() => { setReaderMode(mode.id); AsyncStorage.setItem(READER_MODE_KEY, mode.id); }}
                   activeOpacity={0.8}>
                   <mode.Icon active={active} />
                   <Text style={[styles.readerBtnText, { color: colors.muted }, active && styles.readerBtnTextActive]}>{mode.label}</Text>
@@ -759,7 +764,7 @@ export default function SettingsScreen({ navigation }) {
                 <TouchableOpacity
                   key={anim.id}
                   style={[styles.animBtn, { borderColor: colors.border }, active && styles.animBtnActive]}
-                  onPress={() => { Haptics.selectionAsync(); setPageAnim(anim.id); AsyncStorage.setItem(PAGE_ANIM_KEY, anim.id); }}
+                  onPress={() => { setPageAnim(anim.id); AsyncStorage.setItem(PAGE_ANIM_KEY, anim.id); }}
                   activeOpacity={0.8}>
                   <anim.Icon active={active} />
                   <Text style={[styles.animBtnText, { color: colors.muted }, active && styles.animBtnTextActive]}>{anim.label}</Text>
@@ -770,9 +775,7 @@ export default function SettingsScreen({ navigation }) {
 
           <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border, alignItems: 'center' }]}>
             <Ionicons name="headset-outline" size={18} color={colors.primary} style={{ marginRight: 10 }} />
-            <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>
-              Ambience controls are inside the Reader. Open any manga, tap the headset icon at the top.
-            </Text>
+            <Text style={[styles.cardSub, { color: colors.muted, flex: 1, marginTop: 0, marginBottom: 0 }]}>{t('settings.reader.ambienceHint')}</Text>
           </View>
         </SectionCard>
 
@@ -794,7 +797,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 12 }}>
               <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.appearBusy')}</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Shows a red "busy" status to friends, even while online</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.appearBusyDesc')}</Text>
             </View>
             <Switch
               accessibilityLabel={t('settings.appearBusy')}
@@ -880,7 +883,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.toggleRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
               <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.aiRecommendations')}</Text>
-              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>Personalize your Recs feed using your reading history and genre taste profile. When off, shows popular picks only.</Text>
+              <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>{t('settings.aiRecDesc')}</Text>
             </View>
             <Switch
               accessibilityLabel={t('settings.aiRecommendations')}
@@ -903,7 +906,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.toggleRow, styles.borderTop, { borderColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>Adult Content (18+)</Text>
+                <Text style={[styles.settingsRowLabel, { color: colors.text }]}>{t('settings.adultContent')}</Text>
                 {ageVerified && (
                   <View style={{ backgroundColor: 'rgba(120, 88, 255,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
                     <Text style={{ fontSize: 9, color: colors.primary, fontWeight: '700' }}>{t('settings.verified')}</Text>
@@ -943,9 +946,7 @@ export default function SettingsScreen({ navigation }) {
 
         {/* ── External Trackers ─────────────────────────────────────────── */}
         <SectionCard title={t('settings.trackers.section')} icon="sync-outline">
-          <Text style={[styles.cardSub, { color: colors.muted }]}>
-            Link your tracker profiles to jump to any series directly from MangaRecs.
-          </Text>
+          <Text style={[styles.cardSub, { color: colors.muted }]}>{t('settings.trackersDesc')}</Text>
           <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.malUsername')}</Text>
           <View style={styles.urlRow}>
             <TextInput
@@ -989,13 +990,11 @@ export default function SettingsScreen({ navigation }) {
           {anilistSync.loading && (
             <View style={styles.anilistSyncRow}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.anilistSyncText, { color: colors.muted }]}>Syncing AniList list…</Text>
+              <Text style={[styles.anilistSyncText, { color: colors.muted }]}>{t('settings.syncingAnilist')}</Text>
             </View>
           )}
           {!anilistSync.loading && anilistSync.error && (
-            <Text style={[styles.anilistSyncText, { color: colors.error, marginTop: 8 }]}>
-              Couldn't find that AniList username, or their list is private.
-            </Text>
+            <Text style={[styles.anilistSyncText, { color: colors.error, marginTop: 8 }]}>{t('settings.anilistNotFound')}</Text>
           )}
           {!anilistSync.loading && anilistSync.data && (
             <View style={[styles.anilistCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
@@ -1111,7 +1110,7 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="star" size={20} color="#FFD700" />
             <View style={{ marginLeft: 12 }}>
               <Text style={[styles.upgradeTitle, { color: colors.text }]}>{t('settings.upgradePlan')}</Text>
-              <Text style={[styles.upgradeSub, { color: colors.muted }]}>Free · Pro — see what's included</Text>
+              <Text style={[styles.upgradeSub, { color: colors.muted }]}>{t('settings.planRowDesc')}</Text>
             </View>
           </View>
           <Ionicons name="open-outline" size={18} color={colors.muted} />
@@ -1230,7 +1229,7 @@ export default function SettingsScreen({ navigation }) {
         title={t('settings.language.section')}
         value={language}
         options={languages.map((l) => ({ value: l.id, label: `${l.native} · ${l.label}` }))}
-        onSelect={(id) => { Haptics.selectionAsync(); setLanguage(id); }}
+        onSelect={(id) => setLanguage(id)}
       />
 
       {/* ── Delete Account Confirmation ── */}
@@ -1241,9 +1240,7 @@ export default function SettingsScreen({ navigation }) {
               <Ionicons name="warning-outline" size={28} color={colors.error} />
             </View>
             <Text style={[styles.deleteTitle, { color: colors.text }]}>{t('settings.deleteAccountConfirm')}</Text>
-            <Text style={[styles.deleteSub, { color: colors.muted }]}>
-              This will permanently delete your MangaRecs account, reading history, badges, friends, and all saved data. This action cannot be undone.
-            </Text>
+            <Text style={[styles.deleteSub, { color: colors.muted }]}>{t('settings.deleteWarning')}</Text>
             <View style={styles.deleteActions}>
               <TouchableOpacity
                 style={[styles.deleteCancelBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
@@ -1270,7 +1267,7 @@ export default function SettingsScreen({ navigation }) {
                 <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.choosePlan')}</Text>
                 <Text style={[styles.modalSub, { color: colors.muted }]}>{t('settings.choosePlanSub')}</Text>
               </View>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowPlans(false)} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowPlans(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1278,7 +1275,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.plansRow}>
               {[
                 { id: 'free', icon: 'flash-outline', label: 'Free', glow: colors.primary, price: '$0' },
-                { id: 'pro', icon: 'star', label: 'Pro', glow: '#FFD700', price: proBilling === 'monthly' ? '$3.99/mo' : '$29.99/yr' },
+                { id: 'pro', icon: 'star', label: 'Pro', glow: '#FFD700', price: proBilling === 'monthly' ? `${fmtUsd(PRO_MONTHLY_USD)}/mo` : `${fmtUsd(PRO_YEARLY_USD)}/yr` },
               ].map((plan) => (
                 <TouchableOpacity
                   key={plan.id}
@@ -1301,49 +1298,51 @@ export default function SettingsScreen({ navigation }) {
                 <TouchableOpacity
                   style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, proBilling === 'monthly' && styles.billingBtnActive]}
                   onPress={() => setProBilling('monthly')}>
-                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'monthly' && styles.billingBtnTextActive]}>$3.99/Mo</Text>
+                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'monthly' && styles.billingBtnTextActive]}>{`${fmtUsd(PRO_MONTHLY_USD)}/Mo`}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.billingBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }, proBilling === 'yearly' && styles.billingBtnActive]}
                   onPress={() => setProBilling('yearly')}>
-                  <View style={styles.saveBadge}><Text style={styles.saveBadgeText}>50% OFF</Text></View>
-                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'yearly' && styles.billingBtnTextActive]}>$29.99/Yr</Text>
+                  <View style={styles.saveBadge}><Text style={styles.saveBadgeText}>{t('plan.savePercent', { n: PRO_YEARLY_SAVING_PCT })}</Text></View>
+                  <Text style={[styles.billingBtnText, { color: colors.muted }, proBilling === 'yearly' && styles.billingBtnTextActive]}>{`${fmtUsd(PRO_YEARLY_USD)}/Yr`}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             <Text style={[styles.whatsIncluded, { color: colors.muted }]}>{t('settings.whatsIncluded')}</Text>
+            {/* No ad line on either tier. MangaRecs does not run ads and has no
+                ad SDK; "Ad-supported experience" on Free (and "No ads" as a Pro
+                perk) contradicted the site's FAQ and privacy policy, both of
+                which state plainly that we don't run ads. */}
             {selectedPlan === 'free' && [
-              'Ad-supported experience',
-              'Community access & social features',
-              'Audio Ambience (default presets)',
-              'Download chapters (30 chapter limit)',
-              'Full reading analytics & streak tracking',
-              'AI-powered recommendations',
-              'Recs page & taste profile',
-            ].map((f) => (
-              <View key={f} style={styles.featureRow}>
+              'plan.freeCommunity',
+              'plan.freeAmbience',
+              'plan.freeDownloads',
+              'plan.freeAnalytics',
+              'plan.freeAiRecs',
+              'plan.freeRecsPage',
+            ].map((key) => (
+              <View key={key} style={styles.featureRow}>
                 <Ionicons name="checkmark" size={16} color={colors.muted} />
-                <Text style={[styles.featureText, { color: colors.text }]}>{f}</Text>
+                <Text style={[styles.featureText, { color: colors.text }]}>{t(key)}</Text>
               </View>
             ))}
             {selectedPlan === 'pro' && [
-              'Everything in Free',
-              'No ads',
-              'Unlimited chapter downloads, offline',
-              'Custom Audio Ambience uploads',
-              'Early chapter release reminders & countdown timers',
-              'Exclusive Pro badge & profile flair',
-              'Animated avatar ring',
-              'Reading Year in Review — shareable recap',
-              'Pro-only book clubs & invite-only discussions',
-              'Beta features & early access',
-              'Creator insights & analytics',
-              'Direct line to the dev for support & feedback',
-            ].map((f) => (
-              <View key={f} style={styles.featureRow}>
+              'plan.proEverything',
+              'plan.proDownloads',
+              'plan.proAmbience',
+              'plan.proReminders',
+              'plan.proBadge',
+              'plan.proAvatarRing',
+              'plan.proRecap',
+              'plan.proBookClubs',
+              'plan.proBeta',
+              'plan.proInsights',
+              'plan.proSupport',
+            ].map((key) => (
+              <View key={key} style={styles.featureRow}>
                 <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
-                <Text style={[styles.featureText, { color: colors.text }]}>{f}</Text>
+                <Text style={[styles.featureText, { color: colors.text }]}>{t(key)}</Text>
               </View>
             ))}
 
@@ -1359,9 +1358,7 @@ export default function SettingsScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
             {selectedPlan !== 'free' && (
-              <Text style={[styles.cancelText, { color: colors.muted }]}>
-                Pricing shown is planned, not final · You won't be charged today
-              </Text>
+              <Text style={[styles.cancelText, { color: colors.muted }]}>{t('settings.plannedPricing')}</Text>
             )}
           </View>
         </View>
@@ -1374,20 +1371,16 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.tuneMyTaste')}</Text>
-                <Text style={[styles.modalSub, { color: colors.muted }]}>
-                  These weights come from series you've rated, liked, and swiped on — higher weight means Recs shows you more of that genre. Nudge any genre up or down.
-                </Text>
+                <Text style={[styles.modalSub, { color: colors.muted }]}>{t('settings.tasteWeightsDesc')}</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowTasteModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity onPress={() => setShowTasteModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
             {genrePrefsLoading ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
             ) : genrePrefs.length === 0 ? (
-              <Text style={[styles.modalSub, { color: colors.muted, marginTop: 12 }]}>
-                No taste data yet — rate, like, or swipe on a few series to build your profile.
-              </Text>
+              <Text style={[styles.modalSub, { color: colors.muted, marginTop: 12 }]}>{t('settings.noTasteData')}</Text>
             ) : (
               <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
                 {genrePrefs.map((g) => (
@@ -1399,7 +1392,7 @@ export default function SettingsScreen({ navigation }) {
                         onPress={() => adjustGenreWeight(g.genre, -1)}
                         disabled={g.weight <= 0}
                         accessibilityRole="button"
-                        accessibilityLabel={`Decrease ${g.genre} weight`}>
+                        accessibilityLabel={t('a11y.decreaseGenreWeight', { genre: g.genre })}>
                         <Ionicons name="remove" size={16} color={g.weight <= 0 ? colors.border : colors.text} />
                       </TouchableOpacity>
                       <Text style={[styles.tasteWeight, { color: colors.text }]}>{g.weight}</Text>
@@ -1407,7 +1400,7 @@ export default function SettingsScreen({ navigation }) {
                         style={[styles.tasteStepBtn, { borderColor: colors.border }]}
                         onPress={() => adjustGenreWeight(g.genre, 1)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Increase ${g.genre} weight`}>
+                        accessibilityLabel={t('a11y.increaseGenreWeight', { genre: g.genre })}>
                         <Ionicons name="add" size={16} color={colors.text} />
                       </TouchableOpacity>
                     </View>
@@ -1430,7 +1423,7 @@ export default function SettingsScreen({ navigation }) {
                   <Text style={styles.changelogVersionPillText}>v{currentChangelog.version}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setShowChangelog(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity onPress={() => setShowChangelog(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1456,13 +1449,11 @@ export default function SettingsScreen({ navigation }) {
               <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>{t('onboarding.createAccount')}</Text>
-                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowUpgradeModal(false)} accessibilityRole="button" accessibilityLabel="Close">
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowUpgradeModal(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                   <Ionicons name="close" size={22} color={colors.muted} />
                 </TouchableOpacity>
               </View>
-              <Text style={[styles.modalSub, { color: colors.muted }]}>
-                Your reading progress, badges, and friends stay exactly as they are — this just adds a way to sign back in.
-              </Text>
+              <Text style={[styles.modalSub, { color: colors.muted }]}>{t('settings.linkAccountDesc')}</Text>
 
               <TextInput
                 style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, marginTop: 14 }]}
@@ -1479,7 +1470,7 @@ export default function SettingsScreen({ navigation }) {
                 style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text, marginTop: 10 }]}
                 value={upgradePassword}
                 onChangeText={(t) => { setUpgradePassword(t); setUpgradeError(''); }}
-                placeholder="Password (min 6 characters)"
+                placeholder={t('placeholder.passwordMinChars')}
                 placeholderTextColor={colors.muted}
                 secureTextEntry
                 autoCapitalize="none"

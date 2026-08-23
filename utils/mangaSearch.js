@@ -60,11 +60,13 @@ const SEARCH_BUILDERS = {
   'mangapill.com':            (q) => `https://mangapill.com/search?q=${encodeURIComponent(q)}`,
   'mangago.me':               (q) => `https://www.mangago.me/search/?q=${encodeURIComponent(q)}`,
   'fanfox.net':               (q) => `https://fanfox.net/search?title=${encodeURIComponent(q)}`,
-  // Removed 2026-08-10, all four dead at DNS rather than merely blocked:
-  // likemanga.io, zinmanga.com, aquamanga.com, bato.to. A builder for a domain
-  // that no longer resolves costs a full navigation timeout before the
-  // fallback chain moves on, so leaving them in is slower than having no entry
-  // at all.
+  // Back 2026-08-23 with Bato.to's return to the recommended list. Verify the
+  // domain resolves before trusting this: it was pulled on 2026-08-10 when it
+  // died at DNS, and a builder for a domain that does not resolve costs a full
+  // navigation timeout before the fallback chain moves on.
+  'bato.to':                  (q) => `https://bato.to/search?word=${encodeURIComponent(q)}`,
+  // Still dead at DNS as of the 2026-08-10 sweep, deliberately absent:
+  // likemanga.io, zinmanga.com, aquamanga.com.
 };
 
 export function buildSearchUrl(siteUrl, title) {

@@ -162,7 +162,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
             accessibilityState={{ disabled: loading, busy: loading }}>
             {loading
               ? <ActivityIndicator size="small" color={colors.onPrimary} />
-              : <Text style={[styles.agreeBtnText, { color: colors.onPrimary }]}>I Agree — Let me in</Text>}
+              : <Text style={[styles.agreeBtnText, { color: colors.onPrimary }]}>{t('guidelines.agreeBtn')}</Text>}
           </TouchableOpacity>
         </View>
       )}

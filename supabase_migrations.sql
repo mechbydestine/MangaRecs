@@ -862,6 +862,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_busy BOOLEAN DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_activity BOOLEAN DEFAULT true;
 
+-- ── 50. Followers — REMOVED. See migration68_friends_only.sql ────────────
+-- Kept here only so this file still reads as the history it is. The table
+-- and everything below it were dropped in migration68: friendship is now the
+-- only relationship between two people. Do not re-run this section.
+/*
 -- ── 50. Followers (separate from friendships — one-directional, no accept step) ─
 CREATE TABLE IF NOT EXISTS followers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -881,6 +886,8 @@ DROP POLICY IF EXISTS "followers_insert_own" ON followers;
 CREATE POLICY "followers_insert_own" ON followers FOR INSERT WITH CHECK (follower_id = auth.uid());
 DROP POLICY IF EXISTS "followers_delete_own" ON followers;
 CREATE POLICY "followers_delete_own" ON followers FOR DELETE USING (follower_id = auth.uid());
+
+*/
 
 -- ── 51. Blocking: blocked_users table + server-enforced DM block ──────────────
 CREATE TABLE IF NOT EXISTS blocked_users (

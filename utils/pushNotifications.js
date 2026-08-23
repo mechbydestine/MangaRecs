@@ -306,7 +306,3 @@ export async function sendFriendRequestPush(toUserId) {
 export async function sendReplyPush(toUserId, seriesTitle) {
   await notify({ type: 'reply', recipientId: toUserId, seriesTitle });
 }
-
-export async function sendFollowPush(toUserId) {
-  await notify({ type: 'follow', recipientId: toUserId });
-}

@@ -1,5 +1,8 @@
 export default {
   common: {
+    ok: 'OK',
+    or: 'ou',
+    gotIt: "C'est compris",
     cancel: 'Annuler',
     save: 'Enregistrer',
     done: 'Terminé',
@@ -50,13 +53,6 @@ export default {
 
   feed: {
     trending: 'Tendances',
-    video: {
-      play: 'Lire {title}',
-      mute: 'Couper le son',
-      unmute: 'Activer le son',
-      openExternal: 'Ouvrir',
-      embedFailed: "Cette vidéo ne peut pas être lue ici — appuyez sur Ouvrir pour la regarder.",
-    },
     destEmail: "E-mail",
     creatorLabel: "Créateur MangaRecs",
     addFriendsFirst: "Ajoutez d'abord des amis pour envoyer des recommandations.",
@@ -68,6 +64,13 @@ export default {
     card: 'Carte',
     more: 'Plus',
     recommendedSites: 'Sites recommandés',
+    siteWebtoon: 'Webtoons officiels',
+    siteMangaPlus: 'Titres officiels Shueisha',
+    siteMangaDex: 'La plus grande bibliothèque de mangas',
+    siteBato: 'Scans de la communauté',
+    goToSite: 'Aller au site',
+    inThisApp: 'Dans cette appli',
+    searchWeb: 'Rechercher sur le web',
     unreleased: 'NON PUBLIÉ',
     comingSoon: 'Bientôt',
     title: 'Accueil',
@@ -88,6 +91,7 @@ export default {
   },
 
   library: {
+    downloadForOffline: '→ Télécharger le chapitre pour la lecture hors ligne',
     newChapter: "NOUV. CHAP.",
     trending: "Tendances",
     justAddedBadge: "AJOUTÉ",
@@ -150,6 +154,10 @@ export default {
   },
 
   reader: {
+    pinchHint: 'Pincez pour zoomer · Double-tapez pour basculer',
+    tapHint: '← Touchez à gauche · Centre pour masquer · À droite →',
+    importNoLibrary: 'Aucune bibliothèque trouvée : vérifiez que vous êtes connecté sur ce site, puis retouchez Importer.',
+    invertHint: 'Inverse les couleurs — les pages de manga restent normales',
     recent: "Récent",
     autoScrollSpeed: "Vitesse de défilement",
     rotateHint: "Tournez l'appareil pour lire en paysage",
@@ -201,6 +209,7 @@ export default {
   },
 
   community: {
+    noFriendsYet: 'Pas encore d’amis — touchez pour trouver des lecteurs à suivre',
     tapToVote: "Touchez une option pour voter",
     pollOfTheWeek: "Sondage de la semaine",
     searchHint: "Recherchez par nom d'utilisateur",
@@ -210,6 +219,7 @@ export default {
     noFriendRankings: "Aucun de vos amis n'est encore classé. Ajoutez des lecteurs pour vous comparer.",
     leaderboardError: "Impossible de charger le classement.",
     mangarecsReaders: "LECTEURS MANGARECS",
+    notRated: 'Non noté',
     addAFriend: 'Ajouter un ami',
     searchByUsername: 'Recherchez par nom pour trouver des lecteurs MangaRecs',
     global: 'Global',
@@ -247,6 +257,14 @@ export default {
   },
 
   profile: {
+    friendsLabel: 'Amis',
+    mutualFriends: 'Amis en commun',
+    friendsCount_one: '1 ami',
+    friendsCount_other: '{count} amis',
+    mutualCount_one: '1 ami en commun',
+    mutualCount_other: '{count} amis en commun',
+    tapToEditBio: 'touchez pour modifier la bio',
+    onProfile: '★ Sur le profil',
     readStat: "Lus",
     chromasLabel: "Chromas",
     recapTeaser: "Votre bilan du 1er semestre est arrivé",
@@ -293,6 +311,23 @@ export default {
   },
 
   settings: {
+    guestUpgradeDesc: 'Créez un vrai compte pour conserver votre progression, vos badges et vos amis en cas de changement d’appareil ou de réinstallation.',
+    displayNameDesc: 'Affiché partout dans MangaRecs, modifiable à tout moment',
+    appearBusyDesc: 'Affiche un statut « occupé » rouge à vos amis, même en ligne',
+    adultContent: 'Contenu adulte (18+)',
+    trackersDesc: 'Liez vos profils de suivi pour accéder à n’importe quelle série directement depuis MangaRecs.',
+    syncingAnilist: 'Synchronisation de la liste AniList…',
+    anilistNotFound: 'Impossible de trouver ce nom AniList, ou sa liste est privée.',
+    planRowDesc: 'Gratuit · Pro — voir ce qui est inclus',
+    deleteWarning: 'Cela supprimera définitivement votre compte MangaRecs, votre historique, vos badges, vos amis et vos données. Action irréversible.',
+    plannedPricing: 'Le prix affiché est prévisionnel · Vous ne serez pas débité aujourd’hui',
+    tasteWeightsDesc: 'Ces pondérations viennent des séries que vous avez notées, aimées et balayées : plus le poids est élevé, plus Recs vous propose ce genre. Ajustez-les librement.',
+    noTasteData: 'Pas encore de données de goûts : notez, aimez ou balayez quelques séries pour construire votre profil.',
+    linkAccountDesc: 'Votre progression, vos badges et vos amis restent inchangés : cela ajoute simplement un moyen de vous reconnecter.',
+    clearCacheTitle: 'Vider le cache ?',
+    clearCacheBody: 'Libère les couvertures mises en cache. Votre bibliothèque, vos notes, votre progression et vos chapitres téléchargés ne sont pas touchés.',
+    clearAction: 'Vider',
+    aiRecDesc: 'Personnalise votre fil Recs à partir de votre historique et de vos genres préférés. Désactivé, il ne montre que les titres populaires.',
     importPartial: "le service a cessé de répondre, des séries peuvent manquer — relancez pour terminer",
     importFromAnilist: "Importer depuis AniList",
     importFromMal: "Importer depuis MyAnimeList",
@@ -386,8 +421,6 @@ export default {
       commentsDesc: "Quelqu'un commente une série que vous avez publiée",
       likes: "J'aime",
       likesDesc: "Quelqu'un aime votre publication ou votre commentaire",
-      followers: 'Nouveaux abonnés',
-      followersDesc: "Quelqu'un commence à vous suivre",
       friendActivity: "Demandes d'ami",
       friendActivityDesc: 'Celles que vous recevez, et les vôtres acceptées',
       directMessages: 'Messages privés',
@@ -424,6 +457,14 @@ export default {
   },
 
   onboarding: {
+    backLink: '← Retour',
+    signUpPitch: 'Inscrivez-vous pour sauvegarder votre progression, vos genres, vos amis et votre bibliothèque, synchronisés sur votre compte.',
+    signUpFree: "S'inscrire — c'est gratuit",
+    usernamePermanent: 'Ce nom est définitif et ne pourra pas être modifié : choisissez bien. Vous en avez déjà un ? Laissez vide.',
+    benefitSync: 'Progression synchronisée entre appareils',
+    benefitRecs: 'Recommandations personnalisées',
+    benefitFriends: 'Retrouvez vos amis',
+    benefitBadges: 'Gagnez des badges et tenez votre série',
     saveProgressDesc: "Enregistrez votre progression, vos préférences et votre bibliothèque.",
     tasteFirstBtn: "Configurer mes goûts d'abord",
     pick3Genres: "Choisissez vos 3 genres préférés.",
@@ -446,6 +487,9 @@ export default {
   },
 
   auth: {
+    createAccount: 'Créer un compte',
+    createAnAccount: 'Créer un compte',
+    logInExisting: 'Se connecter à un compte existant',
     codeSentHint: "Nous enverrons un code à 6 chiffres à votre e-mail.",
     noCode: "Vous n'avez pas reçu de code ?",
     logIn: 'Se connecter',
@@ -471,6 +515,7 @@ export default {
   },
 
   gate: {
+    dobPrivacy: 'Votre date de naissance sert uniquement à vérifier votre âge et n’est pas conservée sur nos serveurs.',
     ageTitle: "Vérification de l’âge",
     confirmAge: "Confirmer l’âge",
     title: 'Créez un compte pour {action}',
@@ -481,6 +526,7 @@ export default {
   },
 
   discussion: {
+    spoilerTap: 'Spoiler · touchez pour révéler',
     spoilerToggle: "Spoilers",
     spoilers: "Spoilers",
     replyingTo: "En réponse à",
@@ -493,6 +539,27 @@ export default {
   },
 
   creator: {
+    readsThisWeek: 'lectures cette semaine',
+    noSeriesYet: 'Aucune série pour l’instant — publiez la première !',
+    statSeriesPublished: 'Séries publiées',
+    statTotalReads: 'Lectures totales',
+    statChapters: 'Chapitres publiés',
+    statusActive: 'En cours',
+    statusDraft: 'Brouillon',
+    statusHiatus: 'En pause',
+    chapterCount: '{n} chapitres',
+    gapFlush: 'Collé',
+    gapFlushHint: 'Art continu',
+    gapStandard: 'Standard',
+    gapStandardHint: 'Rythme normal',
+    gapBreath: 'Respiration',
+    gapBreathHint: 'Temps forts',
+    gapCliffhang: 'Suspense',
+    gapCliffhangHint: 'Longue pause',
+    monetizationTitle: 'Monétisation',
+    seriesStats: 'Chapitres : {chapters}\nLectures totales : {reads}\nDernière mise à jour : {updated}',
+    recently: 'récemment',
+    selectGenre: 'Choisir un genre',
     monetizationTagline: "Gagnez de l’argent avec les abonnements Pro et les pourboires.",
     readLabel: "Lus",
     monetizationSoon: "Gagnez de l’argent grâce aux abonnements Pro et aux pourboires. Cette fonctionnalité arrive bientôt et votre série y sera inscrite automatiquement.",
@@ -512,6 +579,8 @@ export default {
   },
 
   moderation: {
+    reportsAdminOnly: 'Impossible de charger les signalements — accès administrateur uniquement.',
+    candidatesAdminOnly: 'Impossible de charger les candidats — accès administrateur uniquement.',
     reportedFor: "Signalé pour :",
     title: 'Modération',
     reports: 'Signalements',
@@ -521,10 +590,17 @@ export default {
   },
 
   dm: {
+    emptyThread: 'Lancez la conversation : envoyez un message ou recommandez un manga !',
+    noGifs: 'Aucun GIF trouvé — essayez une autre recherche.',
     readIt: 'Le lire',
   },
 
   recap: {
+    shareSquare: 'Partager en image carrée',
+    blankMap: 'Votre carte est encore vierge — c’est tout l’intérêt.',
+    compareEmpty: 'Ajoutez quelques amis et la comparaison de ce semestre vous attendra ici.',
+    sharedTaste: 'goûts de lecture partagés ce semestre',
+    noOverlap: 'Aucune série en commun ce semestre — des étagères différentes, la même appli.',
     youDoveInto: "VOUS AVEZ PLONGÉ DANS",
     yourDayInChapters: "VOTRE JOURNÉE, EN CHAPITRES",
     yourTopSeries: "VOS SÉRIES PHARES",
@@ -555,17 +631,33 @@ export default {
   },
 
   friend: {
-    follow: "Suivre",
-    unfollow: "Ne plus suivre",
+    blockTitle: 'Bloquer {name} ?',
+    blockBody: 'Cette personne ne pourra plus vous écrire et vous ne verrez plus ses commentaires. Elle est aussi retirée de vos amis.',
+    blockAction: 'Bloquer',
+    thisUser: 'cet utilisateur',
     block: "Bloquer",
     unblock: "Débloquer",
     notFound: 'Ami introuvable.',
     goBack: 'Retour',
     online: 'En ligne',
     noFaves: 'Aucun favori',
+    addFriend: 'Ajouter en ami',
+    requestPending: "Demande d'ami en attente",
+    respondToRequest: "{name} vous a envoyé une demande d'ami",
+    removeFriend: 'Retirer de vos amis',
+    respondTitle: "{name} vous a envoyé une demande d'ami",
+    respondBody: "En acceptant, vous apparaîtrez dans vos listes d'amis respectives et pourrez vous écrire à tout moment.",
+    cancelTitle: 'Annuler votre demande à {name} ?',
+    cancelBody: "Cette personne n'en sera pas informée. Vous pourrez en envoyer une autre plus tard.",
+    cancelAction: 'Annuler la demande',
+    removeTitle: 'Retirer {name} de vos amis ?',
+    removeBody: "Cette personne n'en sera pas informée. Pour la rajouter, l'un de vous devra envoyer une nouvelle demande.",
+    removeAction: 'Retirer',
   },
 
   forYou: {
+    emptyTaste: 'Votre profil de goûts est vide : aimez, enregistrez ou lisez quelques séries et les recommandations commenceront à vous ressembler.',
+    adultDisabled: 'Vous êtes vérifié mais le contenu adulte est désactivé. Activez-le dans Réglages → Contenu.',
     unreleased: "INÉDIT",
     comingSoon: "Bientôt",
     subtitle: "Recommandations par IA",
@@ -599,9 +691,22 @@ export default {
     accountCreated: 'Compte créé — confirmez via votre e-mail, votre progression est déjà enregistrée',
     deleteFailed: 'Impossible de supprimer le compte — contactez le support',
     paidPlansLater: "Les offres payantes arriveront après le lancement — restez à l'écoute",
+    friendRequestSent: "Demande d'ami envoyée à {name}",
+    nowFriends: 'Vous êtes maintenant ami avec {name}',
+    friendRemoved: '{name} a été retiré de vos amis',
+    requestCanceled: "Demande d'ami annulée",
+    requestDeclined: "Demande d'ami refusée",
+    friendActionFailed: "Ça n'a pas fonctionné. Réessayez.",
   },
 
   placeholder: {
+    chapterTitleNum: 'Titre du chapitre {n} (facultatif)',
+    usernameOrEmail: "Nom d'utilisateur ou e-mail",
+    usernameRules: "Nom d'utilisateur (lettres et chiffres)",
+    passwordMin: 'Mot de passe (6 caractères min.)',
+    passwordMinChars: 'Mot de passe (6 caractères minimum)',
+    bio: 'Écrivez votre bio...',
+    shortDescription: 'Brève description...',
     email: 'E-mail',
     password: 'Mot de passe',
     createPassword: 'Créez un mot de passe',
@@ -618,6 +723,7 @@ export default {
     searchSeries: 'Cherchez une série à commenter…',
     searchSites: 'Recherchez un site ou collez une URL…',
     enterUrl: 'Saisissez un site ou une URL…',
+    searchOrUrl: 'Cherchez une série ou saisissez une URL',
     seriesTitle: 'Titre de la série',
   },
 
@@ -678,6 +784,7 @@ export default {
   },
 
   allDiscussions: {
+    rankedBy: 'Classé par tendance, activité récente et affinité avec vos goûts',
     openHint: "Ouvre la discussion",
     readHint: "Lire {title}",
   },
@@ -689,6 +796,7 @@ export default {
   },
 
   guidelines: {
+    agreeBtn: "J'accepte — entrer",
     agree: "J'accepte",
   },
 
@@ -719,6 +827,10 @@ export default {
   badge: {
     unlocked: "BADGE DÉBLOQUÉ",
     notEarned: "Pas encore obtenu",
+    removeFromProfile: 'Retirer du profil',
+    addToProfile: 'Ajouter au profil',
+    showcaseFull: 'Vitrine pleine (3/3)',
+    nextBadge: 'Badge suivant',
   },
 
   share: {
@@ -736,6 +848,44 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    likeCount: '{n} j’aime',
+    commentCount: '{n} commentaires',
+    decreaseGenreWeight: 'Diminuer le poids de {genre}',
+    increaseGenreWeight: 'Augmenter le poids de {genre}',
+    removeRecentSearch: 'Retirer « {term} » des recherches récentes',
+    stepOf: 'Étape {n} sur {total}',
+    badgeNamed: 'Badge {name}',
+    removeFavourite: 'Retirer {title} des favoris',
+    leaderboardRank: 'Rang {rank}, {name}, {hours} lues',
+    leaderboardRankFull: 'Rang {rank}, {name}, {hours} lues, {badges} badges',
+    pageSpacingOpt: 'Espacement des pages {label}, {hint}',
+    badgeFallback: 'Badge',
+    reportComment: 'Signaler ce commentaire',
+    reportReply: 'Signaler cette réponse',
+    cancelReply: 'Annuler la réponse',
+    markSpoiler: 'Marquer comme spoiler',
+    postComment: 'Publier le commentaire',
+    recommendManga: 'Recommander un manga',
+    sendPhoto: 'Envoyer une photo',
+    messageInput: 'Champ de message',
+    sendMessage: 'Envoyer le message',
+    markCommentSpoiler: 'Marquer le commentaire comme spoiler',
+    filterByGenre: 'Filtrer par genre',
+    clearSearch: 'Effacer la recherche',
+    startWithoutAccount: 'Commencer à lire sans compte',
+    skipSetup: 'Passer la configuration',
+    friendsAndMessages: 'Amis et messages',
+    badgeHint: 'Montre comment ce badge a été obtenu',
+    addBadgeShowcase: 'Ajouter un badge à votre vitrine',
+    addFavouriteSeries: 'Ajouter une série favorite',
+    closeReader: 'Fermer le lecteur',
+    browserBack: 'Reculer dans le navigateur',
+    browserForward: 'Avancer dans le navigateur',
+    chooseSource: 'Choisir la source de lecture',
+    reloadChapter: 'Recharger le chapitre',
+    ambienceSounds: "Sons d'ambiance",
+    declineFriendRequest: "Refuser la demande d'ami",
+    dismiss: 'Fermer',
     bioInput: "Votre bio",
     commentInput: "Écrire un commentaire",
     spoilerCommentInput: "Écrire un commentaire spoiler",
@@ -775,5 +925,25 @@ export default {
     closeZoom: "Fermer la page agrandie",
     mangaPage: "Page de manga",
     openSeries: "Ouvrir la série",
+  },
+  plan: {
+    freeCommunity: 'Accès à la communauté et fonctions sociales',
+    freeAmbience: "Sons d'ambiance (préréglages)",
+    freeDownloads: 'Téléchargement de chapitres (30 max)',
+    freeAnalytics: 'Statistiques de lecture et suivi de série complets',
+    freeAiRecs: 'Recommandations par IA',
+    freeRecsPage: 'Page Recs et profil de goûts',
+    proEverything: 'Tout ce que contient le forfait gratuit',
+    proDownloads: 'Téléchargements illimités, hors ligne',
+    proAmbience: "Import de vos propres sons d'ambiance",
+    proReminders: 'Rappels anticipés de chapitres et comptes à rebours',
+    proBadge: 'Badge Pro exclusif et décor de profil',
+    proAvatarRing: 'Anneau de profil animé',
+    proRecap: 'Rétrospective annuelle de lecture, partageable',
+    proBookClubs: 'Clubs de lecture Pro et discussions sur invitation',
+    proBeta: 'Fonctions bêta et accès anticipé',
+    proInsights: 'Analyses et statistiques créateur',
+    proSupport: 'Ligne directe avec le développeur',
+    savePercent: '-{n} %',
   },
 };

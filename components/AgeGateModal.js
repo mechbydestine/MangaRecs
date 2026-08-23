@@ -149,9 +149,7 @@ export default function AgeGateModal({ visible, onVerified, onDismiss }) {
           <TouchableOpacity style={s.cancelBtn} onPress={handleClose} activeOpacity={0.7}>
             <Text style={[s.cancelBtnText, { color: colors.muted }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
-          <Text style={[s.disclaimer, { color: colors.muted, opacity: 0.7 }]}>
-            Your date of birth is used only for age verification and is not stored on our servers.
-          </Text>
+          <Text style={[s.disclaimer, { color: colors.muted, opacity: 0.7 }]}>{t('gate.dobPrivacy')}</Text>
         </Animated.View>
       </View>
     </Modal>

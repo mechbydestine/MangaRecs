@@ -899,7 +899,7 @@ function S6Genres({ d, s, id, cw }) {
       <View style={{ width: '100%', alignItems: 'center' }}>
         <Reveal delay={0}><Band s={s} id={id}><Text style={[styles.bandText, { color: s.onAccent }]}>{t('recap.genresExploredLabel')}</Text></Band></Reveal>
         <Reveal delay={200}><Text style={[styles.h1, { color: s.ink, marginTop: 18 }]}>{t('recap.uncharted')}</Text></Reveal>
-        <Reveal delay={420}><Text style={[styles.sub, { color: s.dim, textAlign: 'center' }]}>Your map is still blank — that is the fun part.</Text></Reveal>
+        <Reveal delay={420}><Text style={[styles.sub, { color: s.dim, textAlign: 'center' }]}>{t('recap.blankMap')}</Text></Reveal>
       </View>
     );
   }
@@ -1359,7 +1359,7 @@ function S10Finale({ d, s, id, onShareImage, onCompare, exporting, onDone }) {
           activeOpacity={0.86}
           disabled={exporting}
           accessibilityRole="button"
-          accessibilityLabel="Share as a square image"
+          accessibilityLabel={t('recap.shareSquare')}
           accessibilityState={{ disabled: exporting, busy: exporting }}
         >
           <Ionicons name="square-outline" size={15} color={s.ink} />

@@ -433,7 +433,7 @@ export default function MangaDetailScreen() {
               style={[styles.backBtn, { top: insets.top + 10 }]}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityRole="button"
-              accessibilityLabel="Go back">
+              accessibilityLabel={t('friend.goBack')}>
               <Ionicons name="chevron-back" size={22} color="#fff" />
             </TouchableOpacity>
             <MangaCover
@@ -478,7 +478,7 @@ export default function MangaDetailScreen() {
         </Animated.View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.readBtn} onPress={openReader} activeOpacity={0.85} accessibilityLabel="Read">
+          <TouchableOpacity hitSlop={HIT_SLOP} style={styles.readBtn} onPress={openReader} activeOpacity={0.85} accessibilityLabel={t('detail.read')}>
             <Ionicons name="book" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
@@ -494,7 +494,7 @@ export default function MangaDetailScreen() {
             style={[styles.iconActionBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
             onPress={() => Share.share({ message: `Check out ${title} on MangaRecs — mangarecs://series/${encodeURIComponent(searchKey || title)}` })}
             activeOpacity={0.7}
-            accessibilityLabel="Share">
+            accessibilityLabel={t('share.action')}>
             <Ionicons name="share-outline" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -596,13 +596,13 @@ export default function MangaDetailScreen() {
             {(details || poolEntry) && (
               <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, cardStyle(detailsAnim)]}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>{t('detail.details')}</Text>
-                <InfoRow icon="bookmark-outline" label="Status" value={details?.status || (poolEntry?.status === 'ongoing' ? 'Ongoing' : poolEntry?.status === 'completed' ? 'Completed' : null)} colors={colors} />
-                <InfoRow icon="people-outline" label="Demographic" value={details?.demographic} colors={colors} />
-                <InfoRow icon="calendar-outline" label="Year" value={details?.year} colors={colors} />
-                <InfoRow icon="layers-outline" label="Chapters" value={details?.lastChapter ? String(Math.round(details.lastChapter)) : (poolEntry?.chapters ? String(poolEntry.chapters) : null)} colors={colors} />
-                <InfoRow icon="albums-outline" label="Volumes" value={details?.lastVolume} colors={colors} />
-                <InfoRow icon="create-outline" label="Author" value={details?.authors?.join(', ') || poolEntry?.author} colors={colors} />
-                <InfoRow icon="brush-outline" label="Artist" value={details?.artists?.join(', ')} colors={colors} />
+                <InfoRow icon="bookmark-outline" label={t('detail.status')} value={details?.status || (poolEntry?.status === 'ongoing' ? 'Ongoing' : poolEntry?.status === 'completed' ? 'Completed' : null)} colors={colors} />
+                <InfoRow icon="people-outline" label={t('detail.demographic')} value={details?.demographic} colors={colors} />
+                <InfoRow icon="calendar-outline" label={t('detail.year')} value={details?.year} colors={colors} />
+                <InfoRow icon="layers-outline" label={t('common.chapters')} value={details?.lastChapter ? String(Math.round(details.lastChapter)) : (poolEntry?.chapters ? String(poolEntry.chapters) : null)} colors={colors} />
+                <InfoRow icon="albums-outline" label={t('detail.volumes')} value={details?.lastVolume} colors={colors} />
+                <InfoRow icon="create-outline" label={t('detail.author')} value={details?.authors?.join(', ') || poolEntry?.author} colors={colors} />
+                <InfoRow icon="brush-outline" label={t('detail.artist')} value={details?.artists?.join(', ')} colors={colors} />
               </Animated.View>
             )}
 

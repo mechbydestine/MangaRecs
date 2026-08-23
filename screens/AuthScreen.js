@@ -286,14 +286,14 @@ export default function AuthScreen() {
 
               <IconField
                 icon="person-outline"
-                placeholder="Username or email"
+                placeholder={t('placeholder.usernameOrEmail')}
                 value={loginId}
                 onChangeText={setLoginId}
                 autoCorrect={false}
               />
               <IconField
                 icon="lock-closed-outline"
-                placeholder="Password"
+                placeholder={t('placeholder.password')}
                 value={password}
                 onChangeText={setPassword}
                 secure
@@ -302,7 +302,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 onPress={() => switchMode('forgot-email')}
                 accessibilityRole="button"
-                accessibilityLabel="Forgot password">
+                accessibilityLabel={t('auth.forgotPassword')}>
                 <Text style={[styles.forgotLink, { color: colors.primary }]}>{t('auth.forgotPassword')}</Text>
               </TouchableOpacity>
 
@@ -310,7 +310,7 @@ export default function AuthScreen() {
                 style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleLogin}
                 accessibilityRole="button"
-                accessibilityLabel="Log in"
+                accessibilityLabel={t('auth.logIn')}
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
                 {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('auth.logIn')}</Text>}
@@ -319,7 +319,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 onPress={() => switchMode('register')}
                 accessibilityRole="button"
-                accessibilityLabel="Create an account">
+                accessibilityLabel={t('auth.createAnAccount')}>
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
                   {t('auth.noAccount')} <Text style={[styles.switchLink, { color: colors.primary }]}>{t('auth.createOne')}</Text>
                 </Text>
@@ -338,7 +338,7 @@ export default function AuthScreen() {
               <IconField
                 inputRef={usernameInputRef}
                 icon="person-outline"
-                placeholder="Username (letters & numbers only)"
+                placeholder={t('placeholder.usernameRules')}
                 value={username}
                 onChangeText={handleUsernameChange}
                 maxLength={24}
@@ -360,7 +360,7 @@ export default function AuthScreen() {
               />
               <IconField
                 icon="lock-closed-outline"
-                placeholder="Password (6+ characters)"
+                placeholder={t('placeholder.passwordMin')}
                 value={password}
                 onChangeText={setPassword}
                 secure
@@ -377,7 +377,7 @@ export default function AuthScreen() {
                 style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleRegister}
                 accessibilityRole="button"
-                accessibilityLabel="Create account"
+                accessibilityLabel={t('auth.createAccount')}
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
                 {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('onboarding.createAccount')}</Text>}
@@ -386,7 +386,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 onPress={() => switchMode('login')}
                 accessibilityRole="button"
-                accessibilityLabel="Log in to an existing account">
+                accessibilityLabel={t('auth.logInExisting')}>
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
                   {t('auth.haveAccount')} <Text style={[styles.switchLink, { color: colors.primary }]}>{t('auth.logIn')}</Text>
                 </Text>
@@ -413,7 +413,7 @@ export default function AuthScreen() {
                 style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleSendResetCode}
                 accessibilityRole="button"
-                accessibilityLabel="Send reset code"
+                accessibilityLabel={t('auth.sendCode')}
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
                 {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('auth.sendCode')}</Text>}
@@ -422,7 +422,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 onPress={() => switchMode('login')}
                 accessibilityRole="button"
-                accessibilityLabel="Back to log in">
+                accessibilityLabel={t('auth.backToLogIn')}>
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>
                   <Text style={[styles.switchLink, { color: colors.primary }]}>{t('auth.backToLogIn')}</Text>
                 </Text>
@@ -457,7 +457,7 @@ export default function AuthScreen() {
                 style={[styles.btn, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.btnDisabled]}
                 onPress={handleResetPassword}
                 accessibilityRole="button"
-                accessibilityLabel="Reset password"
+                accessibilityLabel={t('auth.resetPassword')}
                 accessibilityState={{ disabled: loading || resetCode.length < 6 || !newPassword, busy: loading }}
                 disabled={loading || resetCode.length < 6 || !newPassword}>
                 {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.btnText, { color: colors.onPrimary }]}>{t('auth.resetPassword')}</Text>}
@@ -466,7 +466,7 @@ export default function AuthScreen() {
               <TouchableOpacity
                 onPress={handleSendResetCode}
                 accessibilityRole="button"
-                accessibilityLabel="Resend code"
+                accessibilityLabel={t('auth.resend')}
                 accessibilityState={{ disabled: loading, busy: loading }}
                 disabled={loading}>
                 <Text style={[styles.switchText, { color: colors.textSecondary }]}>

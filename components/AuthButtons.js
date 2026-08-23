@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import GoogleLogo from './GoogleLogo';
 import { useT } from '../utils/LanguageContext';
+import { useTheme } from '../utils/ThemeContext';
 
 // Shared OAuth button row + divider for AuthScreen.js and OnboardingScreen.js's
 // SignUpGate — both screens offer the same Google sign-in, so a single
@@ -11,9 +12,10 @@ import { useT } from '../utils/LanguageContext';
 
 export function GoogleButton({ onPress, loading }) {
   const t = useT();
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
-      style={styles.googleBtn}
+      style={[styles.googleBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={onPress}
       disabled={loading}
       activeOpacity={0.85}
@@ -21,20 +23,22 @@ export function GoogleButton({ onPress, loading }) {
       accessibilityLabel={t('auth.continueWithGoogle')}
       accessibilityState={{ disabled: loading, busy: loading }}>
       <View style={styles.iconSlot}>
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : <GoogleLogo size={18} />}
+        {loading ? <ActivityIndicator size="small" color={colors.text} /> : <GoogleLogo size={18} />}
       </View>
-      <Text style={styles.googleBtnText} numberOfLines={1} adjustsFontSizeToFit>{t('auth.continueWithGoogle')}</Text>
+      <Text style={[styles.googleBtnText, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{t('auth.continueWithGoogle')}</Text>
       <View style={styles.iconSlot} />
     </TouchableOpacity>
   );
 }
 
 export function AuthDivider() {
+  const t = useT();
+  const { colors } = useTheme();
   return (
     <View style={styles.dividerRow}>
-      <View style={styles.dividerLine} />
-      <Text style={styles.dividerText}>or</Text>
-      <View style={styles.dividerLine} />
+      <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+      <Text style={[styles.dividerText, { color: colors.muted }]}>{t('common.or')}</Text>
+      <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
     </View>
   );
 }
@@ -44,9 +48,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#151519',
     borderWidth: 1,
-    borderColor: '#2E2E35',
     borderRadius: 12,
     paddingVertical: 13,
     marginTop: 14,
@@ -67,7 +69,6 @@ const styles = StyleSheet.create({
   googleBtnText: {
     flexShrink: 1,
     textAlign: 'center',
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -79,10 +80,8 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#2A2A2F',
   },
   dividerText: {
-    color: '#9B9AA3',
     fontSize: 11,
     textTransform: 'uppercase',
     marginHorizontal: 10,

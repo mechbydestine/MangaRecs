@@ -118,9 +118,7 @@ export default function RecapCompareModal({ visible, onClose, d, id, s, period }
             <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
               {friends === null && <ActivityIndicator color={s.accent} style={{ marginVertical: 30 }} />}
               {friends !== null && friends.length === 0 && (
-                <Text style={styles.empty}>
-                  Add a few friends and this half's comparison will be waiting for you.
-                </Text>
+                <Text style={styles.empty}>{t('recap.compareEmpty')}</Text>
               )}
               {(friends || []).map((f, i) => (
                 <TouchableOpacity key={f.friend_id} style={styles.friendRow} onPress={() => openFriend(f)} activeOpacity={0.75}>
@@ -158,7 +156,7 @@ export default function RecapCompareModal({ visible, onClose, d, id, s, period }
 
                   <View style={[styles.tasteCard, { borderColor: rgba(s.accent, 0.5), backgroundColor: rgba(s.accent, 0.12) }]}>
                     <Text style={[styles.tastePct, { color: s.accent }]}>{detail.tasteScore}%</Text>
-                    <Text style={styles.tasteLbl}>shared reading taste this half</Text>
+                    <Text style={styles.tasteLbl}>{t('recap.sharedTaste')}</Text>
                   </View>
 
                   {detail.sharedSeries.length > 0 ? (
@@ -169,7 +167,7 @@ export default function RecapCompareModal({ visible, onClose, d, id, s, period }
                       ))}
                     </View>
                   ) : (
-                    <Text style={styles.empty}>No overlapping series this half — different shelves, same app.</Text>
+                    <Text style={styles.empty}>{t('recap.noOverlap')}</Text>
                   )}
                 </>
               )}

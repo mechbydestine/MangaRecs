@@ -24,6 +24,7 @@ import BadgeDetail from '../components/BadgeDetail';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { useProfile } from '../utils/ProfileContext';
+import { ProfileSkeleton } from '../components/Skeleton';
 import { MangaCover, fetchMangaInfo } from '../utils/mangaCovers';
 import BadgeIcon from '../components/BadgeIcon';
 import StreakCalendar from '../components/StreakCalendar';
@@ -117,28 +118,30 @@ function StatCard({ icon, label, value, color, anim, onPress }) {
   );
 }
 
-// ── PeopleRow (Friends / Followers / Following) ─────────────────────────────
+// ── PeopleRow — one relationship, one number ────────────────────────────────
+// This used to be three stacked label-over-count cells (Friends / Followers /
+// Following). The follower graph is gone, and a single one of those cells left
+// alone in the card read as a column with nothing to line up against. One count
+// wants one line: it sits in the same rhythm as the Chromas row below it, with
+// the chevron saying it opens a list rather than expanding in place.
+//
+// `text` arrives already pluralised ("12 Friends" / "1 Mutual Friend"), because
+// number and noun swap order between the six languages and can't be assembled
+// out of a count and a label here.
 
-export function PeopleRow({ friends = [], followers = [], following = [], colors, onOpen, style }) {
-  const items = [
-    { key: 'friends',   count: friends.length,   label: 'Friends' },
-    { key: 'followers', count: followers.length, label: 'Followers' },
-    { key: 'following', count: following.length, label: 'Following' },
-  ];
+export function PeopleRow({ text, colors, onOpen, style }) {
   return (
-    <View style={[styles.peopleRow, style]}>
-      {items.map((it) => (
-        <TouchableOpacity
-          key={it.key}
-          style={styles.peopleCell}
-          activeOpacity={0.6}
-          onPress={() => onOpen(it.key)}
-          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
-          <Text style={[styles.peopleCellLabel, { color: colors.muted }]}>{it.label}</Text>
-          <Text style={[styles.peopleCellCount, { color: colors.text }]}>{it.count}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <TouchableOpacity
+      style={[styles.peopleRow, style]}
+      activeOpacity={0.6}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={text}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+      <Ionicons name="people" size={12} color={colors.primary} />
+      <Text style={[styles.peopleRowText, { color: colors.text }]}>{text}</Text>
+      <Ionicons name="chevron-forward" size={11} color={colors.muted} />
+    </TouchableOpacity>
   );
 }
 
@@ -213,9 +216,7 @@ export default function ProfileScreen() {
   const [showAllBadges, setShowAllBadges] = useState(false);
   useAnnounceOnOpen(showAllBadges, t('profile.achievementBadges'));
   const [friends, setFriends]             = useState([]);
-  const [followersList, setFollowersList] = useState([]);
-  const [followingList, setFollowingList] = useState([]);
-  const [showPeople, setShowPeople]       = useState(null); // null | 'friends' | 'followers' | 'following'
+  const [showPeople, setShowPeople]       = useState(false);
   const [joinDate, setJoinDate]           = useState('');
   const [favorites, setFavorites]         = useState([]);
   const [showAddFave, setShowAddFave]     = useState(false);
@@ -539,33 +540,6 @@ export default function ProfileScreen() {
       });
   }, [userId]);
 
-  // ── Load followers / following ───────────────────────────────────────────
-
-  function toPerson(p) {
-    const name = p.display_name || p.username || '?';
-    return { id: p.id, name, avatar: name.slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
-  }
-
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from('followers')
-      .select('follower:follower_id(id, username, display_name, avatar_url, online)')
-      .eq('followed_id', userId)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setFollowersList((data || []).map(r => r.follower).filter(Boolean).map(toPerson));
-      });
-    supabase
-      .from('followers')
-      .select('followed:followed_id(id, username, display_name, avatar_url, online)')
-      .eq('follower_id', userId)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setFollowingList((data || []).map(r => r.followed).filter(Boolean).map(toPerson));
-      });
-  }, [userId]);
-
   // ── Replay all entrance animations on every focus ────────────────────────
 
   // Just the data half of what happens on focus. Split out so pull-to-refresh
@@ -609,8 +583,19 @@ export default function ProfileScreen() {
       })
       .catch(() => {});
 
-    await Promise.all([mergeDone, entriesDone]);
+    // finally, not a trailing statement: a throw anywhere above would
+    // otherwise leave the tab on its skeleton for the rest of the session.
+    try {
+      await Promise.all([mergeDone, entriesDone]);
+    } finally {
+      setHydrated(true);
+    }
   }, []);
+
+  // First-paint gate. `profile` arriving is not enough on its own — the stat
+  // cards, badges and friends strip all come from reloadProfileData, and
+  // rendering before it lands shows a fully zeroed profile for a beat.
+  const [hydrated, setHydrated] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -746,6 +731,14 @@ export default function ProfileScreen() {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
+  if (!profile || !hydrated) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <ProfileSkeleton />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* bounces/overScrollMode can no longer be disabled: pull-to-refresh needs
@@ -774,14 +767,14 @@ export default function ProfileScreen() {
             <TouchableOpacity
               onPress={() => navigation.navigate('Friends')}
               accessibilityRole="button"
-              accessibilityLabel="Friends and messages"
+              accessibilityLabel={t('a11y.friendsAndMessages')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="people-outline" size={24} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSettingsPress}
               accessibilityRole="button"
-              accessibilityLabel="Settings"
+              accessibilityLabel={t('nav.settings')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Animated.View style={{ transform: [{ rotate: settingsSpin }] }}>
                 <Ionicons name="settings-outline" size={24} color={colors.text} />
@@ -828,7 +821,7 @@ export default function ProfileScreen() {
                       onChangeText={setBioDraft}
                       multiline
                       maxLength={100}
-                      placeholder="Write your bio..."
+                      placeholder={t('placeholder.bio')}
                       placeholderTextColor={colors.muted}
                       autoFocus
                     
@@ -853,7 +846,7 @@ export default function ProfileScreen() {
                     <Text style={[styles.bioText, { color: bio ? colors.muted : 'rgba(155,154,163,0.45)' }]}>
                       {bio || 'Add a bio so friends know your taste…'}
                     </Text>
-                    <Text style={styles.bioEditHint}>tap to edit bio</Text>
+                    <Text style={styles.bioEditHint}>{t('profile.tapToEditBio')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -872,8 +865,8 @@ export default function ProfileScreen() {
                       key={b.id}
                       onPress={() => setDetailBadge(b)}
                       accessibilityRole="button"
-                      accessibilityLabel={`${b.name || 'Badge'} badge`}
-                      accessibilityHint="Shows how this badge was earned"
+                      accessibilityLabel={t('a11y.badgeNamed', { name: b.name || t('a11y.badgeFallback') })}
+                      accessibilityHint={t('a11y.badgeHint')}
                       activeOpacity={0.75}>
                       <BadgeIcon badge={b} size={30} />
                     </TouchableOpacity>
@@ -885,7 +878,7 @@ export default function ProfileScreen() {
                     style={[styles.showcaseAddSlot, { borderColor: colors.border }]}
                     onPress={() => setShowAllBadges(true)}
                     accessibilityRole="button"
-                    accessibilityLabel="Add a badge to your showcase"
+                    accessibilityLabel={t('a11y.addBadgeShowcase')}
                     activeOpacity={0.7}>
                     <Ionicons name="add" size={15} color={colors.muted} />
                   </TouchableOpacity>
@@ -893,14 +886,12 @@ export default function ProfileScreen() {
               })}
             </View>
 
-            {/* Friends · Followers · Following — below the joined-date line, same spot as FriendProfileScreen */}
+            {/* Friends — below the joined-date line, same spot as FriendProfileScreen */}
             <Animated.View style={{ opacity: friendsAnim, transform: [{ translateX: friendsSlideX }] }}>
               <PeopleRow
-                friends={friends}
-                followers={followersList}
-                following={followingList}
+                text={t('profile.friendsCount', { count: friends.length })}
                 colors={colors}
-                onOpen={(key) => setShowPeople(key)}
+                onOpen={() => setShowPeople(true)}
                 style={styles.peopleRowInCard}
               />
             </Animated.View>
@@ -949,9 +940,9 @@ export default function ProfileScreen() {
             weight, so nothing read as a headline. Each still opens its own
             breakdown popup, which is where the rest of the numbers live. */}
         <View style={styles.statsRow}>
-          <StatCard icon="book"   label="Chapters"  value={String(profile?.chapters_read ?? 0)}    color={colors.primary} anim={stat0Anim} onPress={() => setStatDetail('read')} />
-          <StatCard icon="time"   label="Time Read" value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((sum, h) => sum + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} onPress={() => setStatDetail('time')} />
-          <StatCard icon="trophy" label="Fav. Genre" value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} onPress={() => setStatDetail('genre')} />
+          <StatCard icon="book"   label={t('profile.chaptersRead')}  value={String(profile?.chapters_read ?? 0)}    color={colors.primary} anim={stat0Anim} onPress={() => setStatDetail('read')} />
+          <StatCard icon="time"   label={t('profile.timeRead')} value={fmtHrs(Object.keys(dailyLog).length > 0 ? Math.round(Object.values(dailyLog).reduce((sum, h) => sum + h, 0) * 100) / 100 : (profile?.hours_read ?? 0))} color="#1D9E75" anim={stat1Anim} onPress={() => setStatDetail('time')} />
+          <StatCard icon="trophy" label={t('profile.favGenre')} value={profile?.favorite_genre || '—'} color="#FFD700" anim={stat2Anim} onPress={() => setStatDetail('genre')} />
         </View>
 
         {/* Stat detail popup — tapping a stat card opens its breakdown */}
@@ -1028,13 +1019,13 @@ export default function ProfileScreen() {
         </Modal>
 
         <PeopleListModal
-          visible={!!showPeople}
-          title={showPeople === 'followers' ? 'Followers' : showPeople === 'following' ? 'Following' : 'Friends'}
-          people={showPeople === 'followers' ? followersList : showPeople === 'following' ? followingList : friends}
+          visible={showPeople}
+          title={t('profile.friendsLabel')}
+          people={friends}
           colors={colors}
-          onClose={() => setShowPeople(null)}
+          onClose={() => setShowPeople(false)}
           onOpenPerson={(p) => {
-            setShowPeople(null);
+            setShowPeople(false);
             navigation.navigate('FriendProfile', { id: p.id });
           }}
         />
@@ -1130,7 +1121,7 @@ export default function ProfileScreen() {
                         style={[styles.favesPopupSlot, styles.favesPopupSlotEmpty, { borderColor: colors.border }]}
                         onPress={() => { setShowAllFaves(false); setShowAddFave(true); }}
                         accessibilityRole="button"
-                        accessibilityLabel="Add a favourite series"
+                        accessibilityLabel={t('a11y.addFavouriteSeries')}
                         activeOpacity={0.7}>
                         <Ionicons name="add" size={20} color={colors.muted} />
                       </TouchableOpacity>
@@ -1149,7 +1140,7 @@ export default function ProfileScreen() {
                         style={styles.favesPopupRemove}
                         onPress={() => removeFave(fave.id || fave.title)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Remove ${fave.title} from favourites`}
+                        accessibilityLabel={t('a11y.removeFavourite', { title: fave.title })}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <Ionicons name="close" size={10} color="#fff" />
                       </TouchableOpacity>
@@ -1297,7 +1288,7 @@ export default function ProfileScreen() {
                             </View>
                             <View style={styles.fullBadgeInfo}>
                               <Text style={[styles.fullBadgeName, { color: earned ? item.grade.color : colors.muted }]}>{badgeName(badge)}</Text>
-                              {pinned && <Text style={[styles.badgePinHint, { color: colors.primary }]}>★ On profile</Text>}
+                              {pinned && <Text style={[styles.badgePinHint, { color: colors.primary }]}>{t('profile.onProfile')}</Text>}
                               {prog && (
                                 <View style={styles.badgeProgWrap}>
                                   <View style={[styles.badgeProgTrack, { backgroundColor: colors.border }]}>
@@ -1369,7 +1360,7 @@ export default function ProfileScreen() {
               <TouchableOpacity hitSlop={HIT_SLOP}
                 onPress={() => { setShowAddFave(false); setFaveSearch(''); setSearchResults([]); }}
                 accessibilityRole="button"
-                accessibilityLabel="Close">
+                accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -1386,7 +1377,7 @@ export default function ProfileScreen() {
               <Ionicons name="search-outline" size={14} color={colors.muted} />
               <TextInput
                 style={[styles.addFaveSearchInput, { color: colors.text }]}
-                placeholder="Search title..."
+                placeholder={t('placeholder.searchTitle')}
                 placeholderTextColor={colors.muted}
                 value={faveSearch}
                 onChangeText={setFaveSearch}
@@ -1490,11 +1481,9 @@ const styles = StyleSheet.create({
   friendAvatarImg: { width: '100%', height: '100%', borderRadius: 24 },
 
   // People stats row (Friends / Followers / Following)
-  peopleRow: { flexDirection: 'row', gap: 22 },
+  peopleRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6 },
   peopleRowInCard: { marginTop: 10, marginBottom: 2 },
-  peopleCell: { alignItems: 'center' },
-  peopleCellCount: { fontSize: 14, fontWeight: '700', marginTop: 1 },
-  peopleCellLabel: { fontSize: 10 },
+  peopleRowText: { fontSize: 11.5, fontWeight: '600' },
 
   // People list modal
   peopleModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 24 },

@@ -42,7 +42,6 @@ function buildNotification(row) {
   let text = '';
   if (row.type === 'friend_request')       text = 'sent you a friend request';
   else if (row.type === 'friend_accepted') text = 'accepted your friend request';
-  else if (row.type === 'follow')          text = 'started following you';
   else if (row.type === 'comment')         text = `commented on ${d.series_title || 'a series'}${d.text_preview ? `: "${d.text_preview}"` : ''}`;
   else if (row.type === 'reply')           text = `replied to your comment on ${d.series_title || 'a series'}${d.text_preview ? `: "${d.text_preview}"` : ''}`;
   else if (row.type === 'like')            text = `liked ${d.series_title || 'your series'}`;

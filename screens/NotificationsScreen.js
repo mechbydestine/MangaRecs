@@ -130,7 +130,7 @@ export default function NotificationsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity hitSlop={HIT_SLOP} style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
+        <TouchableOpacity hitSlop={HIT_SLOP} style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('friend.goBack')}>
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>{t('notifications.title')}</Text>

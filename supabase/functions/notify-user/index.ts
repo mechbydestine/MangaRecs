@@ -23,7 +23,6 @@ type NotifyType =
   | "direct_message"
   | "comment"
   | "reply"
-  | "follow"
   | "friend_request";
 
 interface NotifyBody {
@@ -40,7 +39,6 @@ const PREF_KEY: Record<NotifyType, string> = {
   direct_message: "directMessages",
   comment: "comments",
   reply: "replies",
-  follow: "followers",
   friend_request: "friendActivity",
 };
 
@@ -159,10 +157,6 @@ Deno.serve(async (req) => {
       ? `${fromName} replied to you on ${body.seriesTitle}`
       : `${fromName} replied to your comment`;
     data = { type: "reply", series_title: body.seriesTitle ?? null };
-  } else if (type === "follow") {
-    title = "New follower";
-    bodyText = `${fromName} started following you`;
-    data = { type: "follow" };
   } else {
     title = "New friend request";
     bodyText = `${fromName} sent you a friend request`;

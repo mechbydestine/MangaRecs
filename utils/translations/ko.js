@@ -1,5 +1,8 @@
 export default {
   common: {
+    ok: '확인',
+    or: '또는',
+    gotIt: '알겠어요',
     cancel: '취소',
     save: '저장',
     done: '완료',
@@ -50,13 +53,6 @@ export default {
 
   feed: {
     trending: '인기 급상승',
-    video: {
-      play: '{title} 재생',
-      mute: '음소거',
-      unmute: '음소거 해제',
-      openExternal: '열기',
-      embedFailed: '이 동영상은 여기서 재생할 수 없습니다. 열기를 눌러 시청하세요.',
-    },
     destEmail: "이메일",
     creatorLabel: "MangaRecs 크리에이터",
     addFriendsFirst: "추천을 보내려면 먼저 친구를 추가하세요.",
@@ -68,6 +64,13 @@ export default {
     card: '카드',
     more: '더보기',
     recommendedSites: '추천 사이트',
+    siteWebtoon: '공식 웹툰',
+    siteMangaPlus: '슈에이샤 공식 작품',
+    siteMangaDex: '최대 규모의 만화 라이브러리',
+    siteBato: '커뮤니티 스캔',
+    goToSite: '사이트로 이동',
+    inThisApp: '이 앱에서',
+    searchWeb: '웹에서 검색',
     unreleased: '미공개',
     comingSoon: '출시 예정',
     title: '홈',
@@ -88,6 +91,7 @@ export default {
   },
 
   library: {
+    downloadForOffline: '→ 오프라인으로 읽으려면 챕터 다운로드',
     newChapter: "새 화",
     trending: "인기",
     justAddedBadge: "방금 추가",
@@ -150,6 +154,10 @@ export default {
   },
 
   reader: {
+    pinchHint: '핀치로 확대 · 두 번 탭하여 전환',
+    tapHint: '← 왼쪽 탭 · 가운데로 UI 숨김 · 오른쪽 탭 →',
+    importNoLibrary: '라이브러리를 찾지 못했습니다. 이 사이트에 로그인했는지 확인한 뒤 다시 가져오기를 누르세요.',
+    invertHint: '페이지 색을 반전합니다 — 만화 페이지는 그대로',
     recent: "최근",
     autoScrollSpeed: "자동 스크롤 속도",
     rotateHint: "기기를 돌리면 가로 모드로 읽을 수 있습니다",
@@ -201,6 +209,7 @@ export default {
   },
 
   community: {
+    noFriendsYet: '아직 친구가 없습니다 — 탭하여 팔로우할 독자를 찾아보세요',
     tapToVote: "항목을 눌러 투표하세요",
     pollOfTheWeek: "이번 주 투표",
     searchHint: "사용자 이름으로 독자 찾기",
@@ -210,6 +219,7 @@ export default {
     noFriendRankings: "아직 순위에 오른 친구가 없습니다. 독자를 더 추가해 비교해 보세요.",
     leaderboardError: "리더보드를 불러오지 못했습니다.",
     mangarecsReaders: "MANGARECS 독자",
+    notRated: '평가 없음',
     addAFriend: '친구 추가',
     searchByUsername: '사용자명으로 MangaRecs 독자를 찾아보세요',
     global: '전체',
@@ -247,6 +257,14 @@ export default {
   },
 
   profile: {
+    friendsLabel: '친구',
+    mutualFriends: '함께 아는 친구',
+    friendsCount_one: '친구 1명',
+    friendsCount_other: '친구 {count}명',
+    mutualCount_one: '함께 아는 친구 1명',
+    mutualCount_other: '함께 아는 친구 {count}명',
+    tapToEditBio: '탭하여 자기소개 편집',
+    onProfile: '★ 프로필에 표시 중',
     readStat: "읽음",
     chromasLabel: "컬러",
     recapTeaser: "상반기 결산, 지금 공개",
@@ -293,6 +311,23 @@ export default {
   },
 
   settings: {
+    guestUpgradeDesc: '정식 계정을 만들면 기기를 바꾸거나 재설치해도 읽기 진행률, 배지, 친구가 그대로 유지됩니다.',
+    displayNameDesc: 'MangaRecs 전체에 표시되며 언제든 변경할 수 있습니다',
+    appearBusyDesc: '온라인일 때도 친구에게 빨간 "바쁨" 상태로 표시됩니다',
+    adultContent: '성인 콘텐츠 (18세 이상)',
+    trackersDesc: '트래커 프로필을 연결하면 MangaRecs에서 작품으로 바로 이동할 수 있습니다.',
+    syncingAnilist: 'AniList 목록 동기화 중…',
+    anilistNotFound: '해당 AniList 사용자를 찾을 수 없거나 목록이 비공개입니다.',
+    planRowDesc: '무료 · Pro — 포함 내역 보기',
+    deleteWarning: 'MangaRecs 계정, 읽기 기록, 배지, 친구, 저장된 모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.',
+    plannedPricing: '표시된 가격은 예정 가격이며 확정이 아닙니다 · 오늘 결제되지 않습니다',
+    tasteWeightsDesc: '이 가중치는 평가하고 좋아요를 누르고 스와이프한 작품에서 계산됩니다. 값이 높을수록 Recs에 해당 장르가 더 많이 표시됩니다. 자유롭게 조절하세요.',
+    noTasteData: '아직 취향 데이터가 없습니다. 몇 작품을 평가하거나 좋아요를 눌러 프로필을 만들어 보세요.',
+    linkAccountDesc: '읽기 진행률, 배지, 친구는 그대로 유지됩니다. 다시 로그인할 수단이 추가될 뿐입니다.',
+    clearCacheTitle: '캐시를 지울까요?',
+    clearCacheBody: '캐시된 표지 이미지를 정리합니다. 라이브러리, 평점, 읽기 진행률, 다운로드한 챕터에는 영향이 없습니다.',
+    clearAction: '지우기',
+    aiRecDesc: '읽은 기록과 장르 취향을 바탕으로 Recs 피드를 맞춤 구성합니다. 끄면 인기 작품만 표시됩니다.',
     importPartial: "트래커가 응답을 멈춰 일부 작품이 빠졌을 수 있습니다. 다시 실행해 마무리하세요",
     importFromAnilist: "AniList에서 가져오기",
     importFromMal: "MyAnimeList에서 가져오기",
@@ -386,8 +421,6 @@ export default {
       commentsDesc: '내가 올린 작품에 댓글이 달릴 때',
       likes: '좋아요',
       likesDesc: '내 게시물이나 댓글에 좋아요를 받을 때',
-      followers: '새 팔로워',
-      followersDesc: '누군가 나를 팔로우하기 시작할 때',
       friendActivity: '친구 요청',
       friendActivityDesc: '받은 요청과 내가 보낸 요청의 수락',
       directMessages: '다이렉트 메시지',
@@ -424,6 +457,14 @@ export default {
   },
 
   onboarding: {
+    backLink: '← 뒤로',
+    signUpPitch: '가입하면 읽기 진행률, 선호 장르, 친구, 라이브러리가 계정에 동기화되어 저장됩니다.',
+    signUpFree: '가입하기 — 무료',
+    usernamePermanent: '사용자 이름은 나중에 변경할 수 없으니 신중히 정하세요. 이미 있다면 비워 두세요.',
+    benefitSync: '기기 간 읽기 진행률 동기화',
+    benefitRecs: '맞춤 추천',
+    benefitFriends: '친구와 연결하기',
+    benefitBadges: '배지를 모으고 연속 기록 쌓기',
     saveProgressDesc: "진행 상황, 설정, 라이브러리를 저장합니다.",
     tasteFirstBtn: "취향부터 설정하기",
     pick3Genres: "좋아하는 장르 3개를 고르세요.",
@@ -446,6 +487,9 @@ export default {
   },
 
   auth: {
+    createAccount: '계정 만들기',
+    createAnAccount: '계정을 만드세요',
+    logInExisting: '기존 계정으로 로그인',
     codeSentHint: "6자리 코드를 이메일로 보내드립니다.",
     noCode: "코드를 받지 못하셨나요?",
     logIn: '로그인',
@@ -471,6 +515,7 @@ export default {
   },
 
   gate: {
+    dobPrivacy: '생년월일은 연령 확인에만 사용되며 서버에 저장되지 않습니다.',
     ageTitle: "연령 확인",
     confirmAge: "나이 확인",
     title: '{action}하려면 계정이 필요합니다',
@@ -481,6 +526,7 @@ export default {
   },
 
   discussion: {
+    spoilerTap: '스포일러 · 탭하여 보기',
     spoilerToggle: "스포일러",
     spoilers: "스포일러",
     replyingTo: "답장 대상",
@@ -493,6 +539,27 @@ export default {
   },
 
   creator: {
+    readsThisWeek: '이번 주 조회수',
+    noSeriesYet: '아직 작품이 없습니다 — 첫 작품을 올려보세요!',
+    statSeriesPublished: '게시한 시리즈',
+    statTotalReads: '총 조회수',
+    statChapters: '게시한 화',
+    statusActive: '연재 중',
+    statusDraft: '초안',
+    statusHiatus: '휴재',
+    chapterCount: '{n}화',
+    gapFlush: '밀착',
+    gapFlushHint: '이어지는 그림',
+    gapStandard: '표준',
+    gapStandardHint: '일반적인 호흡',
+    gapBreath: '여백',
+    gapBreathHint: '감정의 순간',
+    gapCliffhang: '절단신공',
+    gapCliffhangHint: '긴 여백',
+    monetizationTitle: '수익화',
+    seriesStats: '챕터: {chapters}\n총 조회수: {reads}\n마지막 업데이트: {updated}',
+    recently: '최근',
+    selectGenre: '장르 선택',
     monetizationTagline: "Pro 구독과 후원으로 작품 수익을 얻으세요.",
     readLabel: "조회",
     monetizationSoon: "Pro 구독과 후원으로 작품 수익을 얻으세요. 이 기능은 곧 제공되며, 출시되면 시리즈가 자동으로 등록됩니다.",
@@ -512,6 +579,8 @@ export default {
   },
 
   moderation: {
+    reportsAdminOnly: '신고를 불러오지 못했습니다 — 관리자 전용입니다.',
+    candidatesAdminOnly: '후보를 불러오지 못했습니다 — 관리자 전용입니다.',
     reportedFor: "신고 사유:",
     title: '운영 관리',
     reports: '신고',
@@ -521,10 +590,17 @@ export default {
   },
 
   dm: {
+    emptyThread: '대화를 시작해 보세요 — 메시지를 보내거나 만화를 추천해 보세요!',
+    noGifs: 'GIF를 찾지 못했습니다. 다른 검색어를 사용해 보세요.',
     readIt: '읽기',
   },
 
   recap: {
+    shareSquare: '정사각형 이미지로 공유',
+    blankMap: '당신의 지도는 아직 백지입니다 — 그게 재미있는 부분이죠.',
+    compareEmpty: '친구를 몇 명 추가하면 이번 반기 비교를 볼 수 있습니다.',
+    sharedTaste: '이번 반기 독서 취향 일치도',
+    noOverlap: '이번 반기에는 겹치는 작품이 없습니다 — 서로 다른 서가, 같은 앱.',
     youDoveInto: "당신이 빠져든 것",
     yourDayInChapters: "당신의 하루, 화 단위로",
     yourTopSeries: "당신의 최고 작품",
@@ -555,17 +631,33 @@ export default {
   },
 
   friend: {
-    follow: "팔로우",
-    unfollow: "팔로우 취소",
+    blockTitle: '{name} 님을 차단할까요?',
+    blockBody: '상대방은 회원님에게 메시지를 보낼 수 없고, 회원님도 상대방의 댓글을 볼 수 없습니다. 친구 관계도 해제됩니다.',
+    blockAction: '차단',
+    thisUser: '이 사용자',
     block: "차단",
     unblock: "차단 해제",
     notFound: '친구를 찾을 수 없습니다.',
     goBack: '돌아가기',
     online: '온라인',
     noFaves: '아직 즐겨찾기가 없습니다',
+    addFriend: '친구 추가',
+    requestPending: '친구 요청 대기 중',
+    respondToRequest: '{name} 님이 친구 요청을 보냈습니다',
+    removeFriend: '친구 삭제',
+    respondTitle: '{name} 님이 친구 요청을 보냈습니다',
+    respondBody: '수락하면 서로의 친구 목록에 표시되고 언제든지 메시지를 보낼 수 있습니다.',
+    cancelTitle: '{name} 님에게 보낸 요청을 취소할까요?',
+    cancelBody: '상대방에게는 알리지 않습니다. 나중에 다시 보낼 수 있습니다.',
+    cancelAction: '요청 취소',
+    removeTitle: '{name} 님을 친구에서 삭제할까요?',
+    removeBody: '상대방에게는 알리지 않습니다. 다시 친구가 되려면 둘 중 한 명이 요청을 새로 보내야 합니다.',
+    removeAction: '친구 삭제',
   },
 
   forYou: {
+    emptyTaste: '취향 프로필이 비어 있습니다. 몇 작품에 좋아요를 누르거나 저장하고 읽으면 이곳의 추천이 취향에 맞춰지기 시작합니다.',
+    adultDisabled: '인증은 완료되었지만 성인 콘텐츠가 꺼져 있습니다. 설정 → 콘텐츠에서 켜세요.',
     unreleased: "미공개",
     comingSoon: "곧 공개",
     subtitle: "AI 추천",
@@ -599,9 +691,22 @@ export default {
     accountCreated: '계정을 만들었습니다. 확인 메일을 확인해 주세요. 기존 기록은 이미 저장되었습니다',
     deleteFailed: '계정을 삭제하지 못했습니다. 지원팀에 문의해 주세요',
     paidPlansLater: '유료 플랜은 정식 출시 후에 제공될 예정입니다',
+    friendRequestSent: '{name} 님에게 친구 요청을 보냈습니다',
+    nowFriends: '{name} 님과 친구가 되었습니다',
+    friendRemoved: '{name} 님을 친구에서 삭제했습니다',
+    requestCanceled: '친구 요청을 취소했습니다',
+    requestDeclined: '친구 요청을 거절했습니다',
+    friendActionFailed: '처리하지 못했습니다. 다시 시도해 주세요.',
   },
 
   placeholder: {
+    chapterTitleNum: '{n}화 제목 (선택)',
+    usernameOrEmail: '사용자 이름 또는 이메일',
+    usernameRules: '사용자 이름 (영문·숫자만)',
+    passwordMin: '비밀번호 (6자 이상)',
+    passwordMinChars: '비밀번호 (최소 6자)',
+    bio: '자기소개를 작성하세요…',
+    shortDescription: '간단한 설명…',
     email: '이메일',
     password: '비밀번호',
     createPassword: '비밀번호 만들기',
@@ -618,6 +723,7 @@ export default {
     searchSeries: '이야기할 작품을 검색…',
     searchSites: '사이트 검색 또는 URL 붙여넣기…',
     enterUrl: '웹사이트 또는 URL 입력…',
+    searchOrUrl: '작품 검색 또는 URL 입력',
     seriesTitle: '작품 제목',
   },
 
@@ -678,6 +784,7 @@ export default {
   },
 
   allDiscussions: {
+    rankedBy: '인기, 최근 활동, 취향 적합도를 기준으로 정렬됩니다',
     openHint: "토론을 엽니다",
     readHint: "{title} 읽기",
   },
@@ -689,6 +796,7 @@ export default {
   },
 
   guidelines: {
+    agreeBtn: '동의하고 시작하기',
     agree: "동의합니다",
   },
 
@@ -719,6 +827,10 @@ export default {
   badge: {
     unlocked: "배지 획득",
     notEarned: "아직 획득하지 않음",
+    removeFromProfile: '프로필에서 제거',
+    addToProfile: '프로필에 추가',
+    showcaseFull: '진열장이 가득 참 (3/3)',
+    nextBadge: '다음 배지',
   },
 
   share: {
@@ -736,6 +848,44 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    likeCount: '좋아요 {n}개',
+    commentCount: '댓글 {n}개',
+    decreaseGenreWeight: '{genre} 가중치 낮추기',
+    increaseGenreWeight: '{genre} 가중치 높이기',
+    removeRecentSearch: '최근 검색에서 "{term}" 제거',
+    stepOf: '{total}단계 중 {n}단계',
+    badgeNamed: '{name} 배지',
+    removeFavourite: '{title} 을(를) 즐겨찾기에서 제거',
+    leaderboardRank: '{rank}위, {name}, {hours} 읽음',
+    leaderboardRankFull: '{rank}위, {name}, {hours} 읽음, 배지 {badges}개',
+    pageSpacingOpt: '{label} 페이지 간격, {hint}',
+    badgeFallback: '배지',
+    reportComment: '이 댓글 신고',
+    reportReply: '이 답글 신고',
+    cancelReply: '답글 취소',
+    markSpoiler: '스포일러로 표시',
+    postComment: '댓글 게시',
+    recommendManga: '만화 추천하기',
+    sendPhoto: '사진 보내기',
+    messageInput: '메시지 입력',
+    sendMessage: '메시지 보내기',
+    markCommentSpoiler: '댓글을 스포일러로 표시',
+    filterByGenre: '장르로 필터링',
+    clearSearch: '검색 지우기',
+    startWithoutAccount: '계정 없이 읽기 시작',
+    skipSetup: '설정 건너뛰기',
+    friendsAndMessages: '친구 및 메시지',
+    badgeHint: '이 배지를 얻은 방법을 표시',
+    addBadgeShowcase: '진열장에 배지 추가',
+    addFavouriteSeries: '즐겨찾는 작품 추가',
+    closeReader: '리더 닫기',
+    browserBack: '브라우저에서 뒤로',
+    browserForward: '브라우저에서 앞으로',
+    chooseSource: '읽기 소스 선택',
+    reloadChapter: '챕터 새로고침',
+    ambienceSounds: '환경음',
+    declineFriendRequest: '친구 요청 거절',
+    dismiss: '닫기',
     bioInput: "자기소개",
     commentInput: "댓글 입력",
     spoilerCommentInput: "스포일러 댓글 입력",
@@ -775,5 +925,25 @@ export default {
     closeZoom: "확대 보기 닫기",
     mangaPage: "만화 페이지",
     openSeries: "시리즈 열기",
+  },
+  plan: {
+    freeCommunity: '커뮤니티 및 소셜 기능',
+    freeAmbience: '환경음 (기본 프리셋)',
+    freeDownloads: '챕터 다운로드 (30화 제한)',
+    freeAnalytics: '전체 독서 분석 및 연속 기록',
+    freeAiRecs: 'AI 기반 추천',
+    freeRecsPage: 'Recs 페이지 및 취향 프로필',
+    proEverything: '무료 플랜의 모든 기능',
+    proDownloads: '무제한 챕터 다운로드, 오프라인',
+    proAmbience: '맞춤 환경음 업로드',
+    proReminders: '새 챕터 사전 알림 및 카운트다운',
+    proBadge: '전용 Pro 배지 및 프로필 장식',
+    proAvatarRing: '움직이는 아바타 링',
+    proRecap: '연간 독서 결산, 공유 가능한 리캡',
+    proBookClubs: 'Pro 전용 북클럽 및 초대제 토론',
+    proBeta: '베타 기능 및 얼리 액세스',
+    proInsights: '크리에이터 인사이트 및 분석',
+    proSupport: '개발자와 직접 소통하는 지원 창구',
+    savePercent: '{n}% 할인',
   },
 };

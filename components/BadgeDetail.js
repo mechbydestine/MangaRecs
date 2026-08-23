@@ -62,7 +62,7 @@ export default function BadgeDetail({
           activeOpacity={0.8}>
           <Ionicons name={pinned ? 'remove-circle-outline' : 'add-circle-outline'} size={15} color={pinned ? colors.primary : grade.color} />
           <Text style={[styles.pinBtnText, { color: pinned ? colors.primary : grade.color }]}>
-            {pinned ? 'Remove from profile' : canPin ? 'Add to profile' : 'Showcase full (3/3)'}
+            {pinned ? t('badge.removeFromProfile') : canPin ? t('badge.addToProfile') : t('badge.showcaseFull')}
           </Text>
         </TouchableOpacity>
       )}

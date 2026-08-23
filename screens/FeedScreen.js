@@ -21,9 +21,7 @@ import ShareCard from '../components/ShareCard';
 import { supabase } from '../supabase';
 import { syncReadOpen, setLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { sendCommentPush } from '../utils/pushNotifications';
-import { loadVideoPool, interleaveVideos } from '../utils/shortVideos';
 import { buildTrending } from '../utils/trendingFeed';
-import ShortVideoCard from '../components/ShortVideoCard';
 import { requireAccount } from '../utils/guestGate';
 import { useNotifications } from '../utils/NotificationsContext';
 
@@ -31,7 +29,7 @@ import { MANGA_POOL, COMPLETED_IDS } from '../utils/mangaPool';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
-import { light, medium, selection } from '../utils/haptics';
+import { medium } from '../utils/haptics';
 import { startCoverTransition } from '../utils/coverTransition';
 import { HIT_SLOP } from '../utils/tokens';
 import { useReducedMotion, useAnnounceOnOpen } from '../utils/a11y';
@@ -337,16 +335,40 @@ export async function augmentPoolFromApi() {
 
 // ── Static data ─────────────────────────────────────────────────────────────
 
+// The four sites the search panel recommends, in this order. Bato.to was
+// pulled on 2026-08-10 when its domain stopped resolving and is back by
+// request — if it 404s again this is the line to revisit.
 const BOOKMARKS = [
-  { name: 'MangaDex',  url: 'https://mangadex.org',              desc: 'Largest manga library',   emoji: '📚' },
-  { name: 'Webtoon',   url: 'https://webtoons.com',              desc: 'Official webtoons',        emoji: '🎨' },
-  { name: 'MangaPlus', url: 'https://mangaplus.shueisha.co.jp',  desc: 'Official Shueisha titles', emoji: '⭐' },
-  // Bato.to was here until 2026-08-10 and its domain no longer resolves — the
-  // app was recommending a dead site. Replaced with two that were audited live
-  // and answer a plain request with real results.
-  { name: 'Weeb Central', url: 'https://weebcentral.com',        desc: 'Community scanlations',    emoji: '⚡' },
-  { name: 'MangaKatana',  url: 'https://mangakatana.com',        desc: 'Fast, ad-light reader',    emoji: '📖' },
+  { name: 'WEBTOON',    url: 'https://www.webtoons.com' },
+  { name: 'MANGA Plus',  url: 'https://mangaplus.shueisha.co.jp' },
+  { name: 'MangaDex',    url: 'https://mangadex.org' },
+  { name: 'Bato.to',     url: 'https://bato.to' },
 ];
+
+// Descriptions sit here rather than on BOOKMARKS so the key strings stay
+// literal at the t() call. check-i18n only sees keys written out at a call
+// site — one reached through a variable is invisible to it, which is how a
+// missing translation gets shipped with the checker still green.
+const SITE_DESC = {
+  'WEBTOON':    (t) => t('feed.siteWebtoon'),
+  'MANGA Plus': (t) => t('feed.siteMangaPlus'),
+  'MangaDex':   (t) => t('feed.siteMangaDex'),
+  'Bato.to':    (t) => t('feed.siteBato'),
+};
+
+// Plain web search for anything the pool doesn't carry — the panel's field is
+// a browser address bar as well as an in-app search, so a query that is
+// neither a URL nor a known series still has somewhere to go.
+const webSearchUrl = (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+
+// A bare domain has no scheme but is still a destination. Requires a dot, no
+// whitespace and a plausible TLD, so "Attack on Titan" and "one piece ch 5"
+// stay searches instead of resolving to a hostname.
+function looksLikeUrl(value) {
+  const v = (value || '').trim();
+  if (/^https?:\/\//i.test(v)) return true;
+  return /^[^\s/]+\.[a-z]{2,}(\/\S*)?$/i.test(v);
+}
 
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -540,7 +562,6 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
   }
 
   function pulse(anim, cb) {
-    medium();
     Animated.sequence([
       Animated.spring(anim, { toValue: 0.68, useNativeDriver: true, speed: 100, bounciness: 0 }),
       Animated.spring(anim, { toValue: 1.35, useNativeDriver: true, speed: 18,  bounciness: 16 }),
@@ -748,7 +769,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
           accessibilityRole="button"
           accessibilityLabel={liked ? 'Unlike' : 'Like'}
           accessibilityState={{ selected: liked }}
-          accessibilityHint={`${formatCount(likeCount)} likes`}>
+          accessibilityHint={t('a11y.likeCount', { n: formatCount(likeCount) })}>
           <Animated.View style={{ transform: [{ scale: likeScale }] }}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? '#E8527A' : cardText} />
           </Animated.View>
@@ -760,8 +781,8 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
           onPress={() => pulse(chatScale, () => onComment(item))}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Comments"
-          accessibilityHint={`${formatCount(item.commentCount || 0)} comments`}>
+          accessibilityLabel={t('feed.comments')}
+          accessibilityHint={t('a11y.commentCount', { n: formatCount(item.commentCount || 0) })}>
           <Animated.View style={{ transform: [{ scale: chatScale }] }}>
             <Ionicons name="chatbubble-ellipses-outline" size={28} color={cardText} />
           </Animated.View>
@@ -773,7 +794,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
           onPress={() => { setShareCount((c) => c + 1); pulse(shareScale, () => onShare(item)); }}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Share">
+          accessibilityLabel={t('feed.share')}>
           <Animated.View style={{ transform: [{ scale: shareScale }] }}>
             <Ionicons name="share-social-outline" size={28} color={cardText} />
           </Animated.View>
@@ -821,7 +842,6 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
   const [repliesLoading, setRepliesLoading] = useState(false);
 
   function handleLike() {
-    light();
     Animated.sequence([
       Animated.spring(likeScale, { toValue: 0.55, useNativeDriver: true, speed: 90, bounciness: 0 }),
       Animated.spring(likeScale, { toValue: 1.45, useNativeDriver: true, speed: 18, bounciness: 16 }),
@@ -1007,6 +1027,17 @@ export default function FeedScreen() {
   const [commentInput, setCommentInput] = useState('');
   const [commentSpoiler, setCommentSpoiler] = useState(false);
   const [siteInput, setSiteInput]     = useState('');
+  // In-app hits for the search panel. Title, alternate title and author all
+  // match, so "Isayama" finds Attack on Titan the way its romaji name does.
+  const poolMatches = useMemo(() => {
+    const q = siteInput.trim().toLowerCase();
+    if (q.length < 2 || looksLikeUrl(q)) return [];
+    return MANGA_POOL.filter((m) =>
+      m.title.toLowerCase().includes(q)
+      || (m.searchKey && m.searchKey.toLowerCase().includes(q))
+      || (m.author && m.author.toLowerCase().includes(q))
+    ).slice(0, 6);
+  }, [siteInput]);
   const [refreshing, setRefreshing]   = useState(false);
 
   const notifY    = useRef(new Animated.Value(-metrics.notifH)).current;
@@ -1028,20 +1059,6 @@ export default function FeedScreen() {
   const onFeedScroll = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })
   ).current;
-  const lastSnapIndexRef = useRef(0);
-  // Which card the feed is settled on. Only video cards read it — FeedCard's
-  // memo comparator ignores every prop that changes here, so manga cards do
-  // not re-render when this moves.
-  const [activeIndex, setActiveIndex] = useState(0);
-  function onFeedMomentumEnd(e) {
-    const idx = Math.round(e.nativeEvent.contentOffset.y / metrics.height);
-    if (idx !== lastSnapIndexRef.current) {
-      lastSnapIndexRef.current = idx;
-      setActiveIndex(idx);
-      selection();
-    }
-  }
-
   async function loadUserInfo() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) return;
@@ -1158,10 +1175,7 @@ export default function FeedScreen() {
       }
 
       // Primary: sectioned feed — Hot Picks → Trending → Popular → algo
-      // The video pool loads alongside the queue rather than after it, so the
-      // first batch can already carry video instead of only getting it once
-      // the user scrolls far enough to trigger loadMore.
-      await Promise.all([refillQueue(), loadVideoPool()]);
+      await refillQueue();
       let firstBatch = await buildSectionedFeed(savedIds, likedSet);
 
       // Prepend creator series (max 3, before hot picks)
@@ -1198,9 +1212,6 @@ export default function FeedScreen() {
       } catch (_) {}
 
       if (cancelled) return;
-      // Videos go in last, after the creator prepend, so the cadence counts
-      // real feed positions rather than positions that later shift.
-      firstBatch = interleaveVideos(firstBatch, 0);
       setFeed(firstBatch);
       setInitialLoading(false);
       syncLiveCounts(firstBatch);
@@ -1408,7 +1419,6 @@ export default function FeedScreen() {
   }
 
   function handleCommentOpen(item) {
-    light();
     setActiveItem(item);
     setCommentsOpen(true);
     setCommentSpoiler(false);
@@ -1416,7 +1426,6 @@ export default function FeedScreen() {
   }
 
   async function handleShareOpen(item) {
-    light();
     // Persist the share for the live counter (matches the optimistic +1 on
     // tap) and mirror it into `feed` — same reasoning as handleLike/
     // handleBookmark above, the card's own local count doesn't survive a
@@ -1588,7 +1597,6 @@ export default function FeedScreen() {
     ));
     setCommentInput('');
     setCommentSpoiler(false);
-    light();
     if (currentUserId) {
       await supabase.from('comments').insert({ user_id: currentUserId, series_title: activeItem.title, text, spoiler: isSpoiler });
       // No profile lookup needed — notify-user resolves both the commenter's
@@ -1690,12 +1698,41 @@ export default function FeedScreen() {
 
   // ── Misc ──────────────────────────────────────────────────────────────────
 
-  function handleGo() {
-    if (!siteInput) return;
-    const url = siteInput.startsWith('http') ? siteInput : `https://${siteInput}`;
+  function closeSearch() {
     setSiteInput('');
     setSearchOpen(false);
-    navigation.navigate('Reader', { url, title: siteInput });
+  }
+
+  function openInBrowser(url, title) {
+    closeSearch();
+    navigation.navigate('Reader', { url, title });
+  }
+
+  // Pool hits open the real series page rather than a web search for its name.
+  function openPoolSeries(m) {
+    closeSearch();
+    navigation.navigate('MangaDetail', {
+      title: m.title,
+      searchKey: m.searchKey || m.title,
+      lang: m.lang || 'ja',
+      color: m.color,
+      mangaId: m.mangaId,
+      chapters: m.chapters,
+    });
+  }
+
+  function handleGo() {
+    const q = siteInput.trim();
+    if (!q) return;
+    if (looksLikeUrl(q)) {
+      openInBrowser(q.startsWith('http') ? q : `https://${q}`, q);
+      return;
+    }
+    // Submitting on an exact title match goes to the series, not the web —
+    // typing a name in full is a strong signal you meant that one.
+    const exact = poolMatches.find((m) => m.title.toLowerCase() === q.toLowerCase());
+    if (exact) { openPoolSeries(exact); return; }
+    openInBrowser(webSearchUrl(q), q);
   }
 
   // ── Tab-icon tap → refresh ────────────────────────────────────────────────
@@ -1736,13 +1773,8 @@ export default function FeedScreen() {
     const batch = dequeueItems(BATCH_SIZE, savedIds).map((item) => ({
       ...item, liked: likedIds.has(item.id),
     }));
-    // Offset by what's already above so the one-in-five cadence carries across
-    // pages instead of restarting at each seam. Computed out here, not inside
-    // the updater below: interleaveVideos advances the pool's rotation cursor,
-    // and a state updater has to be pure — React is free to call it twice.
-    const withVideos = interleaveVideos(batch, feed.length);
     setFeed((prev) => {
-      const next = [...prev, ...withVideos];
+      const next = [...prev, ...batch];
       return next.length > MAX_FEED_LENGTH ? next.slice(TRIM_BATCH) : next;
     });
     syncLiveCounts(batch);
@@ -1756,11 +1788,9 @@ export default function FeedScreen() {
     // Clear seen IDs so the refresh pulls a fresh feed
     _seenIds.clear();
     _feedQueue = [];
-    // Retries the video pool too when a previous load failed (table missing,
-    // network blip) — otherwise pulling to refresh brings back manga only.
-    await Promise.all([refillQueue(), loadVideoPool()]);
+    await refillQueue();
     const savedIds = new Set(savedMap.keys());
-    const batch = interleaveVideos(await buildSectionedFeed(savedIds, likedIds), 0);
+    const batch = await buildSectionedFeed(savedIds, likedIds);
     setFeed(batch);
     syncLiveCounts(batch);
     setRefreshing(false);
@@ -1815,25 +1845,16 @@ export default function FeedScreen() {
         data={feed}
         keyExtractor={(item) => item.feedKey}
         renderItem={({ item, index }) => (
-          item.kind === 'video' ? (
-            <ShortVideoCard
-              item={item}
-              height={metrics.height}
-              isActive={index === activeIndex}
-              tabBarHeight={tabBarHeight}
-            />
-          ) : (
-            <FeedCard
-              item={item}
-              index={index}
-              scrollY={scrollY}
-              onLike={handleLike}
-              onBookmark={handleBookmark}
-              onComment={handleCommentOpen}
-              onShare={handleShareOpen}
-              onOpen={handleOpenReader}
-            />
-          )
+          <FeedCard
+            item={item}
+            index={index}
+            scrollY={scrollY}
+            onLike={handleLike}
+            onBookmark={handleBookmark}
+            onComment={handleCommentOpen}
+            onShare={handleShareOpen}
+            onOpen={handleOpenReader}
+          />
         )}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -1844,7 +1865,6 @@ export default function FeedScreen() {
         bounces={true}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
-        onMomentumScrollEnd={onFeedMomentumEnd}
         getItemLayout={(_, index) => ({ length: metrics.height, offset: metrics.height * index, index })}
         removeClippedSubviews={true}
         windowSize={5}
@@ -1971,7 +1991,7 @@ export default function FeedScreen() {
                   commentSpoiler && styles.commentSpoilerBtnActive,
                 ]}
                 onPress={() => setCommentSpoiler((v) => !v)}
-                accessibilityLabel="Mark comment as spoiler"
+                accessibilityLabel={t('a11y.markCommentSpoiler')}
                 accessibilityState={{ selected: commentSpoiler }}>
                 <Ionicons name={commentSpoiler ? 'eye-off' : 'eye-off-outline'} size={16} color={commentSpoiler ? '#FF3B30' : colors.muted} />
               </TouchableOpacity>
@@ -2251,35 +2271,92 @@ export default function FeedScreen() {
                 value={siteInput}
                 onChangeText={setSiteInput}
                 onSubmitEditing={handleGo}
-                placeholder={t('placeholder.enterUrl')}
+                placeholder={t('placeholder.searchOrUrl')}
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={[styles.searchField, { color: colors.text }]}
               
-                accessibilityLabel={t('placeholder.enterUrl')}/>
+                accessibilityLabel={t('placeholder.searchOrUrl')}/>
               {siteInput ? (
                 <TouchableOpacity onPress={handleGo} style={styles.searchGoBtn}>
                   <Text style={styles.searchGoBtnText}>Go</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
-            <Text style={[styles.searchLabel, { color: colors.muted }]}>{t('feed.recommendedSites')}</Text>
-            <View style={styles.bookmarksGrid}>
-              {BOOKMARKS.map((b) => (
+            {siteInput.trim() ? (
+              <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchResults}>
+                {looksLikeUrl(siteInput) ? (
+                  <TouchableOpacity
+                    style={[styles.searchResultRow, { borderBottomColor: colors.border }]}
+                    onPress={() => openInBrowser(
+                      siteInput.trim().startsWith('http') ? siteInput.trim() : `https://${siteInput.trim()}`,
+                      siteInput.trim(),
+                    )}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t('feed.goToSite')} ${siteInput.trim()}`}>
+                    <Ionicons name="globe-outline" size={17} color={colors.primary} />
+                    <View style={styles.searchResultText}>
+                      <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>{siteInput.trim()}</Text>
+                      <Text style={[styles.searchResultSub, { color: colors.muted }]}>{t('feed.goToSite')}</Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={13} color={colors.muted} />
+                  </TouchableOpacity>
+                ) : null}
+
+                {poolMatches.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={[styles.searchResultRow, { borderBottomColor: colors.border }]}
+                    onPress={() => openPoolSeries(m)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${m.title} — ${t('feed.inThisApp')}`}>
+                    <Ionicons name="book-outline" size={17} color={colors.primary} />
+                    <View style={styles.searchResultText}>
+                      <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>{m.title}</Text>
+                      <Text style={[styles.searchResultSub, { color: colors.muted }]} numberOfLines={1}>
+                        {m.author ? `${t('feed.inThisApp')} · ${m.author}` : t('feed.inThisApp')}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+                  </TouchableOpacity>
+                ))}
+
                 <TouchableOpacity
-                  key={b.name}
-                  style={[styles.bookmarkCard, { backgroundColor: colors.inputBg }]}
-                  onPress={() => { setSearchOpen(false); navigation.navigate('Reader', { url: b.url, title: b.name }); }}>
-                  <Image source={{ uri: getFaviconUrl(b.url) }} style={styles.bookmarkFavicon} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.bookmarkName, { color: colors.text }]}>{b.name}</Text>
-                    <Text style={[styles.bookmarkDesc, { color: colors.muted }]} numberOfLines={1}>{b.desc}</Text>
+                  style={styles.searchResultRow}
+                  onPress={() => openInBrowser(webSearchUrl(siteInput.trim()), siteInput.trim())}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('feed.searchWeb')} ${siteInput.trim()}`}>
+                  <Ionicons name="search-outline" size={17} color={colors.muted} />
+                  <View style={styles.searchResultText}>
+                    <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>{siteInput.trim()}</Text>
+                    <Text style={[styles.searchResultSub, { color: colors.muted }]}>{t('feed.searchWeb')}</Text>
                   </View>
-                  <Ionicons name="open-outline" size={11} color={colors.muted} />
+                  <Ionicons name="open-outline" size={13} color={colors.muted} />
                 </TouchableOpacity>
-              ))}
-            </View>
+              </ScrollView>
+            ) : (
+              <>
+                <Text style={[styles.searchLabel, { color: colors.muted }]}>{t('feed.recommendedSites')}</Text>
+                <View style={styles.bookmarksGrid}>
+                  {BOOKMARKS.map((b) => (
+                    <TouchableOpacity
+                      key={b.name}
+                      style={[styles.bookmarkCard, { backgroundColor: colors.inputBg }]}
+                      onPress={() => openInBrowser(b.url, b.name)}
+                      accessibilityRole="button"
+                      accessibilityLabel={b.name}>
+                      <Image source={{ uri: getFaviconUrl(b.url) }} style={styles.bookmarkFavicon} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.bookmarkName, { color: colors.text }]}>{b.name}</Text>
+                        <Text style={[styles.bookmarkDesc, { color: colors.muted }]} numberOfLines={1}>{SITE_DESC[b.name](t)}</Text>
+                      </View>
+                      <Ionicons name="open-outline" size={11} color={colors.muted} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -2457,6 +2534,11 @@ const styles = StyleSheet.create({
   searchGoBtn: { backgroundColor: '#7858FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, marginLeft: 6 },
   searchGoBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   searchLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  searchResults: { maxHeight: 320 },
+  searchResultRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },
+  searchResultText: { flex: 1, marginLeft: 10, marginRight: 8 },
+  searchResultName: { fontSize: 13, fontWeight: '600' },
+  searchResultSub: { fontSize: 10, marginTop: 2 },
   bookmarksGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   bookmarkCard: { width: '48%', flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 12, marginBottom: 10 },
   bookmarkFavicon: { width: 28, height: 28, borderRadius: 6, marginRight: 8, backgroundColor: '#2A2A2F' },

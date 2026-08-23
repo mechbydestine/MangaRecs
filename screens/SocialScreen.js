@@ -25,7 +25,6 @@ import { prewarmCoverCache } from '../utils/mangaCovers';
 import StarLogo from '../components/StarLogo';
 import BadgeIcon from '../components/BadgeIcon';
 import { computePresenceStatus, PRESENCE_COLORS, PRESENCE_LABELS } from '../utils/presence';
-import { light } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useResponsive } from '../utils/responsive';
 import { HIT_SLOP } from '../utils/tokens';
@@ -111,7 +110,6 @@ function FriendAvatarStatus({ friend, onPeek, onOpenProfile }) {
   const dotColor = PRESENCE_COLORS[status];
 
   function handlePress() {
-    light();
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 80, bounciness: 0 }),
       Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 10 }),
@@ -156,7 +154,6 @@ function PollOptionBar({ opt, pct, count, hasVoted, isSelected, loading, onVote,
 
   function handlePress() {
     if (loading) return;
-    light();
     Animated.sequence([
       Animated.spring(pressScale, { toValue: 0.98, useNativeDriver: true, speed: 90, bounciness: 0 }),
       Animated.spring(pressScale, { toValue: 1,    useNativeDriver: true, speed: 20, bounciness: 6 }),
@@ -970,7 +967,7 @@ export default function SocialScreen() {
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               accessibilityRole="button"
-              accessibilityLabel="Go back"
+              accessibilityLabel={t('friend.goBack')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="chevron-back" size={26} color={colors.text} />
             </TouchableOpacity>
@@ -1021,7 +1018,7 @@ export default function SocialScreen() {
                   style={[styles.declineBtn, { borderColor: colors.border }]}
                   onPress={() => handleDeclineRequest(req.friendshipId)}
                   accessibilityRole="button"
-                  accessibilityLabel="Decline friend request">
+                  accessibilityLabel={t('a11y.declineFriendRequest')}>
                   <Ionicons name="close" size={14} color={colors.muted} />
                 </TouchableOpacity>
               </View>
@@ -1065,9 +1062,7 @@ export default function SocialScreen() {
             onPress={() => setShowAddFriend(true)}
             activeOpacity={0.8}>
             <Ionicons name="people-outline" size={18} color={colors.muted} />
-            <Text style={[styles.noFriendsHintText, { color: colors.muted }]}>
-              No friends yet — tap to find readers to follow
-            </Text>
+            <Text style={[styles.noFriendsHintText, { color: colors.muted }]}>{t('community.noFriendsYet')}</Text>
           </TouchableOpacity>
         ))}
 
@@ -1251,7 +1246,7 @@ export default function SocialScreen() {
             <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>{t('community.addAFriend')}</Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={closeAddFriend} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={closeAddFriend} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>

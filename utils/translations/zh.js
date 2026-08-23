@@ -1,6 +1,9 @@
 // Simplified Chinese.
 export default {
   common: {
+    ok: '确定',
+    or: '或',
+    gotIt: '知道了',
     cancel: '取消',
     save: '保存',
     done: '完成',
@@ -51,13 +54,6 @@ export default {
 
   feed: {
     trending: '趋势',
-    video: {
-      play: '播放 {title}',
-      mute: '静音',
-      unmute: '取消静音',
-      openExternal: '打开',
-      embedFailed: '该视频无法在此播放，点击打开观看。',
-    },
     destEmail: "电子邮件",
     creatorLabel: "MangaRecs 创作者",
     addFriendsFirst: "请先添加好友才能发送推荐。",
@@ -69,6 +65,13 @@ export default {
     card: '卡片',
     more: '更多',
     recommendedSites: '推荐站点',
+    siteWebtoon: '官方条漫',
+    siteMangaPlus: '集英社官方作品',
+    siteMangaDex: '最大的漫画库',
+    siteBato: '社区扫图',
+    goToSite: '前往网站',
+    inThisApp: '在此应用中',
+    searchWeb: '在网络上搜索',
     unreleased: '未上线',
     comingSoon: '即将上线',
     title: '首页',
@@ -89,6 +92,7 @@ export default {
   },
 
   library: {
+    downloadForOffline: '→ 下载章节以离线阅读',
     newChapter: "新章节",
     trending: "热门",
     justAddedBadge: "刚添加",
@@ -151,6 +155,10 @@ export default {
   },
 
   reader: {
+    pinchHint: '双指缩放 · 双击切换',
+    tapHint: '← 点左侧 · 点中间隐藏界面 · 点右侧 →',
+    importNoLibrary: '没有找到书库，请确认你已在该网站登录，然后再次点击导入。',
+    invertHint: '反转页面颜色 — 漫画页面保持不变',
     recent: "最近",
     autoScrollSpeed: "自动滚动速度",
     rotateHint: "旋转设备即可横屏阅读",
@@ -202,6 +210,7 @@ export default {
   },
 
   community: {
+    noFriendsYet: '还没有好友 — 点击寻找可关注的读者',
     tapToVote: "点击选项投票",
     pollOfTheWeek: "本周投票",
     searchHint: "按用户名搜索读者",
@@ -211,6 +220,7 @@ export default {
     noFriendRankings: "还没有好友上榜。添加更多读者，看看你们的差距。",
     leaderboardError: "无法加载排行榜。",
     mangarecsReaders: "MANGARECS 读者",
+    notRated: '暂无评分',
     addAFriend: '添加好友',
     searchByUsername: '按用户名搜索，找到其他 MangaRecs 读者',
     global: '全球',
@@ -248,6 +258,14 @@ export default {
   },
 
   profile: {
+    friendsLabel: '好友',
+    mutualFriends: '共同好友',
+    friendsCount_one: '1 位好友',
+    friendsCount_other: '{count} 位好友',
+    mutualCount_one: '1 位共同好友',
+    mutualCount_other: '{count} 位共同好友',
+    tapToEditBio: '点击编辑简介',
+    onProfile: '★ 已在主页展示',
     readStat: "已读",
     chromasLabel: "配色",
     recapTeaser: "你的上半年总结，现已发布",
@@ -294,6 +312,23 @@ export default {
   },
 
   settings: {
+    guestUpgradeDesc: '创建正式账号后，即使换设备或重装，阅读进度、徽章和好友都不会丢失。',
+    displayNameDesc: '将显示在 MangaRecs 各处，可随时更改',
+    appearBusyDesc: '即使在线，也向好友显示红色“忙碌”状态',
+    adultContent: '成人内容（18+）',
+    trackersDesc: '关联你的追踪站账号，即可从 MangaRecs 直接跳转到任意作品。',
+    syncingAnilist: '正在同步 AniList 列表…',
+    anilistNotFound: '找不到该 AniList 用户名，或其列表为私密。',
+    planRowDesc: '免费 · Pro — 查看包含内容',
+    deleteWarning: '这将永久删除你的 MangaRecs 账号、阅读记录、徽章、好友和所有保存的数据，且无法撤销。',
+    plannedPricing: '所示价格为计划价格，尚未确定 · 今天不会向你收费',
+    tasteWeightsDesc: '这些权重来自你评分、点赞和滑动过的作品，权重越高，Recs 就会推荐更多该类型。可自由上调或下调。',
+    noTasteData: '还没有口味数据，先给几部作品评分、点赞或滑动，来建立你的画像。',
+    linkAccountDesc: '你的阅读进度、徽章和好友完全保留，这只是多了一种重新登录的方式。',
+    clearCacheTitle: '要清除缓存吗？',
+    clearCacheBody: '这会释放缓存的封面图片。你的书库、评分、阅读进度和已下载章节都不受影响。',
+    clearAction: '清除',
+    aiRecDesc: '根据你的阅读记录和类型偏好来定制 Recs 推荐流。关闭后只显示热门作品。',
     importPartial: "追踪服务中断，部分作品可能缺失——请再运行一次以补齐",
     importFromAnilist: "从 AniList 导入",
     importFromMal: "从 MyAnimeList 导入",
@@ -387,8 +422,6 @@ export default {
       commentsDesc: '有人评论你发布的作品时',
       likes: '点赞',
       likesDesc: '有人给你的帖子或评论点赞时',
-      followers: '新粉丝',
-      followersDesc: '有人开始关注你时',
       friendActivity: '好友申请',
       friendActivityDesc: '收到的申请，以及你的申请被接受时',
       directMessages: '私信',
@@ -425,6 +458,14 @@ export default {
   },
 
   onboarding: {
+    backLink: '← 返回',
+    signUpPitch: '注册后，你的阅读进度、类型偏好、好友和书库都会同步保存到账号中。',
+    signUpFree: '立即注册 — 免费',
+    usernamePermanent: '用户名一经确定便无法更改，请谨慎选择。已经有了？留空即可。',
+    benefitSync: '阅读进度跨设备同步',
+    benefitRecs: '个性化推荐',
+    benefitFriends: '与好友互动',
+    benefitBadges: '赢取徽章、延续连读天数',
     saveProgressDesc: "保存你的进度、偏好和书库。",
     tasteFirstBtn: "先设置我的口味",
     pick3Genres: "选择你最喜欢的 3 个类型。",
@@ -447,6 +488,9 @@ export default {
   },
 
   auth: {
+    createAccount: '创建账号',
+    createAnAccount: '创建一个账号',
+    logInExisting: '登录已有账号',
     codeSentHint: "我们会向你的邮箱发送 6 位验证码。",
     noCode: "没有收到验证码？",
     logIn: '登录',
@@ -472,6 +516,7 @@ export default {
   },
 
   gate: {
+    dobPrivacy: '你的出生日期仅用于年龄验证，不会存储在我们的服务器上。',
     ageTitle: "年龄验证",
     confirmAge: "确认年龄",
     title: '{action}需要先创建账号',
@@ -482,6 +527,7 @@ export default {
   },
 
   discussion: {
+    spoilerTap: '剧透 · 点击查看',
     spoilerToggle: "剧透",
     spoilers: "剧透",
     replyingTo: "回复",
@@ -494,6 +540,27 @@ export default {
   },
 
   creator: {
+    readsThisWeek: '本周阅读量',
+    noSeriesYet: '还没有作品 — 上传你的第一部吧！',
+    statSeriesPublished: '已发布系列',
+    statTotalReads: '总阅读量',
+    statChapters: '已发布章节',
+    statusActive: '连载中',
+    statusDraft: '草稿',
+    statusHiatus: '休刊中',
+    chapterCount: '{n} 话',
+    gapFlush: '紧贴',
+    gapFlushHint: '连续画面',
+    gapStandard: '标准',
+    gapStandardHint: '常规节奏',
+    gapBreath: '留白',
+    gapBreathHint: '情绪节点',
+    gapCliffhang: '悬念',
+    gapCliffhangHint: '长停顿',
+    monetizationTitle: '变现',
+    seriesStats: '章节数：{chapters}\n总阅读量：{reads}\n最后更新：{updated}',
+    recently: '最近',
+    selectGenre: '选择类型',
     monetizationTagline: "通过 Pro 订阅和打赏从作品中获得收益。",
     readLabel: "阅读",
     monetizationSoon: "通过 Pro 订阅和打赏从你的作品中获得收益。该功能即将推出，上线时你的系列将自动加入。",
@@ -513,6 +580,8 @@ export default {
   },
 
   moderation: {
+    reportsAdminOnly: '无法加载举报 — 仅限管理员访问。',
+    candidatesAdminOnly: '无法加载候选项 — 仅限管理员访问。',
     reportedFor: "举报原因：",
     title: '内容审核',
     reports: '举报',
@@ -522,10 +591,17 @@ export default {
   },
 
   dm: {
+    emptyThread: '开始聊天吧 — 发条消息，或者推荐一部作品！',
+    noGifs: '没有找到 GIF，换个关键词试试。',
     readIt: '去阅读',
   },
 
   recap: {
+    shareSquare: '以方形图片分享',
+    blankMap: '你的地图还是空白的 — 这正是有趣之处。',
+    compareEmpty: '添加几位好友，本半年的对比就会在这里等你。',
+    sharedTaste: '本半年的阅读口味重合度',
+    noOverlap: '本半年没有重合的作品 — 书架不同，应用相同。',
     youDoveInto: "你沉浸其中",
     yourDayInChapters: "你的一天，以章节计",
     yourTopSeries: "你的年度作品",
@@ -556,17 +632,33 @@ export default {
   },
 
   friend: {
-    follow: "关注",
-    unfollow: "取消关注",
+    blockTitle: '要屏蔽 {name} 吗？',
+    blockBody: '对方将无法给你发消息，你也不会看到对方的评论。同时会解除好友关系。',
+    blockAction: '屏蔽',
+    thisUser: '该用户',
     block: "屏蔽",
     unblock: "取消屏蔽",
     notFound: '找不到该好友。',
     goBack: '返回',
     online: '在线',
     noFaves: '还没有最爱作品',
+    addFriend: '添加好友',
+    requestPending: '好友申请待处理',
+    respondToRequest: '{name} 向你发送了好友申请',
+    removeFriend: '删除好友',
+    respondTitle: '{name} 向你发送了好友申请',
+    respondBody: '接受后，你们会出现在彼此的好友列表中，随时可以发消息。',
+    cancelTitle: '取消发给 {name} 的好友申请？',
+    cancelBody: '对方不会收到提示。你之后可以再发一次。',
+    cancelAction: '取消申请',
+    removeTitle: '将 {name} 从好友中删除？',
+    removeBody: '对方不会收到提示。若要重新成为好友，需要有一方重新发送申请。',
+    removeAction: '删除好友',
   },
 
   forYou: {
+    emptyTaste: '你的口味画像还是空的。给几部作品点赞、收藏或阅读后，这里的推荐就会开始贴合你的口味。',
+    adultDisabled: '你已通过验证，但成人内容已关闭。可在“设置 → 内容”中开启。',
     unreleased: "未发布",
     comingSoon: "即将推出",
     subtitle: "AI 智能推荐",
@@ -600,9 +692,22 @@ export default {
     accountCreated: '账号已创建，请查收确认邮件；你的进度已经保存',
     deleteFailed: '无法注销账号，请联系客服',
     paidPlansLater: '付费方案将在正式上线后推出，敬请期待',
+    friendRequestSent: '已向 {name} 发送好友申请',
+    nowFriends: '你和 {name} 已成为好友',
+    friendRemoved: '已将 {name} 从好友中删除',
+    requestCanceled: '已取消好友申请',
+    requestDeclined: '已拒绝好友申请',
+    friendActionFailed: '操作没有成功，请重试。',
   },
 
   placeholder: {
+    chapterTitleNum: '第 {n} 话标题（可选）',
+    usernameOrEmail: '用户名或邮箱',
+    usernameRules: '用户名（仅限字母和数字）',
+    passwordMin: '密码（至少 6 个字符）',
+    passwordMinChars: '密码（最少 6 个字符）',
+    bio: '写点自我介绍…',
+    shortDescription: '简短描述…',
     email: '邮箱',
     password: '密码',
     createPassword: '设置密码',
@@ -619,6 +724,7 @@ export default {
     searchSeries: '搜索想讨论的作品…',
     searchSites: '搜索站点或粘贴网址…',
     enterUrl: '输入网站或网址…',
+    searchOrUrl: '搜索作品或输入网址',
     seriesTitle: '作品标题',
   },
 
@@ -679,6 +785,7 @@ export default {
   },
 
   allDiscussions: {
+    rankedBy: '按热度、近期活跃度和你的口味排序',
     openHint: "打开讨论",
     readHint: "阅读 {title}",
   },
@@ -690,6 +797,7 @@ export default {
   },
 
   guidelines: {
+    agreeBtn: '我同意 — 进入',
     agree: "我同意",
   },
 
@@ -720,6 +828,10 @@ export default {
   badge: {
     unlocked: "徽章解锁",
     notEarned: "尚未获得",
+    removeFromProfile: '从资料中移除',
+    addToProfile: '添加到资料',
+    showcaseFull: '展示位已满 (3/3)',
+    nextBadge: '下一个徽章',
   },
 
   share: {
@@ -737,6 +849,44 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    likeCount: '{n} 个赞',
+    commentCount: '{n} 条评论',
+    decreaseGenreWeight: '降低 {genre} 权重',
+    increaseGenreWeight: '提高 {genre} 权重',
+    removeRecentSearch: '从最近搜索中移除“{term}”',
+    stepOf: '第 {n} 步，共 {total} 步',
+    badgeNamed: '{name} 徽章',
+    removeFavourite: '将 {title} 从收藏中移除',
+    leaderboardRank: '第 {rank} 名，{name}，已读 {hours}',
+    leaderboardRankFull: '第 {rank} 名，{name}，已读 {hours}，{badges} 枚徽章',
+    pageSpacingOpt: '{label} 页面间距，{hint}',
+    badgeFallback: '徽章',
+    reportComment: '举报这条评论',
+    reportReply: '举报这条回复',
+    cancelReply: '取消回复',
+    markSpoiler: '标记为剧透',
+    postComment: '发布评论',
+    recommendManga: '推荐一部作品',
+    sendPhoto: '发送照片',
+    messageInput: '消息输入框',
+    sendMessage: '发送消息',
+    markCommentSpoiler: '将评论标记为剧透',
+    filterByGenre: '按类型筛选',
+    clearSearch: '清除搜索',
+    startWithoutAccount: '不注册直接开始阅读',
+    skipSetup: '跳过设置',
+    friendsAndMessages: '好友与消息',
+    badgeHint: '显示该徽章的获得方式',
+    addBadgeShowcase: '将徽章加入展示柜',
+    addFavouriteSeries: '添加喜爱的作品',
+    closeReader: '关闭阅读器',
+    browserBack: '在浏览器中后退',
+    browserForward: '在浏览器中前进',
+    chooseSource: '选择阅读来源',
+    reloadChapter: '重新加载章节',
+    ambienceSounds: '环境音效',
+    declineFriendRequest: '拒绝好友请求',
+    dismiss: '关闭',
     bioInput: "个人简介",
     commentInput: "写评论",
     spoilerCommentInput: "写剧透评论",
@@ -776,5 +926,25 @@ export default {
     closeZoom: "关闭放大视图",
     mangaPage: "漫画页面",
     openSeries: "打开系列",
+  },
+  plan: {
+    freeCommunity: '社区与社交功能',
+    freeAmbience: '环境音效（默认预设）',
+    freeDownloads: '下载章节（上限 30 话）',
+    freeAnalytics: '完整阅读分析与连读记录',
+    freeAiRecs: 'AI 智能推荐',
+    freeRecsPage: 'Recs 页面与口味画像',
+    proEverything: '包含免费版全部功能',
+    proDownloads: '无限章节下载，离线可读',
+    proAmbience: '自定义环境音上传',
+    proReminders: '新章节提前提醒与倒计时',
+    proBadge: '专属 Pro 徽章与个人主页装饰',
+    proAvatarRing: '动态头像光环',
+    proRecap: '年度阅读回顾，可分享',
+    proBookClubs: 'Pro 专属读书会与邀请制讨论',
+    proBeta: '测试功能与抢先体验',
+    proInsights: '创作者洞察与分析',
+    proSupport: '与开发者直连的支持与反馈渠道',
+    savePercent: '省 {n}%',
   },
 };

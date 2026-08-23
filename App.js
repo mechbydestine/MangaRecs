@@ -439,8 +439,6 @@ function TabNavigator() {
           backgroundColor: isDark ? 'rgba(5,5,5,0.92)' : 'rgba(255,255,255,0.95)',
           borderTopWidth: isDark ? 0 : StyleSheet.hairlineWidth,
           borderTopColor: isDark ? 'transparent' : 'rgba(0,0,0,0.1)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
           overflow: 'hidden',
           paddingTop: 8,
           paddingBottom: Platform.OS === 'android' ? 10 : 4,

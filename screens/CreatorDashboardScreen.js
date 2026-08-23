@@ -24,13 +24,22 @@ import { ensureMediaLibraryPermission } from '../utils/mediaPermissions';
 import { HIT_SLOP } from '../utils/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const statMeta = (colors) => [
-  { icon: 'book',   label: 'Series Published', color: colors.primary, key: 'count' },
-  { icon: 'eye',    label: 'Total Reads',       color: '#1D9E75', key: 'views' },
-  { icon: 'people', label: 'Followers',         color: '#EF9F27', key: 'followers' },
+const statMeta = (colors, t) => [
+  { icon: 'book',   label: t('creator.statSeriesPublished'), color: colors.primary, key: 'count' },
+  { icon: 'eye',    label: t('creator.statTotalReads'),      color: '#1D9E75', key: 'views' },
+  { icon: 'layers', label: t('creator.statChapters'),        color: '#EF9F27', key: 'chapters' },
 ];
 
 const WEEK_READS_FALLBACK = [0, 0, 0, 0, 0, 0, 0];
+
+// Status is stored in English ('Active' | 'Draft' | 'Hiatus') because it keys
+// both STATUS_COLOR and the DB's ongoing/hiatus values. Only the label shown
+// to the creator is translated.
+const STATUS_LABEL_KEY = {
+  Active: 'creator.statusActive',
+  Draft:  'creator.statusDraft',
+  Hiatus: 'creator.statusHiatus',
+};
 
 const STATUS_COLOR = {
   Active: { text: '#1D9E75', bg: 'rgba(29,158,117,0.15)' },
@@ -98,7 +107,6 @@ export default function CreatorDashboardScreen() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [weekReads, setWeekReads]         = useState(WEEK_READS_FALLBACK);
   const [weekLabels]                      = useState(getLast7DayLabels);
-  const [followerCount, setFollowerCount] = useState(0);
 
   // ── Data loaders ────────────────────────────────────────────────────────────
 
@@ -310,7 +318,7 @@ export default function CreatorDashboardScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <MobileHeader
-        title="Creator Dashboard"
+        title={t('nav.creator')}
         right={
           <View style={[styles.proBadge, { borderColor: 'rgba(120, 88, 255,0.3)' }]}>
             <Ionicons name="diamond" size={11} color={colors.primary} />
@@ -324,13 +332,13 @@ export default function CreatorDashboardScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          {statMeta(colors).map((s) => {
+          {statMeta(colors, t).map((s) => {
             let value;
             if (s.key === 'count') value = String(mySeries.length);
             else if (s.key === 'views') {
               const total = mySeries.reduce((acc, x) => acc + (x.views ?? 0), 0);
               value = total >= 1000 ? `${(total / 1000).toFixed(1)}K` : String(total);
-            } else value = String(followerCount);
+            } else value = String(mySeries.reduce((acc, x) => acc + (x.chapters ?? 0), 0));
             return (
               <View key={s.label} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Ionicons name={s.icon} size={16} color={s.color} />
@@ -360,7 +368,7 @@ export default function CreatorDashboardScreen() {
             <View style={styles.analyticsHeader}>
               <View>
                 <Text style={[styles.analyticsMainVal, { color: colors.text }]}>{weekReads.reduce((a, b) => a + b, 0)}</Text>
-                <Text style={[styles.analyticsMainLabel, { color: colors.muted }]}>reads this week</Text>
+                <Text style={[styles.analyticsMainLabel, { color: colors.muted }]}>{t('creator.readsThisWeek')}</Text>
               </View>
             </View>
             <MiniBarChart data={weekReads} labels={weekLabels} />
@@ -374,9 +382,7 @@ export default function CreatorDashboardScreen() {
             <Text style={[styles.seriesCount, { color: colors.muted }]}>{mySeries.length} series</Text>
           </View>
           {mySeries.length === 0 && !seriesLoading ? (
-            <Text style={[styles.seriesGenre, { color: colors.muted, textAlign: 'center', paddingVertical: 20 }]}>
-              No series yet — upload your first one!
-            </Text>
+            <Text style={[styles.seriesGenre, { color: colors.muted, textAlign: 'center', paddingVertical: 20 }]}>{t('creator.noSeriesYet')}</Text>
           ) : null}
           {mySeries.map((s) => {
             const status = STATUS_COLOR[s.status] || STATUS_COLOR['Draft'];
@@ -388,13 +394,13 @@ export default function CreatorDashboardScreen() {
                     <Text style={[styles.seriesGenre, { color: colors.muted }]}>{s.genre}</Text>
                   </View>
                   <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
-                    <Text style={[styles.statusText, { color: status.text }]}>{s.status}</Text>
+                    <Text style={[styles.statusText, { color: status.text }]}>{t(STATUS_LABEL_KEY[s.status] || 'creator.statusDraft')}</Text>
                   </View>
                 </View>
                 <View style={styles.seriesMeta}>
                   <View style={styles.seriesMetaItem}>
                     <Ionicons name="book-outline" size={11} color={colors.muted} />
-                    <Text style={[styles.seriesMetaText, { color: colors.muted }]}>{s.chapters} chapters</Text>
+                    <Text style={[styles.seriesMetaText, { color: colors.muted }]}>{t('creator.chapterCount', { n: s.chapters })}</Text>
                   </View>
                   <View style={styles.seriesMetaItem}>
                     <Ionicons name="eye-outline" size={11} color={colors.muted} />
@@ -420,8 +426,12 @@ export default function CreatorDashboardScreen() {
                     style={styles.seriesActionBtn}
                     onPress={() => showAppAlert(
                       `${s.title}`,
-                      `Chapters: ${s.chapters || 0}\nTotal reads: ${(s.reads || 0).toLocaleString()}\nLast updated: ${s.updated || 'recently'}`,
-                      [{ text: 'OK' }]
+                      t('creator.seriesStats', {
+                        chapters: s.chapters || 0,
+                        reads: (s.reads || 0).toLocaleString(),
+                        updated: s.updated || t('creator.recently'),
+                      }),
+                      [{ text: t('common.ok') }]
                     )}>
                     <Ionicons name="analytics-outline" size={14} color="#1D9E75" />
                     <Text style={[styles.seriesActionText, { color: '#1D9E75' }]}>{t('creator.analytics')}</Text>
@@ -438,9 +448,9 @@ export default function CreatorDashboardScreen() {
             style={styles.monetizationCard}
             activeOpacity={0.82}
             onPress={() => showAppAlert(
-              'Monetization',
+              t('creator.monetizationTitle'),
               t('creator.monetizationSoon'),
-              [{ text: 'Got it' }]
+              [{ text: t('common.gotIt') }]
             )}>
             <View style={styles.monetizationIcon}>
               <Ionicons name="diamond" size={20} color={colors.primary} />
@@ -462,7 +472,7 @@ export default function CreatorDashboardScreen() {
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('creator.newSeries')}</Text>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowUpload(false)} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowUpload(false)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -479,6 +489,7 @@ export default function CreatorDashboardScreen() {
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder={t('placeholder.seriesTitle')}
+                      maxLength={80}
                     placeholderTextColor={colors.muted}
                     value={title}
                     onChangeText={setTitle}
@@ -501,7 +512,8 @@ export default function CreatorDashboardScreen() {
                   <Ionicons name="document-text-outline" size={14} color={colors.muted} style={{ marginRight: 8, marginTop: 2 }} />
                   <TextInput
                     style={[styles.input, { color: colors.text, minHeight: 60 }]}
-                    placeholder="Short description..."
+                    placeholder={t('placeholder.shortDescription')}
+                      maxLength={500}
                     placeholderTextColor={colors.muted}
                     multiline
                     value={description}
@@ -541,7 +553,7 @@ export default function CreatorDashboardScreen() {
                   {addChapterSeries?.title}
                 </Text>
               </View>
-              <TouchableOpacity hitSlop={HIT_SLOP} onPress={closeChapterSheet} disabled={uploadingChapter} accessibilityRole="button" accessibilityLabel="Close">
+              <TouchableOpacity hitSlop={HIT_SLOP} onPress={closeChapterSheet} disabled={uploadingChapter} accessibilityRole="button" accessibilityLabel={t('common.close')}>
                 <Ionicons name="close" size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -561,7 +573,8 @@ export default function CreatorDashboardScreen() {
                   <Ionicons name="text" size={14} color={colors.muted} style={{ marginRight: 8 }} />
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
-                    placeholder={`Chapter ${(addChapterSeries?.chapters || 0) + 1} title (optional)`}
+                    placeholder={t('placeholder.chapterTitleNum', { n: (addChapterSeries?.chapters || 0) + 1 })}
+                      maxLength={80}
                     placeholderTextColor={colors.muted}
                     value={chapterTitle}
                     onChangeText={setChapterTitle}
@@ -601,10 +614,10 @@ export default function CreatorDashboardScreen() {
                 <Text style={[styles.gapSectionLabel, { color: colors.muted }]}>{t('creator.pageSpacing')}</Text>
                 <View style={styles.gapRow}>
                   {[
-                    { v: 0,  label: 'Flush',     hint: 'Continuous art' },
-                    { v: 12, label: 'Standard',  hint: 'Normal pacing' },
-                    { v: 40, label: 'Breath',    hint: 'Emotional beats' },
-                    { v: 96, label: 'Cliffhang', hint: 'Big pause' },
+                    { v: 0,  label: t('creator.gapFlush'),     hint: t('creator.gapFlushHint') },
+                    { v: 12, label: t('creator.gapStandard'),  hint: t('creator.gapStandardHint') },
+                    { v: 40, label: t('creator.gapBreath'),    hint: t('creator.gapBreathHint') },
+                    { v: 96, label: t('creator.gapCliffhang'), hint: t('creator.gapCliffhangHint') },
                   ].map((opt) => {
                     const active = pageGap === opt.v;
                     return (
@@ -614,7 +627,7 @@ export default function CreatorDashboardScreen() {
                                                  backgroundColor: active ? colors.primary + '22' : 'transparent' }]}
                         onPress={() => setPageGap(opt.v)}
                         accessibilityRole="radio"
-                        accessibilityLabel={`${opt.label} page spacing — ${opt.hint}`}
+                        accessibilityLabel={t('a11y.pageSpacingOpt', { label: opt.label, hint: opt.hint })}
                         accessibilityState={{ selected: active, checked: active }}>
                         <Text style={[styles.gapOptLabel, { color: active ? colors.primary : colors.text }]}>{opt.label}</Text>
                         <Text style={[styles.gapOptHint, { color: colors.muted }]}>{opt.hint}</Text>
@@ -657,7 +670,7 @@ export default function CreatorDashboardScreen() {
       <PickerSheet
         visible={showGenrePicker}
         onClose={() => setShowGenrePicker(false)}
-        title="Select Genre"
+        title={t('creator.selectGenre')}
         options={GENRES}
         value={genre}
         onSelect={setGenre}

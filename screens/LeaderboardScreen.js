@@ -15,7 +15,6 @@ import { ALL_BADGES, BADGE_GRADES, GRADE_ORDER, computeEarnedBadgeIds, profileTo
 import BadgeIcon from '../components/BadgeIcon';
 import MobileHeader from '../components/MobileHeader';
 import { useResponsive } from '../utils/responsive';
-import { light } from '../utils/haptics';
 import { HIT_SLOP } from '../utils/tokens';
 
 // Twenty, not fifty. A board deep enough that the top places look unreachable
@@ -125,6 +124,9 @@ const PODIUM_STYLE = [
 ];
 
 function Podium({ entries, colors, onPress }) {
+  // Rendered as JSX (<Podium … />), so the hook is safe here. `colors` still
+  // arrives as a prop to match the rest of this file's convention.
+  const t = useT();
   return (
     <View style={styles.podium}>
       {PODIUM_ORDER.map((idx) => {
@@ -138,7 +140,7 @@ function Podium({ entries, colors, onPress }) {
             activeOpacity={0.8}
             onPress={() => onPress(entry)}
             accessibilityRole="button"
-            accessibilityLabel={`Rank ${style.label}, ${entry.name}, ${formatHours(entry.hours)} read`}>
+            accessibilityLabel={t('a11y.leaderboardRank', { rank: style.label, name: entry.name, hours: formatHours(entry.hours) })}>
             {idx === 0 && <Text style={styles.crown}>👑</Text>}
             <View
               style={[
@@ -177,6 +179,7 @@ function Podium({ entries, colors, onPress }) {
 
 // ── Row ─────────────────────────────────────────────────────────────────────
 function Row({ entry, rank, colors, onPress, pinned = false }) {
+  const t = useT();
   const grade = entry.topGrade ? BADGE_GRADES[entry.topGrade] : null;
   // The pinned row is the viewer's own standing — there is nowhere to navigate
   // to, so it must not offer press feedback for an action that never happens.
@@ -195,7 +198,7 @@ function Row({ entry, rank, colors, onPress, pinned = false }) {
         pinned && styles.rowPinned,
       ]}
       accessibilityRole={pressable ? 'button' : 'text'}
-      accessibilityLabel={`Rank ${rank}, ${entry.name}, ${formatHours(entry.hours)} read, ${entry.badgeCount} badges`}>
+      accessibilityLabel={t('a11y.leaderboardRankFull', { rank, name: entry.name, hours: formatHours(entry.hours), badges: entry.badgeCount })}>
       <Text style={[styles.rank, { color: entry.isMe ? colors.primary : colors.muted }]}>{rank}</Text>
 
       <View
@@ -379,7 +382,6 @@ export default function LeaderboardScreen() {
   }, [navigation]);
 
   const switchScope = useCallback((next) => {
-    light();
     setScope(next);
   }, []);
 

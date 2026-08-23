@@ -192,7 +192,7 @@ export default function BadgeCeremony() {
         </Animated.View>
 
         <TouchableOpacity style={[styles.continueBtn, { borderColor: grade.border }]} onPress={advance} activeOpacity={0.8}>
-          <Text style={[styles.continueText, { color: grade.color }]}>{isLast ? 'Continue' : 'Next badge'}</Text>
+          <Text style={[styles.continueText, { color: grade.color }]}>{isLast ? t('common.continue') : t('badge.nextBadge')}</Text>
         </TouchableOpacity>
       </View>
     </Modal>

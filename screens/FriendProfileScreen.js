@@ -30,7 +30,7 @@ import { Bone, RowSkeleton } from '../components/Skeleton';
 import { useResponsive } from '../utils/responsive';
 import { PROFILE_THEMES } from '../utils/profileThemes';
 import { HIT_SLOP } from '../utils/tokens';
-import { sendFollowPush } from '../utils/pushNotifications';
+import { sendFriendRequestPush } from '../utils/pushNotifications';
 
 const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5, grey: 6 };
 
@@ -53,13 +53,14 @@ export default function FriendProfileScreen({ route }) {
   const [myId, setMyId]                 = useState(null);
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [entriesRead, setEntriesRead]     = useState(0);
-  const [friendsList, setFriendsList]     = useState([]);
-  const [followersList, setFollowersList] = useState([]);
-  const [followingList, setFollowingList] = useState([]);
-  const [showPeople, setShowPeople]       = useState(null); // null | 'friends' | 'followers' | 'following'
+  const [mutualFriends, setMutualFriends] = useState([]);
+  const [showPeople, setShowPeople]       = useState(false);
   const [showAllFaves, setShowAllFaves]   = useState(false);
-  const [iFollow, setIFollow]             = useState(false);
-  const [followBusy, setFollowBusy]       = useState(false);
+  // null when there is no friendship row at all; otherwise { id, status, mine }
+  // where `mine` means I am the requester. Those three facts are the whole
+  // Discord state machine: none → outgoing → friends, or none → incoming.
+  const [friendship, setFriendship]       = useState(null);
+  const [friendBusy, setFriendBusy]       = useState(false);
   const [iBlocked, setIBlocked]           = useState(false);
   const [blockBusy, setBlockBusy]         = useState(false);
   const [faveCovers, setFaveCovers]       = useState({}); // title → cover_url for favorites missing one
@@ -85,7 +86,7 @@ export default function FriendProfileScreen({ route }) {
   async function handleRefresh() {
     setRefreshing(true);
     try {
-      await Promise.all([loadProfile(), loadEntriesRead(), loadFollowers(), loadFollowing()]);
+      await Promise.all([loadProfile(), loadEntriesRead(), loadMutualFriends(), loadFriendState()]);
     } finally {
       setRefreshing(false);
     }
@@ -104,12 +105,12 @@ export default function FriendProfileScreen({ route }) {
       return;
     }
     showAppAlert(
-      `Block ${displayName || 'this user'}?`,
-      "They won't be able to message you, and you won't see their comments. This also removes them as a friend.",
+      t('friend.blockTitle', { name: displayName || t('friend.thisUser') }),
+      t('friend.blockBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Block',
+          text: t('friend.blockAction'),
           style: 'destructive',
           onPress: () => {
             setBlockBusy(true);
@@ -117,6 +118,10 @@ export default function FriendProfileScreen({ route }) {
               setBlockBusy(false);
               if (error) { showAppToast("Couldn't block — try again"); return; }
               setIBlocked(true);
+              // blockUser() deletes the friendship row server-side, so the
+              // friend button has to fall back to "add" rather than keep
+              // offering "remove friend" on a row that is already gone.
+              setFriendship(null);
               showAppToast(t('toast.blocked', { name: displayName || 'user' }), 'success');
             });
           },
@@ -171,100 +176,177 @@ export default function FriendProfileScreen({ route }) {
     setLoading(false);
   }
 
-  // ── Friends / Followers of this profile ──────────────────────────────────
+  // ── Mutual friends ──────────────────────────────────────────────────
+  // Someone else's full friend list is not ours to show, and RLS wouldn't hand
+  // it over anyway — a direct query for it comes back with only the row we are
+  // party to. get_mutual_friends returns just the people we both already know,
+  // which is the one slice of their graph we are already inside.
 
   function toPerson(p) {
     const name = p.display_name || p.username || '?';
     return { id: p.id, name, avatar: name.slice(0, 1).toUpperCase(), avatarUrl: p.avatar_url || null, online: !!p.online };
   }
 
-  async function loadFollowers() {
-    const { data } = await supabase
-      .from('followers')
-      .select('follower:follower_id(id, username, display_name, avatar_url, online)')
-      .eq('followed_id', id)
-      .order('created_at', { ascending: false });
-    setFollowersList((data || []).map(r => r.follower).filter(Boolean).map(toPerson));
+  async function loadMutualFriends() {
+    if (!id || !myId || myId === id) { setMutualFriends([]); return; }
+    const { data } = await supabase.rpc('get_mutual_friends', { p_user_id: id });
+    setMutualFriends((data || []).map(toPerson));
   }
 
-  async function loadFollowing() {
-    const { data } = await supabase
-      .from('followers')
-      .select('followed:followed_id(id, username, display_name, avatar_url, online)')
-      .eq('follower_id', id)
-      .order('created_at', { ascending: false });
-    setFollowingList((data || []).map(r => r.followed).filter(Boolean).map(toPerson));
-  }
+  useEffect(() => { loadMutualFriends(); }, [id, myId]);
 
-  useEffect(() => {
-    if (!id) return;
-    supabase
+  // ── Friendship state ───────────────────────────────────────────────
+
+  const friendState = !friendship
+    ? 'none'
+    : friendship.status === 'accepted'
+      ? 'friends'
+      : friendship.mine ? 'outgoing' : 'incoming';
+
+  async function loadFriendState() {
+    if (!myId || !id || myId === id) { setFriendship(null); return; }
+    const { data } = await supabase
       .from('friendships')
-      .select('requester_id, addressee_id')
-      .or(`requester_id.eq.${id},addressee_id.eq.${id}`)
-      .eq('status', 'accepted')
-      .then(async ({ data: rows }) => {
-        const ids = (rows || []).map(f => (f.requester_id === id ? f.addressee_id : f.requester_id));
-        if (ids.length === 0) { setFriendsList([]); return; }
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url, online')
-          .in('id', ids);
-        setFriendsList((profiles || []).map(toPerson));
-      });
-    loadFollowers();
-    loadFollowing();
-  }, [id]);
-
-  useEffect(() => {
-    if (!myId || !id || myId === id) return;
-    supabase
-      .from('followers')
-      .select('id')
-      .eq('follower_id', myId)
-      .eq('followed_id', id)
-      .maybeSingle()
-      .then(({ data }) => setIFollow(!!data));
-  }, [myId, id]);
-
-  async function toggleFollow() {
-    if (!myId || myId === id || followBusy) return;
-    // Following builds a social graph. On an anonymous session that graph is
-    // orphaned the moment the install goes away.
-    if (!iFollow) {
-      const ok = await requireAccount({
-        what: 'follow people',
-        onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
-        action: () => {},
-      });
-      if (!ok) return;
-    }
-    setFollowBusy(true);
-    if (iFollow) {
-      setIFollow(false);
-      setFollowersList(prev => prev.filter(p => p.id !== myId));
-      const { error } = await supabase.from('followers').delete().eq('follower_id', myId).eq('followed_id', id);
-      // The follow path below already rolls back on failure; this one didn't,
-      // so a failed delete (offline, RLS) left the button reading "Follow"
-      // while the row was still there — tapping it again then hit the unique
-      // constraint and silently did nothing, stranding the button wrong.
-      if (error) {
-        setIFollow(true);
-        loadFollowers();
-      }
-    } else {
-      setIFollow(true);
-      const { error } = await supabase.from('followers').insert({ follower_id: myId, followed_id: id });
-      if (error) {
-        setIFollow(false);
-      } else {
-        supabase.from('notifications').insert({ user_id: id, actor_id: myId, type: 'follow', data: {} }).then(() => {});
-        sendFollowPush(id).catch(() => {});
-        loadFollowers();
-      }
-    }
-    setFollowBusy(false);
+      .select('id, requester_id, status')
+      .or(
+        `and(requester_id.eq.${myId},addressee_id.eq.${id}),` +
+        `and(requester_id.eq.${id},addressee_id.eq.${myId})`
+      )
+      .maybeSingle();
+    setFriendship(data ? { id: data.id, status: data.status, mine: data.requester_id === myId } : null);
   }
+
+  useEffect(() => { loadFriendState(); }, [myId, id]);
+
+  async function sendFriendRequest() {
+    // A friendship is the account's, not the install's — an anonymous session
+    // loses the whole graph the moment the app goes away.
+    const ok = await requireAccount({
+      what: 'add friends',
+      onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
+      action: () => {},
+    });
+    if (!ok) return;
+
+    // Re-read before inserting. UNIQUE(requester_id, addressee_id) is on the
+    // ordered pair, so it does NOT stop a second row in the other direction:
+    // if they sent us a request while this screen was open, a blind insert
+    // would leave two rows for one relationship, and every later maybeSingle()
+    // on this pair would come back empty.
+    const { data: existing } = await supabase
+      .from('friendships')
+      .select('id, requester_id, status')
+      .or(
+        `and(requester_id.eq.${myId},addressee_id.eq.${id}),` +
+        `and(requester_id.eq.${id},addressee_id.eq.${myId})`
+      )
+      .maybeSingle();
+    if (existing) {
+      setFriendship({ id: existing.id, status: existing.status, mine: existing.requester_id === myId });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('friendships')
+      .insert({ requester_id: myId, addressee_id: id, status: 'pending' })
+      .select('id')
+      .maybeSingle();
+    if (error || !data?.id) {
+      // Most likely the unique constraint: they sent us one first, from another
+      // device or while this screen was open. Re-read rather than guess.
+      await loadFriendState();
+      if (error) showAppToast(t('toast.friendActionFailed'));
+      return;
+    }
+    setFriendship({ id: data.id, status: 'pending', mine: true });
+    showAppToast(t('toast.friendRequestSent', { name: displayName || t('friend.thisUser') }), 'success');
+    supabase.from('notifications').insert({
+      user_id: id,
+      actor_id: myId,
+      type: 'friend_request',
+      data: { friendship_id: data.id },
+    }).then(() => {});
+    // notify-user derives the requester's name from the JWT — no lookup needed.
+    sendFriendRequestPush(id).catch(() => {});
+  }
+
+  async function acceptFriendRequest() {
+    const fid = friendship?.id;
+    if (!fid) return;
+    const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', fid);
+    if (error) { await loadFriendState(); showAppToast(t('toast.friendActionFailed')); return; }
+    setFriendship((prev) => (prev ? { ...prev, status: 'accepted' } : prev));
+    showAppToast(t('toast.nowFriends', { name: displayName || t('friend.thisUser') }), 'success');
+    supabase.from('notifications').insert({
+      user_id: id, actor_id: myId, type: 'friend_accepted', data: {},
+    }).then(() => {});
+  }
+
+  // Cancel an outgoing request, decline an incoming one, unfriend an accepted
+  // one: all three are the same DELETE. Only the wording differs.
+  async function endFriendship(toastKey) {
+    const fid = friendship?.id;
+    if (!fid) return;
+    const prev = friendship;
+    setFriendship(null);
+    const { error } = await supabase.from('friendships').delete().eq('id', fid);
+    if (error) { setFriendship(prev); showAppToast(t('toast.friendActionFailed')); return; }
+    showAppToast(t(toastKey, { name: displayName || t('friend.thisUser') }), 'success');
+  }
+
+  function handleFriendPress() {
+    if (!myId || myId === id || friendBusy) return;
+    const name = displayName || t('friend.thisUser');
+    const run = (fn) => { setFriendBusy(true); Promise.resolve(fn()).finally(() => setFriendBusy(false)); };
+
+    if (friendState === 'none') { run(sendFriendRequest); return; }
+
+    if (friendState === 'incoming') {
+      showAppAlert(
+        t('friend.respondTitle', { name }),
+        t('friend.respondBody'),
+        [
+          // Buttons stack vertically, so this reads top-to-bottom: an out, the
+          // destructive answer, then the one we expect them to want. Without
+          // the first one an incoming request has no way to be dismissed —
+          // the alert has no tap-outside-to-close.
+          { text: t('common.close'), style: 'cancel' },
+          { text: t('messages.decline'), style: 'destructive', onPress: () => run(() => endFriendship('toast.requestDeclined')) },
+          { text: t('messages.accept'), onPress: () => run(acceptFriendRequest) },
+        ]
+      );
+      return;
+    }
+
+    if (friendState === 'outgoing') {
+      showAppAlert(
+        t('friend.cancelTitle', { name }),
+        t('friend.cancelBody'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('friend.cancelAction'), style: 'destructive', onPress: () => run(() => endFriendship('toast.requestCanceled')) },
+        ]
+      );
+      return;
+    }
+
+    showAppAlert(
+      t('friend.removeTitle', { name }),
+      t('friend.removeBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('friend.removeAction'), style: 'destructive', onPress: () => run(() => endFriendship('toast.friendRemoved')) },
+      ]
+    );
+  }
+
+  const FRIEND_BUTTON = {
+    none:     { icon: 'person-add-outline',      color: colors.primary, label: 'friend.addFriend' },
+    outgoing: { icon: 'time-outline',            color: colors.muted,   label: 'friend.requestPending' },
+    incoming: { icon: 'person-add',              color: '#EF9F27',      label: 'friend.respondToRequest' },
+    friends:  { icon: 'people',                  color: '#1D9E75',      label: 'friend.removeFriend' },
+  }[friendState];
+
 
   // ── Badge data — same computation as ProfileScreen ───────────────────────
 
@@ -486,28 +568,29 @@ export default function FriendProfileScreen({ route }) {
               </View>
             ) : null}
 
-            {/* Friends · Followers · Following — below bio/joined date, above the action icons */}
-            <PeopleRow
-              friends={friendsList}
-              followers={followersList}
-              following={followingList}
-              colors={colors}
-              onOpen={(key) => setShowPeople(key)}
-              style={styles.peopleRowInCard}
-            />
+            {/* Mutual friends — below bio/joined date, above the action icons.
+                Hidden at zero: an empty "Mutual Friends 0" is a dead row. */}
+            {mutualFriends.length > 0 && (
+              <PeopleRow
+                text={t('profile.mutualCount', { count: mutualFriends.length })}
+                colors={colors}
+                onOpen={() => setShowPeople(true)}
+                style={styles.peopleRowInCard}
+              />
+            )}
 
             {/* Icon actions — bottom-right corner of the profile card, plain icons, no chip background */}
             {myId && myId !== profile.id && (
               <View style={styles.actionIconsRow}>
                 {!iBlocked && (
                   <TouchableOpacity
-                    onPress={toggleFollow}
+                    onPress={handleFriendPress}
                     accessibilityRole="button"
-                    accessibilityLabel={iFollow ? t('friend.unfollow') : t('friend.follow')}
-                    disabled={followBusy}
+                    accessibilityLabel={t(FRIEND_BUTTON.label, { name: displayName || t('friend.thisUser') })}
+                    disabled={friendBusy}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     activeOpacity={0.6}>
-                    <Ionicons name={iFollow ? 'person-remove-outline' : 'person-add-outline'} size={19} color={iFollow ? '#1D9E75' : colors.primary} />
+                    <Ionicons name={FRIEND_BUTTON.icon} size={19} color={FRIEND_BUTTON.color} />
                   </TouchableOpacity>
                 )}
                 {!iBlocked && (
@@ -559,13 +642,13 @@ export default function FriendProfileScreen({ route }) {
         </View>
 
         <PeopleListModal
-          visible={!!showPeople}
-          title={showPeople === 'followers' ? 'Followers' : showPeople === 'following' ? 'Following' : 'Friends'}
-          people={showPeople === 'followers' ? followersList : showPeople === 'following' ? followingList : friendsList}
+          visible={showPeople}
+          title={t('profile.mutualFriends')}
+          people={mutualFriends}
           colors={colors}
-          onClose={() => setShowPeople(null)}
+          onClose={() => setShowPeople(false)}
           onOpenPerson={(p) => {
-            setShowPeople(null);
+            setShowPeople(false);
             if (p.id !== id) navigation.push('FriendProfile', { id: p.id });
           }}
         />

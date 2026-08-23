@@ -174,9 +174,7 @@ export default function AllDiscussionsScreen() {
       {!showingSearch && (
         <View style={styles.trendingHint}>
           <Ionicons name="sparkles" size={12} color={colors.primary} />
-          <Text style={[styles.trendingHintText, { color: colors.muted }]}>
-            Ranked by what's trending, recently active, and matches your taste
-          </Text>
+          <Text style={[styles.trendingHintText, { color: colors.muted }]}>{t('allDiscussions.rankedBy')}</Text>
         </View>
       )}
 

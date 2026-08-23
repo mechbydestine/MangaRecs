@@ -62,7 +62,7 @@ function ReportsTab({ colors, insets }) {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : error ? (
-        <Text style={[styles.emptyText, { color: colors.muted }]}>Couldn't load reports — admin access only.</Text>
+        <Text style={[styles.emptyText, { color: colors.muted }]}>{t('moderation.reportsAdminOnly')}</Text>
       ) : visible.length === 0 ? (
         <Text style={[styles.emptyText, { color: colors.muted }]}>
           {pendingCount === 0 ? 'No pending reports. All clear.' : 'Nothing here.'}
@@ -156,7 +156,7 @@ function TrendingTab({ colors, insets }) {
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : error ? (
-        <Text style={[styles.emptyText, { color: colors.muted }]}>Couldn't load candidates — admin access only.</Text>
+        <Text style={[styles.emptyText, { color: colors.muted }]}>{t('moderation.candidatesAdminOnly')}</Text>
       ) : visible.length === 0 ? (
         <Text style={[styles.emptyText, { color: colors.muted }]}>
           {pendingCount === 0 ? 'No pending trending titles right now.' : 'Nothing here.'}
@@ -191,7 +191,7 @@ function TrendingTab({ colors, insets }) {
                     disabled={busyId === c.id}
                     onPress={() => act(c.id, 'approve')}
                     accessibilityRole="button"
-                    accessibilityLabel="Approve">
+                    accessibilityLabel={t('moderation.approve')}>
                     <Ionicons name="checkmark-circle-outline" size={15} color="#fff" />
                     <Text style={styles.resolveBtnText}>{t('moderation.approve')}</Text>
                   </TouchableOpacity>
@@ -200,7 +200,7 @@ function TrendingTab({ colors, insets }) {
                     disabled={busyId === c.id}
                     onPress={() => act(c.id, 'reject')}
                     accessibilityRole="button"
-                    accessibilityLabel="Reject">
+                    accessibilityLabel={t('moderation.reject')}>
                     <Ionicons name="close-circle-outline" size={15} color="#fff" />
                     <Text style={styles.resolveBtnText}>{t('moderation.reject')}</Text>
                   </TouchableOpacity>

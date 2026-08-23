@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { useCoachmarkRegistry } from '../utils/CoachmarkContext';
-import { light as hapticLight, success as hapticSuccess } from '../utils/haptics';
+import { success as hapticSuccess } from '../utils/haptics';
 import { useReducedMotion } from '../utils/a11y';
 
 export const COACHMARK_SEEN_KEY = '@mangarecs/coachmarks_seen';
@@ -139,7 +139,6 @@ export default function CoachmarkOverlay() {
   if (!tourVisible) return null;
 
   function handleNext() {
-    hapticLight();
     if (stepIndex + 1 < STEPS.length) setStepIndex((i) => i + 1);
     else setPhase('finale');
   }

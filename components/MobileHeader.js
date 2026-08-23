@@ -2,11 +2,13 @@
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
+import { useT } from '../utils/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MobileHeader({ title, right, leftContent, noBorder = false }) {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const canGoBack = navigation.canGoBack();
 
@@ -22,7 +24,7 @@ export default function MobileHeader({ title, right, leftContent, noBorder = fal
             onPress={() => navigation.goBack()}
             style={styles.backBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Go back"
+            accessibilityLabel={t('friend.goBack')}
             accessibilityRole="button">
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>

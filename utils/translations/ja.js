@@ -1,5 +1,8 @@
 export default {
   common: {
+    ok: 'OK',
+    or: 'または',
+    gotIt: '了解',
     cancel: 'キャンセル',
     save: '保存',
     done: '完了',
@@ -50,13 +53,6 @@ export default {
 
   feed: {
     trending: '急上昇',
-    video: {
-      play: '{title} を再生',
-      mute: 'ミュート',
-      unmute: 'ミュート解除',
-      openExternal: '開く',
-      embedFailed: 'この動画はここでは再生できません。「開く」から視聴してください。',
-    },
     destEmail: "メール",
     creatorLabel: "MangaRecs クリエイター",
     addFriendsFirst: "おすすめを送るにはまずフレンドを追加してください。",
@@ -68,6 +64,13 @@ export default {
     card: 'カード',
     more: 'その他',
     recommendedSites: 'おすすめのサイト',
+    siteWebtoon: '公式ウェブトゥーン',
+    siteMangaPlus: '集英社公式作品',
+    siteMangaDex: '最大級のマンガライブラリ',
+    siteBato: 'コミュニティのスキャン',
+    goToSite: 'サイトを開く',
+    inThisApp: 'このアプリ内',
+    searchWeb: 'ウェブで検索',
     unreleased: '未公開',
     comingSoon: '近日公開',
     title: 'ホーム',
@@ -88,6 +91,7 @@ export default {
   },
 
   library: {
+    downloadForOffline: '→ オフラインで読むためにチャプターをダウンロード',
     newChapter: "新章",
     trending: "トレンド",
     justAddedBadge: "追加済",
@@ -150,6 +154,10 @@ export default {
   },
 
   reader: {
+    pinchHint: 'ピンチでズーム · ダブルタップで切り替え',
+    tapHint: '← 左をタップ · 中央でUI非表示 · 右をタップ →',
+    importNoLibrary: 'ライブラリが見つかりませんでした。このサイトにログインしているか確認して、もう一度インポートをタップしてください。',
+    invertHint: 'ページの色を反転します（マンガのページはそのまま）',
     recent: "最近",
     autoScrollSpeed: "自動スクロール速度",
     rotateHint: "端末を横向きにすると横画面で読めます",
@@ -201,6 +209,7 @@ export default {
   },
 
   community: {
+    noFriendsYet: 'まだフレンドがいません。タップして読者を探しましょう',
     tapToVote: "選択肢をタップして投票",
     pollOfTheWeek: "今週の投票",
     searchHint: "ユーザー名で読者を検索",
@@ -210,6 +219,7 @@ export default {
     noFriendRankings: "まだランキングに入っているフレンドがいません。読者を追加して比べてみましょう。",
     leaderboardError: "リーダーボードを読み込めませんでした。",
     mangarecsReaders: "MANGARECS の読者",
+    notRated: '未評価',
     addAFriend: 'フレンドを追加',
     searchByUsername: 'ユーザー名で検索してMangaRecsの読者を探す',
     global: '全体',
@@ -247,6 +257,14 @@ export default {
   },
 
   profile: {
+    friendsLabel: 'フレンド',
+    mutualFriends: '共通のフレンド',
+    friendsCount_one: 'フレンド 1人',
+    friendsCount_other: 'フレンド {count}人',
+    mutualCount_one: '共通のフレンド 1人',
+    mutualCount_other: '共通のフレンド {count}人',
+    tapToEditBio: 'タップして自己紹介を編集',
+    onProfile: '★ プロフィールに表示中',
     readStat: "読了",
     chromasLabel: "カラー",
     recapTeaser: "上半期のまとめ、公開中",
@@ -293,6 +311,23 @@ export default {
   },
 
   settings: {
+    guestUpgradeDesc: '正式なアカウントを作成すれば、機種変更や再インストールをしても読書の進捗・バッジ・フレンドが失われません。',
+    displayNameDesc: 'MangaRecs全体に表示されます。いつでも変更できます',
+    appearBusyDesc: 'オンライン中でもフレンドに赤い「取り込み中」ステータスを表示します',
+    adultContent: 'アダルトコンテンツ（18歳以上）',
+    trackersDesc: 'トラッカーのプロフィールを連携すると、MangaRecsから作品ページへ直接移動できます。',
+    syncingAnilist: 'AniListのリストを同期中…',
+    anilistNotFound: 'そのAniListユーザー名が見つからないか、リストが非公開です。',
+    planRowDesc: '無料 · Pro — 内容を見る',
+    deleteWarning: 'MangaRecsのアカウント、読書履歴、バッジ、フレンド、保存データがすべて完全に削除されます。この操作は取り消せません。',
+    plannedPricing: '表示価格は予定であり確定ではありません · 本日課金されることはありません',
+    tasteWeightsDesc: 'この重みは評価・いいね・スワイプした作品から算出されます。重みが高いほどRecsにそのジャンルが多く表示されます。自由に上下できます。',
+    noTasteData: 'まだ好みのデータがありません。いくつか作品を評価・いいね・スワイプしてプロフィールを作りましょう。',
+    linkAccountDesc: '読書の進捗・バッジ・フレンドはそのまま残ります。ログイン方法が増えるだけです。',
+    clearCacheTitle: 'キャッシュを削除しますか？',
+    clearCacheBody: 'キャッシュされた表紙画像を解放します。ライブラリ、評価、読書の進捗、ダウンロード済みのチャプターには影響しません。',
+    clearAction: '削除',
+    aiRecDesc: '読書履歴とジャンルの好みからRecsフィードをパーソナライズします。オフの場合は人気作品のみを表示します。',
     importPartial: "トラッカーが応答しなくなったため一部の作品が抜けている可能性があります。再実行してください",
     importFromAnilist: "AniList から取り込む",
     importFromMal: "MyAnimeList から取り込む",
@@ -386,8 +421,6 @@ export default {
       commentsDesc: '投稿した作品にコメントがついたとき',
       likes: 'いいね',
       likesDesc: '投稿やコメントにいいねがついたとき',
-      followers: '新しいフォロワー',
-      followersDesc: '誰かがあなたをフォローしたとき',
       friendActivity: 'フレンド申請',
       friendActivityDesc: '受け取った申請と、承認された申請',
       directMessages: 'ダイレクトメッセージ',
@@ -424,6 +457,14 @@ export default {
   },
 
   onboarding: {
+    backLink: '← 戻る',
+    signUpPitch: '登録すると、読書の進捗・好みのジャンル・フレンド・ライブラリがアカウントに同期されて保存されます。',
+    signUpFree: '登録する（無料）',
+    usernamePermanent: 'ユーザー名は後から変更できません。慎重に選んでください。すでにお持ちの場合は空欄のままにしてください。',
+    benefitSync: '読書の進捗を端末間で同期',
+    benefitRecs: 'あなた向けのおすすめ',
+    benefitFriends: 'フレンドとつながる',
+    benefitBadges: 'バッジを獲得し、連続記録を伸ばす',
     saveProgressDesc: "進捗・設定・ライブラリを保存します。",
     tasteFirstBtn: "先に好みを設定する",
     pick3Genres: "お気に入りのジャンルを3つ選んでください。",
@@ -446,6 +487,9 @@ export default {
   },
 
   auth: {
+    createAccount: 'アカウントを作成',
+    createAnAccount: 'アカウントを作成する',
+    logInExisting: '既存のアカウントでログイン',
     codeSentHint: "6桁のコードをメールで送信します。",
     noCode: "コードが届きませんか？",
     logIn: 'ログイン',
@@ -471,6 +515,7 @@ export default {
   },
 
   gate: {
+    dobPrivacy: '生年月日は年齢確認のみに使用され、当社のサーバーには保存されません。',
     ageTitle: "年齢確認",
     confirmAge: "年齢を確認",
     title: '{action}にはアカウントが必要です',
@@ -481,6 +526,7 @@ export default {
   },
 
   discussion: {
+    spoilerTap: 'ネタバレ · タップして表示',
     spoilerToggle: "ネタバレ",
     spoilers: "ネタバレ",
     replyingTo: "返信先",
@@ -493,6 +539,27 @@ export default {
   },
 
   creator: {
+    readsThisWeek: '今週の閲覧数',
+    noSeriesYet: 'まだ作品がありません。最初の1作をアップロードしましょう！',
+    statSeriesPublished: '公開シリーズ数',
+    statTotalReads: '総閲覧数',
+    statChapters: '公開話数',
+    statusActive: '連載中',
+    statusDraft: '下書き',
+    statusHiatus: '休載中',
+    chapterCount: '{n}話',
+    gapFlush: '密着',
+    gapFlushHint: '連続した絵',
+    gapStandard: '標準',
+    gapStandardHint: '通常のテンポ',
+    gapBreath: '間',
+    gapBreathHint: '感情の間',
+    gapCliffhang: '引き',
+    gapCliffhangHint: '大きな間',
+    monetizationTitle: '収益化',
+    seriesStats: 'チャプター数: {chapters}\n総閲覧数: {reads}\n最終更新: {updated}',
+    recently: '最近',
+    selectGenre: 'ジャンルを選択',
     monetizationTagline: "Proサブスクリプションとチップで作品から収益を得られます。",
     readLabel: "閲覧",
     monetizationSoon: "Proサブスクリプションとチップで作品から収益を得られます。この機能は近日公開予定で、開始時にあなたの作品は自動的に登録されます。",
@@ -512,6 +579,8 @@ export default {
   },
 
   moderation: {
+    reportsAdminOnly: '報告を読み込めませんでした。管理者専用です。',
+    candidatesAdminOnly: '候補を読み込めませんでした。管理者専用です。',
     reportedFor: "報告理由:",
     title: 'モデレーション',
     reports: '報告',
@@ -521,10 +590,17 @@ export default {
   },
 
   dm: {
+    emptyThread: '会話を始めましょう。メッセージを送るか、マンガをおすすめしてみてください！',
+    noGifs: 'GIFが見つかりませんでした。別のキーワードで検索してください。',
     readIt: '読む',
   },
 
   recap: {
+    shareSquare: '正方形画像として共有',
+    blankMap: 'あなたの地図はまだ真っ白。そこが面白いところです。',
+    compareEmpty: 'フレンドを何人か追加すれば、今期の比較が見られるようになります。',
+    sharedTaste: '今期の読書傾向の一致度',
+    noOverlap: '今期は重なる作品がありませんでした。棚は違っても、同じアプリで。',
     youDoveInto: "飛び込んだ世界",
     yourDayInChapters: "あなたの一日を話数で",
     yourTopSeries: "あなたのトップ作品",
@@ -555,17 +631,33 @@ export default {
   },
 
   friend: {
-    follow: "フォロー",
-    unfollow: "フォロー解除",
+    blockTitle: '{name} をブロックしますか？',
+    blockBody: '相手はあなたにメッセージを送れなくなり、あなたにも相手のコメントが表示されなくなります。フレンドからも解除されます。',
+    blockAction: 'ブロック',
+    thisUser: 'このユーザー',
     block: "ブロック",
     unblock: "ブロック解除",
     notFound: 'フレンドが見つかりません。',
     goBack: '戻る',
     online: 'オンライン',
     noFaves: 'お気に入りはまだありません',
+    addFriend: 'フレンド申請',
+    requestPending: 'フレンド申請中',
+    respondToRequest: '{name} からフレンド申請が届いています',
+    removeFriend: 'フレンドを解除',
+    respondTitle: '{name} からフレンド申請が届いています',
+    respondBody: '承認すると、お互いのフレンド一覧に表示され、いつでもメッセージを送れます。',
+    cancelTitle: '{name} へのフレンド申請を取り消しますか？',
+    cancelBody: '相手には通知されません。あとでもう一度送れます。',
+    cancelAction: '申請を取り消す',
+    removeTitle: '{name} をフレンドから解除しますか？',
+    removeBody: '相手には通知されません。もう一度フレンドになるには、どちらかが申請し直す必要があります。',
+    removeAction: '解除する',
   },
 
   forYou: {
+    emptyTaste: '好みのプロフィールがまだ空です。いくつか作品にいいね・保存・閲覧すると、ここのおすすめがあなたの好みに合いはじめます。',
+    adultDisabled: '年齢確認は完了していますが、アダルトコンテンツは無効です。設定 → コンテンツ から有効にできます。',
     unreleased: "未公開",
     comingSoon: "近日公開",
     subtitle: "AIによるおすすめ",
@@ -599,9 +691,22 @@ export default {
     accountCreated: 'アカウントを作成しました。確認メールをご確認ください。これまでの記録は保存済みです',
     deleteFailed: 'アカウントを削除できませんでした。サポートまでご連絡ください',
     paidPlansLater: '有料プランは正式リリース後に提供予定です',
+    friendRequestSent: '{name} にフレンド申請を送りました',
+    nowFriends: '{name} とフレンドになりました',
+    friendRemoved: '{name} をフレンドから解除しました',
+    requestCanceled: 'フレンド申請を取り消しました',
+    requestDeclined: 'フレンド申請を辞退しました',
+    friendActionFailed: '処理できませんでした。もう一度お試しください。',
   },
 
   placeholder: {
+    chapterTitleNum: '第{n}話のタイトル（任意）',
+    usernameOrEmail: 'ユーザー名またはメールアドレス',
+    usernameRules: 'ユーザー名（英数字のみ）',
+    passwordMin: 'パスワード（6文字以上）',
+    passwordMinChars: 'パスワード（最低6文字）',
+    bio: '自己紹介を書く…',
+    shortDescription: '短い説明…',
     email: 'メールアドレス',
     password: 'パスワード',
     createPassword: 'パスワードを作成',
@@ -618,6 +723,7 @@ export default {
     searchSeries: '話したい作品を検索…',
     searchSites: 'サイトを検索、またはURLを貼り付け…',
     enterUrl: 'サイト名またはURLを入力…',
+    searchOrUrl: '作品名またはURLを入力',
     seriesTitle: '作品タイトル',
   },
 
@@ -678,6 +784,7 @@ export default {
   },
 
   allDiscussions: {
+    rankedBy: 'トレンド・最近の活発さ・あなたの好みに基づいて並べています',
     openHint: "ディスカッションを開きます",
     readHint: "{title} を読む",
   },
@@ -689,6 +796,7 @@ export default {
   },
 
   guidelines: {
+    agreeBtn: '同意して始める',
     agree: "同意する",
   },
 
@@ -719,6 +827,10 @@ export default {
   badge: {
     unlocked: "バッジ獲得",
     notEarned: "まだ獲得していません",
+    removeFromProfile: 'プロフィールから外す',
+    addToProfile: 'プロフィールに追加',
+    showcaseFull: '枠がいっぱいです (3/3)',
+    nextBadge: '次のバッジ',
   },
 
   share: {
@@ -736,6 +848,44 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    likeCount: 'いいね {n} 件',
+    commentCount: 'コメント {n} 件',
+    decreaseGenreWeight: '{genre} の重みを下げる',
+    increaseGenreWeight: '{genre} の重みを上げる',
+    removeRecentSearch: '「{term}」を最近の検索から削除',
+    stepOf: 'ステップ {n} / {total}',
+    badgeNamed: '{name} バッジ',
+    removeFavourite: '{title} をお気に入りから削除',
+    leaderboardRank: '{rank}位、{name}、{hours} 読了',
+    leaderboardRankFull: '{rank}位、{name}、{hours} 読了、バッジ {badges} 個',
+    pageSpacingOpt: '{label} ページ間隔、{hint}',
+    badgeFallback: 'バッジ',
+    reportComment: 'このコメントを報告',
+    reportReply: 'この返信を報告',
+    cancelReply: '返信をキャンセル',
+    markSpoiler: 'ネタバレとしてマーク',
+    postComment: 'コメントを投稿',
+    recommendManga: 'マンガをおすすめする',
+    sendPhoto: '写真を送る',
+    messageInput: 'メッセージ入力',
+    sendMessage: 'メッセージを送信',
+    markCommentSpoiler: 'コメントをネタバレとしてマーク',
+    filterByGenre: 'ジャンルで絞り込む',
+    clearSearch: '検索をクリア',
+    startWithoutAccount: 'アカウントなしで読み始める',
+    skipSetup: '設定をスキップ',
+    friendsAndMessages: 'フレンドとメッセージ',
+    badgeHint: 'このバッジの獲得方法を表示',
+    addBadgeShowcase: 'ショーケースにバッジを追加',
+    addFavouriteSeries: 'お気に入りの作品を追加',
+    closeReader: 'リーダーを閉じる',
+    browserBack: 'ブラウザで戻る',
+    browserForward: 'ブラウザで進む',
+    chooseSource: '読むソースを選択',
+    reloadChapter: 'チャプターを再読み込み',
+    ambienceSounds: '環境音',
+    declineFriendRequest: 'フレンド申請を辞退',
+    dismiss: '閉じる',
     bioInput: "自己紹介",
     commentInput: "コメントを入力",
     spoilerCommentInput: "ネタバレコメントを入力",
@@ -775,5 +925,25 @@ export default {
     closeZoom: "拡大表示を閉じる",
     mangaPage: "マンガのページ",
     openSeries: "シリーズを開く",
+  },
+  plan: {
+    freeCommunity: 'コミュニティとソーシャル機能',
+    freeAmbience: '環境音（標準プリセット）',
+    freeDownloads: 'チャプターのダウンロード（30話まで）',
+    freeAnalytics: '読書分析と連続記録の完全トラッキング',
+    freeAiRecs: 'AIによるおすすめ',
+    freeRecsPage: 'Recsページと好みプロフィール',
+    proEverything: '無料プランのすべて',
+    proDownloads: 'チャプターの無制限ダウンロード（オフライン）',
+    proAmbience: '環境音のカスタムアップロード',
+    proReminders: '新話の先行リマインダーとカウントダウン',
+    proBadge: '限定Proバッジとプロフィール装飾',
+    proAvatarRing: 'アニメーション付きアバターリング',
+    proRecap: '年間読書まとめ（シェア可能）',
+    proBookClubs: 'Pro限定の読書クラブと招待制ディスカッション',
+    proBeta: 'ベータ機能と先行アクセス',
+    proInsights: 'クリエイター向けインサイトと分析',
+    proSupport: '開発者への直通サポートとフィードバック',
+    savePercent: '{n}%オフ',
   },
 };

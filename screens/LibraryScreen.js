@@ -19,7 +19,7 @@ import { useProfile } from '../utils/ProfileContext';
 import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
-import { light, medium, heavy, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
+import { light, medium, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
 import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
 import {
   getLibraryBadgesSnapshot, subscribeLibraryBadges, refreshLibraryBadges,
@@ -251,7 +251,6 @@ function TabButton({ tab, active, onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
-    light();
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, speed: 60, bounciness: 0 }),
       Animated.spring(scale, { toValue: 1,   useNativeDriver: true, speed: 20, bounciness: 10 }),
@@ -814,7 +813,6 @@ export default function LibraryScreen() {
     : 0;
 
   function changeSortMode(mode) {
-    light();
     setArranging(false);
     setScrollLocked(false);
     setSortMode(mode);
@@ -1332,9 +1330,9 @@ export default function LibraryScreen() {
           {tabGenres.length > 1 && (
             <TouchableOpacity
               style={[styles.genreFilterToggle, { backgroundColor: colors.border }, showGenreFilter && styles.sortChipActive]}
-              onPress={() => { light(); setShowGenreFilter((v) => !v); }}
+              onPress={() => setShowGenreFilter((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel="Filter by genre">
+              accessibilityLabel={t('a11y.filterByGenre')}>
               <Ionicons name="filter" size={13} color={genreFilter ? colors.primary : colors.muted} />
               {!!genreFilter && <View style={styles.genreFilterDot} />}
             </TouchableOpacity>
@@ -1345,14 +1343,14 @@ export default function LibraryScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.genreRow} contentContainerStyle={styles.genreRowContent}>
             <TouchableOpacity
               style={[styles.sortChip, { backgroundColor: colors.border }, !genreFilter && styles.sortChipActive]}
-              onPress={() => { light(); setGenreFilter(null); }}>
+              onPress={() => setGenreFilter(null)}>
               <Text style={[styles.sortChipText, { color: !genreFilter ? colors.primary : colors.muted }]}>{t('library.all')}</Text>
             </TouchableOpacity>
             {tabGenres.map((g) => (
               <TouchableOpacity
                 key={g}
                 style={[styles.sortChip, { backgroundColor: colors.border }, genreFilter === g && styles.sortChipActive]}
-                onPress={() => { light(); setGenreFilter(genreFilter === g ? null : g); }}>
+                onPress={() => setGenreFilter(genreFilter === g ? null : g)}>
                 <Text style={[styles.sortChipText, { color: genreFilter === g ? colors.primary : colors.muted }]}>{g}</Text>
               </TouchableOpacity>
             ))}
@@ -1375,7 +1373,7 @@ export default function LibraryScreen() {
           <View style={styles.emptyState}>
             <Ionicons name="cloud-download-outline" size={36} color={colors.muted} style={{ marginBottom: 12 }} />
             <Text style={[styles.emptyTitle, { color: colors.muted }]}>{t('library.noDownloaded')} </Text>
-            <Text style={[styles.emptySub, { color: colors.muted }]}>→ Download Chapter for offline reading</Text>
+            <Text style={[styles.emptySub, { color: colors.muted }]}>{t('library.downloadForOffline')}</Text>
           </View>
         ) : activeTab === 'Bookmarked' && savedItems.length === 0 ? (
           <View style={styles.emptyState}>
@@ -1517,7 +1515,7 @@ export default function LibraryScreen() {
               
                 accessibilityLabel={t('placeholder.searchManga')}/>
               {query ? (
-                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel={t('a11y.clearSearch')}>
                   <Ionicons name="close" size={16} color={colors.muted} />
                 </TouchableOpacity>
               ) : (
@@ -1576,7 +1574,7 @@ export default function LibraryScreen() {
                           <TouchableOpacity style={styles.recentTermBtn} onPress={() => submitSearch(term)}>
                             <Text style={[styles.recentTermText, { color: colors.text }]}>{term}</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => removeRecent(term)} style={{ padding: 6 }} accessibilityRole="button" accessibilityLabel={`Remove "${term}" from recent searches`}>
+                          <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => removeRecent(term)} style={{ padding: 6 }} accessibilityRole="button" accessibilityLabel={t('a11y.removeRecentSearch', { term })}>
                             <Ionicons name="close" size={13} color={colors.muted} />
                           </TouchableOpacity>
                         </View>

@@ -1225,9 +1225,7 @@ function ZoomViewer({ uri, onClose }) {
         accessibilityLabel={t('a11y.closeZoom')}>
         <Ionicons name="close" size={20} color="#fff" />
       </TouchableOpacity>
-      <Text style={{ position: 'absolute', bottom: 34, alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
-        Pinch to zoom · Double-tap to toggle
-      </Text>
+      <Text style={{ position: 'absolute', bottom: 34, alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{t('reader.pinchHint')}</Text>
     </View>
   );
 }
@@ -2782,7 +2780,7 @@ export default function ReaderScreen({ route, navigation }) {
         pointerEvents={showUI ? 'auto' : 'none'}>
         <View style={[styles.topRow, { paddingTop: insets.top + 6 }]}>
           <View style={styles.topBarLeft}>
-            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Close reader">
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('a11y.closeReader')}>
               <Ionicons name="home-outline" size={20} color={hudText} />
             </TouchableOpacity>
             {readerMode === 'webview' && (
@@ -2791,7 +2789,7 @@ export default function ReaderScreen({ route, navigation }) {
                 onPress={() => webviewRef.current?.goBack()}
                 disabled={!webCanGoBack}
                 accessibilityRole="button"
-                accessibilityLabel="Go back in browser"
+                accessibilityLabel={t('a11y.browserBack')}
                 accessibilityState={{ disabled: !webCanGoBack }}>
                 <Ionicons name="arrow-back-outline" size={19} color={hudText} />
               </TouchableOpacity>
@@ -2802,7 +2800,7 @@ export default function ReaderScreen({ route, navigation }) {
                 onPress={() => webviewRef.current?.goForward()}
                 disabled={!webCanGoForward}
                 accessibilityRole="button"
-                accessibilityLabel="Go forward in browser"
+                accessibilityLabel={t('a11y.browserForward')}
                 accessibilityState={{ disabled: !webCanGoForward }}>
                 <Ionicons name="arrow-forward-outline" size={19} color={hudText} />
               </TouchableOpacity>
@@ -2815,7 +2813,7 @@ export default function ReaderScreen({ route, navigation }) {
                   <Ionicons name="cloud-offline-outline" size={13} color="#1D9E75" />
                 </View>
               ) : (
-                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowSitePicker(true)} style={styles.reloadBtn} accessibilityRole="button" accessibilityLabel="Choose reading source">
+                <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowSitePicker(true)} style={styles.reloadBtn} accessibilityRole="button" accessibilityLabel={t('a11y.chooseSource')}>
                   <Ionicons name="globe-outline" size={15} color={readerMode === 'api' ? colors.primary : activeSite ? colors.primary : hudMuted} />
                 </TouchableOpacity>
               )}
@@ -2828,7 +2826,7 @@ export default function ReaderScreen({ route, navigation }) {
                   onPress={() => readerMode === 'api' ? loadApiChapter(currentChapterIdx) : webviewRef.current?.reload()}
                   style={styles.reloadBtn}
                   accessibilityRole="button"
-                  accessibilityLabel="Reload chapter">
+                  accessibilityLabel={t('a11y.reloadChapter')}>
                   <Ionicons name="reload-outline" size={14} color={hudMuted} />
                 </TouchableOpacity>
               )}
@@ -2836,10 +2834,10 @@ export default function ReaderScreen({ route, navigation }) {
             </View>
           </View>
           <View style={styles.topRightIcons}>
-            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAmbience(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Ambience sounds">
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowAmbience(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel={t('a11y.ambienceSounds')}>
               <Ionicons name="headset-outline" size={18} color={ambienceState.presetId ? colors.primary : hudMuted} />
             </TouchableOpacity>
-            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel="Reader settings">
+            <TouchableOpacity hitSlop={HIT_SLOP} onPress={() => setShowReaderSettings(true)} style={styles.topIconBtn} accessibilityRole="button" accessibilityLabel={t('reader.settings')}>
               <Ionicons name="settings-outline" size={18} color={hudMuted} />
             </TouchableOpacity>
           </View>
@@ -3153,7 +3151,7 @@ export default function ReaderScreen({ route, navigation }) {
           {mode === 'manga' && (
             <TouchableOpacity style={styles.mangaTapOverlay} activeOpacity={1} onPress={handleMangaTap}>
               <View style={styles.mangaHintWrap} pointerEvents="none">
-                <Text style={styles.mangaHintText}>← Tap left · Center to hide UI · Tap right →</Text>
+                <Text style={styles.mangaHintText}>{t('reader.tapHint')}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -3494,9 +3492,7 @@ export default function ReaderScreen({ route, navigation }) {
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.libraryImportEmptyText}>
-                Didn't find a library — make sure you're logged in on this site, then tap Import again.
-              </Text>
+              <Text style={styles.libraryImportEmptyText}>{t('reader.importNoLibrary')}</Text>
             )}
           </View>
         </TouchableOpacity>
@@ -3601,7 +3597,7 @@ export default function ReaderScreen({ route, navigation }) {
                 <Ionicons name={forceDarkSites ? 'moon' : 'moon-outline'} size={18} color={forceDarkSites ? colors.primary : '#9B9AA3'} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.forceDark')}</Text>
-                  <Text style={styles.settingsRowSub}>Inverts page colors — manga pages stay normal</Text>
+                  <Text style={styles.settingsRowSub}>{t('reader.invertHint')}</Text>
                 </View>
                 <View style={[styles.settingsToggle, forceDarkSites && styles.settingsToggleOn]}>
                   <View style={[styles.settingsToggleDot, forceDarkSites && styles.settingsToggleDotOn]} />

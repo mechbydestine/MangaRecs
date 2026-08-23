@@ -2,6 +2,22 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.5.1',
+    date: 'August 23, 2026',
+    highlights: [
+      'Followers and Following are gone. MangaRecs now has one relationship between two people: a friendship both sides agreed to. Other profiles show Mutual Friends instead, the way Discord does it',
+      'Videos no longer appear between cards in the Home feed. They will come back properly in a later update',
+      'The app buzzes far less. Vibration is now reserved for things that carry weight — long-pressing, swiping to reply, dragging your library into order, removing a title, finishing a rating, earning a badge — instead of firing on ordinary taps and on every card you scroll past',
+      'The search button in Home now searches. Type a series name to jump straight to it, type anything else to search the web, or type an address to open it — the same box does all three',
+      'The recommended sites list is now the four worth recommending: WEBTOON, MANGA Plus, MangaDex and Bato.to',
+      'Fixed pop-up messages failing to appear at all. Every "Saved to Library", "Bio updated" and error notice in the app was affected',
+      'Pop-up messages, star ratings and the Google sign-in button now follow your Light or Dark theme instead of always rendering dark',
+      'Your Profile and For You tabs now show a loading placeholder while they load, instead of briefly showing zero chapters, zero badges and no friends',
+      'The bottom tab bar is now square-cornered',
+      'More of the app is translated: the badge showcase buttons, the badge ceremony, star ratings and the sign-in divider were still in English',
+    ],
+  },
+  {
     version: '1.5.0',
     date: 'August 5, 2026',
     highlights: [

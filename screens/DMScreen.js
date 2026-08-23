@@ -486,6 +486,19 @@ export default function DMScreen() {
   // as the message INSERT listener above; typing needs a *shared* deterministic
   // channel name instead, since broadcast (unlike postgres_changes) only
   // reaches clients joined to the exact same channel topic.
+  //
+  // Both reaction listeners are filtered to `friendId` server-side. RLS
+  // already keeps other people's conversations out, but without a filter this
+  // screen still received every reaction across every thread the signed-in
+  // user is party to, then threw almost all of them away client-side against
+  // messagesByIdRef. The two handlers below already ignored anything authored
+  // by `myId`, so filtering to the friend changes no behaviour — a 1:1 thread
+  // has no third party who could react.
+  //
+  // Safe on DELETE specifically because dm_message_reactions is declared
+  // REPLICA IDENTITY FULL (supabase_migrations.sql), so `old` carries every
+  // column. Against the default replica identity a filter on a non-key column
+  // would match nothing and reaction removals would silently stop syncing.
   useEffect(() => {
     if (!myId || !friendId) return;
     const reactionChannelKey = `dm-reactions-${[myId, friendId].sort().join('-')}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -493,7 +506,7 @@ export default function DMScreen() {
       .channel(reactionChannelKey)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'dm_message_reactions' },
+        { event: 'INSERT', schema: 'public', table: 'dm_message_reactions', filter: `user_id=eq.${friendId}` },
         (payload) => {
           const row = payload.new;
           if (row.user_id === myId || !messagesByIdRef.current[row.message_id]) return;
@@ -502,7 +515,7 @@ export default function DMScreen() {
       )
       .on(
         'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'dm_message_reactions' },
+        { event: 'DELETE', schema: 'public', table: 'dm_message_reactions', filter: `user_id=eq.${friendId}` },
         (payload) => {
           const row = payload.old;
           if (!row || row.user_id === myId || !messagesByIdRef.current[row.message_id]) return;
@@ -655,7 +668,6 @@ export default function DMScreen() {
       await supabase.from('dm_message_reactions').delete()
         .eq('message_id', messageId).eq('user_id', myId).eq('emoji', emoji);
     } else {
-      medium();
       await supabase.from('dm_message_reactions').insert({ message_id: messageId, user_id: myId, emoji });
     }
   }
@@ -680,7 +692,6 @@ export default function DMScreen() {
       showAppToast(t('toast.badLanguage'));
       return;
     }
-    light();
     setText('');
     const replyToId = replyingTo?.id || null;
     setReplyingTo(null);
@@ -734,7 +745,6 @@ export default function DMScreen() {
 
   async function sendRecommendation(manga) {
     if (!myId) return;
-    light();
     setShowPicker(false);
     setReplyingTo(null);
 
@@ -783,7 +793,6 @@ export default function DMScreen() {
 
   async function sendGif(gifUrl) {
     if (!myId) return;
-    light();
     setShowPicker(false);
     setReplyingTo(null);
 
@@ -834,7 +843,6 @@ export default function DMScreen() {
 
   async function sendImage(localUri) {
     if (!myId) return;
-    light();
     setReplyingTo(null);
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
@@ -919,9 +927,7 @@ export default function DMScreen() {
               <Text style={styles.emptyAvatarText}>{avatarInitial}</Text>
             </View>
             <Text style={[styles.emptyName, { color: colors.text }]}>{friendName}</Text>
-            <Text style={[styles.emptySub, { color: colors.muted }]}>
-              Start the conversation — send a message or recommend a manga!
-            </Text>
+            <Text style={[styles.emptySub, { color: colors.muted }]}>{t('dm.emptyThread')}</Text>
           </View>
         ) : (
           // Inverted, like every other chat app: "newest at the bottom" is the
@@ -984,7 +990,7 @@ export default function DMScreen() {
               onPress={() => setReplyingTo(null)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
-              accessibilityLabel="Cancel reply">
+              accessibilityLabel={t('a11y.cancelReply')}>
               <Ionicons name="close" size={15} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -994,26 +1000,26 @@ export default function DMScreen() {
         <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: 12 }, isTablet && styles.tabletWrap]}>
           <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
-            onPress={() => { light(); setPickerTab('manga'); setShowPicker(true); }}
+            onPress={() => { setPickerTab('manga'); setShowPicker(true); }}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Recommend a manga">
+            accessibilityLabel={t('a11y.recommendManga')}>
             <Ionicons name="book" size={17} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
-            onPress={() => { light(); pickAndSendImage(); }}
+            onPress={() => pickAndSendImage()}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Send a photo">
+            accessibilityLabel={t('a11y.sendPhoto')}>
             <Ionicons name="image" size={17} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity hitSlop={HIT_SLOP}
             style={[styles.recBtn, { backgroundColor: colors.inputBg }]}
-            onPress={() => { light(); setPickerTab('gif'); setShowPicker(true); }}
+            onPress={() => { setPickerTab('gif'); setShowPicker(true); }}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Send a GIF">
+            accessibilityLabel={t('a11y.sendGif')}>
             <Ionicons name="happy" size={17} color={colors.text} />
           </TouchableOpacity>
 
@@ -1026,7 +1032,7 @@ export default function DMScreen() {
             multiline
             maxLength={1000}
             returnKeyType="default"
-            accessibilityLabel="Message input"
+            accessibilityLabel={t('a11y.messageInput')}
           />
 
           <TouchableOpacity hitSlop={HIT_SLOP}
@@ -1035,7 +1041,7 @@ export default function DMScreen() {
             disabled={!text.trim()}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Send message"
+            accessibilityLabel={t('a11y.sendMessage')}
             accessibilityState={{ disabled: !text.trim() }}>
             <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
@@ -1105,9 +1111,7 @@ export default function DMScreen() {
                     <ActivityIndicator color={colors.primary} />
                   </View>
                 ) : gifResults.length === 0 ? (
-                  <Text style={[styles.pickerSub, { color: colors.muted, textAlign: 'center', marginTop: 20 }]}>
-                    No GIFs found — try a different search.
-                  </Text>
+                  <Text style={[styles.pickerSub, { color: colors.muted, textAlign: 'center', marginTop: 20 }]}>{t('dm.noGifs')}</Text>
                 ) : (
                   <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.gifGrid}>
                     {gifResults.map((g) => (

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { setAlertListener } from '../utils/appAlert';
 import { useTheme } from '../utils/ThemeContext';
-import { light } from '../utils/haptics';
 import { useAnnounceOnOpen } from '../utils/a11y';
 
 export default function AlertHost() {
@@ -45,7 +44,7 @@ export default function AlertHost() {
                     isCancel && [s.buttonCancel, { borderColor: colors.border }],
                   ]}
                   activeOpacity={0.85}
-                  onPress={() => { light(); handlePress(btn); }}>
+                  onPress={() => handlePress(btn)}>
                   <Text style={[
                     s.buttonText,
                     isCancel && { color: colors.muted },

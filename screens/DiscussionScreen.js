@@ -23,7 +23,6 @@ import { rateSeries, getSeriesRating } from '../utils/ratings';
 import { findPoolEntry } from '../utils/mangaPool';
 import { useResponsive } from '../utils/responsive';
 import { containsBlockedLanguage } from '../utils/contentFilter';
-import { light } from '../utils/haptics';
 import { showAppToast } from '../utils/appToast';
 import { HIT_SLOP } from '../utils/tokens';
 import { sendReplyPush } from '../utils/pushNotifications';
@@ -299,7 +298,6 @@ export default function DiscussionScreen() {
     });
     if (!canPost) return;
     setCommentLoading(true);
-    light();
 
     const payload = {
       user_id: currentUserId,
@@ -383,7 +381,6 @@ export default function DiscussionScreen() {
   }
 
   function handleLike(commentId) {
-    light();
     setComments((prev) => prev.map((c) =>
       c.id === commentId
         ? { ...c, liked: !c.liked, likes: c.liked ? c.likes - 1 : c.likes + 1 }
@@ -397,7 +394,6 @@ export default function DiscussionScreen() {
   // subReplyId is set when liking a tier-3 reply-to-a-reply; replyId is then
   // its tier-2 parent (so we know which .replies array to search within).
   function handleReplyLike(commentId, replyId, subReplyId) {
-    light();
     const targetId = subReplyId || replyId;
     setComments((prev) => prev.map((c) => {
       if (c.id !== commentId) return c;
@@ -633,9 +629,7 @@ export default function DiscussionScreen() {
                         style={[styles.spoilerBlock, { backgroundColor: colors.card, borderColor: colors.border }]}
                         onPress={() => toggleSpoiler(comment.id)}>
                         <Ionicons name="eye-off-outline" size={13} color={colors.muted} />
-                        <Text style={[styles.spoilerBlockText, { color: colors.muted }]}>
-                          Spoiler · tap to reveal
-                        </Text>
+                        <Text style={[styles.spoilerBlockText, { color: colors.muted }]}>{t('discussion.spoilerTap')}</Text>
                       </TouchableOpacity>
                     ) : (
                       <Text style={[styles.bodyText, { color: colors.text }]}>{comment.text}</Text>
@@ -672,7 +666,7 @@ export default function DiscussionScreen() {
                         style={[styles.actionBtn, { marginLeft: 'auto' }]}
                         onPress={() => setReportItem(comment)}
                         accessibilityRole="button"
-                        accessibilityLabel="Report this comment"
+                        accessibilityLabel={t('a11y.reportComment')}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <Ionicons name="flag-outline" size={13} color={colors.muted} />
                       </TouchableOpacity>
@@ -727,7 +721,7 @@ export default function DiscussionScreen() {
                             style={[styles.actionBtn, { marginLeft: 'auto' }]}
                             onPress={() => setReportItem(reply)}
                             accessibilityRole="button"
-                            accessibilityLabel="Report this reply"
+                            accessibilityLabel={t('a11y.reportReply')}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                             <Ionicons name="flag-outline" size={13} color={colors.muted} />
                           </TouchableOpacity>
@@ -779,7 +773,7 @@ export default function DiscussionScreen() {
                               style={[styles.actionBtn, { marginLeft: 'auto' }]}
                               onPress={() => setReportItem(subReply)}
                               accessibilityRole="button"
-                              accessibilityLabel="Report this reply"
+                              accessibilityLabel={t('a11y.reportReply')}
                               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                               <Ionicons name="flag-outline" size={13} color={colors.muted} />
                             </TouchableOpacity>
@@ -821,7 +815,7 @@ export default function DiscussionScreen() {
             <TouchableOpacity
               onPress={() => { setReplyingTo(null); setCommentText(''); }}
               accessibilityRole="button"
-              accessibilityLabel="Cancel reply"
+              accessibilityLabel={t('a11y.cancelReply')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={15} color={colors.muted} />
             </TouchableOpacity>
@@ -839,7 +833,7 @@ export default function DiscussionScreen() {
               style={[styles.spoilerToggleBtn, isSpoilerPost && styles.spoilerToggleBtnActive]}
               onPress={() => setIsSpoilerPost((v) => !v)}
               accessibilityRole="switch"
-              accessibilityLabel="Mark as spoiler"
+              accessibilityLabel={t('a11y.markSpoiler')}
               accessibilityState={{ checked: isSpoilerPost }}>
               <Ionicons name={isSpoilerPost ? 'eye-off' : 'eye-off-outline'} size={15} color={isSpoilerPost ? '#E8527A' : colors.muted} />
             </TouchableOpacity>
@@ -861,7 +855,7 @@ export default function DiscussionScreen() {
             style={styles.sendBtn}
             onPress={postComment}
             accessibilityRole="button"
-            accessibilityLabel="Post comment"
+            accessibilityLabel={t('a11y.postComment')}
             accessibilityState={{ disabled: commentLoading || !commentText.trim(), busy: commentLoading }}
             disabled={commentLoading || !commentText.trim()}>
             {commentLoading

@@ -22,6 +22,7 @@ import { MANGA_POOL } from '../utils/mangaPool';
 import { augmentPoolFromApi } from './FeedScreen';
 import { GENRES } from '../utils/genres';
 import { useResponsive } from '../utils/responsive';
+import { ForYouSkeleton } from '../components/Skeleton';
 
 // Icon map for all genre labels used in the radar and mood pickers
 const MOOD_ICON_MAP = {};
@@ -546,6 +547,7 @@ export default function ForYouScreen() {
   const [ageVerified, setAgeVerified] = useState(false);
   const [showAgeGate, setShowAgeGate] = useState(false);
   const [creatorSeries, setCreatorSeries] = useState([]);
+  const [hydrated, setHydrated] = useState(false);
   const [supabaseRecs, setSupabaseRecs] = useState([]);
   const [becauseYouReadRecs, setBecauseYouReadRecs] = useState([]);
   const [becauseYouReadGenre, setBecauseYouReadGenre] = useState('');
@@ -633,6 +635,11 @@ export default function ForYouScreen() {
 
       AsyncStorage.multiGet([AI_REC_KEY, '@mangarecs_genre_prefs', AGE_VERIFIED_KEY, NSFW_KEY]).then(
         ([[, aiRaw], [, genreRaw], [, ageRaw], [, nsfwRaw]]) => {
+          // Everything below is what the radar and the personalised shelves
+          // are derived from. Until it lands the screen would render an empty
+          // radar over stock shelves, which reads as "we know nothing about
+          // you" rather than as loading.
+          setHydrated(true);
           const aiOn = aiRaw === null ? true : aiRaw === 'true';
           setAiRecEnabled(aiOn);
           setAgeVerified(ageRaw === 'true');
@@ -682,7 +689,7 @@ export default function ForYouScreen() {
               });
           });
         }
-      ).catch(() => {});
+      ).catch(() => setHydrated(true)); // never leave the tab stuck on its skeleton
 
       // Community discovery: creator-uploaded series
       supabase.from('series')
@@ -865,6 +872,14 @@ export default function ForYouScreen() {
       .catch(() => setRefreshing(false));
   }
 
+  if (!hydrated) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <ForYouSkeleton />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <ScrollView
@@ -886,10 +901,7 @@ export default function ForYouScreen() {
         {aiRecEnabled && Object.keys(genreWeights).length === 0 && (
           <View style={[styles.newUserHint, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Ionicons name="compass-outline" size={16} color={colors.primary} />
-            <Text style={[styles.newUserHintText, { color: colors.muted }]}>
-              Your taste profile is empty — like, save, or read a few series and
-              recommendations here will start matching your taste.
-            </Text>
+            <Text style={[styles.newUserHintText, { color: colors.muted }]}>{t('forYou.emptyTaste')}</Text>
           </View>
         )}
 
@@ -988,9 +1000,7 @@ export default function ForYouScreen() {
           <View style={[styles.adultLock, { backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 16 }]}>
             <Ionicons name="lock-closed" size={32} color={colors.primary} />
             <Text style={[styles.adultLockTitle, { color: colors.text }]}>{t('forYou.adultOff')}</Text>
-            <Text style={[styles.adultLockSub, { color: colors.muted }]}>
-              You're verified but adult content is disabled. Enable it in Settings → Content.
-            </Text>
+            <Text style={[styles.adultLockSub, { color: colors.muted }]}>{t('forYou.adultDisabled')}</Text>
             <TouchableOpacity
               style={styles.adultLockBtn}
               onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'Settings' })}
