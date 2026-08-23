@@ -2,8 +2,12 @@
 // attempt to cache the AniList/Supabase API responses (those already have
 // their own sessionStorage cache in anilist.js and need to stay fresh).
 // Bump the cache name whenever the precache list changes so old clients
-// pick up the new shell instead of serving stale assets forever.
-var CACHE_NAME = 'mangarecs-shell-v4';
+// pick up the new shell instead of serving stale assets forever. v5 was the
+// logo swap: icon-192/512 are different bytes at the same URLs, which a
+// same-named cache would happily serve forever. v6 adds favicon.png, which
+// every page's <link rel="icon"> now points at instead of a data URI, and
+// icon-192.png is the nav brand mark on every page — both want precaching.
+var CACHE_NAME = 'mangarecs-shell-v6';
 var PRECACHE = [
   '/',
   '/catalog/',
@@ -19,6 +23,7 @@ var PRECACHE = [
   '/assets/supabase.js',
   '/assets/fonts.css',
   '/assets/manifest.json',
+  '/assets/favicon.png',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
 ];

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>About — MangaRecs</title>
 <meta name="description" content="What MangaRecs is, how it works, where its catalog data comes from, and how to report a listing." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
+<link rel="icon" href="/assets/favicon.png" />
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <link rel="manifest" href="/assets/manifest.json" />
 <meta name="theme-color" content="#6B46F0" />
@@ -39,7 +39,7 @@
     padding: 14px clamp(20px, 5vw, 56px); border-bottom: 1px solid var(--line);
   }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
-  .brand svg { width: 26px; height: 26px; }
+  .brand svg, .brand img { width: 26px; height: 26px; }
   .brand-word { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); }
   main.legal { max-width: 720px; margin: 0 auto; padding: 56px 20px 60px; }
@@ -63,10 +63,7 @@
 
 <nav class="topnav">
   <a class="brand" href="/">
-    <svg viewBox="0 0 1024 1024" aria-hidden="true">
-      <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" />
-      <circle cx="512" cy="512" r="46" fill="#0E0820" />
-    </svg>
+    <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
     <span class="brand-word">Manga<b>Recs</b></span>
   </a>
   <div class="nav-actions">

@@ -1,0 +1,37 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="38%" r="68%">
+      <stop offset="0%" stop-color="#2A1660" />
+      <stop offset="55%" stop-color="#160C3A" />
+      <stop offset="100%" stop-color="#080614" />
+    </radialGradient>
+    <radialGradient id="starGrad" cx="50%" cy="32%" r="62%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="38%" stop-color="#EDE5FF" />
+      <stop offset="78%" stop-color="#C4A8FF" />
+      <stop offset="100%" stop-color="#9B70FF" />
+    </radialGradient>
+    <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6B2FD9" stop-opacity="0.55" />
+      <stop offset="60%" stop-color="#4A1FA8" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#2D1469" stop-opacity="0" />
+    </radialGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="28" result="blur" />
+    </filter>
+    <filter id="edgeGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="232" ry="232" fill="url(#bgGrad)" />
+  <ellipse cx="512" cy="490" rx="320" ry="310" fill="url(#haloGrad)" />
+  <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7C3AFF" filter="url(#softGlow)" opacity="0.75" />
+  <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="url(#starGrad)" filter="url(#edgeGlow)" />
+  <circle cx="512" cy="512" r="46" fill="#0E0820" />
+  <circle cx="512" cy="512" r="46" fill="none" stroke="#5B2FD6" stroke-width="2.5" opacity="0.6" />
+</svg>
