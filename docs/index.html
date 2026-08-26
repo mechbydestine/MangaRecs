@@ -437,12 +437,10 @@
 
   /* ── At-a-glance: quick nav + static stats ────────────────────────── */
   .glance { position: relative; padding: 0 0 clamp(40px, 7vw, 64px); }
-  .glance::before, .trending-home::before {
-    content: ''; position: absolute; top: -60px; left: 50%; width: min(900px, 70vw); height: 320px;
-    transform: translateX(-50%); pointer-events: none; z-index: -1;
-    background: radial-gradient(ellipse at center, var(--accent-wash) 0%, transparent 70%);
-    filter: blur(10px);
-  }
+  /* The blurred accent wash that used to sit behind this section and behind
+     .trending-home is gone, along with the three colour blobs in motion.css.
+     A standing tint is exactly what stopped dark mode reading as dark and
+     light mode as light; the cursor glow carries the colour now. */
   /* Compact jump-links — deliberately small chrome, since the feature cards
      directly below them are the ones doing the actual selling. */
   .quicknav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
