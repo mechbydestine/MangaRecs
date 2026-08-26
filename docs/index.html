@@ -526,13 +526,46 @@
   .updates-dot.active::before { width: 18px; background: var(--accent); }
 
   @media (max-width: 860px) { .feature-cards { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Phones: the five jump-links become one swipeable rail.
+     As a 2- or 3-column grid they wrapped onto two or three rows and left
+     "Read" orphaned on a row of its own, so the page opened with three rows
+     of chrome stacked on the 2x2 feature cards and the updates panel — nine
+     near-identical rounded boxes before it said anything.
+     All five tiles still stay: this is the only jump-nav the page has, and
+     hiding two of them would cut two of the five chapters out of it. */
   @media (max-width: 700px) {
-    /* All five tiles stay — hiding Discover and Read on phones cut two of the
-       five chapters out of the only jump-nav the page has. */
-    .quicknav { grid-template-columns: repeat(3, 1fr); }
+    .quicknav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      /* Full-bleed: a tile clipped at the screen edge is what tells you the
+         row scrolls. Mirrors main's own horizontal padding exactly. */
+      margin-inline: calc(clamp(20px, 5vw, 56px) * -1);
+      padding-inline: clamp(20px, 5vw, 56px);
+      padding-block: 2px;
+      margin-bottom: 20px;
+    }
+    .quicknav::-webkit-scrollbar { display: none; }
+    .qn-tile { flex: 0 0 auto; padding: 8px 14px 8px 9px; }
+    /* No lift on touch: :hover sticks after a tap, and the transform would
+       push the tile out of the scroll box. */
+    .qn-tile:hover { transform: none; }
   }
-  @media (max-width: 420px) {
-    .quicknav { grid-template-columns: repeat(2, 1fr); }
+
+  /* Below ~480px the feature cards are the tallest thing on the page — a
+     38px icon over a title and a subtitle that wraps to two lines. Trim the
+     box, keep every word. */
+  @media (max-width: 480px) {
+    .feature-cards { gap: 10px; margin-bottom: 20px; }
+    .fcard { padding: 13px; }
+    .fcard-icon { width: 32px; height: 32px; margin-bottom: 9px; }
+    .fcard-icon svg { width: 16px; height: 16px; }
+    .fcard-title { font-size: 0.9rem; }
+    .fcard-sub { font-size: 0.74rem; margin-top: 3px; }
   }
 
   /* ── Trending strip (real AniList covers) ─────────────────────────── */
