@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Badges — MangaRecs</title>
 <meta name="description" content="All 250 MangaRecs badges, Bronze through Mythic — what each one takes, and which ones are still secret." />
-<link rel="icon" href="/assets/favicon.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <link rel="manifest" href="/assets/manifest.json" />
 <meta property="og:type" content="website" />
@@ -39,7 +39,7 @@
   .topnav-inner { max-width: 1320px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px clamp(20px, 5vw, 56px); }
   @media (min-width: 1440px) { .topnav-inner { max-width: 1480px; } }
   .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
-  .brand svg, .brand img { width: 26px; height: 26px; }
+  .brand svg { width: 26px; height: 26px; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); font-weight: 800; }
   /* .nav-actions / .nav-links / .nav-utils layout lives in /assets/nav.css. */
@@ -122,7 +122,10 @@
 <nav class="topnav">
   <div class="topnav-inner">
     <a class="brand" href="/">
-      <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
+      <svg viewBox="0 0 1024 1024" aria-hidden="true">
+        <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="#7B5CFF" />
+        <circle cx="512" cy="512" r="46" fill="#0E0820" />
+      </svg>
       <span class="brand-word">Manga<b>Recs</b></span>
     </a>
     <div class="nav-actions">

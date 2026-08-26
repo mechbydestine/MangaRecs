@@ -42,6 +42,3 @@ yarn-error.*
 # generated native folders
 /ios
 /android
-
-# scripts/renderLogo.mjs --preview contact sheet (throwaway)
-/logo-preview.png

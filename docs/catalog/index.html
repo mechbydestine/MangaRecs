@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MangaRecs Catalog</title>
 <meta name="description" content="Browse manga, manhwa, manhua, and webcomics — synopsis, genres, characters, and where to read. Save to your MangaRecs library." />
-<link rel="icon" href="/assets/favicon.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath d='M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z' fill='%237B5CFF'/%3E%3Ccircle cx='512' cy='512' r='46' fill='%230E0820'/%3E%3C/svg%3E" />
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <link rel="manifest" href="/assets/manifest.json" />
 <meta property="og:type" content="website" />
@@ -104,7 +104,7 @@
   @media (min-width: 1440px) { .topbar-inner { max-width: 1480px; } }
   @media (max-width: 700px) { .nav-link { display: none; } }
   .brand { display: flex; align-items: center; gap: 9px; flex: none; }
-  .brand svg, .brand img { width: 24px; height: 24px; }
+  .brand svg { width: 24px; height: 24px; }
   .brand span { font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; }
   .brand b { color: var(--accent); }
   .searchwrap { flex: 1 1 0; position: relative; max-width: 440px; min-width: 0; }
@@ -515,7 +515,7 @@
     display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85);
     font-weight: 800; font-size: 0.8rem; letter-spacing: 0.02em; pointer-events: none;
   }
-  .recap-brandmark svg, .recap-brandmark img { width: 16px; height: 16px; }
+  .recap-brandmark svg { width: 16px; height: 16px; }
   .recap-progress { display: flex; gap: 6px; padding: 14px 14px 0; position: relative; z-index: 20; }
   .recap-seg { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.25); overflow: hidden; }
   .recap-seg i { display: block; height: 100%; width: 0%; background: #fff; }
@@ -919,7 +919,11 @@
 <nav class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="/">
-      <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
+      <svg viewBox="0 0 1024 1024" aria-hidden="true">
+        <defs><radialGradient id="navstar" cx="50%" cy="32%" r="62%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="38%" stop-color="#EDE5FF"/><stop offset="78%" stop-color="#C4A8FF"/><stop offset="100%" stop-color="#9B70FF"/></radialGradient></defs>
+        <path d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z" fill="url(#navstar)"/>
+        <circle cx="512" cy="512" r="46" fill="#0E0820"/><circle cx="512" cy="512" r="46" fill="none" stroke="#5B2FD6" stroke-width="2.5" opacity="0.6"/>
+      </svg>
       <span>Manga<b>Recs</b></span>
     </a>
     <div class="searchwrap">
@@ -2868,7 +2872,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="recap-overlay" id="recapOverlay">' +
             '<div class="recap-frame">' +
               '<div class="recap-progress" id="recapProgress"></div>' +
-              '<div class="recap-brandmark"><img src="/assets/icon-192.png" alt="" width="16" height="16" decoding="async" />MangaRecap</div>' +
+              '<div class="recap-brandmark"><svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M512,70 L560,444 L920,512 L560,580 L512,954 L464,580 L104,512 L464,444 Z"/></svg>MangaRecap</div>' +
               '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
               '<div class="recap-controls">' +
                 '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +
