@@ -68,25 +68,32 @@ var DRAWER_ICONS = {
 
 var DRAWER_SECTIONS = [
   {
-    heading: 'Browse',
-    links: [
-      { label: 'Browse Catalog', href: '/catalog/', icon: 'catalog' },
-      { label: 'My Library', href: '/catalog/#/library', icon: 'library', library: true },
-      { label: 'Badges & Medals', href: '/badges/', icon: 'badges' }
-    ]
-  },
-  {
-    heading: 'By format',
+    // Everything that's about finding a title, public or not — the full
+    // catalog and each format, in one group instead of two ("Browse" vs.
+    // "By format") that only ever differed by scope.
+    heading: 'Discover',
     // The SPA browse route, not /catalog/<format>/. Those are standalone SEO
     // landing pages — a different, thinner view than the live browse grid the
     // in-app tabs reach, so sending menu traffic there dumped people on the
     // wrong page. #/browse/<id> is what the catalog's own tabs use, and the
     // router reads the hash on a cold load too, so it works from any page.
     links: [
+      { label: 'Browse Catalog', href: '/catalog/', icon: 'catalog' },
       { label: 'Manga', href: '/catalog/#/browse/manga', icon: 'manga' },
       { label: 'Manhwa', href: '/catalog/#/browse/manhwa', icon: 'manhwa' },
       { label: 'Manhua', href: '/catalog/#/browse/manhua', icon: 'manhua' },
       { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' }
+    ]
+  },
+  {
+    // The personal/account side, split out from Discover rather than
+    // sitting oddly alongside a public catalog link. Badges stays visible
+    // to guests (it's a real public reference page too), just regrouped —
+    // My Library still hides for guests via data-library-link.
+    heading: 'Your Library',
+    links: [
+      { label: 'My Library', href: '/catalog/#/library', icon: 'library', library: true },
+      { label: 'Badges & Medals', href: '/badges/', icon: 'badges' }
     ]
   },
   {
