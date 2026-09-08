@@ -110,7 +110,7 @@
   .nav-left { display: flex; align-items: center; gap: 16px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
   .brand svg { width: 26px; height: 26px; }
-  .brand img { height: 52px; width: auto; }
+  .brand img { height: 68px; width: auto; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); font-weight: 800; }
   .nav-cta {
@@ -178,7 +178,7 @@
   .spotlight-view { overflow: hidden; padding: 18px 0; }
   .spotlight-track { display: flex; align-items: center; gap: 20px; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); will-change: transform; }
   .spotlight-slide {
-    flex: 0 0 auto; width: min(860px, 74vw); aspect-ratio: 16/10;
+    flex: 0 0 auto; width: min(620px, 52vw); aspect-ratio: 16/10;
     position: relative; border-radius: var(--r-lg); overflow: hidden;
     background-size: cover; background-position: center;
     opacity: 0.4; transform: scale(0.9); filter: saturate(0.7);
@@ -730,7 +730,7 @@
 <nav class="topnav has-cta">
   <div class="topnav-inner">
     <a class="brand" href="#top">
-      <img src="/assets/logo-mark.png" alt="MangaRecs" width="80" height="60" decoding="async" />
+      <img src="/assets/logo-mark.png" alt="MangaRecs" width="91" height="68" decoding="async" />
     </a>
     <div class="nav-actions">
       <div class="nav-utils">
@@ -775,29 +775,7 @@
     </div>
   </section>
 
-  <section class="hero">
-    <div class="hero-mark-wrap">
-      <img class="hero-mark" src="/assets/logo-mark.png" alt="" width="128" height="96" decoding="async" />
-    </div>
-    <h1 class="sr-only">MangaRecs</h1>
-    <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
-    <div class="hero-actions">
-      <a class="btn-primary" href="#download">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Coming Soon
-      </a>
-    </div>
-    <p class="hero-fineprint" data-i18n="hero.fineprint">Heading to the App Store and Google Play. Not there yet.</p>
-  </section>
-
   <section class="glance">
-    <div class="quicknav">
-      <a class="qn-tile" href="/features/#collect" style="--tile-c:#5B8DEF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>Collect</span></a>
-      <a class="qn-tile" href="/features/#connect" style="--tile-c:#E85FA8;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Connect</span></a>
-      <a class="qn-tile" href="/features/#progress" style="--tile-c:#E8A83C;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></span><span>Progress</span></a>
-      <a class="qn-tile" href="/features/#discover" style="--tile-c:#9B70FF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span><span>Discover</span></a>
-      <a class="qn-tile" href="/features/#read" style="--tile-c:#3FC9C0;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span>Read</span></a>
-    </div>
     <div class="feature-cards">
       <a class="fcard" href="/catalog/manga/" style="--fc:#5B8DEF;">
         <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
@@ -878,6 +856,28 @@
     <div class="grid" id="trendingGrid"></div>
     <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
     <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
+  </section>
+
+  <section class="hero">
+    <div class="hero-mark-wrap">
+      <img class="hero-mark" src="/assets/logo-mark.png" alt="" width="128" height="96" decoding="async" />
+    </div>
+    <h1 class="sr-only">MangaRecs</h1>
+    <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Coming Soon
+      </a>
+    </div>
+    <p class="hero-fineprint" data-i18n="hero.fineprint">Heading to the App Store and Google Play. Not there yet.</p>
+    <div class="quicknav">
+      <a class="qn-tile" href="/features/#collect" style="--tile-c:#5B8DEF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>Collect</span></a>
+      <a class="qn-tile" href="/features/#connect" style="--tile-c:#E85FA8;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Connect</span></a>
+      <a class="qn-tile" href="/features/#progress" style="--tile-c:#E8A83C;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></span><span>Progress</span></a>
+      <a class="qn-tile" href="/features/#discover" style="--tile-c:#9B70FF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span><span>Discover</span></a>
+      <a class="qn-tile" href="/features/#read" style="--tile-c:#3FC9C0;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span>Read</span></a>
+    </div>
   </section>
 
   <section class="whatsnew" id="whatsnew">
@@ -1081,12 +1081,17 @@
   // Spotlight — full-width multi-peek discovery carousel that opens the
   // page. Real centring via measured offsetLeft/offsetWidth (not a fixed
   // percentage) since slides are a fixed pixel width with a flex gap.
-  (function initSpotlight() {
-    var CARDS = [
-      { genre: 'Action', title: 'Sakamoto Days', match: '98% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125828-p78Z8SflkfmO.jpg' },
-      { genre: 'Fantasy', title: 'Dungeon Meshi', match: '95% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86082-MXizJxzbijdd.jpg' },
-      { genre: 'Thriller', title: "Omniscient Reader's", match: '91% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg' },
-      { genre: 'Isekai', title: 'Solo Leveling', match: '97% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg' },
+  // Pulls the top 20 off AniList's own trending sort (the same call
+  // trendingMedia() makes for the grid further down the page) rather than
+  // a hand-picked static list, so it's an actual chart, not a demo.
+  // Deferred to DOMContentLoaded because anilist.js loads with `defer` and
+  // this script runs immediately, ahead of it, in source order.
+  function initSpotlight() {
+    var FALLBACK = [
+      { genre: 'Action', title: 'Sakamoto Days', sub: 'Trending now', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125828-p78Z8SflkfmO.jpg' },
+      { genre: 'Fantasy', title: 'Dungeon Meshi', sub: 'Trending now', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86082-MXizJxzbijdd.jpg' },
+      { genre: 'Thriller', title: "Omniscient Reader's", sub: 'Trending now', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg' },
+      { genre: 'Isekai', title: 'Solo Leveling', sub: 'Trending now', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg' },
     ];
     var panel = document.querySelector('.spotlight');
     var view = document.querySelector('.spotlight-view');
@@ -1096,31 +1101,34 @@
     var nextBtn = document.getElementById('spotlightNext');
     if (!panel || !view || !track || !dotsEl) return;
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var slides = [], i = 0, timer = null, held = false;
 
-    CARDS.forEach(function (card) {
-      var slide = document.createElement('div');
-      slide.className = 'spotlight-slide';
-      slide.style.backgroundImage = 'url(' + card.cover + ')';
-      slide.innerHTML =
-        '<span class="spotlight-tag">' + card.genre + '</span>' +
-        '<div class="spotlight-body">' +
-          '<div class="spotlight-title">' + card.title + '</div>' +
-          '<div class="spotlight-sub">' + card.match + '</div>' +
-        '</div>';
-      track.appendChild(slide);
-    });
-
-    var slides = Array.prototype.slice.call(track.children);
-    var i = 0, timer = null, held = false;
-
-    slides.forEach(function (_s, n) {
-      var dot = document.createElement('button');
-      dot.type = 'button';
-      dot.className = 'spotlight-dot' + (n === 0 ? ' active' : '');
-      dot.setAttribute('aria-label', 'Show title ' + (n + 1) + ' of ' + slides.length);
-      dot.setAttribute('data-i', String(n));
-      dotsEl.appendChild(dot);
-    });
+    function render(cards) {
+      cards.forEach(function (card) {
+        var slide = document.createElement('div');
+        slide.className = 'spotlight-slide';
+        slide.style.backgroundImage = 'url(' + card.cover + ')';
+        slide.innerHTML =
+          '<span class="spotlight-tag">' + card.genre + '</span>' +
+          '<div class="spotlight-body">' +
+            '<div class="spotlight-title">' + card.title + '</div>' +
+            '<div class="spotlight-sub">' + card.sub + '</div>' +
+          '</div>';
+        track.appendChild(slide);
+        slides.push(slide);
+      });
+      slides.forEach(function (_s, n) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'spotlight-dot' + (n === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', 'Show title ' + (n + 1) + ' of ' + slides.length);
+        dot.setAttribute('data-i', String(n));
+        dotsEl.appendChild(dot);
+      });
+      wire();
+      paint();
+      start();
+    }
 
     function paint() {
       var slide = slides[i];
@@ -1136,33 +1144,49 @@
       paint();
     }
     function start() {
-      if (reduced || held || timer) return;
+      if (reduced || held || timer || slides.length < 2) return;
       timer = setInterval(function () { go(1); }, 4500);
     }
     function stop() { clearInterval(timer); timer = null; }
 
-    prevBtn.addEventListener('click', function () { held = true; stop(); go(-1); });
-    nextBtn.addEventListener('click', function () { held = true; stop(); go(1); });
-    dotsEl.addEventListener('click', function (e) {
-      var d = e.target.closest('.spotlight-dot');
-      if (!d) return;
-      held = true;
-      stop();
-      i = parseInt(d.getAttribute('data-i'), 10);
-      paint();
-    });
-    panel.addEventListener('pointerenter', stop);
-    panel.addEventListener('pointerleave', start);
-    panel.addEventListener('focusin', stop);
-    panel.addEventListener('focusout', start);
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) stop(); else start();
-    });
-    window.addEventListener('resize', paint);
+    function wire() {
+      prevBtn.addEventListener('click', function () { held = true; stop(); go(-1); });
+      nextBtn.addEventListener('click', function () { held = true; stop(); go(1); });
+      dotsEl.addEventListener('click', function (e) {
+        var d = e.target.closest('.spotlight-dot');
+        if (!d) return;
+        held = true;
+        stop();
+        i = parseInt(d.getAttribute('data-i'), 10);
+        paint();
+      });
+      panel.addEventListener('pointerenter', stop);
+      panel.addEventListener('pointerleave', start);
+      panel.addEventListener('focusin', stop);
+      panel.addEventListener('focusout', start);
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stop(); else start();
+      });
+      window.addEventListener('resize', paint);
+    }
 
-    paint();
-    start();
-  })();
+    if (typeof trendingMedia !== 'function') { render(FALLBACK); return; }
+    trendingMedia().then(function (data) {
+      var media = (data && data.Page && data.Page.media) || [];
+      var withBanner = media.filter(function (m) { return m.bannerImage; });
+      var pick = (withBanner.length >= 10 ? withBanner : media).slice(0, 20);
+      if (!pick.length) { render(FALLBACK); return; }
+      render(pick.map(function (m, idx) {
+        return {
+          genre: esc((m.genres && m.genres[0]) || 'Trending'),
+          title: esc(titleOf(m)),
+          sub: '#' + (idx + 1) + ' Trending',
+          cover: m.bannerImage || (m.coverImage && (m.coverImage.large || m.coverImage.extraLarge)),
+        };
+      }));
+    }).catch(function () { render(FALLBACK); });
+  }
+  document.addEventListener('DOMContentLoaded', initSpotlight);
 })();
 </script>
 
