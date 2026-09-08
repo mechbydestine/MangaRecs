@@ -178,13 +178,16 @@
   .spotlight-view { overflow: hidden; padding: 18px 0; }
   .spotlight-track { display: flex; align-items: center; gap: 20px; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); will-change: transform; }
   .spotlight-slide {
-    flex: 0 0 auto; width: min(620px, 52vw); aspect-ratio: 16/10;
+    flex: 0 0 auto; width: min(460px, 38vw); aspect-ratio: 1/1.05;
     position: relative; border-radius: var(--r-lg); overflow: hidden;
     background-size: cover; background-position: center;
     opacity: 0.4; transform: scale(0.9); filter: saturate(0.7);
-    transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
+    transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease, box-shadow 0.4s ease;
   }
-  .spotlight-slide.active { opacity: 1; transform: scale(1); filter: none; box-shadow: var(--shadow); }
+  .spotlight-slide.active {
+    opacity: 1; transform: scale(1); filter: none;
+    box-shadow: 0 0 0 2px var(--accent), 0 0 50px -8px var(--accent);
+  }
   .spotlight-slide::after {
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 45%, transparent 75%);
@@ -194,6 +197,12 @@
     font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
     background: rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(6px);
     padding: 4px 10px; border-radius: var(--r-pill);
+  }
+  .spotlight-counter {
+    position: absolute; top: 16px; right: 16px; z-index: 2;
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.02em;
+    background: rgba(0,0,0,0.5); color: #fff; backdrop-filter: blur(6px);
+    padding: 4px 9px; border-radius: var(--r-pill);
   }
   .spotlight-body { position: absolute; left: 22px; right: 22px; bottom: 20px; z-index: 2; color: #fff; }
   .spotlight-title { font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900; font-size: clamp(1.2rem, 2.4vw, 1.7rem); line-height: 1.15; }
@@ -209,18 +218,8 @@
   .spotlight-arrow svg { width: 18px; height: 18px; }
   .spotlight-prev { left: clamp(4px, 2vw, 24px); }
   .spotlight-next { right: clamp(4px, 2vw, 24px); }
-  .spotlight-dots { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
-  .spotlight-dot {
-    width: 22px; height: 16px; padding: 0; border: none; background: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .spotlight-dot::before {
-    content: ''; display: block; width: 7px; height: 7px; border-radius: var(--r-pill);
-    background: var(--line-strong); transition: width 0.25s ease, background 0.25s ease;
-  }
-  .spotlight-dot.active::before { width: 18px; background: var(--accent); }
   @media (max-width: 700px) {
-    .spotlight-slide { width: 86vw; aspect-ratio: 16/11; }
+    .spotlight-slide { width: 86vw; aspect-ratio: 1/1.1; }
   }
 
   /* ── Chapters ───────────────────────────────────────────────────────── */
@@ -745,7 +744,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
       </div>
-      <a class="nav-cta" href="#download" data-i18n="nav.cta">Coming Soon</a>
+      <span class="nav-cta" data-i18n="nav.cta">Coming Soon</span>
     </div>
   </div>
 </nav>
@@ -762,7 +761,6 @@
     <button class="spotlight-arrow spotlight-next" id="spotlightNext" type="button" aria-label="Next title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
     </button>
-    <div class="spotlight-dots" id="spotlightDots"></div>
   </section>
 
   <section class="maker-note" id="why">
@@ -827,13 +825,13 @@
               <span class="update-desc" data-i18n-html="updates.d3">Save a title here and it's <em>already waiting in the app</em> when you sign in.</span>
             </span>
           </a>
-          <a class="update-item" href="#download" style="--u-c:#E85FA8;">
+          <div class="update-item" style="--u-c:#E85FA8;">
             <span class="update-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
             <span class="update-copy">
               <span class="update-title" data-i18n="updates.t4">Heading to the stores</span>
-              <span class="update-desc" data-i18n-html="updates.d4">MangaRecs is in final testing. <em>Leave your email</em> and we'll ping you the day it lands.</span>
+              <span class="update-desc" data-i18n-html="updates.d4">MangaRecs is in <em>final testing</em>, heading to the App Store and Google Play soon.</span>
             </span>
-          </a>
+          </div>
         </div>
       </div>
       <div class="updates-dots" id="updatesDots"></div>
@@ -865,10 +863,10 @@
     <h1 class="sr-only">MangaRecs</h1>
     <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
     <div class="hero-actions">
-      <a class="btn-primary" href="#download">
+      <span class="btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         Coming Soon
-      </a>
+      </span>
     </div>
     <p class="hero-fineprint" data-i18n="hero.fineprint">Heading to the App Store and Google Play. Not there yet.</p>
     <div class="quicknav">
@@ -899,28 +897,6 @@
     </div>
   </section>
 
-  <section class="download" id="download">
-    <div class="mascot-pop mascot-slot"></div>
-    <p class="eyebrow" data-i18n="download.eyebrow">Launching soon</p>
-    <h2 data-i18n="download.title">Coming to the App Store and Google Play</h2>
-    <p data-i18n="download.body">MangaRecs is in final testing before submission. Check back here for the store links the moment it's live.</p>
-    <p class="platform-note" data-i18n="download.platforms">iOS and Android, at launch.</p>
-    <!-- Store links live here and nowhere else on the site. The day the listings
-         go live, swap each <span class="store-badge"> for an <a href="…"> with the
-         official badge art, and set the apple-itunes-app meta in <head>. -->
-    <div class="store-badges">
-      <span class="store-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg><b data-i18n="download.ios">App Store</b><span data-i18n="download.soon">soon</span></span>
-      <span class="store-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 12 9-12 9z"/><path d="M15 12 21 8v8z"/></svg><b data-i18n="download.android">Google Play</b><span data-i18n="download.soon">soon</span></span>
-    </div>
-    <form class="notify-form" id="notifyForm">
-      <label class="sr-only" for="notifyEmail" data-i18n="download.emailLabel">Your email address</label>
-      <input type="email" id="notifyEmail" placeholder="you@email.com" autocomplete="email" required />
-      <button class="btn-primary" type="submit" data-i18n="download.notify">Notify me at launch</button>
-    </form>
-    <p class="notify-fineprint" data-i18n-html="download.fineprint">One email, on launch day, and nothing else ever. See the <a href="/privacy/">Privacy Policy</a>.</p>
-    <p class="notify-msg" id="notifyMsg" role="status" aria-live="polite"></p>
-    <p class="notify-count" id="notifyCount" hidden></p>
-  </section>
 
   <section class="faq" id="faq">
     <p class="eyebrow" data-i18n="faq.eyebrow">FAQ</p>
@@ -1096,10 +1072,9 @@
     var panel = document.querySelector('.spotlight');
     var view = document.querySelector('.spotlight-view');
     var track = document.getElementById('spotlightTrack');
-    var dotsEl = document.getElementById('spotlightDots');
     var prevBtn = document.getElementById('spotlightPrev');
     var nextBtn = document.getElementById('spotlightNext');
-    if (!panel || !view || !track || !dotsEl) return;
+    if (!panel || !view || !track) return;
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var slides = [], i = 0, timer = null, held = false;
 
@@ -1110,20 +1085,13 @@
         slide.style.backgroundImage = 'url(' + card.cover + ')';
         slide.innerHTML =
           '<span class="spotlight-tag">' + card.genre + '</span>' +
+          '<span class="spotlight-counter"></span>' +
           '<div class="spotlight-body">' +
             '<div class="spotlight-title">' + card.title + '</div>' +
             '<div class="spotlight-sub">' + card.sub + '</div>' +
           '</div>';
         track.appendChild(slide);
         slides.push(slide);
-      });
-      slides.forEach(function (_s, n) {
-        var dot = document.createElement('button');
-        dot.type = 'button';
-        dot.className = 'spotlight-dot' + (n === 0 ? ' active' : '');
-        dot.setAttribute('aria-label', 'Show title ' + (n + 1) + ' of ' + slides.length);
-        dot.setAttribute('data-i', String(n));
-        dotsEl.appendChild(dot);
       });
       wire();
       paint();
@@ -1134,9 +1102,9 @@
       var slide = slides[i];
       var offset = view.clientWidth / 2 - (slide.offsetLeft + slide.offsetWidth / 2);
       track.style.transform = 'translateX(' + offset + 'px)';
-      slides.forEach(function (s, n) { s.classList.toggle('active', n === i); });
-      Array.prototype.forEach.call(dotsEl.children, function (d, n) {
-        d.classList.toggle('active', n === i);
+      slides.forEach(function (s, n) {
+        s.classList.toggle('active', n === i);
+        s.querySelector('.spotlight-counter').textContent = (i + 1) + ' / ' + slides.length;
       });
     }
     function go(delta) {
@@ -1152,14 +1120,6 @@
     function wire() {
       prevBtn.addEventListener('click', function () { held = true; stop(); go(-1); });
       nextBtn.addEventListener('click', function () { held = true; stop(); go(1); });
-      dotsEl.addEventListener('click', function (e) {
-        var d = e.target.closest('.spotlight-dot');
-        if (!d) return;
-        held = true;
-        stop();
-        i = parseInt(d.getAttribute('data-i'), 10);
-        paint();
-      });
       panel.addEventListener('pointerenter', stop);
       panel.addEventListener('pointerleave', start);
       panel.addEventListener('focusin', stop);
@@ -1171,17 +1131,29 @@
     }
 
     if (typeof trendingMedia !== 'function') { render(FALLBACK); return; }
-    trendingMedia().then(function (data) {
-      var media = (data && data.Page && data.Page.media) || [];
-      var withBanner = media.filter(function (m) { return m.bannerImage; });
-      var pick = (withBanner.length >= 10 ? withBanner : media).slice(0, 20);
+    function withCover(res) {
+      return ((res && res.Page && res.Page.media) || []).filter(function (m) {
+        return m.coverImage && (m.coverImage.extraLarge || m.coverImage.large);
+      });
+    }
+    // 80/20 manhwa+manhua to manga, by request — three separate trending
+    // calls (one per origin) rather than one mixed chart, since AniList's
+    // combined trending sort skews Japanese and wouldn't hit that split.
+    Promise.all([
+      trendingMedia({ country: 'KR' }).catch(function () { return null; }),
+      trendingMedia({ country: 'CN' }).catch(function () { return null; }),
+      trendingMedia({ country: 'JP' }).catch(function () { return null; }),
+    ]).then(function (results) {
+      var pick = withCover(results[0]).slice(0, 8)
+        .concat(withCover(results[1]).slice(0, 8))
+        .concat(withCover(results[2]).slice(0, 4));
       if (!pick.length) { render(FALLBACK); return; }
       render(pick.map(function (m, idx) {
         return {
           genre: esc((m.genres && m.genres[0]) || 'Trending'),
           title: esc(titleOf(m)),
           sub: '#' + (idx + 1) + ' Trending',
-          cover: m.bannerImage || (m.coverImage && (m.coverImage.large || m.coverImage.extraLarge)),
+          cover: (m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || m.bannerImage,
         };
       }));
     }).catch(function () { render(FALLBACK); });
@@ -1253,46 +1225,6 @@ document.addEventListener('DOMContentLoaded', function () {
     paint();
     start();
   })();
-
-  var notifyForm = document.getElementById('notifyForm');
-  var notifyMsg = document.getElementById('notifyMsg');
-  var notifyCount = document.getElementById('notifyCount');
-
-  // Real signups only — the line stays hidden rather than inventing a number,
-  // and below 25 it stays hidden too (a tiny true count is worse than none).
-  function paintNotifyCount() {
-    if (!notifyCount || typeof launchNotifyCount !== 'function') return;
-    launchNotifyCount().then(function (n) {
-      if (typeof n !== 'number' || n < 25) return;
-      var i18n = window.MangaRecsI18n;
-      var tpl = i18n ? i18n.t('download.count') : '{n} readers are already on the list.';
-      notifyCount.textContent = tpl.replace('{n}', n.toLocaleString());
-      notifyCount.hidden = false;
-    });
-  }
-  paintNotifyCount();
-
-  notifyForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var email = document.getElementById('notifyEmail').value.trim();
-    if (!email) return;
-    var btn = notifyForm.querySelector('button');
-    btn.disabled = true;
-    notifyMsg.className = 'notify-msg';
-    notifyMsg.textContent = '';
-    notifyLaunch(email).then(function (res) {
-      btn.disabled = false;
-      if (res.ok) {
-        notifyMsg.className = 'notify-msg ok';
-        notifyMsg.textContent = res.already ? "You're already on the list." : "You're on the list — we'll email you at launch.";
-        notifyForm.reset();
-        paintNotifyCount();
-      } else {
-        notifyMsg.className = 'notify-msg error';
-        notifyMsg.textContent = 'Something went wrong — try again in a moment.';
-      }
-    });
-  });
 
   var pillsEl = document.getElementById('formatPills');
   var moodPillsEl = document.getElementById('moodPills');

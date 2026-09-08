@@ -3,7 +3,10 @@
 // their own sessionStorage cache in anilist.js and need to stay fresh).
 // Bump the cache name whenever the precache list changes so old clients
 // pick up the new shell instead of serving stale assets forever.
-var CACHE_NAME = 'mangarecs-shell-v6';
+// v7: motion.css/motion.js dropped the cursor-glow effect, but the file
+// names didn't change — a same-named cache would have kept serving the
+// old glow-enabled bytes to anyone who'd already installed v6.
+var CACHE_NAME = 'mangarecs-shell-v7';
 var PRECACHE = [
   '/',
   '/catalog/',
