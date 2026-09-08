@@ -172,41 +172,53 @@
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
   .hero-fineprint { margin-top: 14px; font-size: 0.82rem; color: var(--ink-faint); }
 
-  /* Swipe-card demo */
-  .demo {
-    position: relative;
-    height: clamp(320px, 40vw, 400px);
+  /* Trending-picks carousel (hero) — banner slides with arrows + dots, our
+     own take on that format rather than a lift of any one site's version:
+     real catalog covers, the site's own tag/pill language, contained inside
+     the same box the old swipe-card demo used. */
+  .demo { position: relative; height: clamp(320px, 40vw, 400px); }
+  .promo, .promo-view { width: 100%; height: 100%; }
+  .promo { position: relative; }
+  .promo-view { overflow: hidden; border-radius: var(--r-md); box-shadow: var(--shadow); }
+  .promo-track { display: flex; height: 100%; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); }
+  .promo-slide {
+    flex: 0 0 100%; position: relative; height: 100%;
+    background-size: cover; background-position: center;
+  }
+  .promo-slide::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(0deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 48%, rgba(0,0,0,0.05) 65%, transparent 100%);
+  }
+  .promo-tag {
+    position: absolute; top: 16px; left: 16px; z-index: 2;
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
+    background: rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(6px);
+    padding: 4px 10px; border-radius: var(--r-pill);
+  }
+  .promo-body { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 2; color: #fff; }
+  .promo-title { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.15rem; line-height: 1.25; }
+  .promo-sub { font-size: 0.8rem; color: rgba(255,255,255,0.75); margin-top: 3px; }
+  .promo-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(10,8,20,0.5); color: #fff; backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s ease;
+  }
+  .promo-arrow:hover { background: rgba(10,8,20,0.75); }
+  .promo-arrow svg { width: 16px; height: 16px; }
+  .promo-prev { left: 10px; }
+  .promo-next { right: 10px; }
+  .promo-dots { display: flex; justify-content: center; gap: 4px; margin-top: 11px; }
+  .promo-dot {
+    width: 22px; height: 16px; padding: 0; border: none; background: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
-  .demo-stack { position: relative; width: min(78%, 260px); height: 88%; }
-  .demo-card {
-    position: absolute; inset: 0;
-    border-radius: var(--r-md);
-    border: 1px solid rgba(255,255,255,0.14);
-    background: var(--bg-panel);
-    box-shadow: var(--shadow), 0 0 50px -14px var(--sw1, var(--accent));
-    padding: 18px;
-    display: flex; flex-direction: column; justify-content: flex-end;
-    touch-action: pan-y;
-    transition: transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s;
-    will-change: transform;
-    user-select: none;
-    -webkit-user-select: none;
+  .promo-dot::before {
+    content: ''; display: block; width: 7px; height: 7px; border-radius: var(--r-pill);
+    background: var(--line-strong); transition: width 0.25s ease, background 0.25s ease;
   }
-  .demo-card .glyph { position: absolute; top: 16px; left: 16px; width: 30px; height: 30px; opacity: 0.9; }
-  .demo-card .match {
-    position: absolute; top: 16px; right: 16px;
-    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
-    background: var(--accent-wash); color: var(--accent);
-    padding: 4px 9px; border-radius: var(--r-pill);
-  }
-  .demo-card .genre { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.3rem; }
-  .demo-card .sub { font-size: 0.82rem; color: var(--ink-muted); margin-top: 4px; }
-  .demo-hint {
-    position: absolute; bottom: -34px; left: 0; right: 0;
-    text-align: center; font-size: 0.76rem; color: var(--ink-faint);
-    letter-spacing: 0.03em;
-  }
+  .promo-dot.active::before { width: 18px; background: var(--accent); }
 
   /* ── Chapters ───────────────────────────────────────────────────────── */
   .chapter {
@@ -785,8 +797,18 @@
     </div>
 
     <div class="demo">
-      <div class="demo-stack" id="demoStack"></div>
-      <p class="demo-hint" data-i18n="demo.hint">← swipe away · swipe right to save →</p>
+      <div class="promo" id="promo" role="group" aria-roledescription="carousel" aria-label="Trending picks">
+        <div class="promo-view">
+          <div class="promo-track" id="promoTrack"></div>
+        </div>
+        <button class="promo-arrow promo-prev" id="promoPrev" type="button" aria-label="Previous title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button class="promo-arrow promo-next" id="promoNext" type="button" aria-label="Next title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="promo-dots" id="promoDots"></div>
     </div>
   </section>
 
@@ -1123,110 +1145,85 @@
   document.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  // Swipe-card demo — mirrors the Feed's swipe-to-save / swipe-to-dismiss gesture
-  var CARDS = [
-    { genre: 'Action', sub: 'Sakamoto Days · 98% match', c1: '#3a2a6b', c2: '#1c1330', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg' },
-    { genre: 'Fantasy', sub: 'Dungeon Meshi · 95% match', c1: '#2a4a4a', c2: '#132424', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86082-MXizJxzbijdd.jpg' },
-    { genre: 'Thriller', sub: "Omniscient Reader's · 91% match", c1: '#4a2a2a', c2: '#241313', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119257-Pi21aq3ey9GG.jpg' },
-    { genre: 'Isekai', sub: 'Solo Leveling · 97% match', c1: '#2a3a5a', c2: '#131c2f', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx105398-b673Vt5ZSuz3.jpg' },
-  ];
-  var stack = document.getElementById('demoStack');
-  var order = CARDS.slice();
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var firstRender = true;
+  // Trending-picks carousel — arrows + dots + autoplay, patterned after the
+  // Latest Updates carousel below rather than any outside site's demo.
+  (function initPromo() {
+    var CARDS = [
+      { genre: 'Action', title: 'Sakamoto Days', match: '98% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg' },
+      { genre: 'Fantasy', title: 'Dungeon Meshi', match: '95% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86082-MXizJxzbijdd.jpg' },
+      { genre: 'Thriller', title: "Omniscient Reader's", match: '91% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119257-Pi21aq3ey9GG.jpg' },
+      { genre: 'Isekai', title: 'Solo Leveling', match: '97% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx105398-b673Vt5ZSuz3.jpg' },
+    ];
+    var track = document.getElementById('promoTrack');
+    var dotsEl = document.getElementById('promoDots');
+    var prevBtn = document.getElementById('promoPrev');
+    var nextBtn = document.getElementById('promoNext');
+    var panel = document.getElementById('promo');
+    if (!track || !dotsEl || !panel) return;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function render() {
-    stack.innerHTML = '';
-    order.slice(0, 3).forEach(function (card, i) {
-      var el = document.createElement('div');
-      el.className = 'demo-card';
-      el.style.zIndex = String(10 - i);
-      el.style.transform = 'translateY(' + (i * 10) + 'px) scale(' + (1 - i * 0.045) + ')';
-      el.style.opacity = String(1 - i * 0.18);
-      el.innerHTML =
-        '<div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></div>' +
-        '<div class="match">' + card.sub.split(' · ')[1] + '</div>' +
-        '<div class="genre">' + card.genre + '</div>' +
-        '<div class="sub">' + card.sub.split(' · ')[0] + '</div>';
-      el.style.setProperty('--sw1', card.c1);
-      el.style.background =
-        'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.05) 32%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0.88) 100%), ' +
-        'url(' + card.cover + ') center/cover no-repeat, ' +
-        'linear-gradient(160deg, ' + card.c1 + ', ' + card.c2 + ')';
-      el.querySelector('.genre').style.color = '#fff';
-      el.querySelector('.sub').style.color = 'rgba(255,255,255,0.72)';
-      el.querySelector('.match').style.background = 'rgba(255,255,255,0.2)';
-      el.querySelector('.match').style.color = '#fff';
-      if (i === 0) {
-        attachDrag(el);
-        // One-time nudge so keyboard/mouse users notice the top card is
-        // actually interactive, not just a decorative screenshot.
-        if (firstRender && !reduced) {
-          firstRender = false;
-          el.classList.add('demo-nudge');
-          setTimeout(function () { el.classList.remove('demo-nudge'); }, 2600);
-        }
-      }
-      stack.appendChild(el);
+    CARDS.forEach(function (card) {
+      var slide = document.createElement('div');
+      slide.className = 'promo-slide';
+      slide.style.backgroundImage = 'url(' + card.cover + ')';
+      slide.innerHTML =
+        '<span class="promo-tag">' + card.genre + '</span>' +
+        '<div class="promo-body">' +
+          '<div class="promo-title">' + card.title + '</div>' +
+          '<div class="promo-sub">' + card.match + '</div>' +
+        '</div>';
+      track.appendChild(slide);
     });
-  }
 
-  function cycle(dir) {
-    var top = order.shift();
-    if (dir === 'right') order.splice(1, 0, top); else order.push(top);
-    render();
-  }
+    var slides = CARDS.length;
+    var i = 0, timer = null, held = false;
 
-  // Shared fly-off used by both pointer release and keyboard triggers, so
-  // Left/Right arrow keys produce the exact same motion as a real swipe.
-  function flyOff(el, dir) {
-    el.style.transition = 'transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s';
-    el.style.transform = 'translateX(' + (dir === 'right' ? 600 : -600) + 'px) rotate(' + (dir === 'right' ? 24 : -24) + 'deg)';
-    el.style.opacity = '0';
-    setTimeout(function () { cycle(dir); }, 220);
-  }
-
-  function attachDrag(el) {
-    var startX = 0, dx = 0, dragging = false;
-    function down(x) { dragging = true; startX = x; el.style.transition = 'none'; }
-    function move(x) {
-      if (!dragging) return;
-      dx = x - startX;
-      el.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / 18) + 'deg)';
+    for (var n = 0; n < slides; n++) {
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'promo-dot' + (n === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', 'Show title ' + (n + 1) + ' of ' + slides);
+      dot.setAttribute('data-i', String(n));
+      dotsEl.appendChild(dot);
     }
-    function up() {
-      if (!dragging) return;
-      dragging = false;
-      el.style.transition = 'transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s';
-      if (Math.abs(dx) > 70) {
-        flyOff(el, dx > 0 ? 'right' : 'left');
-      } else {
-        el.style.transform = 'translateY(0px) scale(1)';
-      }
-      dx = 0;
+
+    function paint() {
+      track.style.transform = 'translateX(' + (-i * 100) + '%)';
+      Array.prototype.forEach.call(dotsEl.children, function (d, n) {
+        d.classList.toggle('active', n === i);
+      });
     }
-    el.addEventListener('pointerdown', function (e) { down(e.clientX); });
-    window.addEventListener('pointermove', function (e) { move(e.clientX); });
-    window.addEventListener('pointerup', up);
-  }
+    function go(delta) {
+      i = (i + delta + slides) % slides;
+      paint();
+    }
+    function start() {
+      if (reduced || held || timer) return;
+      timer = setInterval(function () { go(1); }, 4200);
+    }
+    function stop() { clearInterval(timer); timer = null; }
 
-  // Keyboard equivalent of the swipe gesture — Left to skip, Right to save —
-  // for anyone who tabs to the demo instead of dragging with a pointer.
-  stack.setAttribute('tabindex', '0');
-  stack.setAttribute('role', 'group');
-  stack.setAttribute('aria-label', 'Swipe demo — press Left to skip, Right to save');
-  stack.addEventListener('keydown', function (e) {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    e.preventDefault();
-    var top = stack.querySelector('.demo-card');
-    if (!top) return;
-    flyOff(top, e.key === 'ArrowRight' ? 'right' : 'left');
-  });
+    prevBtn.addEventListener('click', function () { held = true; stop(); go(-1); });
+    nextBtn.addEventListener('click', function () { held = true; stop(); go(1); });
+    dotsEl.addEventListener('click', function (e) {
+      var d = e.target.closest('.promo-dot');
+      if (!d) return;
+      held = true;
+      stop();
+      i = parseInt(d.getAttribute('data-i'), 10);
+      paint();
+    });
+    panel.addEventListener('pointerenter', stop);
+    panel.addEventListener('pointerleave', start);
+    panel.addEventListener('focusin', stop);
+    panel.addEventListener('focusout', start);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
 
-  render();
-  if (!reduced) {
-    setInterval(function () { cycle('left'); }, 3200);
-  }
+    paint();
+    start();
+  })();
 })();
 </script>
 

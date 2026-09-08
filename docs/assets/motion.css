@@ -350,15 +350,6 @@
   }
 }
 
-/* ── Swipe-demo first-visit nudge (hero) ─────────────────────────────── */
-.demo-nudge { animation: demoNudge 1.3s ease 0.9s 1; }
-@keyframes demoNudge {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  20% { transform: translateX(-14px) rotate(-4deg); }
-  45% { transform: translateX(10px) rotate(3deg); }
-  70% { transform: translateX(-5px) rotate(-1.5deg); }
-}
-
 /* ── Mascot (injected into empty/error/404 states) ───────────────────── */
 .mascot-pop {
   width: 92px;
