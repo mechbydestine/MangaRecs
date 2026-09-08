@@ -205,6 +205,12 @@
     .profile-namewrap { padding-top: 24px; }
   }
   .profile-username { font-size: 1.4rem; font-weight: 800; margin: 0 0 4px; }
+  .profile-signout-btn {
+    margin-left: auto; flex: none; background: none; border: 1px solid var(--line);
+    border-radius: var(--r-pill); padding: 7px 14px; font-size: 0.78rem; font-weight: 700;
+    color: var(--ink-muted); cursor: pointer; align-self: flex-start;
+  }
+  .profile-signout-btn:hover { color: var(--accent); border-color: var(--accent); }
   .profile-handle { font-size: 0.82rem; color: var(--ink-faint); margin: 6px 0 0; }
   .profile-bio-text { font-size: 0.9rem; color: var(--ink-muted); margin: 0; display: inline; }
   .profile-bio-empty { color: var(--ink-faint); }
@@ -3009,6 +3015,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '</div>' +
               '<p class="profile-handle">@' + esc(profile.username || 'reader') + (joinDate ? ' · Joined ' + joinDate : '') + '</p>' +
             '</div>' +
+            '<button class="profile-signout-btn" id="profileSignOutBtn" type="button">Sign out</button>' +
           '</div>' +
         '</div>' +
 
@@ -3039,6 +3046,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         '<a class="btn-ghost" href="#/recap" style="display:inline-block;margin:4px 0 30px;text-decoration:none;">✨ View My MangaRecap</a>';
 
+      document.getElementById('profileSignOutBtn').addEventListener('click', function () {
+        signOut().then(function () { window.location.hash = '#/'; });
+      });
       document.getElementById('profileBioEditBtn').addEventListener('click', function () {
         document.getElementById('profileBioView').style.display = 'none';
         document.getElementById('profileBioEdit').style.display = 'block';

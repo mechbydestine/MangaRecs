@@ -435,6 +435,13 @@ function initAccountPanel(btnId, panelId) {
     Array.prototype.forEach.call(libLinks, function (el) {
       el.style.display = user ? '' : 'none';
     });
+    // Anything marked guest-only (the nav's "Log In" pill) makes no sense
+    // once there's already a session — hide it rather than leave a second,
+    // redundant way to open a panel the account icon already covers.
+    var guestOnlyEls = document.querySelectorAll('[data-guest-only]');
+    Array.prototype.forEach.call(guestOnlyEls, function (el) {
+      el.style.display = user ? 'none' : '';
+    });
   });
   onPasswordRecovery(function () {
     setMode('recovery');
@@ -443,6 +450,13 @@ function initAccountPanel(btnId, panelId) {
 
   btn.addEventListener('click', function (e) {
     e.stopPropagation();
+    // Signed in, the icon's job is "take me to my profile," not "open the
+    // panel that already told you who you are" — the panel still exists
+    // for sign-out, just reached from the profile page now instead of here.
+    if (getCurrentUser()) {
+      window.location.href = '/catalog/#/profile';
+      return;
+    }
     setPanelOpen(!isPanelOpen());
   });
   document.addEventListener('click', function (e) {

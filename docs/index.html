@@ -466,6 +466,11 @@
     background: linear-gradient(155deg, color-mix(in srgb, var(--fc, var(--accent)) 12%, var(--bg-panel)), var(--bg-panel) 62%);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
+  /* The class's own `display: block` ties in specificity with the UA
+     stylesheet's `[hidden] { display: none }` and author styles win that
+     tie, so the three auth-gated cards below rendered anyway — this rule
+     has to out-specify .fcard itself, not just repeat the browser default. */
+  .fcard[hidden] { display: none; }
   .fcard:hover {
     transform: translateY(-3px);
     border-color: color-mix(in srgb, var(--fc, var(--accent)) 55%, transparent);
@@ -751,7 +756,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
       </div>
-      <span class="nav-cta" data-i18n="nav.cta">Coming Soon</span>
+      <button class="nav-cta" id="navLoginBtn" type="button" data-guest-only>Log In</button>
     </div>
   </div>
 </nav>
@@ -871,8 +876,18 @@
   <section class="trending-home" id="growingSection">
     <p class="eyebrow" style="margin:0;">Small but climbing</p>
     <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Newly Growing</h2>
-    <p style="color:var(--ink-muted);font-size:0.9rem;margin-top:6px;max-width:60ch;">Niche titles still early in their run, gaining real traction — worth reading before everyone else catches on.</p>
+    <div class="format-pills" id="growingFormatPills" style="margin-top:14px;"></div>
+    <div class="mood-bar">
+      <button class="mood-toggle" id="growingMoodToggle" type="button" aria-expanded="false" aria-controls="growingMoodPills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+        Mood
+        <span class="mood-current" id="growingMoodCurrent">All moods</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div class="format-pills" id="growingMoodPills"></div>
     <div class="grid" id="growingGrid" style="margin-top:20px;"></div>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/">See more</a></div>
   </section>
 
   <section class="hero">
@@ -1177,6 +1192,16 @@ document.addEventListener('DOMContentLoaded', function () {
   initThemeToggle('themeToggle');
   initNavDrawer('menuBtn');
   initAccountPanel('accountBtn', 'accountPanel');
+  // The nav's "Log In" pill opens the exact same panel the account icon
+  // does, rather than duplicating its sign-in logic — onAuthChange in
+  // nav-widgets.js already hides this button once a session exists.
+  var navLoginBtn = document.getElementById('navLoginBtn');
+  if (navLoginBtn) {
+    navLoginBtn.addEventListener('click', function () {
+      var accountBtn = document.getElementById('accountBtn');
+      if (accountBtn) accountBtn.click();
+    });
+  }
   wirePosterSaveButtons();
 
   // Library/Badges/For You only make sense once there's an account behind
@@ -1373,20 +1398,87 @@ document.addEventListener('DOMContentLoaded', function () {
   // A raw query (not trendingMedia()) since this needs a chapters ceiling
   // that helper doesn't expose. Hides its section entirely on failure
   // rather than showing an error — it's a bonus rail, not core content.
-  (function loadGrowing() {
+  (function initGrowing() {
     var el = document.getElementById('growingGrid');
-    if (!el || typeof alFetch !== 'function') return;
-    el.innerHTML = skeletonGrid(10);
-    var gql = 'query { Page(page: 1, perPage: 20) { media(type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: POPULARITY_DESC) { ' +
-      'id title { romaji english native } coverImage { extraLarge large } genres format status chapters volumes averageScore popularity startDate { year } description(asHtml: false) } } }';
-    alFetch(gql).then(function (d) {
-      var media = ((d.Page && d.Page.media) || []).filter(function (m) { return m.chapters > 0; }).slice(0, 10);
-      if (!media.length) throw new Error('empty');
-      el.innerHTML = media.map(posterCard).join('');
-    }).catch(function () {
-      var section = document.getElementById('growingSection');
-      if (section) section.hidden = true;
+    var growPillsEl = document.getElementById('growingFormatPills');
+    var growMoodPillsEl = document.getElementById('growingMoodPills');
+    if (!el || !growPillsEl || !growMoodPillsEl || typeof alFetch !== 'function') return;
+
+    growPillsEl.innerHTML = CATEGORIES.map(function (c) {
+      return '<button class="format-pill' + (c.id === 'all' ? ' active' : '') + '" data-cat="' + c.id + '" type="button">' + c.label + '</button>';
+    }).join('');
+    var GROWING_MOODS = ['All moods'].concat(GENRES);
+    growMoodPillsEl.innerHTML = GROWING_MOODS.map(function (g) {
+      return '<button class="format-pill' + (g === 'All moods' ? ' active' : '') + '" data-genre="' + g + '" type="button">' + g + '</button>';
+    }).join('');
+
+    var currentGrowCatId = 'all';
+    var currentGrowGenre = null;
+
+    // "Newly Growing" — niche titles still low on chapters but already
+    // popular for their age, rather than the same overall top chart again.
+    // A raw query (not trendingMedia()) since this needs a chapters ceiling
+    // that helper doesn't expose. Hides its section entirely on failure
+    // rather than showing an error — it's a bonus rail, not core content.
+    function loadGrowing(catId, genre) {
+      currentGrowCatId = catId;
+      Array.prototype.forEach.call(growPillsEl.children, function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-cat') === catId);
+      });
+      el.innerHTML = skeletonGrid(10);
+      var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0];
+      var filters = 'type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: POPULARITY_DESC';
+      if (cat && cat.country) filters += ', countryOfOrigin: "' + cat.country + '"';
+      if (cat && cat.formats) filters += ', format_in: [' + cat.formats.join(',') + ']';
+      if (genre) filters += ', genre_in: ["' + genre + '"]';
+      var gql = 'query { Page(page: 1, perPage: 20) { media(' + filters + ') { ' +
+        'id title { romaji english native } coverImage { extraLarge large } genres format status chapters volumes averageScore popularity startDate { year } description(asHtml: false) } } }';
+      alFetch(gql).then(function (d) {
+        var media = ((d.Page && d.Page.media) || []).filter(function (m) { return m.chapters > 0; }).slice(0, 10);
+        if (!media.length) throw new Error('empty');
+        el.innerHTML = media.map(posterCard).join('');
+      }).catch(function () {
+        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">No growing titles match that filter right now.</p>';
+      });
+    }
+
+    growPillsEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.format-pill');
+      if (btn) loadGrowing(btn.getAttribute('data-cat'), currentGrowGenre === 'All moods' ? null : currentGrowGenre);
     });
+
+    var growMoodToggle = document.getElementById('growingMoodToggle');
+    var growMoodCurrent = document.getElementById('growingMoodCurrent');
+    function setGrowMoodOpen(open) {
+      growMoodPillsEl.classList.toggle('open', open);
+      growMoodToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    growMoodToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setGrowMoodOpen(growMoodToggle.getAttribute('aria-expanded') !== 'true');
+    });
+    document.addEventListener('click', function (e) {
+      if (!growMoodPillsEl.contains(e.target) && !growMoodToggle.contains(e.target)) setGrowMoodOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && growMoodToggle.getAttribute('aria-expanded') === 'true') {
+        setGrowMoodOpen(false);
+        growMoodToggle.focus();
+      }
+    });
+    growMoodPillsEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.format-pill');
+      if (!btn) return;
+      currentGrowGenre = btn.getAttribute('data-genre');
+      growMoodCurrent.textContent = currentGrowGenre;
+      Array.prototype.forEach.call(growMoodPillsEl.children, function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      setGrowMoodOpen(false);
+      loadGrowing(currentGrowCatId, currentGrowGenre === 'All moods' ? null : currentGrowGenre);
+    });
+
+    loadGrowing('all', null);
   })();
 });
 </script>
