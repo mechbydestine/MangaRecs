@@ -104,7 +104,8 @@
   @media (min-width: 1440px) { .topbar-inner { max-width: 1480px; } }
   @media (max-width: 700px) { .nav-link { display: none; } }
   .brand { display: flex; align-items: center; gap: 9px; flex: none; }
-  .brand svg, .brand img { width: 24px; height: 24px; }
+  .brand svg { width: 24px; height: 24px; }
+  .brand img { height: 34px; width: auto; }
   .brand span { font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; }
   .brand b { color: var(--accent); }
   .searchwrap { flex: 1 1 0; position: relative; max-width: 440px; min-width: 0; }
@@ -919,8 +920,7 @@
 <nav class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="/">
-      <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
-      <span>Manga<b>Recs</b></span>
+      <img src="/assets/logo-mark.png" alt="MangaRecs" width="45" height="34" decoding="async" />
     </a>
     <div class="searchwrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -2868,7 +2868,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="recap-overlay" id="recapOverlay">' +
             '<div class="recap-frame">' +
               '<div class="recap-progress" id="recapProgress"></div>' +
-              '<div class="recap-brandmark"><img src="/assets/icon-192.png" alt="" width="16" height="16" decoding="async" />MangaRecap</div>' +
+              '<div class="recap-brandmark"><img src="/assets/adaptive-icon.png" alt="" width="16" height="16" decoding="async" />MangaRecap</div>' +
               '<button class="recap-close" id="recapClose" type="button" aria-label="Close">&times;</button>' +
               '<div class="recap-controls">' +
                 '<button class="recap-ctrl-btn" id="recapPauseBtn" type="button" aria-label="Pause">' + RECAP_CTRL_ICONS.pause + '</button>' +

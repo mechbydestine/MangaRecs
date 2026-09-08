@@ -39,7 +39,8 @@
   .topnav-inner { max-width: 1320px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px clamp(20px, 5vw, 56px); }
   @media (min-width: 1440px) { .topnav-inner { max-width: 1480px; } }
   .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
-  .brand svg, .brand img { width: 26px; height: 26px; }
+  .brand svg { width: 26px; height: 26px; }
+  .brand img { height: 38px; width: auto; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); font-weight: 800; }
   /* .nav-actions / .nav-links / .nav-utils layout lives in /assets/nav.css. */
@@ -122,8 +123,7 @@
 <nav class="topnav">
   <div class="topnav-inner">
     <a class="brand" href="/">
-      <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
-      <span class="brand-word">Manga<b>Recs</b></span>
+      <img src="/assets/logo-mark.png" alt="MangaRecs" width="51" height="38" decoding="async" />
     </a>
     <div class="nav-actions">
       <div class="nav-utils">

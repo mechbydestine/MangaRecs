@@ -109,7 +109,8 @@
   }
   @media (min-width: 1440px) { .topnav-inner { max-width: 1480px; } }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-  .brand svg, .brand img { width: 26px; height: 26px; }
+  .brand svg { width: 26px; height: 26px; }
+  .brand img { height: 38px; width: auto; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); font-weight: 800; }
   .nav-cta {
@@ -137,7 +138,7 @@
     gap: clamp(32px, 5vw, 64px);
     align-items: center;
   }
-  .hero-mark { width: 64px; height: 64px; margin-bottom: 22px; }
+  .hero-mark { width: 128px; height: 96px; margin-bottom: 22px; }
   .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); }
   /* Solid, not a gradient fill. Gradient-clipped headline text is the single
      most recognisable "generated landing page" signature going, and readers
@@ -697,6 +698,18 @@
   @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
   @media (min-width: 1440px) { .footer-grid, .footer-bottom { max-width: 1480px; } }
 
+  /* Closing brandmark — contained and faint rather than Discord's edge-bled
+     giant wordmark, and the spark ties it back to the star at the centre of
+     the actual logo instead of being a plain lift of their treatment. */
+  .footer-wordmark {
+    margin-top: 26px; text-align: center; user-select: none;
+    font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.01em; line-height: 1;
+    font-size: clamp(2.4rem, 9vw, 6rem);
+    color: color-mix(in srgb, var(--ink) 7%, transparent);
+  }
+  .footer-wordmark .spark { color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
   /* ── FAQ ───────────────────────────────────────────────────────────── */
   .faq { padding: clamp(40px, 7vw, 64px) 0 clamp(56px, 9vw, 88px); border-top: 1px solid var(--line); }
   .faq h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: 20px; }
@@ -733,8 +746,7 @@
 <nav class="topnav has-cta">
   <div class="topnav-inner">
     <a class="brand" href="#top">
-      <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
-      <span class="brand-word">Manga<b>Recs</b></span>
+      <img src="/assets/logo-mark.png" alt="MangaRecs" width="51" height="38" decoding="async" />
     </a>
     <div class="nav-actions">
       <div class="nav-utils">
@@ -759,9 +771,9 @@
   <section class="hero">
     <div>
       <div class="hero-mark-wrap">
-      <img class="hero-mark" src="/assets/icon-512.png" alt="" width="64" height="64" decoding="async" />
+      <img class="hero-mark" src="/assets/logo-mark.png" alt="" width="128" height="96" decoding="async" />
       </div>
-      <h1 class="display">Manga<span class="accent">Recs</span></h1>
+      <h1 class="sr-only">MangaRecs</h1>
       <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
       <div class="hero-actions">
         <a class="btn-primary" href="#download">
@@ -780,11 +792,11 @@
 
   <section class="glance">
     <div class="quicknav">
-      <a class="qn-tile" href="#collect" style="--tile-c:#5B8DEF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>Collect</span></a>
-      <a class="qn-tile" href="#connect" style="--tile-c:#E85FA8;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Connect</span></a>
-      <a class="qn-tile" href="#progress" style="--tile-c:#E8A83C;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></span><span>Progress</span></a>
-      <a class="qn-tile" href="#discover" style="--tile-c:#9B70FF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span><span>Discover</span></a>
-      <a class="qn-tile" href="#read" style="--tile-c:#3FC9C0;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span>Read</span></a>
+      <a class="qn-tile" href="/features/#collect" style="--tile-c:#5B8DEF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span><span>Collect</span></a>
+      <a class="qn-tile" href="/features/#connect" style="--tile-c:#E85FA8;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Connect</span></a>
+      <a class="qn-tile" href="/features/#progress" style="--tile-c:#E8A83C;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg></span><span>Progress</span></a>
+      <a class="qn-tile" href="/features/#discover" style="--tile-c:#9B70FF;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span><span>Discover</span></a>
+      <a class="qn-tile" href="/features/#read" style="--tile-c:#3FC9C0;"><span class="qn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span>Read</span></a>
     </div>
     <div class="feature-cards">
       <a class="fcard" href="/catalog/manga/" style="--fc:#5B8DEF;">
@@ -899,111 +911,6 @@
         <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
         <p class="shot-label" data-i18n="shots.forYou">For You</p>
       </div>
-    </div>
-  </section>
-
-  <section class="chapter" id="collect" data-reveal="stagger">
-    <div class="chapter-copy">
-      <p class="eyebrow" data-i18n="ch1.eyebrow">Chapter 1</p>
-      <h2 class="chapter-title display" data-i18n="ch1.title">Collect</h2>
-      <p class="chapter-desc" data-i18n="ch1.desc">Add it once and it's yours everywhere: reading, completed, bookmarked, downloaded, all on shelves your friends can actually see. Lose your phone tomorrow and none of it's gone. Sign in on the new one and it's all still there.</p>
-      <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li1">Download chapters and read with the wifi off</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li2">Custom sort per shelf, progress tracked series by series</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch1.li3">Tied to your account, not your device</span></li>
-      </ul>
-    </div>
-    <div class="chapter-visual">
-      <div class="thread"><div class="who">Reading — 3</div><div class="msg">Sakamoto Days · Ch. 94 · 62% through</div></div>
-      <div class="thread"><div class="who">Bookmarked — 12</div><div class="msg">Dungeon Meshi, Frieren, +10 more</div></div>
-      <div class="thread"><div class="who">Downloaded — 4 chapters</div><div class="msg">18.2 MB · read anywhere</div></div>
-    </div>
-  </section>
-
-  <section class="chapter flip" id="connect" data-reveal="stagger">
-    <div class="chapter-copy">
-      <p class="eyebrow" data-i18n="ch2.eyebrow">Chapter 2</p>
-      <h2 class="chapter-title display" data-i18n="ch2.title">Connect</h2>
-      <p class="chapter-desc" data-i18n="ch2.desc">See what your friends are reading right now, while they’re still in it. Send them the chapter that wrecked you, or "Rec" them a whole series straight into their library. Threads are spoiler-tagged by chapter, so someone three behind can still scroll through without getting burned.</p>
-      <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li1">Rec a title straight into a friend's library, saved and waiting</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li2">Live reading activity that updates while they read</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch2.li3">Spoiler-tagged discussion threads, per chapter, per series</span></li>
-      </ul>
-    </div>
-    <div class="chapter-visual">
-      <div class="thread"><div class="who"><span class="presence-dot"></span>momo</div><div class="msg">okay the ch 94 cliffhanger is unforgivable</div><div class="reactions"><span class="reaction">😭 12</span><span class="reaction">🔥 8</span></div></div>
-      <div class="thread"><div class="who"><span class="presence-dot"></span>sinomatic</div><div class="msg"><span class="ping-badge">📚</span> sent a recommendation — Dandadan</div></div>
-      <div class="thread thread-reply"><div class="who"><span class="presence-dot" data-presence="idle"></span>yaboish</div><div class="msg">[spoiler tagged] no because—</div></div>
-    </div>
-  </section>
-
-  <section class="chapter" id="progress" data-reveal="stagger">
-    <div class="chapter-copy">
-      <p class="eyebrow" data-i18n="ch3.eyebrow">Chapter 3</p>
-      <h2 class="chapter-title display" data-i18n="ch3.title">Progress</h2>
-      <p class="chapter-desc" data-i18n="ch3.desc">250 badges worth chasing. Climb Bronze to Mythic and keep a streak alive. It's also the groundwork for the community modes we're building next, starting with server-wide events.</p>
-      <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li1">Bronze → Silver → Gold → Mythic, a real ladder with real rungs</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch3.li2">Streaks and a live leaderboard against your friends</span></li>
-      </ul>
-    </div>
-    <div class="chapter-visual">
-      <p class="visual-tag" id="progressTag">Sample profile</p>
-      <div class="badge-row" id="progressBadgeRow">
-        <span class="medal" style="--medal-c:#CD7F32"><i></i>Bronze</span>
-        <span class="medal" style="--medal-c:#C0C0C0"><i></i>Silver</span>
-        <span class="medal" style="--medal-c:#FFD700"><i></i>Gold</span>
-        <span class="medal" style="--medal-c:#7B5CFF"><i></i>Mythic</span>
-      </div>
-      <div class="stat-row" style="margin-top:6px"><span>Streak</span><span id="progressStreakVal">14 days</span></div>
-      <div class="meter"><i id="progressStreakBar" style="width:70%"></i></div>
-      <div class="stat-row"><span>Chapters read</span><span id="progressChaptersVal">1,204</span></div>
-      <div class="meter"><i id="progressChaptersBar" style="width:85%"></i></div>
-    </div>
-  </section>
-
-
-  <section class="chapter flip" id="discover" data-reveal="stagger">
-    <div class="chapter-copy">
-      <p class="eyebrow" data-i18n="ch4.eyebrow">Chapter 4</p>
-      <h2 class="chapter-title display" data-i18n="ch4.title">Discover</h2>
-      <p class="chapter-desc" data-i18n="ch4.desc">Once your library's got a shape, the feed uses it. Swipe right to save, left to skip, and it re-reads you with every card. Tap a mood chip and it reshuffles on the spot.</p>
-      <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch4.li1">Like, comment, and share straight from the card</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch4.li2">A taste radar that keeps adjusting as your taste does</span></li>
-      </ul>
-    </div>
-    <div class="chapter-visual">
-      <div class="panel-row">
-        <div class="swatch" data-label="Action" style="--sw1:#3a2a6b; --sw2:#1c1330;"></div>
-        <div class="swatch" data-label="Fantasy" style="--sw1:#2a4a4a; --sw2:#132424;"></div>
-        <div class="swatch" data-label="Romance" style="--sw1:#6b2a4a; --sw2:#2f1424;"></div>
-      </div>
-      <div class="stat-row"><span>Match confidence</span><span>92%</span></div>
-      <div class="meter"><i style="width:92%"></i></div>
-    </div>
-  </section>
-
-  <section class="chapter" id="read" data-reveal="stagger">
-    <div class="chapter-copy">
-      <p class="eyebrow" data-i18n="ch5.eyebrow">Chapter 5</p>
-      <h2 class="chapter-title display" data-i18n="ch5.title">Read</h2>
-      <p class="chapter-desc" data-i18n="ch5.desc">However you found it, whether that's your library, a friend's Rec, or the feed, read it right in the app. Scroll it like a webtoon or flip it like paged manga, your call per series. Ambient sound, a screen dimmer, and auto-scroll for the chapters you're reading at 1am and don't want to keep tapping.</p>
-      <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="ch5.li1">Works as a clean, ad-blocked reader on other sites too, well beyond the ones with native support</span></li>
-      </ul>
-    </div>
-    <div class="chapter-visual">
-      <p class="visual-tag" id="readTag">Sample profile</p>
-      <div class="rail-visual">
-        <div class="rail-panels" aria-hidden="true"><span></span><span></span><span></span></div>
-        <div class="fill" id="readFill" style="height:58%"></div>
-        <div class="dim"></div>
-        <div class="rail-thumb" id="readThumb" style="bottom:58%" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
-        <span class="rail-dimmer-tag"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dimmer on</span>
-      </div>
-      <div class="stat-row"><span id="readLabel">Ch. 94 of 112</span><span id="readPct">58%</span></div>
     </div>
   </section>
 
@@ -1129,6 +1036,7 @@
     <span>© 2026 MangaRecs. Built by readers, for readers. Catalog data via <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.</span>
     <span><a href="/catalog/" data-i18n="footer.catalog">Catalog</a> · <a href="/features/" data-i18n="nav.features">Features</a> · <a href="/about/">About</a> · <a href="/privacy/" data-i18n="footer.privacy">Privacy</a> · <a href="/terms/" data-i18n="footer.terms">Terms</a> · <!-- TODO: confirm real support address --><a href="mailto:hello@mangarecs.net">Contact</a></span>
   </div>
+  <div class="footer-wordmark" aria-hidden="true">Manga<span class="spark">✦</span>Recs</div>
 </footer>
 
 <!-- Structured data. The FAQ block below must stay word-for-word identical to
@@ -1330,82 +1238,6 @@ document.addEventListener('DOMContentLoaded', function () {
   initNavDrawer('menuBtn');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
-
-  // Signed-in only: swap the Progress/Read chapters' sample mockups for the
-  // visitor's real numbers, pulled the same way badges/index.html does.
-  // Signed-out visitors keep the static marketing mockup untouched.
-  (function personalizeChapters() {
-    var progressTag = document.getElementById('progressTag');
-    var readTag = document.getElementById('readTag');
-    var TIER_ORDER = ['grey', 'green', 'blue', 'indigo', 'purple', 'gold', 'mythic'];
-    var MEDAL_SHOW = [
-      { grade: 'grey', label: 'Bronze', color: '#CD7F32' },
-      { grade: 'green', label: 'Silver', color: '#C0C0C0' },
-      { grade: 'blue', label: 'Gold', color: '#FFD700' },
-      { grade: 'mythic', label: 'Mythic', color: '#7B5CFF' },
-    ];
-    // badges.js is 48KB of badge definitions that only a signed-in visitor's
-    // progress card can use, so it's fetched on demand instead of shipping to
-    // every anonymous reader who lands on the marketing page.
-    var badgesPromise = null;
-    function loadBadges() {
-      if (badgesPromise) return badgesPromise;
-      badgesPromise = new Promise(function (resolve, reject) {
-        var s = document.createElement('script');
-        s.src = '/assets/badges.js?v=20260826a';
-        s.onload = resolve;
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-      return badgesPromise;
-    }
-
-    onAuthChange(function (user) {
-      if (!user) return;
-      loadBadges().then(function () {
-      sb.from('profiles')
-        .select('chapters_read,hours_read,streak_count,series_count,friends_count,comments_count,likes_given,completed_count,night_reads,genres_count,shares_count,manga_count,ratings_count,created_at,avatar_url')
-        .eq('id', user.id).maybeSingle()
-        .then(function (res) {
-          if (!res.data) return;
-          var stats = profileToBadgeStats(res.data);
-          var earnedIds = computeEarnedBadgeIds(stats);
-          var currentTier = highestGradeEarned(earnedIds);
-
-          progressTag.textContent = 'Your progress';
-          document.querySelectorAll('#progressBadgeRow .medal').forEach(function (el, i) {
-            var m = MEDAL_SHOW[i];
-            var reached = currentTier && TIER_ORDER.indexOf(m.grade) <= TIER_ORDER.indexOf(currentTier);
-            el.classList.toggle('is-current', !!currentTier && m.grade === currentTier);
-            el.classList.toggle('is-dim', !reached);
-          });
-          document.getElementById('progressStreakVal').textContent = stats.streak_count + (stats.streak_count === 1 ? ' day' : ' days');
-          document.getElementById('progressStreakBar').style.width = Math.min(100, (stats.streak_count / 30) * 100) + '%';
-          document.getElementById('progressChaptersVal').textContent = stats.chapters_read.toLocaleString();
-          document.getElementById('progressChaptersBar').style.width = Math.min(100, (stats.chapters_read / 500) * 100) + '%';
-        });
-      }).catch(function () { /* badge card just stays on its sample numbers */ });
-
-      sb.from('reading_progress')
-        .select('series_title,current_chapter,total_chapters,status,updated_at')
-        .eq('user_id', user.id).eq('status', 'reading')
-        .order('updated_at', { ascending: false }).limit(1)
-        .then(function (res) {
-          var row = res.data && res.data[0];
-          readTag.textContent = 'Your progress';
-          if (!row) {
-            document.getElementById('readLabel').textContent = 'Nothing in progress yet';
-            document.getElementById('readPct').textContent = '';
-            return;
-          }
-          var pct = row.total_chapters ? Math.round((row.current_chapter / row.total_chapters) * 100) : 0;
-          document.getElementById('readFill').style.height = pct + '%';
-          document.getElementById('readThumb').style.bottom = pct + '%';
-          document.getElementById('readLabel').textContent = row.series_title + ' — Ch. ' + row.current_chapter + (row.total_chapters ? ' of ' + row.total_chapters : '');
-          document.getElementById('readPct').textContent = row.total_chapters ? pct + '%' : '';
-        });
-    });
-  })();
 
   // ── Latest Updates carousel ────────────────────────────────────────
   // Auto-advances, but pauses on hover/focus and stops entirely the moment

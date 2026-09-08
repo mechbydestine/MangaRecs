@@ -34,7 +34,8 @@
   a { color: inherit; }
   main { max-width: 760px; margin: 0 auto; padding: clamp(20px,5vw,48px) clamp(20px,5vw,32px) 64px; }
   .brand { display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-weight:800; font-size:1.02rem; margin-bottom:28px; }
-  .brand svg, .brand img { width:22px; height:22px; }
+  .brand svg { width:22px; height:22px; }
+  .brand img { height:30px; width:auto; }
   .brand b { color: var(--accent); }
   .crumb { font-size:0.82rem; color:var(--ink-muted); margin-bottom:18px; }
   .crumb a { color:var(--ink-muted); text-decoration:underline; }
@@ -82,8 +83,7 @@
 <header class="topnav">
   <div class="topnav-in">
     <a class="brand" href="/">
-      <img src="/assets/icon-192.png" alt="" width="26" height="26" decoding="async" />
-      <span>Manga<b>Recs</b></span>
+      <img src="/assets/logo-mark.png" alt="MangaRecs" width="40" height="30" decoding="async" />
     </a>
     <form class="navsearch" action="/catalog/" method="get" role="search" onsubmit="return mrSearch(this);">
       <input type="search" name="q" placeholder="Search the catalog…" aria-label="Search the catalog" autocomplete="off" />

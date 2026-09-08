@@ -16,9 +16,10 @@
    There used to be three blurred colour blobs here — purple, #FF7ED4 pink
    and #3FC9C0 teal, 420/360/320px at blur(64px), fixed to the viewport.
    Between them they laid a rainbow cast over the whole page in both
-   themes, so neither dark nor light ever read as itself. Removed: the
-   canvas is now flat, and the only colour the background carries is the
-   cursor glow below, which the visitor is in control of.
+   themes, so neither dark nor light ever read as itself. A cursor-follow
+   spotlight briefly stood in as the background's one source of colour;
+   that's gone too now (it read as a purple haze, especially in light
+   mode) — the canvas is just flat.
 
    The grain stays — it is monochrome noise for texture, not a hue, so it
    does not tint either theme. */
@@ -37,40 +38,6 @@
    underlying pixel's own darkness. */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fx-grain { opacity: 0.06; } }
 :root[data-theme="dark"] .fx-grain { opacity: 0.06; }
-
-/* ── Cursor glow (whole page) ─────────────────────────────────────────
-   Was hero-only. Now the single source of colour in the background, and
-   it follows the pointer, so the page has life without a standing tint.
-
-   Fixed at z-index:-1, exactly where the blobs used to sit: above the
-   flat canvas, below every normal-flow section. Opaque panels occlude it,
-   so it reads in the gaps between sections and never washes over content
-   — which is what keeps dark fully dark and light fully light.
-
-   Fine pointers only; there is no cursor to follow on a touch screen, and
-   motion.js also skips it under prefers-reduced-motion. */
-.hero { position: relative; }
-.fx-spotlight {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  background: radial-gradient(
-    300px circle at var(--sx, 50%) var(--sy, 50%),
-    var(--fx-cursor-tint, color-mix(in srgb, var(--accent) 14%, transparent)),
-    transparent 68%
-  );
-}
-/* Dark panels swallow a wash that reads fine on light, so the dark theme
-   gets a slightly hotter centre to land at the same perceived strength. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --fx-cursor-tint: color-mix(in srgb, var(--accent) 20%, transparent); }
-}
-:root[data-theme="dark"] { --fx-cursor-tint: color-mix(in srgb, var(--accent) 20%, transparent); }
-:root[data-theme="light"] { --fx-cursor-tint: color-mix(in srgb, var(--accent) 14%, transparent); }
-.hero > *:not(.fx-spotlight) { position: relative; z-index: 1; }
 
 /* ── Press / tactile feedback on interactive controls ────────────────── */
 .btn-primary, .btn-ghost, .btn-primary-sm, .btn-ghost-sm, .nav-cta,
@@ -407,7 +374,7 @@
 
 /* ── Respect reduced motion, always the last word ─────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .fx-grain, .fx-spotlight, .chapterdots { display: none !important; }
+  .fx-grain, .chapterdots { display: none !important; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

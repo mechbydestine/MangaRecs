@@ -29,8 +29,9 @@ var MASCOT_SVG =
 // ── Ambient background (grain only) — skipped on dense legal-text pages
 // The three blurred colour blobs that used to be injected here are gone:
 // purple, pink and teal at blur(64px), fixed to the viewport, they cast a
-// rainbow over both themes so neither read as itself. The background is flat
-// now and the cursor glow below carries the colour instead.
+// rainbow over both themes so neither read as itself. A cursor-follow
+// spotlight briefly replaced them as the background's one colour source;
+// that's gone too now, so the background is just flat.
 function initAmbientFX() {
   if (document.querySelector('.legal')) return;
   var grain = document.createElement('div');
@@ -39,59 +40,10 @@ function initAmbientFX() {
   document.body.insertBefore(grain, document.body.firstChild);
 }
 
-// ── Cursor glow — the only colour the background carries ────────────────
-// Whole page, not just the hero. Sits at z-index:-1 so opaque sections
-// occlude it and it shows in the gaps between them; it never washes over
-// content, which is what keeps each theme looking like itself.
-function initCursorGlow() {
-  if (REDUCED_MOTION) return;
-  // No cursor to follow on a touch screen, and a stuck glow at the last tap
-  // position would just be a permanent tint.
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  if (document.querySelector('.fx-spotlight')) return;
-
-  var spot = document.createElement('div');
-  spot.className = 'fx-spotlight';
-  spot.setAttribute('aria-hidden', 'true');
-  document.body.insertBefore(spot, document.body.firstChild);
-
-  var tx = window.innerWidth / 2, ty = window.innerHeight / 2;
-  var cx = tx, cy = ty, raf = null;
-
-  // Eased toward the pointer rather than pinned to it: the drift is what
-  // reads as reactive, and it costs one rAF that stops itself once caught up.
-  function frame() {
-    cx += (tx - cx) * 0.12;
-    cy += (ty - cy) * 0.12;
-    spot.style.setProperty('--sx', cx.toFixed(1) + 'px');
-    spot.style.setProperty('--sy', cy.toFixed(1) + 'px');
-    raf = (Math.abs(tx - cx) > 0.5 || Math.abs(ty - cy) > 0.5)
-      ? requestAnimationFrame(frame)
-      : null;
-  }
-
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType && e.pointerType !== 'mouse') return;
-    tx = e.clientX;
-    ty = e.clientY;
-    spot.style.opacity = '1';
-    if (!raf) raf = requestAnimationFrame(frame);
-  }, { passive: true });
-
-  // Fade out when the cursor leaves the window or the tab loses focus, so a
-  // background tab is not left holding a glow.
-  document.documentElement.addEventListener('pointerleave', function () {
-    spot.style.opacity = '0';
-  });
-  window.addEventListener('blur', function () { spot.style.opacity = '0'; });
-}
-
-// ── Hero: cursor spotlight + scroll parallax on the star mark ───────────
+// ── Hero: scroll parallax on the logo mark ───────────────────────────────
 function initHeroFX() {
   var hero = document.querySelector('.hero');
   if (!hero) return;
-  // The cursor spotlight used to be created here and scoped to the hero.
-  // initCursorGlow() now owns it for the whole page.
   var markWrap = document.querySelector('.hero-mark-wrap');
   if (markWrap && !REDUCED_MOTION) {
     window.addEventListener('scroll', function () {
@@ -413,7 +365,6 @@ function initServiceWorker() {
 
 document.addEventListener('DOMContentLoaded', function () {
   initAmbientFX();
-  initCursorGlow();
   initSkipLink();
   initLateNightEasterEgg();
   initHeroFX();
