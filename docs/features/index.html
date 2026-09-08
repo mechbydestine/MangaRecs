@@ -47,7 +47,9 @@
   .brand-word b { color: var(--accent); font-weight: 800; }
   /* .nav-actions / .nav-links / .nav-utils layout lives in /assets/nav.css. */
 
-  main { max-width: 860px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+  main { max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+  @media (min-width: 1440px) { main { max-width: 1480px; } }
+  .features-hero, .showcase-head { max-width: 720px; margin-left: auto; margin-right: auto; }
 
   .features-hero { padding: clamp(48px, 8vw, 88px) 0 clamp(20px, 4vw, 36px); text-align: center; }
   .features-hero h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); margin-top: 10px; }
@@ -160,9 +162,15 @@
     .chapter.flip .chapter-copy, .chapter.flip .chapter-visual { order: initial; }
   }
 
-  .feature-list { padding-bottom: clamp(56px, 9vw, 96px); }
+  .feature-list {
+    padding-bottom: clamp(56px, 9vw, 96px);
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 48px;
+  }
   .feature-row { display: flex; align-items: flex-start; gap: 18px; padding: 22px 0; border-top: 1px solid var(--line); }
-  .feature-row:first-child { border-top: none; }
+  @media (max-width: 760px) {
+    .feature-list { grid-template-columns: 1fr; }
+    .feature-row:first-child { border-top: none; }
+  }
   .feature-icon { flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--tile-c, var(--accent)) 18%, transparent); }
   .feature-icon svg { width: 20px; height: 20px; color: var(--tile-c, var(--accent)); stroke-width: 2; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
   .feature-title { font-weight: 800; font-size: 1.02rem; margin-bottom: 4px; }
@@ -354,6 +362,40 @@
     </div>
   </section>
 
+  <section class="showcase" id="screenshots">
+    <div class="showcase-head">
+      <p class="eyebrow">See it in action</p>
+      <h2>Straight From the App</h2>
+      <p>Real screens, pulled straight from the current build.</p>
+    </div>
+    <div class="showcase-strip">
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/library.webp" type="image/webp" /><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label">Library</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/comms.webp" type="image/webp" /><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label">Community</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/discussion.webp" type="image/webp" /><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label">Discussions</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/profile.webp" type="image/webp" /><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label">Profile</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/home.webp" type="image/webp" /><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label">Home</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label">For You</p>
+      </div>
+    </div>
+  </section>
+
   <section class="feature-list">
     <div class="feature-row" data-reveal>
       <div class="feature-icon" style="--tile-c:#6B46F0;"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
@@ -416,40 +458,6 @@
       <div>
         <div class="feature-title">Search Across Formats</div>
         <p class="feature-sentence">Search and filter by genre across manga, manhwa, manhua, and webcomics — synced between app and web.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="showcase" id="screenshots">
-    <div class="showcase-head">
-      <p class="eyebrow">See it in action</p>
-      <h2>Straight From the App</h2>
-      <p>Real screens, pulled straight from the current build.</p>
-    </div>
-    <div class="showcase-strip">
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/library.webp" type="image/webp" /><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label">Library</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/comms.webp" type="image/webp" /><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label">Community</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/discussion.webp" type="image/webp" /><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label">Discussions</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/profile.webp" type="image/webp" /><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label">Profile</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/home.webp" type="image/webp" /><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label">Home</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label">For You</p>
       </div>
     </div>
   </section>

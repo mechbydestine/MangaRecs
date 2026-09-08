@@ -178,7 +178,7 @@
   .spotlight-view { overflow: hidden; padding: 18px 0; }
   .spotlight-track { display: flex; align-items: center; gap: 20px; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); will-change: transform; }
   .spotlight-slide {
-    flex: 0 0 auto; width: min(720px, 66vw); aspect-ratio: 16/7.5;
+    flex: 0 0 auto; width: min(860px, 74vw); aspect-ratio: 16/10;
     position: relative; border-radius: var(--r-lg); overflow: hidden;
     background-size: cover; background-position: center;
     opacity: 0.4; transform: scale(0.9); filter: saturate(0.7);
@@ -304,31 +304,6 @@
   .maker-note-mark { width: 52px; height: 52px; margin: 0 auto 14px; opacity: 0.9; }
   .maker-note-text { margin-top: 12px; font-size: 1.04rem; color: var(--ink); line-height: 1.6; }
 
-  /* ── Screenshots ────────────────────────────────────────────────────── */
-  .showcase { padding: clamp(48px, 8vw, 80px) 0; border-top: 1px solid var(--line); }
-  .showcase-head { text-align: center; margin-bottom: clamp(24px, 4vw, 36px); }
-  .showcase-head h2 { font-family: 'Panel Display', sans-serif; font-weight: 900; font-size: clamp(1.7rem, 3vw, 2.3rem); text-transform: uppercase; }
-  .showcase-head p { color: var(--ink-muted); margin-top: 8px; }
-  .showcase-strip {
-    display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x proximity;
-    padding: 6px 4px 18px; margin: 0 -4px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .showcase-strip::-webkit-scrollbar { height: 8px; }
-  .showcase-strip::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: var(--r-pill); }
-  .shot {
-    flex: none; scroll-snap-align: start;
-    width: clamp(150px, 22vw, 210px);
-  }
-  /* Ratio matches the exported screenshots exactly (720x1496) so nothing gets
-     cropped and the frame reserves the right space before the image lands. */
-  .shot-frame {
-    border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--bg-panel);
-    box-shadow: var(--shadow); overflow: hidden; aspect-ratio: 720/1496;
-  }
-  .shot-frame picture { display: block; width: 100%; height: 100%; }
-  .shot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .shot-label { text-align: center; margin-top: 10px; font-size: 0.84rem; font-weight: 600; color: var(--ink-muted); }
 
   /* ── Download ───────────────────────────────────────────────────────── */
   .download {
@@ -453,7 +428,7 @@
      light mode as light; the cursor glow carries the colour now. */
   /* Compact jump-links — deliberately small chrome, since the feature cards
      directly below them are the ones doing the actual selling. */
-  .quicknav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .quicknav { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 12px; }
   .qn-tile {
     display: flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 8px;
     padding: 9px 14px 9px 10px; border-radius: var(--r-pill); background: var(--bg-panel);
@@ -607,10 +582,10 @@
   /* ── Poster grid — full-bleed cover with the title set over the art ─────
      Keep this block byte-identical to the copy in /catalog/, since both
      pages render the same posterCard() markup from assets/anilist.js. */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
   @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
   @media (max-width: 380px) { .grid { grid-template-columns: 1fr; } }
-  @media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 22px; } }
+  @media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 20px; } }
   .poster { display: block; text-decoration: none; color: inherit; }
   .poster-img-wrap {
     position: relative; aspect-ratio: 5/7; border-radius: var(--r-md); overflow: hidden;
@@ -754,14 +729,9 @@
 
 <nav class="topnav has-cta">
   <div class="topnav-inner">
-    <div class="nav-left">
-      <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-      </button>
-      <a class="brand" href="#top">
-        <img src="/assets/logo-mark.png" alt="MangaRecs" width="69" height="52" decoding="async" />
-      </a>
-    </div>
+    <a class="brand" href="#top">
+      <img src="/assets/logo-mark.png" alt="MangaRecs" width="80" height="60" decoding="async" />
+    </a>
     <div class="nav-actions">
       <div class="nav-utils">
         <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
@@ -771,6 +741,9 @@
           </button>
           <div class="account-panel" id="accountPanel"></div>
         </div>
+        <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
       </div>
       <a class="nav-cta" href="#download" data-i18n="nav.cta">Coming Soon</a>
     </div>
@@ -790,58 +763,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
     </button>
     <div class="spotlight-dots" id="spotlightDots"></div>
-  </section>
-
-  <section class="trending-home">
-    <p class="eyebrow" style="margin:0;" data-i18n="trending.eyebrow">Live from the catalog</p>
-    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;" data-i18n="trending.title">Trending Right Now</h2>
-    <div class="format-pills" id="formatPills"></div>
-    <div class="mood-bar">
-      <button class="mood-toggle" id="moodToggle" type="button" aria-expanded="false" aria-controls="moodPills">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-        Mood
-        <span class="mood-current" id="moodCurrent">All moods</span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
-    </div>
-    <div class="format-pills" id="moodPills"></div>
-    <div class="grid" id="trendingGrid"></div>
-    <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
-    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
-  </section>
-
-  <section class="showcase" id="screenshots">
-    <div class="showcase-head">
-      <p class="eyebrow" data-i18n="shots.eyebrow">See it in action</p>
-      <h2 data-i18n="shots.title">Straight From the App</h2>
-      <p data-i18n="shots.sub">Real screens, pulled straight from the current build.</p>
-    </div>
-    <div class="showcase-strip">
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/library.webp" type="image/webp" /><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.library">Library</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/comms.webp" type="image/webp" /><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.community">Community</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/discussion.webp" type="image/webp" /><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.discussions">Discussions</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/profile.webp" type="image/webp" /><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.profile">Profile</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/home.webp" type="image/webp" /><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.home">Home</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.forYou">For You</p>
-      </div>
-    </div>
   </section>
 
   <section class="maker-note" id="why">
@@ -941,6 +862,23 @@
     </div>
   </section>
 
+  <section class="trending-home">
+    <p class="eyebrow" style="margin:0;" data-i18n="trending.eyebrow">Live from the catalog</p>
+    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;" data-i18n="trending.title">Trending Right Now</h2>
+    <div class="format-pills" id="formatPills"></div>
+    <div class="mood-bar">
+      <button class="mood-toggle" id="moodToggle" type="button" aria-expanded="false" aria-controls="moodPills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+        Mood
+        <span class="mood-current" id="moodCurrent">All moods</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div class="format-pills" id="moodPills"></div>
+    <div class="grid" id="trendingGrid"></div>
+    <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
+  </section>
 
   <section class="whatsnew" id="whatsnew">
     <div class="whatsnew-head">
@@ -1145,10 +1083,10 @@
   // percentage) since slides are a fixed pixel width with a flex gap.
   (function initSpotlight() {
     var CARDS = [
-      { genre: 'Action', title: 'Sakamoto Days', match: '98% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg' },
-      { genre: 'Fantasy', title: 'Dungeon Meshi', match: '95% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86082-MXizJxzbijdd.jpg' },
-      { genre: 'Thriller', title: "Omniscient Reader's", match: '91% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119257-Pi21aq3ey9GG.jpg' },
-      { genre: 'Isekai', title: 'Solo Leveling', match: '97% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx105398-b673Vt5ZSuz3.jpg' },
+      { genre: 'Action', title: 'Sakamoto Days', match: '98% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125828-p78Z8SflkfmO.jpg' },
+      { genre: 'Fantasy', title: 'Dungeon Meshi', match: '95% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86082-MXizJxzbijdd.jpg' },
+      { genre: 'Thriller', title: "Omniscient Reader's", match: '91% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg' },
+      { genre: 'Isekai', title: 'Solo Leveling', match: '97% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg' },
     ];
     var panel = document.querySelector('.spotlight');
     var view = document.querySelector('.spotlight-view');
