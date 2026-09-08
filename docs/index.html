@@ -454,9 +454,14 @@
   .qn-tile svg { width: 13px; height: 13px; color: var(--tile-c, var(--accent)); }
 
   /* ── Feature cards ─────────────────────────────────────────────────── */
-  .feature-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  /* flex, not a fixed 4-col grid: three of these four cards only show once
+     a visitor is signed in (see personalizeFeatureCards below), and a rigid
+     grid leaves the survivors stranded in their original tracks with dead
+     space around them instead of settling next to each other. */
+  .feature-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 12px; }
   .fcard {
     display: block; text-decoration: none; color: inherit; padding: 16px; border-radius: var(--r-md);
+    flex: 1 1 200px; max-width: 280px;
     border: 1px solid var(--line);
     background: linear-gradient(155deg, color-mix(in srgb, var(--fc, var(--accent)) 12%, var(--bg-panel)), var(--bg-panel) 62%);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -512,8 +517,6 @@
     background: var(--line-strong); transition: width 0.25s ease, background 0.25s ease;
   }
   .updates-dot.active::before { width: 18px; background: var(--accent); }
-
-  @media (max-width: 860px) { .feature-cards { grid-template-columns: repeat(2, 1fr); } }
 
   /* Phones: the five jump-links become one swipeable rail.
      As a 2- or 3-column grid they wrapped onto two or three rows and left
@@ -784,7 +787,7 @@
 
   <section class="glance">
     <div class="feature-cards">
-      <a class="fcard" href="/catalog/manga/" style="--fc:#5B8DEF;">
+      <a class="fcard" id="fcardLibrary" href="/catalog/#/library" style="--fc:#5B8DEF;" hidden>
         <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
         <div class="fcard-title" data-i18n="fcard1.title">Manga Library</div>
         <div class="fcard-sub" data-i18n-html="fcard1.sub">Manga, manhwa and manhua on <em>one shelf</em></div>
@@ -794,12 +797,12 @@
         <div class="fcard-title" data-i18n="fcard2.title">Novel Updates</div>
         <div class="fcard-sub" data-i18n-html="fcard2.sub">Never miss a <em>chapter drop</em></div>
       </a>
-      <a class="fcard" href="/badges/" style="--fc:#E8A83C;">
+      <a class="fcard" id="fcardBadges" href="/badges/" style="--fc:#E8A83C;" hidden>
         <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/></svg></span>
         <div class="fcard-title" data-i18n="fcard3.title">Badge Ladder</div>
         <div class="fcard-sub" data-i18n-html="fcard3.sub">250 badges, <em>Bronze to Mythic</em></div>
       </a>
-      <a class="fcard" href="/features/#discover" style="--fc:#9B70FF;">
+      <a class="fcard" id="fcardForYou" href="/features/#discover" style="--fc:#9B70FF;" hidden>
         <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg></span>
         <div class="fcard-title" data-i18n="fcard4.title">For You</div>
         <div class="fcard-sub" data-i18n-html="fcard4.sub">Recs that <em>learn as you read</em></div>
@@ -863,6 +866,13 @@
     <div class="grid" id="trendingGrid"></div>
     <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
     <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
+  </section>
+
+  <section class="trending-home" id="growingSection">
+    <p class="eyebrow" style="margin:0;">Small but climbing</p>
+    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Newly Growing</h2>
+    <p style="color:var(--ink-muted);font-size:0.9rem;margin-top:6px;max-width:60ch;">Niche titles still early in their run, gaining real traction — worth reading before everyone else catches on.</p>
+    <div class="grid" id="growingGrid" style="margin-top:20px;"></div>
   </section>
 
   <section class="hero">
@@ -1169,6 +1179,23 @@ document.addEventListener('DOMContentLoaded', function () {
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
 
+  // Library/Badges/For You only make sense once there's an account behind
+  // them — a signed-out visitor can't reach a personal library, earned
+  // badges, or a taste-based feed, so those three cards stay hidden (the
+  // HTML default) until onAuthChange confirms a session. Novel Updates
+  // needs no account to be relevant, so it's the one card guests keep.
+  (function personalizeFeatureCards() {
+    var gated = [
+      document.getElementById('fcardLibrary'),
+      document.getElementById('fcardBadges'),
+      document.getElementById('fcardForYou'),
+    ].filter(Boolean);
+    if (!gated.length || typeof onAuthChange !== 'function') return;
+    onAuthChange(function (user) {
+      gated.forEach(function (el) { el.hidden = !user; });
+    });
+  })();
+
   // "Why this exists" — a popup on first visit rather than a page section,
   // gated on localStorage so a returning visitor never sees it again.
   (function initWhyModal() {
@@ -1341,41 +1368,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadTrending('all');
 
-  // Discover chapter-visual: real trending covers per genre instead of flat
-  // color swatches — the gradient stays as the loading-state background
-  // until each cover image loads in. A title tagged with more than one of
-  // these genres (very common — an isekai action/fantasy series ranks #1
-  // trending under both independently) would otherwise show the exact same
-  // cover twice, so results are de-duped across swatches: each swatch takes
-  // the highest-ranked candidate from its own genre query that an earlier
-  // swatch hasn't already claimed.
-  (function () {
-    var swatchEls = Array.prototype.slice.call(document.querySelectorAll('.panel-row .swatch'));
-    if (!swatchEls.length) return;
-    Promise.all(swatchEls.map(function (swatch) {
-      var genre = swatch.getAttribute('data-label');
-      return trendingMedia(null, 1, 'TRENDING_DESC', genre)
-        .then(function (d) { return (d.Page.media || []).filter(function (x) { return x.coverImage && x.coverImage.large; }); })
-        .catch(function () { return []; });
-    })).then(function (candidatesPerSwatch) {
-      var usedIds = {};
-      swatchEls.forEach(function (swatch, i) {
-        var m = candidatesPerSwatch[i].filter(function (x) { return !usedIds[x.id]; })[0];
-        if (!m) return;
-        usedIds[m.id] = true;
-        var img = document.createElement('img');
-        img.alt = '';
-        img.loading = 'lazy';
-        img.src = m.coverImage.large;
-        img.addEventListener('load', function () { img.classList.add('loaded'); });
-        swatch.appendChild(img);
-        if (m.averageScore) {
-          var score = document.createElement('span');
-          score.className = 'swatch-score';
-          score.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.6 7.9H22l-6.3 4.6 2.4 7.9L12 17.8 5.9 22.4l2.4-7.9L2 9.9h7.4z"/></svg>' + (m.averageScore / 10).toFixed(1);
-          swatch.appendChild(score);
-        }
-      });
+  // "Newly Growing" — niche titles still low on chapters but already
+  // popular for their age, rather than the same overall top chart again.
+  // A raw query (not trendingMedia()) since this needs a chapters ceiling
+  // that helper doesn't expose. Hides its section entirely on failure
+  // rather than showing an error — it's a bonus rail, not core content.
+  (function loadGrowing() {
+    var el = document.getElementById('growingGrid');
+    if (!el || typeof alFetch !== 'function') return;
+    el.innerHTML = skeletonGrid(10);
+    var gql = 'query { Page(page: 1, perPage: 20) { media(type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: POPULARITY_DESC) { ' +
+      'id title { romaji english native } coverImage { extraLarge large } genres format status chapters volumes averageScore popularity startDate { year } description(asHtml: false) } } }';
+    alFetch(gql).then(function (d) {
+      var media = ((d.Page && d.Page.media) || []).filter(function (m) { return m.chapters > 0; }).slice(0, 10);
+      if (!media.length) throw new Error('empty');
+      el.innerHTML = media.map(posterCard).join('');
+    }).catch(function () {
+      var section = document.getElementById('growingSection');
+      if (section) section.hidden = true;
     });
   })();
 });

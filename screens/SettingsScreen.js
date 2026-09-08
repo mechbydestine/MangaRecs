@@ -203,15 +203,24 @@ function PlanGlowIcon({ icon, color }) {
   );
 }
 
+// Order is the pitch: Light first because it's what a new install opens on
+// (ThemeContext's FRESH_INSTALL_THEME), Dark next because it's the one worth
+// recommending, Legacy last as the look the app used to default to. Labels
+// live in the render, not here, so they follow a language switch — see
+// THEME_OPTIONS in the component.
 const THEMES = [
-  { id: 'default', label: 'Default', icon: 'sparkles' },
-  { id: 'dark', label: 'Dark', icon: 'moon' },
-  { id: 'light', label: 'Light', icon: 'sunny' },
+  { id: 'light', icon: 'sunny' },
+  { id: 'dark', icon: 'moon', recommended: true },
+  { id: 'default', icon: 'sparkles' },
 ];
 
+// The "Scroll down" / "Tap sides" captions are gone. They were the only
+// untranslated user-facing strings left in this screen, and they explained
+// what the animated icon above them was already showing — two lines of chrome
+// on a control with exactly two options. The buttons shrank to match.
 const READER_MODES = [
-  { id: 'webtoon', label: 'Webtoon', desc: 'Scroll down', Icon: WebtoonIcon },
-  { id: 'manga', label: 'Manga', desc: 'Tap sides', Icon: MangaIcon },
+  { id: 'webtoon', label: 'Webtoon', Icon: WebtoonIcon },
+  { id: 'manga', label: 'Manga', Icon: MangaIcon },
 ];
 
 const PAGE_ANIMS = [
@@ -348,6 +357,14 @@ export default function SettingsScreen({ navigation }) {
   const [selectedPlan, setSelectedPlan] = useState('free');
   const [proBilling, setProBilling] = useState('monthly');
   const { language, setLanguage, languages, t } = useLanguage();
+
+  // Literal keys, not t(`settings.theme${id}`) — scripts/check-i18n.js reads
+  // this file statically and a template key is invisible to it.
+  const THEME_LABELS = {
+    light: t('settings.themeLight'),
+    dark: t('settings.themeDark'),
+    default: t('settings.themeLegacy'),
+  };
 
   useEffect(() => {
     AsyncStorage.multiGet([AI_REC_KEY, NOTIFS_KEY, READER_MODE_KEY, PAGE_ANIM_KEY, '@mangarecs/mal_username', '@mangarecs/anilist_username', AGE_VERIFIED_KEY, NSFW_KEY]).then(([[, aiRecRaw], [, notifsRaw], [, savedMode], [, savedAnim], [, malRaw], [, anilistRaw], [, ageRaw], [, nsfwRaw]]) => {
@@ -714,25 +731,47 @@ export default function SettingsScreen({ navigation }) {
         <SectionCard title={t('settings.appearance')} icon="color-palette-outline">
           <Text style={[styles.cardTitle, { color: colors.text }]}>{t('settings.theme')}</Text>
           <View style={styles.themeRow}>
-            {THEMES.map((t) => {
-              const active = theme === t.id;
+            {/* `opt`, not `t` — the old param name shadowed the translation
+                function, which is a runtime crash the moment anything inside
+                this map needs it. scripts/check-t-scope.js exists for this. */}
+            {THEMES.map((opt) => {
+              const active = theme === opt.id;
               return (
                 <TouchableOpacity
-                  key={t.id}
+                  key={opt.id}
                   style={[
                     styles.themeBtn,
                     { borderColor: colors.border },
                     active && { borderColor: colors.primary, backgroundColor: colors.primary + '26' },
                   ]}
-                  onPress={() => setTheme(t.id)}
+                  onPress={() => setTheme(opt.id)}
                   activeOpacity={0.8}>
-                  <Ionicons name={t.icon} size={20} color={active ? colors.primary : colors.muted} />
-                  <Text style={[styles.themeBtnText, { color: active ? colors.primary : colors.muted }]}>{t.label}</Text>
+                  <Ionicons name={opt.icon} size={20} color={active ? colors.primary : colors.muted} />
+                  <Text style={[styles.themeBtnText, { color: active ? colors.primary : colors.muted }]}>{THEME_LABELS[opt.id]}</Text>
+                  {opt.recommended && (
+                    <View style={[styles.themeRecPill, { backgroundColor: colors.primary }]}>
+                      {/* primary/onPrimary is the one pair guaranteed to clear
+                          AA in all three palettes (scripts/check-contrast.js
+                          asserts it), which a tinted-wash pill would not at
+                          9px. adjustsFontSizeToFit because a third of a phone
+                          width has to hold "Recommended" and "Recomendado". */}
+                      <Text
+                        style={[styles.themeRecPillText, { color: colors.onPrimary }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}>
+                        {t('settings.themeRecommended')}
+                      </Text>
+                    </View>
+                  )}
                   {active && <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />}
                 </TouchableOpacity>
               );
             })}
           </View>
+          <Text style={[styles.cardSub, { color: colors.muted, marginTop: 10, marginBottom: 0 }]}>
+            {t('settings.themeHint')}
+          </Text>
         </SectionCard>
 
         {/* ── Reader ────────────────────────────────────────────────────── */}
@@ -749,7 +788,6 @@ export default function SettingsScreen({ navigation }) {
                   activeOpacity={0.8}>
                   <mode.Icon active={active} />
                   <Text style={[styles.readerBtnText, { color: colors.muted }, active && styles.readerBtnTextActive]}>{mode.label}</Text>
-                  <Text style={styles.readerBtnSub}>{mode.desc}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -1158,6 +1196,16 @@ export default function SettingsScreen({ navigation }) {
           <SettingsRow icon="help-circle-outline" label={t('settings.help')} desc={t('settings.helpDesc')} onPress={() => Linking.openURL('mailto:support@mangarecs.net?subject=Help%20%26%20Support')} />
           <SettingsRow icon="sparkles-outline" label={t('settings.replayTour')} desc={t('settings.replayTourDesc')} onPress={replayAppTour} />
           <SettingsRow icon="people-outline" label={t('settings.guidelines')} desc={t('settings.guidelinesDesc')} onPress={() => navigation.navigate('Guidelines')} />
+          <SettingsRow
+            icon="book-outline"
+            label="Why MangaRecs"
+            desc="The story behind the app"
+            onPress={() => showAppAlert(
+              'Why this exists',
+              "We kept losing track of what we were reading across a dozen sites and thirty open tabs, and every app we tried was either a spreadsheet with a login or so much slop we'd close it without finding a single thing worth reading. So we started building the one we actually wanted. Founded by manga and manhwa readers, for manga and manhwa readers. A library that remembers exactly where you left off. Friends who hand you real recommendations, and who can see what you're deep in right now. A discussion board for the chapter that just dropped, mini-games, badges worth chasing, and a reading streak you'll be annoyed to break.",
+              [{ text: t('common.ok') }]
+            )}
+          />
           <SettingsRow icon="shield-outline" label={t('settings.about.privacy')} onPress={() => navigation.navigate('Legal', { tab: 'privacy' })} />
           <SettingsRow icon="document-text-outline" label={t('settings.termsLabel')} onPress={() => navigation.navigate('Legal', { tab: 'terms' })} />
           <TouchableOpacity
@@ -1498,10 +1546,12 @@ export default function SettingsScreen({ navigation }) {
 }
 
 const iconStyles = StyleSheet.create({
-  webtoonBox: { width: 20, height: 28, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 4 },
+  // Scaled down alongside the reader buttons that hold them, so the icon
+  // doesn't end up the tallest thing in a control that just got shorter.
+  webtoonBox: { width: 17, height: 24, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 3 },
   triangleDown: { width: 0, height: 0, borderLeftWidth: 4, borderRightWidth: 4, borderTopWidth: 5, borderLeftColor: 'transparent', borderRightColor: 'transparent' },
   mangaRow: { flexDirection: 'row', alignItems: 'center' },
-  mangaBox: { width: 28, height: 20, borderRadius: 4, borderWidth: 2 },
+  mangaBox: { width: 24, height: 17, borderRadius: 4, borderWidth: 2 },
   triangleRight: { width: 0, height: 0, borderTopWidth: 4, borderBottomWidth: 4, borderLeftWidth: 5, borderTopColor: 'transparent', borderBottomColor: 'transparent', marginLeft: 2 },
   animPreviewBox: { width: 32, height: 24, borderRadius: 6, borderWidth: 1 },
   animPreviewInner: { width: '100%', height: '100%', borderRadius: 6, borderWidth: 1 },
@@ -1541,8 +1591,12 @@ const styles = StyleSheet.create({
   enablePushBtnText: { fontSize: 12, fontWeight: '700' },
   warningTextDanger: { color: '#FF3B30', fontSize: 11, marginLeft: 5 },
   themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  themeBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
+  // justifyContent centres the contents because the row stretches all three
+  // to the height of the tallest, and only one of them carries the pill.
+  themeBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1, position: 'relative' },
   themeBtnText: { fontSize: 12, fontWeight: '500', marginTop: 8 },
+  themeRecPill: { marginTop: 6, alignSelf: 'stretch', alignItems: 'center', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 999 },
+  themeRecPillText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.2 },
   activeDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   borderTop: { borderTopWidth: 1 },
@@ -1551,11 +1605,12 @@ const styles = StyleSheet.create({
   settingsRowDesc: { fontSize: 11, marginTop: 2 },
   versionText: { fontSize: 12, fontFamily: 'monospace' },
   readerRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  readerBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
+  // Half the height it was: the caption line is gone and the padding came down
+  // with it. Still a 44pt-plus target, which is the floor that matters.
+  readerBtn: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
   readerBtnActive: { borderColor: '#7858FF', backgroundColor: 'rgba(120, 88, 255,0.15)' },
-  readerBtnText: { fontSize: 12, fontWeight: '600', marginTop: 8, paddingHorizontal: 2 },
+  readerBtnText: { fontSize: 12, fontWeight: '600', marginTop: 6, paddingHorizontal: 2 },
   readerBtnTextActive: { color: '#7858FF' },
-  readerBtnSub: { color: 'rgba(155,154,163,0.5)', fontSize: 10, marginTop: 2 },
   animRow: { flexDirection: 'row', justifyContent: 'space-between' },
   animBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(155,154,163,0.06)', marginHorizontal: 4, borderWidth: 1 },
   animBtnActive: { borderColor: '#7858FF', backgroundColor: 'rgba(120, 88, 255,0.15)' },
