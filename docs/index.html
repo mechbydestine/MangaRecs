@@ -97,7 +97,6 @@
     background: color-mix(in srgb, var(--bg) 82%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--line);
   }
   .topnav-inner {
     max-width: 1320px;
@@ -108,9 +107,10 @@
     padding: 14px clamp(20px, 5vw, 56px);
   }
   @media (min-width: 1440px) { .topnav-inner { max-width: 1480px; } }
+  .nav-left { display: flex; align-items: center; gap: 16px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
   .brand svg { width: 26px; height: 26px; }
-  .brand img { height: 38px; width: auto; }
+  .brand img { height: 52px; width: auto; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); font-weight: 800; }
   .nav-cta {
@@ -131,14 +131,11 @@
   @media (min-width: 1440px) { main { max-width: 1480px; } }
 
   /* ── Hero ───────────────────────────────────────────────────────────── */
-  .hero {
-    padding: clamp(56px, 10vw, 108px) 0 clamp(48px, 8vw, 80px);
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: clamp(32px, 5vw, 64px);
-    align-items: center;
-  }
-  .hero-mark { width: 128px; height: 96px; margin-bottom: 22px; }
+  /* Simple centered pitch block now — it sits between "Why this exists" and
+     the feature glance rather than leading the page, so it no longer needs
+     a two-column split with a demo alongside it. */
+  .hero { padding: clamp(40px, 7vw, 64px) 0 clamp(40px, 7vw, 64px); max-width: 640px; margin: 0 auto; text-align: center; }
+  .hero-mark { width: 128px; height: 96px; margin: 0 auto 22px; }
   .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); }
   /* Solid, not a gradient fill. Gradient-clipped headline text is the single
      most recognisable "generated landing page" signature going, and readers
@@ -146,12 +143,12 @@
      same emphasis without the tell. */
   .hero h1 .accent { color: var(--accent); }
   .hero-tag {
-    margin-top: 18px;
+    margin: 18px auto 0;
     font-size: clamp(1.02rem, 1.6vw, 1.2rem);
     color: var(--ink-muted);
     max-width: 46ch;
   }
-  .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; justify-content: center; }
   .btn-primary {
     display: inline-flex; align-items: center; gap: 10px;
     background: var(--accent); color: #fff;
@@ -172,53 +169,59 @@
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
   .hero-fineprint { margin-top: 14px; font-size: 0.82rem; color: var(--ink-faint); }
 
-  /* Trending-picks carousel (hero) — banner slides with arrows + dots, our
-     own take on that format rather than a lift of any one site's version:
-     real catalog covers, the site's own tag/pill language, contained inside
-     the same box the old swipe-card demo used. */
-  .demo { position: relative; height: clamp(320px, 40vw, 400px); }
-  .promo, .promo-view { width: 100%; height: 100%; }
-  .promo { position: relative; }
-  .promo-view { overflow: hidden; border-radius: var(--r-md); box-shadow: var(--shadow); }
-  .promo-track { display: flex; height: 100%; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); }
-  .promo-slide {
-    flex: 0 0 100%; position: relative; height: 100%;
+  /* ── Spotlight: full-width multi-peek discovery carousel, page-opener ───
+     Own version of the "storefront" carousel pattern, not a redraw of any
+     one site's: centre slide full size and in focus, neighbours peeking at
+     reduced scale/opacity and cropped at the section's own edge rather than
+     the browser edge. Real catalog covers, MangaRecs' own tag/match copy. */
+  .spotlight { position: relative; margin: clamp(20px, 4vw, 32px) 0 clamp(32px, 5vw, 48px); }
+  .spotlight-view { overflow: hidden; padding: 18px 0; }
+  .spotlight-track { display: flex; align-items: center; gap: 20px; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); will-change: transform; }
+  .spotlight-slide {
+    flex: 0 0 auto; width: min(720px, 66vw); aspect-ratio: 16/7.5;
+    position: relative; border-radius: var(--r-lg); overflow: hidden;
     background-size: cover; background-position: center;
+    opacity: 0.4; transform: scale(0.9); filter: saturate(0.7);
+    transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
   }
-  .promo-slide::after {
+  .spotlight-slide.active { opacity: 1; transform: scale(1); filter: none; box-shadow: var(--shadow); }
+  .spotlight-slide::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(0deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 48%, rgba(0,0,0,0.05) 65%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 45%, transparent 75%);
   }
-  .promo-tag {
+  .spotlight-tag {
     position: absolute; top: 16px; left: 16px; z-index: 2;
     font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
     background: rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(6px);
     padding: 4px 10px; border-radius: var(--r-pill);
   }
-  .promo-body { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 2; color: #fff; }
-  .promo-title { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.15rem; line-height: 1.25; }
-  .promo-sub { font-size: 0.8rem; color: rgba(255,255,255,0.75); margin-top: 3px; }
-  .promo-arrow {
+  .spotlight-body { position: absolute; left: 22px; right: 22px; bottom: 20px; z-index: 2; color: #fff; }
+  .spotlight-title { font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900; font-size: clamp(1.2rem, 2.4vw, 1.7rem); line-height: 1.15; }
+  .spotlight-sub { font-size: 0.86rem; color: rgba(255,255,255,0.78); margin-top: 4px; }
+  .spotlight-arrow {
     position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
-    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
-    background: rgba(10,8,20,0.5); color: #fff; backdrop-filter: blur(4px);
+    width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(10,8,20,0.55); color: #fff; backdrop-filter: blur(4px);
     display: flex; align-items: center; justify-content: center;
     transition: background 0.2s ease;
   }
-  .promo-arrow:hover { background: rgba(10,8,20,0.75); }
-  .promo-arrow svg { width: 16px; height: 16px; }
-  .promo-prev { left: 10px; }
-  .promo-next { right: 10px; }
-  .promo-dots { display: flex; justify-content: center; gap: 4px; margin-top: 11px; }
-  .promo-dot {
+  .spotlight-arrow:hover { background: rgba(10,8,20,0.8); }
+  .spotlight-arrow svg { width: 18px; height: 18px; }
+  .spotlight-prev { left: clamp(4px, 2vw, 24px); }
+  .spotlight-next { right: clamp(4px, 2vw, 24px); }
+  .spotlight-dots { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+  .spotlight-dot {
     width: 22px; height: 16px; padding: 0; border: none; background: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
-  .promo-dot::before {
+  .spotlight-dot::before {
     content: ''; display: block; width: 7px; height: 7px; border-radius: var(--r-pill);
     background: var(--line-strong); transition: width 0.25s ease, background 0.25s ease;
   }
-  .promo-dot.active::before { width: 18px; background: var(--accent); }
+  .spotlight-dot.active::before { width: 18px; background: var(--accent); }
+  @media (max-width: 700px) {
+    .spotlight-slide { width: 86vw; aspect-ratio: 16/11; }
+  }
 
   /* ── Chapters ───────────────────────────────────────────────────────── */
   .chapter {
@@ -397,12 +400,6 @@
   footer a { text-decoration: none; color: var(--ink-muted); }
   footer a:hover { color: var(--accent); }
 
-  @media (max-width: 860px) {
-    .hero { grid-template-columns: 1fr; }
-    .demo { height: 300px; margin-top: 32px; }
-    .chapter, .chapter.flip { grid-template-columns: 1fr; }
-    .chapter.flip .chapter-copy, .chapter.flip .chapter-visual { order: initial; }
-  }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -456,12 +453,12 @@
      light mode as light; the cursor glow carries the colour now. */
   /* Compact jump-links — deliberately small chrome, since the feature cards
      directly below them are the ones doing the actual selling. */
-  .quicknav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
+  .quicknav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
   .qn-tile {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 9px 10px; border-radius: var(--r-sm); background: var(--bg-panel);
+    display: flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 8px;
+    padding: 9px 14px 9px 10px; border-radius: var(--r-pill); background: var(--bg-panel);
     border: 1px solid var(--line); text-decoration: none; color: var(--ink);
-    font-size: 0.74rem; font-weight: 700; text-align: center;
+    font-size: 0.82rem; font-weight: 700; text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
   .qn-tile:hover {
@@ -757,9 +754,14 @@
 
 <nav class="topnav has-cta">
   <div class="topnav-inner">
-    <a class="brand" href="#top">
-      <img src="/assets/logo-mark.png" alt="MangaRecs" width="51" height="38" decoding="async" />
-    </a>
+    <div class="nav-left">
+      <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <a class="brand" href="#top">
+        <img src="/assets/logo-mark.png" alt="MangaRecs" width="69" height="52" decoding="async" />
+      </a>
+    </div>
     <div class="nav-actions">
       <div class="nav-utils">
         <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
@@ -769,9 +771,6 @@
           </button>
           <div class="account-panel" id="accountPanel"></div>
         </div>
-        <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
       </div>
       <a class="nav-cta" href="#download" data-i18n="nav.cta">Coming Soon</a>
     </div>
@@ -780,36 +779,94 @@
 
 <main id="top">
 
-  <section class="hero">
-    <div>
-      <div class="hero-mark-wrap">
-      <img class="hero-mark" src="/assets/logo-mark.png" alt="" width="128" height="96" decoding="async" />
-      </div>
-      <h1 class="sr-only">MangaRecs</h1>
-      <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
-      <div class="hero-actions">
-        <a class="btn-primary" href="#download">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          Coming Soon
-        </a>
-      </div>
-      <p class="hero-fineprint" data-i18n="hero.fineprint">Heading to the App Store and Google Play. Not there yet.</p>
+  <section class="spotlight">
+    <div class="spotlight-view">
+      <div class="spotlight-track" id="spotlightTrack"></div>
     </div>
+    <button class="spotlight-arrow spotlight-prev" id="spotlightPrev" type="button" aria-label="Previous title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <button class="spotlight-arrow spotlight-next" id="spotlightNext" type="button" aria-label="Next title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <div class="spotlight-dots" id="spotlightDots"></div>
+  </section>
 
-    <div class="demo">
-      <div class="promo" id="promo" role="group" aria-roledescription="carousel" aria-label="Trending picks">
-        <div class="promo-view">
-          <div class="promo-track" id="promoTrack"></div>
-        </div>
-        <button class="promo-arrow promo-prev" id="promoPrev" type="button" aria-label="Previous title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <button class="promo-arrow promo-next" id="promoNext" type="button" aria-label="Next title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-      </div>
-      <div class="promo-dots" id="promoDots"></div>
+  <section class="trending-home">
+    <p class="eyebrow" style="margin:0;" data-i18n="trending.eyebrow">Live from the catalog</p>
+    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;" data-i18n="trending.title">Trending Right Now</h2>
+    <div class="format-pills" id="formatPills"></div>
+    <div class="mood-bar">
+      <button class="mood-toggle" id="moodToggle" type="button" aria-expanded="false" aria-controls="moodPills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+        Mood
+        <span class="mood-current" id="moodCurrent">All moods</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
     </div>
+    <div class="format-pills" id="moodPills"></div>
+    <div class="grid" id="trendingGrid"></div>
+    <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
+  </section>
+
+  <section class="showcase" id="screenshots">
+    <div class="showcase-head">
+      <p class="eyebrow" data-i18n="shots.eyebrow">See it in action</p>
+      <h2 data-i18n="shots.title">Straight From the App</h2>
+      <p data-i18n="shots.sub">Real screens, pulled straight from the current build.</p>
+    </div>
+    <div class="showcase-strip">
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/library.webp" type="image/webp" /><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label" data-i18n="shots.library">Library</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/comms.webp" type="image/webp" /><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label" data-i18n="shots.community">Community</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/discussion.webp" type="image/webp" /><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label" data-i18n="shots.discussions">Discussions</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/profile.webp" type="image/webp" /><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label" data-i18n="shots.profile">Profile</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/home.webp" type="image/webp" /><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label" data-i18n="shots.home">Home</p>
+      </div>
+      <div class="shot" data-reveal>
+        <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
+        <p class="shot-label" data-i18n="shots.forYou">For You</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="maker-note" id="why">
+    <div class="maker-note-inner">
+      <div class="maker-note-mark" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><path d="M60 34c-14-8-32-9-42-4v54c10-5 28-4 42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34c14-8 32-9 42-4v54c-10-5-28-4-42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34v54" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
+      <p class="eyebrow" data-i18n="why.eyebrow">Why this exists</p>
+      <p class="maker-note-text" data-i18n="why.body">We kept losing track of what we were reading across a dozen sites and thirty open tabs, and every app we tried was either a spreadsheet with a login or so much slop we'd close it without finding a single thing worth reading. So we started building the one we actually wanted. Founded by manga and manhwa readers, for manga and manhwa readers. A library that remembers exactly where you left off. Friends who hand you real recommendations, and who can see what you're deep in right now. A discussion board for the chapter that just dropped, mini-games, badges worth chasing, and a reading streak you'll be annoyed to break.</p>
+    </div>
+  </section>
+
+  <section class="hero">
+    <div class="hero-mark-wrap">
+      <img class="hero-mark" src="/assets/logo-mark.png" alt="" width="128" height="96" decoding="async" />
+    </div>
+    <h1 class="sr-only">MangaRecs</h1>
+    <p class="hero-tag" data-i18n="hero.tag">A social library for manga & manhwa. Track what you're reading, find your next series, Rec it to friends, and talk chapters as a community, not scattered across a dozen tabs.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Coming Soon
+      </a>
+    </div>
+    <p class="hero-fineprint" data-i18n="hero.fineprint">Heading to the App Store and Google Play. Not there yet.</p>
   </section>
 
   <section class="glance">
@@ -881,68 +938,6 @@
         </div>
       </div>
       <div class="updates-dots" id="updatesDots"></div>
-    </div>
-  </section>
-
-  <section class="trending-home">
-    <p class="eyebrow" style="margin:0;" data-i18n="trending.eyebrow">Live from the catalog</p>
-    <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;" data-i18n="trending.title">Trending Right Now</h2>
-    <div class="format-pills" id="formatPills"></div>
-    <div class="mood-bar">
-      <button class="mood-toggle" id="moodToggle" type="button" aria-expanded="false" aria-controls="moodPills">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-        Mood
-        <span class="mood-current" id="moodCurrent">All moods</span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
-    </div>
-    <div class="format-pills" id="moodPills"></div>
-    <div class="grid" id="trendingGrid"></div>
-    <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
-    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
-  </section>
-
-  <section class="showcase" id="screenshots">
-    <div class="showcase-head">
-      <p class="eyebrow" data-i18n="shots.eyebrow">See it in action</p>
-      <h2 data-i18n="shots.title">Straight From the App</h2>
-      <p data-i18n="shots.sub">Real screens, pulled straight from the current build.</p>
-    </div>
-    <div class="showcase-strip">
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/library.webp" type="image/webp" /><img src="/assets/screenshots/library.jpg" alt="MangaRecs library showing bookmarked manga and manhwa" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.library">Library</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/comms.webp" type="image/webp" /><img src="/assets/screenshots/comms.jpg" alt="MangaRecs community screen with friends, messages, and discussions" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.community">Community</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/discussion.webp" type="image/webp" /><img src="/assets/screenshots/discussion.jpg" alt="MangaRecs chapter discussion thread" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.discussions">Discussions</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/profile.webp" type="image/webp" /><img src="/assets/screenshots/profile.jpg" alt="MangaRecs profile with reading stats, streak, and badges" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.profile">Profile</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/home.webp" type="image/webp" /><img src="/assets/screenshots/home.jpg" alt="MangaRecs home feed with a manga card, likes, comments, and shares" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.home">Home</p>
-      </div>
-      <div class="shot" data-reveal>
-        <div class="shot-frame"><picture><source srcset="/assets/screenshots/recs.webp" type="image/webp" /><img src="/assets/screenshots/recs.jpg" alt="MangaRecs For You AI-powered recommendations with a taste radar" loading="lazy" decoding="async" width="720" height="1496" /></picture></div>
-        <p class="shot-label" data-i18n="shots.forYou">For You</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="maker-note" id="why">
-    <div class="maker-note-inner">
-      <div class="maker-note-mark" aria-hidden="true">
-        <svg viewBox="0 0 120 120"><path d="M60 34c-14-8-32-9-42-4v54c10-5 28-4 42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34c14-8 32-9 42-4v54c-10-5-28-4-42 4z" fill="var(--bg-panel)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><path d="M60 34v54" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
-      </div>
-      <p class="eyebrow" data-i18n="why.eyebrow">Why this exists</p>
-      <p class="maker-note-text" data-i18n="why.body">We kept losing track of what we were reading across a dozen sites and thirty open tabs, and every app we tried was either a spreadsheet with a login or so much slop we'd close it without finding a single thing worth reading. So we started building the one we actually wanted. Founded by manga and manhwa readers, for manga and manhwa readers. A library that remembers exactly where you left off. Friends who hand you real recommendations, and who can see what you're deep in right now. A discussion board for the chapter that just dropped, mini-games, badges worth chasing, and a reading streak you'll be annoyed to break.</p>
     </div>
   </section>
 
@@ -1145,68 +1140,73 @@
   document.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  // Trending-picks carousel — arrows + dots + autoplay, patterned after the
-  // Latest Updates carousel below rather than any outside site's demo.
-  (function initPromo() {
+  // Spotlight — full-width multi-peek discovery carousel that opens the
+  // page. Real centring via measured offsetLeft/offsetWidth (not a fixed
+  // percentage) since slides are a fixed pixel width with a flex gap.
+  (function initSpotlight() {
     var CARDS = [
       { genre: 'Action', title: 'Sakamoto Days', match: '98% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg' },
       { genre: 'Fantasy', title: 'Dungeon Meshi', match: '95% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86082-MXizJxzbijdd.jpg' },
       { genre: 'Thriller', title: "Omniscient Reader's", match: '91% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119257-Pi21aq3ey9GG.jpg' },
       { genre: 'Isekai', title: 'Solo Leveling', match: '97% match', cover: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx105398-b673Vt5ZSuz3.jpg' },
     ];
-    var track = document.getElementById('promoTrack');
-    var dotsEl = document.getElementById('promoDots');
-    var prevBtn = document.getElementById('promoPrev');
-    var nextBtn = document.getElementById('promoNext');
-    var panel = document.getElementById('promo');
-    if (!track || !dotsEl || !panel) return;
+    var panel = document.querySelector('.spotlight');
+    var view = document.querySelector('.spotlight-view');
+    var track = document.getElementById('spotlightTrack');
+    var dotsEl = document.getElementById('spotlightDots');
+    var prevBtn = document.getElementById('spotlightPrev');
+    var nextBtn = document.getElementById('spotlightNext');
+    if (!panel || !view || !track || !dotsEl) return;
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     CARDS.forEach(function (card) {
       var slide = document.createElement('div');
-      slide.className = 'promo-slide';
+      slide.className = 'spotlight-slide';
       slide.style.backgroundImage = 'url(' + card.cover + ')';
       slide.innerHTML =
-        '<span class="promo-tag">' + card.genre + '</span>' +
-        '<div class="promo-body">' +
-          '<div class="promo-title">' + card.title + '</div>' +
-          '<div class="promo-sub">' + card.match + '</div>' +
+        '<span class="spotlight-tag">' + card.genre + '</span>' +
+        '<div class="spotlight-body">' +
+          '<div class="spotlight-title">' + card.title + '</div>' +
+          '<div class="spotlight-sub">' + card.match + '</div>' +
         '</div>';
       track.appendChild(slide);
     });
 
-    var slides = CARDS.length;
+    var slides = Array.prototype.slice.call(track.children);
     var i = 0, timer = null, held = false;
 
-    for (var n = 0; n < slides; n++) {
+    slides.forEach(function (_s, n) {
       var dot = document.createElement('button');
       dot.type = 'button';
-      dot.className = 'promo-dot' + (n === 0 ? ' active' : '');
-      dot.setAttribute('aria-label', 'Show title ' + (n + 1) + ' of ' + slides);
+      dot.className = 'spotlight-dot' + (n === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', 'Show title ' + (n + 1) + ' of ' + slides.length);
       dot.setAttribute('data-i', String(n));
       dotsEl.appendChild(dot);
-    }
+    });
 
     function paint() {
-      track.style.transform = 'translateX(' + (-i * 100) + '%)';
+      var slide = slides[i];
+      var offset = view.clientWidth / 2 - (slide.offsetLeft + slide.offsetWidth / 2);
+      track.style.transform = 'translateX(' + offset + 'px)';
+      slides.forEach(function (s, n) { s.classList.toggle('active', n === i); });
       Array.prototype.forEach.call(dotsEl.children, function (d, n) {
         d.classList.toggle('active', n === i);
       });
     }
     function go(delta) {
-      i = (i + delta + slides) % slides;
+      i = (i + delta + slides.length) % slides.length;
       paint();
     }
     function start() {
       if (reduced || held || timer) return;
-      timer = setInterval(function () { go(1); }, 4200);
+      timer = setInterval(function () { go(1); }, 4500);
     }
     function stop() { clearInterval(timer); timer = null; }
 
     prevBtn.addEventListener('click', function () { held = true; stop(); go(-1); });
     nextBtn.addEventListener('click', function () { held = true; stop(); go(1); });
     dotsEl.addEventListener('click', function (e) {
-      var d = e.target.closest('.promo-dot');
+      var d = e.target.closest('.spotlight-dot');
       if (!d) return;
       held = true;
       stop();
@@ -1220,6 +1220,7 @@
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stop(); else start();
     });
+    window.addEventListener('resize', paint);
 
     paint();
     start();
