@@ -93,8 +93,7 @@ var DRAWER_SECTIONS = [
     heading: 'MangaRecs',
     links: [
       { label: 'Features', href: '/features/', icon: 'features' },
-      { label: 'About', href: '/about/', icon: 'about' },
-      { label: 'Get the App', href: '/#download', icon: 'app', tag: 'Soon' }
+      { label: 'About', href: '/about/', icon: 'about' }
     ]
   }
 ];
