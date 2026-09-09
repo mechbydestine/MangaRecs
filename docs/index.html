@@ -150,6 +150,7 @@
   .spotlight-track { display: flex; align-items: center; gap: 20px; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); will-change: transform; }
   .spotlight-slide {
     flex: 0 0 auto; width: min(270px, 23vw); aspect-ratio: 2/3;
+    text-decoration: none; color: inherit;
     position: relative; border-radius: var(--r-lg); overflow: hidden;
     background-size: cover; background-position: center;
     opacity: 0.4; transform: scale(0.9); filter: saturate(0.7);
@@ -697,7 +698,7 @@
   @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
   @media (min-width: 1440px) { .footer-grid, .footer-bottom { max-width: 1480px; } }
 
-  /* Closing brandmark — contained and faint rather than Discord's edge-bled
+  /* Closing brandmark — contained and faint rather than the edge-bled
      giant wordmark, and the spark ties it back to the star at the centre of
      the actual logo instead of being a plain lift of their treatment. */
   .footer-wordmark {
@@ -814,7 +815,7 @@
     <div class="updates" id="updates">
       <div class="updates-head">
         <h3 data-i18n="updates.title">Latest Updates</h3>
-        <a href="/schedule/" aria-label="Airing schedule" title="Airing schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       </div>
       <div class="updates-view">
         <div class="updates-track" id="updatesTrack">
@@ -822,7 +823,7 @@
             <span class="update-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
             <span class="update-copy">
               <span class="update-title">Dev log — v1.5.1</span>
-              <span class="update-desc">Followers and Following are gone. One relationship now: a <em>friendship both sides agreed to</em>, the way Discord does it.</span>
+              <span class="update-desc">Followers and Following are gone. One relationship now: a <em>friendship both sides agreed to</em>, by both people.</span>
             </span>
           </div>
           <a class="update-item" href="/catalog/" style="--u-c:#9B70FF;">
@@ -935,7 +936,7 @@
         <span class="whatsnew-date">August 5, 2026</span>
       </div>
       <ul class="whatsnew-list">
-        <li data-i18n="whatsnew.li1">Import your whole library from AniList or MyAnimeList in one tap. It only ever moves you forward, so it can't undo progress you already have.</li>
+        <li data-i18n="whatsnew.li1">Import your whole library from AniList or another tracker in one tap. It only ever moves you forward, so it can't undo progress you already have.</li>
         <li data-i18n="whatsnew.li2">The app is now genuinely translated in all six languages, down to the pop-ups and error screens.</li>
         <li data-i18n="whatsnew.li3">Reading ambience keeps playing when your screen locks mid-chapter, and a banner tells you the moment you lose connection.</li>
       </ul>
@@ -1005,7 +1006,7 @@
       <div class="footer-social">
         
         
-        <!-- Discord and Instagram icons live here once the accounts exist: same <a> shape, real href, drop the title attribute. A dead href="#" icon reads worse than no icon at all. --><a href="mailto:hello@mangarecs.net" aria-label="Email MangaRecs" title="hello@mangarecs.net"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></a>
+        <!-- Social icons live here once those accounts exist: same <a> shape, real href, drop the title attribute. A dead href="#" icon reads worse than no icon at all. --><a href="mailto:hello@mangarecs.net" aria-label="Email MangaRecs" title="hello@mangarecs.net"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></a>
       </div>
     </div>
   </div>
@@ -1115,8 +1116,12 @@
 
     function render(cards) {
       cards.forEach(function (card) {
-        var slide = document.createElement('div');
+        // An <a>, not a <div>: these were unclickable dead art before, which
+        // is the one thing a discovery carousel cannot be. Falls back to the
+        // catalog root when a card has no id (only the offline FALLBACK set).
+        var slide = document.createElement('a');
         slide.className = 'spotlight-slide';
+        slide.href = card.id ? '/catalog/#/title/' + card.id : '/catalog/';
         slide.style.backgroundImage = 'url(' + card.cover + ')';
         slide.innerHTML =
           '<span class="spotlight-tag">' + card.genre + '</span>' +
@@ -1171,20 +1176,32 @@
         return m.coverImage && (m.coverImage.extraLarge || m.coverImage.large);
       });
     }
-    // 80/20 manhwa+manhua to manga, by request — three separate trending
-    // calls (one per origin) rather than one mixed chart, since AniList's
-    // combined trending sort skews Japanese and wouldn't hit that split.
+    // 80/20 manhwa+manhua to manga — three separate trending calls (one per
+    // origin) rather than one mixed chart, since AniList's combined trending
+    // sort skews Japanese and wouldn't come near that split on its own.
+    //
+    // Each call returns ~50, and taking the same top 8/8/4 every time made a
+    // 20-card carousel that never changed. The window rotates through the
+    // wider result set on a 3-hour step instead, so the rail actually turns
+    // over during the day while staying stable within a single visit.
+    function rotate(list, take) {
+      if (list.length <= take) return list;
+      var step = Math.floor(Date.now() / (3 * 60 * 60 * 1000));
+      var start = (step * take) % list.length;
+      return list.slice(start).concat(list.slice(0, start)).slice(0, take);
+    }
     Promise.all([
       trendingMedia({ country: 'KR' }).catch(function () { return null; }),
       trendingMedia({ country: 'CN' }).catch(function () { return null; }),
       trendingMedia({ country: 'JP' }).catch(function () { return null; }),
     ]).then(function (results) {
-      var pick = withCover(results[0]).slice(0, 8)
-        .concat(withCover(results[1]).slice(0, 8))
-        .concat(withCover(results[2]).slice(0, 4));
+      var pick = rotate(withCover(results[0]), 8)
+        .concat(rotate(withCover(results[1]), 8))
+        .concat(rotate(withCover(results[2]), 4));
       if (!pick.length) { render(FALLBACK); return; }
       render(pick.map(function (m, idx) {
         return {
+          id: m.id,
           genre: esc((m.genres && m.genres[0]) || 'Trending'),
           title: esc(titleOf(m)),
           sub: '#' + (idx + 1) + ' Trending',
@@ -1432,20 +1449,47 @@ document.addEventListener('DOMContentLoaded', function () {
     var el = document.getElementById('growingGrid');
     if (!el || typeof alFetch !== 'function') return;
 
+    var GROWING_FIELDS = 'id title { romaji english native } coverImage { extraLarge large } '
+      + 'genres format status chapters volumes averageScore popularity startDate { year } '
+      + 'description(asHtml: false)';
+
+    // One query per origin, because countryOfOrigin takes a single value and
+    // an unfiltered MANGA search comes back overwhelmingly Japanese — which
+    // is what made this rail read as a random, off-audience assortment.
+    // Korean and Chinese only here: the progression/action manhwa and manhua
+    // this section is meant to surface.
+    function growingQuery(country, genre) {
+      // TRENDING_DESC, not POPULARITY_DESC: AniList computes trending from
+      // the *rate* recent activity is climbing, not the all-time total, which
+      // is the closest real "catching on right now" signal available.
+      // chapters_lesser 100 + a score floor is the "good but still early"
+      // shape — under a hundred chapters and already rated well.
+      var filters = 'type: MANGA, isAdult: false, status: RELEASING, sort: TRENDING_DESC'
+        + ', countryOfOrigin: "' + country + '", chapters_lesser: 100, averageScore_greater: 70';
+      if (genre) filters += ', genre_in: ["' + genre + '"]';
+      return 'query { Page(page: 1, perPage: 20) { media(' + filters + ') { ' + GROWING_FIELDS + ' } } }';
+    }
+
     function loadGrowing(genre) {
       el.innerHTML = skeletonGrid(10);
-      // TRENDING_DESC, not POPULARITY_DESC: AniList computes trending from
-      // the *rate* recent list-adds/activity is climbing, not the all-time
-      // total, which is the closest real signal to "catching on right now"
-      // that's actually available (see chat: no TikTok/social API access).
-      var filters = 'type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: TRENDING_DESC';
-      if (genre) filters += ', genre_in: ["' + genre + '"]';
-      var gql = 'query { Page(page: 1, perPage: 20) { media(' + filters + ') { ' +
-        'id title { romaji english native } coverImage { extraLarge large } genres format status chapters volumes averageScore popularity startDate { year } description(asHtml: false) } } }';
-      alFetch(gql).then(function (d) {
-        var media = ((d.Page && d.Page.media) || []).filter(function (m) { return m.chapters > 0; }).slice(0, 10);
+      Promise.all([
+        alFetch(growingQuery('KR', genre)).catch(function () { return null; }),
+        alFetch(growingQuery('CN', genre)).catch(function () { return null; }),
+      ]).then(function (results) {
+        var seen = {};
+        var media = [];
+        // Interleave so one origin can't take the whole rail.
+        var lists = results.map(function (d) {
+          return ((d && d.Page && d.Page.media) || []).filter(function (m) { return m.chapters > 0; });
+        });
+        for (var i = 0; i < 20 && media.length < 10; i++) {
+          for (var l = 0; l < lists.length; l++) {
+            var m = lists[l][i];
+            if (m && !seen[m.id]) { seen[m.id] = true; media.push(m); }
+          }
+        }
         if (!media.length) throw new Error('empty');
-        el.innerHTML = media.map(posterCard).join('');
+        el.innerHTML = media.slice(0, 10).map(posterCard).join('');
       }).catch(function () {
         el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">No growing titles match that filter right now.</p>';
       });

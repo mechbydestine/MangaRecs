@@ -85,11 +85,7 @@ var DRAWER_SECTIONS = [
       { label: 'Manga', href: '/catalog/#/browse/manga', icon: 'manga' },
       { label: 'Manhwa', href: '/catalog/#/browse/manhwa', icon: 'manhwa' },
       { label: 'Manhua', href: '/catalog/#/browse/manhua', icon: 'manhua' },
-      { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' },
-      // Anime episode air times, not manga chapter releases — that data
-      // doesn't exist anywhere we can query it. Labeled plainly on the
-      // page itself so this doesn't read as a claim it's a chapter calendar.
-      { label: 'Airing Schedule', href: '/schedule/', icon: 'schedule' }
+      { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' }
     ]
   },
   {

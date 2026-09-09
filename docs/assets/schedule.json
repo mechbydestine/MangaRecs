@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-09-09T06:05:35.503Z",
+  "source": "MangaDex public API — chapter publishAt history",
+  "method": "Modal weekday of the last 12 English chapters, kept only when 50%+ of them share it and something released in the last 60 days.",
+  "days": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
+  "titles": [
+    {
+      "id": "mgcgrl",
+      "title": "The Magical Girl and The Evil Lieutenant Used to Be Archenemies",
+      "lang": "ko",
+      "genres": [
+        "Romance",
+        "Comedy"
+      ],
+      "cover": "https://uploads.mangadex.org/covers/cde5b132-fa09-4306-89e1-12d3662c234e/21dacb08-03aa-4770-aa17-12dfc30d7001.jpg.512.jpg",
+      "day": 1,
+      "confidence": 100,
+      "latestChapter": "16",
+      "latestAt": "2026-09-07T21:48:29+00:00",
+      "sample": 12
+    },
+    {
+      "id": "extracd",
+      "title": "The Extra's Academy Survival Guide",
+      "lang": "ko",
+      "genres": [
+        "Fantasy",
+        "Comedy"
+      ],
+      "cover": "https://uploads.mangadex.org/covers/7f15e45c-b7fd-4164-8d8e-ede14a817f0d/e3099394-b192-440a-a32f-6a203d75759d.jpg.512.jpg",
+      "day": 4,
+      "confidence": 83,
+      "latestChapter": "122",
+      "latestAt": "2026-09-03T21:07:28+00:00",
+      "sample": 12
+    },
+    {
+      "id": "itsml",
+      "title": "It's My Life",
+      "lang": "ko",
+      "genres": [
+        "Fantasy",
+        "Comedy"
+      ],
+      "cover": "https://uploads.mangadex.org/covers/d9ab5041-e497-4323-83cb-c3f3b9aaaf71/40f81dbb-901e-4a29-a0a0-5401961f3817.jpg.512.jpg",
+      "day": 2,
+      "confidence": 67,
+      "latestChapter": "71",
+      "latestAt": "2026-08-18T14:56:44+00:00",
+      "sample": 12
+    },
+    {
+      "id": "blsw",
+      "title": "Bloody Sweet",
+      "lang": "ko",
+      "genres": [
+        "Romance",
+        "Supernatural"
+      ],
+      "cover": "https://uploads.mangadex.org/covers/daa6f76d-b7b4-4328-8d31-65aedbf1e071/7c283462-62d2-4b35-a91f-2a831753fb7d.jpg.512.jpg",
+      "day": 6,
+      "confidence": 60,
+      "latestChapter": "2",
+      "latestAt": "2026-09-02T05:08:27+00:00",
+      "sample": 5
+    },
+    {
+      "id": "tlodk",
+      "title": "The Laid Off Demon King",
+      "lang": "zh",
+      "genres": [
+        "Action",
+        "Comedy"
+      ],
+      "cover": "https://uploads.mangadex.org/covers/e81b4d3d-2692-4af9-9300-91012d079cd6/8e841ad3-f4d8-4ea5-a270-bfa42b135c6a.jpg.512.jpg",
+      "day": 0,
+      "confidence": 50,
+      "latestChapter": "440",
+      "latestAt": "2026-07-27T23:08:38+00:00",
+      "sample": 12
+    }
+  ]
+}
