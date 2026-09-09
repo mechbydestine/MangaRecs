@@ -3,15 +3,17 @@
 // their own sessionStorage cache in anilist.js and need to stay fresh).
 // Bump the cache name whenever the precache list changes so old clients
 // pick up the new shell instead of serving stale assets forever.
-// v7: motion.css/motion.js dropped the cursor-glow effect, but the file
-// names didn't change — a same-named cache would have kept serving the
-// old glow-enabled bytes to anyone who'd already installed v6.
-var CACHE_NAME = 'mangarecs-shell-v7';
+// v8: the poster grid and genre bar CSS moved out of the two pages' inline
+// <style> blocks into assets/poster.css. A client still on v7 would serve
+// its cached copies of those pages, which no longer carry the rules, and
+// render every cover grid unstyled.
+var CACHE_NAME = 'mangarecs-shell-v8';
 var PRECACHE = [
   '/',
   '/catalog/',
   '/assets/base.css',
   '/assets/nav.css',
+  '/assets/poster.css',
   '/assets/motion.css',
   '/assets/motion.js',
   '/assets/anilist.js',

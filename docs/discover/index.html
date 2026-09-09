@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Discover - MangaRecs</title>
+<meta name="description" content="Browse deeper into what's trending and what's climbing. Manhwa, manhua, manga and webcomics, filtered by genre." />
+<link rel="icon" href="/assets/favicon.png" />
+<link rel="apple-touch-icon" href="/assets/icon-180.png" />
+<link rel="manifest" href="/assets/manifest.json" />
+<meta name="theme-color" content="#6B46F0" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://mangarecs.net/discover/" />
+<meta property="og:title" content="Discover - MangaRecs" />
+<meta property="og:description" content="Browse deeper into what's trending and what's climbing." />
+<meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
+<link rel="canonical" href="https://mangarecs.net/discover/" />
+<link rel="preload" href="/assets/fonts.css?v=20260826a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260826a" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260826a" />
+<link rel="stylesheet" href="/assets/poster.css?v=20260826a" />
+<style>
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Strip Text', -apple-system, system-ui, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .topnav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px clamp(20px, 5vw, 56px);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+  .brand img { height: 52px; width: auto; }
+
+  main.disc { max-width: 1320px; margin: 0 auto; padding: 26px clamp(20px, 5vw, 56px) 72px; }
+  .disc-eyebrow {
+    font-weight: 700; font-size: 0.72rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 6px;
+  }
+  .disc h1 {
+    font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.01em;
+    font-size: clamp(1.8rem, 4vw, 2.5rem); margin: 0 0 10px;
+  }
+  .disc-sub { color: var(--ink-muted); font-size: 0.92rem; max-width: 62ch; margin: 0 0 22px; }
+
+  /* Switching between the two rails is the whole point of landing here from
+     a "See more", so the other one stays one click away rather than a
+     trip back to the homepage. */
+  .disc-switch { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .disc-switch a {
+    font-size: 0.85rem; font-weight: 700; text-decoration: none;
+    color: var(--ink-muted); background: var(--bg-panel);
+    border: 1px solid var(--line); border-radius: var(--r-pill);
+    padding: 8px 16px;
+  }
+  .disc-switch a:hover { color: var(--accent); border-color: var(--accent); }
+  .disc-switch a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .disc-note { color: var(--ink-faint); font-size: 0.8rem; margin: 0 0 18px; }
+  .disc-empty { grid-column: 1/-1; text-align: center; color: var(--ink-faint); padding: 40px 0; }
+  .disc-more { text-align: center; margin-top: 30px; }
+  .disc-more button {
+    font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    color: var(--ink); background: var(--bg-panel);
+    border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+    padding: 11px 26px;
+  }
+  .disc-more button:hover { color: var(--accent); border-color: var(--accent); }
+  .disc-more button:disabled { opacity: 0.55; cursor: default; }
+  .disc-end { color: var(--ink-faint); font-size: 0.82rem; }
+
+  footer.footer-main { border-top: 1px solid var(--line); padding: 30px clamp(20px, 5vw, 56px); text-align: center; font-size: 0.82rem; color: var(--ink-faint); }
+  footer.footer-main a { color: var(--ink-muted); text-decoration: none; }
+  footer.footer-main a:hover { color: var(--accent); }
+</style>
+<link rel="stylesheet" href="/assets/nav.css?v=20260826a" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260826a" />
+
+<nav class="topnav">
+  <a class="brand" href="/">
+    <img src="/assets/logo-mark.png" alt="MangaRecs" width="69" height="52" decoding="async" />
+  </a>
+  <div class="nav-actions">
+    <div class="nav-utils">
+      <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="disc">
+  <p class="disc-eyebrow" id="discEyebrow"></p>
+  <h1 id="discTitle">Discover</h1>
+  <p class="disc-sub" id="discSub"></p>
+
+  <nav class="disc-switch" id="discSwitch" aria-label="Discover categories"></nav>
+
+  <div class="genre-bar">
+    <button class="genre-toggle" id="genreToggle" type="button" aria-expanded="false" aria-controls="genrePills" aria-label="Filter by genre">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+    </button>
+    <div class="genre-scroll" id="genrePills" hidden>
+      <button class="genre-arrow genre-arrow-prev" type="button" aria-label="Scroll genres left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="genre-track" id="genreTrack"></div>
+      <button class="genre-arrow genre-arrow-next" type="button" aria-label="Scroll genres right">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="grid" id="discGrid"></div>
+  <div class="disc-more" id="discMore"></div>
+</main>
+
+<footer class="footer-main">
+  <a href="/">Home</a> · <a href="/catalog/">Catalog</a> · <a href="/schedule/">Schedule</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
+  <br />© 2026 MangaRecs. Built by readers, for readers.
+</footer>
+
+<script src="/assets/supabase.js?v=20260826a" defer></script>
+<script src="/assets/auth.js?v=20260826a" defer></script>
+<script src="/assets/nav-widgets.js?v=20260826a" defer></script>
+<script src="/assets/anilist.js?v=20260826a" defer></script>
+<script src="/assets/motion.js?v=20260826a" defer></script>
+<script>
+// posterCard() markup calls navigate() on click; off the catalog SPA that
+// means handing the route to it.
+window.navigate = function (path) { location.href = '/catalog/#' + path; };
+
+document.addEventListener('DOMContentLoaded', function () {
+  initNavDrawer('menuBtn');
+  wirePosterSaveButtons();
+
+  var PER_LOAD = 24;
+
+  var GROWING_FIELDS = 'id title { romaji english native } coverImage { extraLarge large } '
+    + 'genres format status chapters volumes averageScore popularity startDate { year } countryOfOrigin '
+    + 'description(asHtml: false)';
+
+  function pageQuery(filters, page) {
+    return {
+      gql: 'query($page: Int) { Page(page: $page, perPage: 24) { pageInfo { hasNextPage } media('
+        + filters + ') { ' + GROWING_FIELDS + ' } } }',
+      vars: { page: page },
+    };
+  }
+
+  function fetchOrigin(filters, page) {
+    var q = pageQuery(filters, page);
+    return alFetch(q.gql, q.vars)
+      .then(function (d) { return (d && d.Page) || { media: [], pageInfo: {} }; })
+      .catch(function () { return null; });
+  }
+
+  // Emit `pattern` in a repeating cycle across the origin buckets, so one
+  // country can't take the page. Trending runs 4 manhwa/manhua per 1 manga:
+  // an unfiltered MANGA trending query comes back overwhelmingly Japanese
+  // shonen, which is not what this site is for.
+  //
+  // Stops the moment a slot can't be filled rather than draining whatever is
+  // left, because draining is what breaks the ratio: with 24 rows per origin,
+  // running to exhaustion ends up 1:1:1, which is the exact opposite of the
+  // point. An origin that returned nothing at all drops out of the cycle
+  // first, so one failed query degrades the mix instead of emptying the page.
+  function interleave(buckets, pattern, seen, limit) {
+    var live = pattern.filter(function (b) { return buckets[b] && buckets[b].length; });
+    if (!live.length) return [];
+    var idx = buckets.map(function () { return 0; });
+    var out = [];
+    for (;;) {
+      for (var p = 0; p < live.length; p++) {
+        var b = live[p];
+        var picked = null;
+        while (idx[b] < buckets[b].length) {
+          var m = buckets[b][idx[b]++];
+          if (!m || seen[m.id]) continue;
+          picked = m;
+          break;
+        }
+        if (!picked) return out;
+        seen[picked.id] = true;
+        out.push(picked);
+        if (out.length >= limit) return out;
+      }
+    }
+  }
+
+  var BASE = 'type: MANGA, isAdult: false';
+
+  var VIEWS = {
+    trending: {
+      label: 'Trending Right Now',
+      eyebrow: 'Live from the catalog',
+      title: 'Trending Right Now',
+      sub: 'What readers are piling into this week, pulled live and mixed across manhwa, manhua and manga so one region does not swallow the page.',
+      note: '',
+      fallbackKey: 'trending',
+      // 4 : 1. Order inside the cycle keeps KR and CN alternating.
+      pattern: [0, 1, 0, 1, 0, 1, 0, 1, 2, 2],
+      origins: ['KR', 'CN', 'JP'],
+      filters: function (country, genre) {
+        var f = BASE + ', sort: TRENDING_DESC, countryOfOrigin: "' + country + '"';
+        if (genre) f += ', genre_in: ["' + genre + '"]';
+        return f;
+      },
+    },
+    growing: {
+      label: 'Newly Growing',
+      eyebrow: 'Small but climbing',
+      title: 'Newly Growing',
+      sub: 'Series still under a hundred chapters that are already rated well and picking up readers fast. Deeper pages get rarer, which is the point.',
+      note: 'Sorted by how fast interest is climbing rather than all-time popularity, so these skew newer and less known the further you scroll.',
+      fallbackKey: 'growing',
+      pattern: [0, 1],
+      origins: ['KR', 'CN'],
+      filters: function (country, genre) {
+        var f = BASE + ', status: RELEASING, sort: TRENDING_DESC, countryOfOrigin: "' + country + '"'
+          + ', chapters_lesser: 100, averageScore_greater: 70';
+        if (genre) f += ', genre_in: ["' + genre + '"]';
+        return f;
+      },
+    },
+  };
+
+  function currentKey() {
+    var m = /[?&]c=([a-z]+)/.exec(location.search);
+    var k = m ? m[1] : 'trending';
+    return VIEWS[k] ? k : 'trending';
+  }
+
+  var key = currentKey();
+  var view = VIEWS[key];
+  var gridEl = document.getElementById('discGrid');
+  var moreEl = document.getElementById('discMore');
+  var genre = null;
+  var page = 0;
+  var seen = {};
+  var exhausted = false;
+  var loading = false;
+
+  document.getElementById('discEyebrow').textContent = view.eyebrow;
+  document.getElementById('discTitle').textContent = view.title;
+  document.getElementById('discSub').textContent = view.sub;
+  document.title = view.title + ' - MangaRecs';
+  if (view.note) {
+    var note = document.createElement('p');
+    note.className = 'disc-note';
+    note.textContent = view.note;
+    document.getElementById('discSwitch').insertAdjacentElement('afterend', note);
+  }
+
+  document.getElementById('discSwitch').innerHTML = Object.keys(VIEWS).map(function (k) {
+    return '<a href="/discover/?c=' + k + '"' + (k === key ? ' aria-current="page"' : '') + '>'
+      + esc(VIEWS[k].label) + '</a>';
+  }).join('');
+
+  function setMore(html) { moreEl.innerHTML = html; }
+
+  function appendCards(media) {
+    var frag = document.createElement('div');
+    frag.innerHTML = media.map(posterCard).join('');
+    while (frag.firstChild) gridEl.appendChild(frag.firstChild);
+  }
+
+  function loadMore() {
+    if (loading || exhausted) return;
+    loading = true;
+    page++;
+    var first = page === 1;
+    if (first) {
+      // skeletonGrid() brings its own .grid wrapper; this page already is one.
+      var sk = '';
+      for (var s = 0; s < PER_LOAD; s++) sk += '<div class="poster"><div class="poster-img-wrap skeleton"></div></div>';
+      gridEl.innerHTML = sk;
+    }
+    setMore('<button type="button" disabled>Loading…</button>');
+
+    Promise.all(view.origins.map(function (c) {
+      return fetchOrigin(view.filters(c, genre), page);
+    })).then(function (pages) {
+      if (pages.every(function (p) { return p === null; })) throw new Error('all origins failed');
+      var buckets = pages.map(function (p) {
+        return ((p && p.media) || []).filter(function (m) { return m && m.coverImage; });
+      });
+      var media = interleave(buckets, view.pattern, seen, PER_LOAD);
+      var hasNext = pages.some(function (p) { return p && p.pageInfo && p.pageInfo.hasNextPage; });
+
+      if (first) gridEl.innerHTML = '';
+      if (!media.length && first) {
+        gridEl.innerHTML = '<p class="disc-empty">' + (genre
+          ? 'Nothing matches that genre here right now.'
+          : 'Nothing to show here right now.') + '</p>';
+        exhausted = true;
+        setMore('');
+        loading = false;
+        return;
+      }
+      appendCards(media);
+      exhausted = !hasNext;
+      // AniList's own paging is the only honest end signal; a page that
+      // dedupes down to nothing still has more behind it.
+      setMore(exhausted
+        ? '<p class="disc-end">That is everything AniList has for this one.</p>'
+        : '<button type="button" id="discMoreBtn">Load more</button>');
+      loading = false;
+    }).catch(function () {
+      exhausted = true;
+      loading = false;
+      setMore('');
+      if (!first) return;
+      // Same rule as the homepage rails: stand in with real catalog picks
+      // rather than telling every visitor the upstream API is down.
+      if (genre) {
+        gridEl.innerHTML = '<p class="disc-empty">Nothing matches that genre here right now.</p>';
+        return;
+      }
+      fetch('/assets/fallback-titles.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          var list = (data && data[view.fallbackKey]) || [];
+          gridEl.innerHTML = list.length
+            ? list.map(posterCard).join('')
+            : '<p class="disc-empty">Nothing to show here right now.</p>';
+        })
+        .catch(function () {
+          gridEl.innerHTML = '<p class="disc-empty">Nothing to show here right now.</p>';
+        });
+    });
+  }
+
+  moreEl.addEventListener('click', function (e) {
+    if (e.target.closest('#discMoreBtn')) loadMore();
+  });
+
+  // ── Genre pills ────────────────────────────────────────────────────
+  (function initGenreBar() {
+    var toggle = document.getElementById('genreToggle');
+    var scroll = document.getElementById('genrePills');
+    var track = document.getElementById('genreTrack');
+    var OPTIONS = ['All genres'].concat(GENRES);
+    track.innerHTML = OPTIONS.map(function (g) {
+      return '<button class="format-pill' + (g === 'All genres' ? ' active' : '')
+        + '" data-genre="' + esc(g) + '" type="button">' + esc(g) + '</button>';
+    }).join('');
+
+    toggle.addEventListener('click', function () {
+      var open = scroll.hasAttribute('hidden');
+      if (open) scroll.removeAttribute('hidden'); else scroll.setAttribute('hidden', '');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    scroll.querySelector('.genre-arrow-prev').addEventListener('click', function () {
+      track.scrollBy({ left: -180, behavior: 'smooth' });
+    });
+    scroll.querySelector('.genre-arrow-next').addEventListener('click', function () {
+      track.scrollBy({ left: 180, behavior: 'smooth' });
+    });
+    track.addEventListener('click', function (e) {
+      var btn = e.target.closest('.format-pill');
+      if (!btn) return;
+      var picked = btn.getAttribute('data-genre');
+      Array.prototype.forEach.call(track.children, function (b) { b.classList.toggle('active', b === btn); });
+      genre = picked === 'All genres' ? null : picked;
+      page = 0;
+      seen = {};
+      exhausted = false;
+      loading = false;
+      gridEl.innerHTML = '';
+      loadMore();
+    });
+  })();
+
+  loadMore();
+});
+</script>
+<script src="/assets/analytics.js?v=20260826a" defer></script>
+</html>

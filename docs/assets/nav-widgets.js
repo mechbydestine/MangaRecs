@@ -67,6 +67,8 @@ var DRAWER_ICONS = {
   manhua: '<path d="M4 20c2.5 0 4-1.2 4-3.2 0-1.4-1-2.4-2.3-2.4C4.3 14.4 3 15.6 3 17"/><path d="m8.6 15.4 9.6-9.6a2 2 0 0 0-2.8-2.8l-9.6 9.6"/>',
   webcomic: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/><path d="M5.5 6.5h.01M8 6.5h.01"/>',
   schedule: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  trending: '<path d="m3 17 6-6 4 4 7-7"/><path d="M14 8h6v6"/>',
+  growing: '<path d="M12 20v-8"/><path d="M12 12c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z"/><path d="M12 14c0-2.8-2.2-5-5-5 0 2.8 2.2 5 5 5z"/><path d="M8 20h8"/>',
   signout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'
 };
 
@@ -83,6 +85,8 @@ var DRAWER_SECTIONS = [
     // router reads the hash on a cold load too, so it works from any page.
     links: [
       { label: 'Browse Catalog', href: '/catalog/', icon: 'catalog' },
+      { label: 'Trending Now', href: '/discover/?c=trending', icon: 'trending' },
+      { label: 'Newly Growing', href: '/discover/?c=growing', icon: 'growing' },
       { label: 'Manga', href: '/catalog/#/browse/manga', icon: 'manga' },
       { label: 'Manhwa', href: '/catalog/#/browse/manhwa', icon: 'manhwa' },
       { label: 'Manhua', href: '/catalog/#/browse/manhua', icon: 'manhua' },

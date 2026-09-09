@@ -1,0 +1,131 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Poster grid + genre filter bar.
+
+   Every page that renders posterCard() from assets/anilist.js needs this:
+   the homepage rails, /catalog/, and /discover/. It used to be pasted
+   inline in each one under a comment asking future edits to keep the
+   copies byte-identical, which they had already stopped being — the two
+   copies disagreed on grid sizing and one had .skeleton twice. Adding a
+   third copy for /discover/ was the point to stop.
+
+   Loaded on /catalog/ too, which deliberately skips base.css, so this is
+   written against only the tokens both stylesheets define, with literal
+   fallbacks on the radius tokens. Same rule as nav.css.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Genre filter ──────────────────────────────────────────────────────
+   An icon-only toggle (the icon and what it opens make the job clear)
+   for a horizontal pill strip, closer to AniList's own genre rail than
+   an expand-in-place list. */
+.genre-bar { display: flex; align-items: center; gap: 10px; margin: 14px 0 18px; }
+.genre-toggle {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted); cursor: pointer;
+}
+.genre-toggle:hover, .genre-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.genre-toggle svg { width: 16px; height: 16px; }
+.genre-scroll { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.genre-scroll[hidden] { display: none; }
+.genre-arrow {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; padding: 0;
+  background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.genre-arrow:hover { color: var(--accent); border-color: var(--accent); }
+.genre-arrow svg { width: 13px; height: 13px; }
+.genre-track {
+  display: flex; gap: 8px; flex: 1; min-width: 0; overflow-x: auto; scroll-behavior: smooth;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.genre-track::-webkit-scrollbar { display: none; }
+
+.format-pill {
+  flex: none; font: inherit; padding: 8px 15px; border-radius: var(--r-pill, 999px);
+  font-size: 0.8rem; font-weight: 700; white-space: nowrap;
+  color: var(--ink-muted); border: 1px solid var(--line); background: var(--bg-panel); cursor: pointer;
+}
+.format-pill:hover { color: var(--accent); border-color: var(--accent); }
+.format-pill.active { background: var(--accent-wash); color: var(--accent); border-color: var(--accent); }
+
+/* ── Poster grid — full-bleed cover with the title set over the art ──── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+@media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+@media (max-width: 380px) { .grid { grid-template-columns: 1fr; } }
+@media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 20px; } }
+.poster { display: block; text-decoration: none; color: inherit; }
+.poster-img-wrap {
+  position: relative; aspect-ratio: 5/7; border-radius: var(--r-md, 16px); overflow: hidden;
+  background: var(--bg-sunken); border: 1px solid var(--line); box-shadow: var(--shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.poster-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+/* Scrim sits above the art but below the chips/body, which are z-index 2. */
+.poster-img-wrap::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(to top,
+    rgba(8,5,18,0.97) 0%, rgba(8,5,18,0.9) 20%, rgba(8,5,18,0.55) 38%,
+    rgba(8,5,18,0.06) 58%, rgba(8,5,18,0.42) 100%);
+}
+.poster-chips {
+  position: absolute; z-index: 2; top: 9px; left: 9px; right: 9px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 6px;
+}
+.poster-chips-right { display: flex; align-items: center; gap: 6px; }
+.poster-badge {
+  font-size: 0.64rem; font-weight: 800; letter-spacing: 0.03em; padding: 4px 9px;
+  border-radius: var(--r-pill, 999px); white-space: nowrap; color: #fff; backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--fmt-c, var(--accent)) 42%, rgba(0,0,0,0.6));
+  border: 1px solid color-mix(in srgb, var(--fmt-c, var(--accent)) 60%, transparent);
+}
+.poster-badge[data-fmt="Manga"] { --fmt-c: #E0554F; }
+.poster-badge[data-fmt="Manhwa"] { --fmt-c: #E85FA8; }
+.poster-badge[data-fmt="Manhua"] { --fmt-c: #E8A83C; }
+.poster-badge[data-fmt="Novel"] { --fmt-c: #5B8DEF; }
+.poster-score {
+  display: flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 800;
+  padding: 4px 8px; border-radius: var(--r-pill, 999px); background: rgba(0,0,0,0.62); color: #FFD34D;
+  backdrop-filter: blur(4px);
+}
+.poster-score svg { width: 10px; height: 10px; }
+.poster-save {
+  flex: none; width: 27px; height: 27px; padding: 0;
+  display: flex; align-items: center; justify-content: center; border-radius: var(--r-pill, 999px);
+  background: rgba(0,0,0,0.55); border: none; color: #fff; cursor: pointer; backdrop-filter: blur(4px);
+}
+.poster-save svg { width: 13px; height: 13px; }
+.poster-save.active { background: var(--accent); }
+.poster-save.sync-error { background: #E0554F; }
+.poster-save:disabled { opacity: 0.6; cursor: default; }
+.poster-body {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 15px 14px 13px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.poster-title {
+  font-size: 1.02rem; font-weight: 800; line-height: 1.2; color: #fff;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.poster-blurb {
+  font-size: 0.76rem; font-style: italic; line-height: 1.35; color: rgba(255,255,255,0.7);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.poster-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.poster-tags span {
+  font-size: 0.64rem; font-weight: 700; padding: 3px 8px; border-radius: var(--r-xs, 7px);
+  background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.86);
+}
+.poster-tags .poster-meta { background: none; padding: 3px 0; color: rgba(255,255,255,0.5); font-weight: 600; }
+.poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -14px rgba(0, 0, 0, 0.55); transform: translateY(-2px); }
+@media (max-width: 560px) {
+  .poster-body { padding: 12px 11px 11px; gap: 4px; }
+  .poster-title { font-size: 0.88rem; }
+  .poster-blurb { display: none; }
+  .poster-tags span { font-size: 0.6rem; padding: 2px 6px; }
+}
+
+.skeleton {
+  background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

@@ -352,6 +352,10 @@ function buildSitemap(titlePaths, formatPaths) {
   const staticEntries = [
     { loc: `${SITE}/`, changefreq: 'weekly', priority: '1.0' },
     { loc: `${SITE}/catalog/`, changefreq: 'daily', priority: '0.8' },
+    // Both discover views share one page and differ only by ?c=, so the
+    // bare URL is the one crawlers get; the query variant is the same
+    // document with a different rail loaded into it.
+    { loc: `${SITE}/discover/`, changefreq: 'daily', priority: '0.7' },
     { loc: `${SITE}/features/`, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE}/badges/`, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE}/schedule/`, changefreq: 'weekly', priority: '0.5' },

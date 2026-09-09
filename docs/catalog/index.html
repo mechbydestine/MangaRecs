@@ -30,6 +30,7 @@
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
 <link rel="preload" href="/assets/fonts.css?v=20260826a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
 <noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260826a" /></noscript>
+<link rel="stylesheet" href="/assets/poster.css?v=20260826a" />
 <style>
   /* fonts loaded async via /assets/fonts.css?v=20260826a link tag in <head> */
 
@@ -262,88 +263,10 @@
     .profile-streak-daylabel, .profile-streak-cell { width: 12px; height: 12px; }
   }
 
-  /* ── Poster grid — full-bleed cover with the title set over the art ─────
-     Keep this block byte-identical to the copy in /index.html, since both
-     pages render the same posterCard() markup from assets/anilist.js. */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px; }
-  @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
-  @media (max-width: 380px) { .grid { grid-template-columns: 1fr; } }
+  /* Poster grid and skeletons: assets/poster.css. Only the grid sizing is
+     local — the catalog is a wider, denser page than the homepage rails. */
+  .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px; }
   @media (min-width: 1440px) { .grid { grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 22px; } }
-  .poster { display: block; text-decoration: none; color: inherit; }
-  .poster-img-wrap {
-    position: relative; aspect-ratio: 5/7; border-radius: 16px; overflow: hidden;
-    background: var(--bg-sunken); border: 1px solid var(--line); box-shadow: var(--shadow);
-  }
-  .poster-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
-  /* Scrim sits above the art but below the chips/body, which are z-index 2. */
-  .poster-img-wrap::after {
-    content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    background: linear-gradient(to top,
-      rgba(8,5,18,0.97) 0%, rgba(8,5,18,0.9) 20%, rgba(8,5,18,0.55) 38%,
-      rgba(8,5,18,0.06) 58%, rgba(8,5,18,0.42) 100%);
-  }
-  .poster-chips {
-    position: absolute; z-index: 2; top: 9px; left: 9px; right: 9px;
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 6px;
-  }
-  .poster-chips-right { display: flex; align-items: center; gap: 6px; }
-  .poster-badge {
-    font-size: 0.64rem; font-weight: 800; letter-spacing: 0.03em; padding: 4px 9px;
-    border-radius: 999px; white-space: nowrap; color: #fff; backdrop-filter: blur(4px);
-    background: color-mix(in srgb, var(--fmt-c, var(--accent)) 42%, rgba(0,0,0,0.6));
-    border: 1px solid color-mix(in srgb, var(--fmt-c, var(--accent)) 60%, transparent);
-  }
-  .poster-badge[data-fmt="Manga"] { --fmt-c: #E0554F; }
-  .poster-badge[data-fmt="Manhwa"] { --fmt-c: #E85FA8; }
-  .poster-badge[data-fmt="Manhua"] { --fmt-c: #E8A83C; }
-  .poster-badge[data-fmt="Novel"] { --fmt-c: #5B8DEF; }
-  .poster-score {
-    display: flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 800;
-    padding: 4px 8px; border-radius: 999px; background: rgba(0,0,0,0.62); color: #FFD34D;
-    backdrop-filter: blur(4px);
-  }
-  .poster-score svg { width: 10px; height: 10px; }
-  .poster-save {
-    flex: none; width: 27px; height: 27px; padding: 0;
-    display: flex; align-items: center; justify-content: center; border-radius: 999px;
-    background: rgba(0,0,0,0.55); border: none; color: #fff; cursor: pointer; backdrop-filter: blur(4px);
-  }
-  .poster-save svg { width: 13px; height: 13px; }
-  .poster-save.active { background: var(--accent); }
-  .poster-save.sync-error { background: #E0554F; }
-  .poster-save:disabled { opacity: 0.6; cursor: default; }
-  .poster-body {
-    position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 15px 14px 13px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .poster-title {
-    font-size: 1.02rem; font-weight: 800; line-height: 1.2; color: #fff;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  }
-  .poster-blurb {
-    font-size: 0.76rem; font-style: italic; line-height: 1.35; color: rgba(255,255,255,0.7);
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  }
-  .poster-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .poster-tags span {
-    font-size: 0.64rem; font-weight: 700; padding: 3px 8px; border-radius: 7px;
-    background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.86);
-  }
-  .poster-tags .poster-meta { background: none; padding: 3px 0; color: rgba(255,255,255,0.5); font-weight: 600; }
-  .poster:hover .poster-img-wrap { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -14px rgba(0, 0, 0, 0.55); transform: translateY(-2px); }
-  .poster-img-wrap { transition: box-shadow 0.2s ease, transform 0.2s ease; }
-  @media (max-width: 560px) {
-    .poster-body { padding: 12px 11px 11px; gap: 4px; }
-    .poster-title { font-size: 0.88rem; }
-    .poster-blurb { display: none; }
-    .poster-tags span { font-size: 0.6rem; padding: 2px 6px; }
-  }
-  .skeleton { background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-  @keyframes shimmer { to { background-position: -200% 0; } }
-
-  .skeleton { background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--line) 50%, var(--bg-sunken) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-  @keyframes shimmer { to { background-position: -200% 0; } }
-  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
 
   .statemsg { text-align: center; padding: 60px 20px; color: var(--ink-faint); font-size: 0.9rem; }
 

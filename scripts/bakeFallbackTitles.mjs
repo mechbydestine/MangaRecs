@@ -57,8 +57,6 @@ function toMediaShape(m) {
 // filled the homepage with another site's logo and URL instead of cover art.
 const hasRealCover = (m) => /anilist/.test(POOL_COVER_URLS[m.id] || '');
 
-const usable = MANGA_POOL.filter((m) => !m.nsfw && m.description && hasRealCover(m));
-
 // Rank on readership, not score. Sorting by rating alone surfaced obscure
 // 9.4-rated titles nobody has heard of, which is the opposite of what a
 // "what's catching on" rail should feel like. Rating stays as a floor so
@@ -66,19 +64,65 @@ const usable = MANGA_POOL.filter((m) => !m.nsfw && m.description && hasRealCover
 const MIN_RATING = 7;
 const byPopularity = (a, b) => (b.likeCount || 0) - (a.likeCount || 0);
 
-const trending = usable
-  .filter((m) => (m.rating || 0) >= MIN_RATING)
-  .sort(byPopularity)
-  .slice(0, PER_RAIL);
+// English-language entries are dropped from both rails. They're real pool
+// data, but a Western comic sitting in "Trending" on a manga site reads as a
+// mistake rather than as range.
+const usable = MANGA_POOL.filter(
+  (m) => !m.nsfw && m.description && hasRealCover(m) && m.lang !== 'en' && (m.rating || 0) >= MIN_RATING,
+);
+const isKZ = (m) => m.lang === 'ko' || m.lang === 'zh';
 
-// Newly Growing's stand-in keeps that rail's manhwa/manhua focus. The live
-// query's sub-100-chapter ceiling is dropped here on purpose: only 14 pool
-// titles clear both that and the cover requirement, which isn't enough for a
-// rail, and a stand-in that's too thin to fill the grid is worse than one
-// that's merely less precise.
-const growing = usable
-  .filter((m) => (m.lang === 'ko' || m.lang === 'zh') && (m.rating || 0) >= MIN_RATING)
-  .sort(byPopularity)
+// Straight top-N by readership gave a rail of nothing but household names,
+// which was the complaint. Straight rating gave a rail of titles nobody had
+// heard of, which was the complaint before that. So: split the ranked list
+// into a well-known head and a deeper tail, then alternate. The rail opens on
+// something recognisable and every second card is a find.
+function pickMixed(ranked, n) {
+  const cut = Math.max(1, Math.min(20, Math.ceil(ranked.length * 0.35)));
+  const head = ranked.slice(0, cut);
+  const tail = ranked.slice(cut);
+  const out = [];
+  let h = 0;
+  let t = 0;
+  while (out.length < n && (h < head.length || t < tail.length)) {
+    if (h < head.length) out.push(head[h++]);
+    if (out.length < n && t < tail.length) out.push(tail[t++]);
+  }
+  return out;
+}
+
+// 80/20, manhwa and manhua over manga, same ratio the live rails and the
+// spotlight hold to. This file is what the whole site renders while AniList
+// is down, so a stand-in that quietly inverts the ratio undoes the rule
+// exactly when it's most visible.
+const KZ_SHARE = 0.8;
+const kz = usable.filter(isKZ).sort(byPopularity);
+const ja = usable.filter((m) => m.lang === 'ja').sort(byPopularity);
+
+const kzWanted = Math.round(PER_RAIL * KZ_SHARE);
+const kzPicks = pickMixed(kz, kzWanted);
+const jaPicks = ja.slice(0, PER_RAIL - kzPicks.length);
+
+// Woven rather than concatenated: a block of manhwa followed by a block of
+// manga is the right ratio and still looks like two separate rails.
+const trending = [];
+let ji = 0;
+kzPicks.forEach((m, i) => {
+  trending.push(m);
+  if ((i + 1) % 4 === 0 && ji < jaPicks.length) trending.push(jaPicks[ji++]);
+});
+while (ji < jaPicks.length) trending.push(jaPicks[ji++]);
+
+// Newly Growing's stand-in is manhwa/manhua only, matching the live query.
+// That query's sub-100-chapter ceiling can't be applied wholesale here —
+// only 13 pool titles clear both it and the cover requirement, and a rail too
+// thin to fill the grid is worse than one that's merely less precise — so the
+// short ones lead and longer picks fill in behind them.
+const short = kz.filter((m) => m.chapters && m.chapters < 100);
+const shortIds = new Set(short.map((m) => m.id));
+const growing = short
+  .slice(0, PER_RAIL)
+  .concat(pickMixed(kz.filter((m) => !shortIds.has(m.id)), PER_RAIL))
   .slice(0, PER_RAIL);
 
 const payload = {
