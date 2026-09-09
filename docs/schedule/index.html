@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
         selected = parseInt(b.getAttribute('data-day'), 10);
         paint();
       });
-      footEl.textContent = 'Covering ' + d.titles.length + ' series. This list grows as release patterns are confirmed — a series only appears once its schedule is actually known, rather than being guessed at.';
+      footEl.textContent = 'Covering ' + d.titles.length + ' series. This list grows as release patterns are confirmed. A series only appears once its schedule is actually known, rather than being guessed at.';
       paint();
     })
     .catch(function () {

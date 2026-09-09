@@ -189,7 +189,22 @@
     display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: rgba(255,255,255,0.62);
   }
 
-  /* ── My Profile ────────────────────────────────────────────────────── */
+  /* ── My Profile ──────────────────────────────────────────────────────
+     The catalog's grid is as wide as the window, and the profile inherited
+     that: one column of short cards stretched across 1600px, which read as
+     mostly empty. The app's version is a dense phone column, so this caps
+     the width and, past 1000px, splits into a main column and a stats rail
+     instead of stretching either. */
+  .profile-page { max-width: 1120px; margin: 0 auto; }
+  .profile-cols { display: block; }
+  @media (min-width: 1000px) {
+    .profile-cols {
+      display: grid; grid-template-columns: minmax(0, 1fr) 336px;
+      gap: 22px; align-items: start;
+    }
+  }
+  .profile-rail > * { margin-bottom: 16px; }
+
   .profile-hero-card { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--bg-panel); margin: 20px 0 18px; }
   .profile-banner { height: 110px; width: 100%; background-size: cover; background-position: center; }
   .profile-hero-body { display: flex; align-items: center; gap: 16px; padding: 0 20px 20px; margin-top: -32px; flex-wrap: wrap; }
@@ -241,16 +256,71 @@
   }
   .profile-fave-title { font-size: 0.74rem; font-weight: 600; margin-top: 7px; line-height: 1.25; color: var(--ink-muted); }
 
-  .profile-stats-row { display: flex; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
+  /* Grid, not flex-wrap: four cards flex-wrapping put three on one row and
+     one stretched across the next, which looked like a mistake. */
+  .profile-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 14px; }
+  @media (max-width: 620px) { .profile-stats-row { grid-template-columns: repeat(2, 1fr); } }
   .profile-stat-card {
-    flex: 1; min-width: 110px; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
+    min-width: 0; background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px;
     padding: 14px 12px; text-align: center; cursor: pointer; font-family: inherit;
   }
   .profile-stat-card:hover { border-color: var(--stat-c, var(--accent)); }
-  .profile-stat-value { font-size: 1.2rem; font-weight: 800; color: var(--stat-c, var(--accent)); }
+  .profile-stat-value {
+    font-size: 1.2rem; font-weight: 800; color: var(--stat-c, var(--accent));
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .profile-stat-label { font-size: 0.74rem; color: var(--ink-muted); margin-top: 2px; font-weight: 600; }
 
-  .profile-streak-card { width: fit-content; max-width: 100%; margin-bottom: 30px; }
+  /* Meta pills under the hero. The tier a reader has reached was previously
+     only a tooltip on the avatar ring, which is to say invisible. */
+  .profile-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
+  .profile-meta-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: var(--ink-muted);
+    background: var(--bg-panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 13px; text-decoration: none;
+  }
+  .profile-meta-pill b { color: var(--ink); }
+  a.profile-meta-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .profile-meta-pill.tier { color: var(--tier-c, var(--accent)); border-color: var(--tier-c, var(--accent)); }
+  .profile-meta-pill.tier b { color: var(--tier-c, var(--accent)); }
+
+  /* Earned badges. Chips rather than the big cards /badges/ uses: this is a
+     trophy shelf at a glance, and the reference page is one click away. */
+  .profile-section-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin: 4px 0 12px;
+  }
+  .profile-section-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+  .profile-section-link { font-size: 0.78rem; font-weight: 700; color: var(--accent); text-decoration: none; white-space: nowrap; }
+  .profile-section-link:hover { text-decoration: underline; }
+  .profile-badges { margin-bottom: 24px; }
+  .profile-badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 9px; }
+  .profile-badge-chip {
+    display: flex; align-items: center; gap: 8px; min-width: 0;
+    padding: 9px 11px; border-radius: 12px;
+    background: var(--tier-bg, var(--bg-sunken));
+    border: 1px solid var(--tier-c, var(--line));
+  }
+  .profile-badge-chip .ico { font-size: 1.05rem; line-height: 1; flex: none; }
+  .profile-badge-chip .nm {
+    font-size: 0.74rem; font-weight: 700; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .profile-badges-empty { font-size: 0.85rem; color: var(--ink-faint); }
+
+  .profile-next-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+  .profile-next-row + .profile-next-row { border-top: 1px solid var(--line); }
+  .profile-next-ico { font-size: 1.1rem; flex: none; }
+  .profile-next-body { flex: 1; min-width: 0; }
+  .profile-next-name { font-size: 0.8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-next-bar { height: 4px; border-radius: 999px; background: var(--bg-sunken); margin-top: 5px; overflow: hidden; }
+  .profile-next-bar i { display: block; height: 100%; background: var(--tier-c, var(--accent)); }
+  .profile-next-count { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); flex: none; }
+
+  /* Auto width in the rail column would size the card to the 53-week grid
+     and blow past its track. */
+  .profile-streak-card { max-width: 100%; overflow: hidden; }
   .profile-streak-grid { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
   .profile-streak-daylabels { display: flex; flex-direction: column; gap: 4px; flex: none; }
   .profile-streak-month-spacer { height: 18px; }
@@ -2916,7 +2986,70 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var paceSparklineHtml = profilePaceSparklineHtml(dailyLog);
 
+      // Best badges first, so the shelf opens on what was hardest to get
+      // rather than on whatever happens to sit first in ALL_BADGES.
+      var earnedBadges = ALL_BADGES
+        .filter(function (b) { return earnedIds.has(b.id); })
+        .sort(function (a, b) { return GRADE_ORDER.indexOf(b.grade) - GRADE_ORDER.indexOf(a.grade); });
+      var BADGE_PREVIEW = 12;
+
+      function badgeChipHtml(b) {
+        var g = BADGE_GRADES[b.grade] || {};
+        return '<div class="profile-badge-chip" title="' + esc(b.name + ': ' + b.desc) + '"' +
+          ' style="--tier-c:' + g.border + ';--tier-bg:' + g.bg + ';">' +
+          '<span class="ico">' + b.icon + '</span>' +
+          '<span class="nm">' + esc(b.name) + '</span>' +
+        '</div>';
+      }
+
+      var badgesHtml =
+        '<div class="profile-badges">' +
+          '<div class="profile-section-head">' +
+            '<span class="profile-section-title">Badges earned' + (earnedBadges.length ? ' · ' + earnedBadges.length : '') + '</span>' +
+            '<a class="profile-section-link" href="/badges/">All ' + ALL_BADGES.length + ' badges</a>' +
+          '</div>' +
+          (earnedBadges.length
+            ? '<div class="profile-badge-grid">' +
+                earnedBadges.slice(0, BADGE_PREVIEW).map(badgeChipHtml).join('') +
+              '</div>'
+            : '<p class="profile-badges-empty">No badges yet. Read a chapter and the first one is already yours.</p>') +
+        '</div>';
+
+      var nextUp = nextUpBadges(stats, earnedIds, 3);
+      var nextUpHtml = nextUp.length
+        ? '<div class="card">' +
+            '<div class="card-title">Next up</div>' +
+            nextUp.map(function (n) {
+              var g = BADGE_GRADES[n.badge.grade] || {};
+              return '<div class="profile-next-row" style="--tier-c:' + g.border + ';">' +
+                '<span class="profile-next-ico">' + n.badge.icon + '</span>' +
+                '<span class="profile-next-body">' +
+                  '<span class="profile-next-name">' + esc(n.badge.name) + '</span>' +
+                  '<span class="profile-next-bar"><i style="width:' + Math.round(n.pct * 100) + '%;"></i></span>' +
+                '</span>' +
+                '<span class="profile-next-count">' + n.current + ' / ' + n.target + '</span>' +
+              '</div>';
+            }).join('') +
+          '</div>'
+        : '';
+
+      var friendsCount = stats.friends_count || 0;
+      var metaHtml =
+        '<div class="profile-meta-row">' +
+          (topGrade
+            ? '<span class="profile-meta-pill tier" style="--tier-c:' + tierColor + ';">'
+                + '<b>' + BADGE_GRADES[topGrade].label + '</b> tier</span>'
+            : '') +
+          '<span class="profile-meta-pill"><b>' + friendsCount + '</b> ' + (friendsCount === 1 ? 'friend' : 'friends') + '</span>' +
+          (stats.streak_count ? '<span class="profile-meta-pill">🔥 <b>' + stats.streak_count + '</b> day streak</span>' : '') +
+          // No Settings link: the drawer's Settings entry already resolves to
+          // this page, so linking one from here would point at itself.
+          '<a class="profile-meta-pill" href="#/library">My Library</a>' +
+          (joinDate ? '<span class="profile-meta-pill">Joined ' + esc(joinDate) + '</span>' : '') +
+        '</div>';
+
       app.innerHTML =
+        '<div class="profile-page">' +
         '<div class="profile-hero-card">' +
           '<div class="profile-banner" style="' + (profile.banner_url ? 'background-image:url(' + esc(profile.banner_url) + ');' : 'background:linear-gradient(120deg,' + theme.gradient[0] + ',' + theme.gradient[1] + ');') + '"></div>' +
           '<div class="profile-hero-body">' +
@@ -2936,36 +3069,50 @@ document.addEventListener('DOMContentLoaded', function () {
                   '<button class="btn-ghost" id="profileBioCancel" type="button">Cancel</button>' +
                 '</div>' +
               '</div>' +
-              '<p class="profile-handle">@' + esc(profile.username || 'reader') + (joinDate ? ' · Joined ' + joinDate : '') + '</p>' +
+              '<p class="profile-handle">@' + esc(profile.username || 'reader') + '</p>' +
             '</div>' +
             '<button class="profile-signout-btn" id="profileSignOutBtn" type="button">Sign out</button>' +
           '</div>' +
         '</div>' +
 
+        metaHtml +
         readingStripHtml +
 
-        (faves.length
-          ? '<div class="profile-favorites">' +
-              '<div class="profile-favorites-title">Favorites</div>' +
-              '<div class="profile-favorites-row">' + faves.map(profileFaveThumbHtml).join('') + '</div>' +
-            '</div>'
-          : '') +
+        '<div class="profile-cols">' +
+          '<div class="profile-main">' +
+            '<div class="profile-stats-row" id="profileStatsRow">' +
+              // Chapters, not the derived entry count, so this reads the same
+              // number the app shows. Entries moved to its own card rather
+              // than hiding behind a vague "Read" label that meant neither.
+              profileStatCardHtml('read', 'Chapters Read', String(stats.chapters_read || 0), '#7B5CFF') +
+              profileStatCardHtml('series', 'Series Read', String(entriesRead), '#E85FA8') +
+              profileStatCardHtml('time', 'Time Read', fmtHrsWeb(totalHrs), '#1D9E75') +
+              profileStatCardHtml('genre', 'Fav. Genre', profile.favorite_genre || '—', '#FFD700') +
+            '</div>' +
+            '<div class="profile-stat-detail" id="profileStatDetail" style="display:none;"></div>' +
 
-        '<div class="profile-stats-row" id="profileStatsRow">' +
-          profileStatCardHtml('read', 'Read', String(entriesRead), '#7B5CFF') +
-          profileStatCardHtml('time', 'Time Read', fmtHrsWeb(totalHrs), '#1D9E75') +
-          profileStatCardHtml('genre', 'Fav. Genre', profile.favorite_genre || '—', '#FFD700') +
+            (faves.length
+              ? '<div class="profile-favorites">' +
+                  '<div class="profile-favorites-title">Favorites</div>' +
+                  '<div class="profile-favorites-row">' + faves.map(profileFaveThumbHtml).join('') + '</div>' +
+                '</div>'
+              : '') +
+
+            badgesHtml +
+          '</div>' +
+
+          '<aside class="profile-rail">' +
+            '<div class="card profile-streak-card">' +
+              '<div class="card-title">Reading Streak' + (stats.streak_count ? ' · ' + stats.streak_count + 'd' : '') + '</div>' +
+              profileStreakGridHtml(dailyLog) +
+            '</div>' +
+            (paceSparklineHtml
+              ? '<div class="card"><div class="card-title">Reading Pace · last 12 weeks</div>' + paceSparklineHtml + '</div>'
+              : '') +
+            nextUpHtml +
+          '</aside>' +
         '</div>' +
-        '<div class="profile-stat-detail" id="profileStatDetail" style="display:none;"></div>' +
-
-        '<div class="card profile-streak-card">' +
-          '<div class="card-title">Reading Streak' + (stats.streak_count ? ' · ' + stats.streak_count + 'd' : '') + '</div>' +
-          profileStreakGridHtml(dailyLog) +
-        '</div>' +
-
-        (paceSparklineHtml
-          ? '<div class="card"><div class="card-title">Reading Pace · last 12 weeks</div>' + paceSparklineHtml + '</div>'
-          : '');
+        '</div>';
 
       document.getElementById('profileSignOutBtn').addEventListener('click', function () {
         signOut().then(function () { window.location.hash = '#/'; });
@@ -2993,11 +3140,16 @@ document.addEventListener('DOMContentLoaded', function () {
       var statDetailEl = document.getElementById('profileStatDetail');
       var statSections = {
         read: { title: 'Reading', color: '#7B5CFF', rows: [
-          ['Entries read', String(entriesRead)],
           ['Chapters read', String(stats.chapters_read)],
+          ['Badges earned', String(earnedIds.size) + ' of ' + ALL_BADGES.length],
+          ['Highest tier', topGrade ? BADGE_GRADES[topGrade].label : '—'],
+        ] },
+        series: { title: 'Series', color: '#E85FA8', rows: [
+          // "Read" here means finished or at least half way in, which is a
+          // narrower thing than what's sitting in the library.
+          ['Series read', String(entriesRead)],
           ['Series in library', String(stats.series_count)],
           ['Series completed', String(stats.completed_count)],
-          ['Badges earned', String(earnedIds.size)],
         ] },
         time: { title: 'Time Read', color: '#1D9E75', rows: [
           ['Total', fmtHrsWeb(totalHrs)],
