@@ -21,27 +21,66 @@ function writeCache(key, data) {
   try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
 }
 function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+// A 4xx is AniList's final answer, not a hiccup. Retrying one wastes the
+// 3.7s the two backoffs add, and during an outage every rail on the page
+// spends that long showing skeletons before it can fall back — which reads
+// as "the content is gone" rather than "this is loading".
+function isTransient(status) { return !status || status === 429 || status >= 500; }
+
 function alRequest(query, variables) {
   return fetch(AL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ query: query, variables: variables }),
   }).then(function (r) {
-    if (!r.ok) throw new Error('http ' + r.status);
+    if (!r.ok) {
+      var err = new Error('http ' + r.status);
+      err.status = r.status;
+      throw err;
+    }
     return r.json();
   }).then(function (j) {
     if (!j || !j.data) throw new Error('empty response');
     return j.data;
   });
 }
+
+// Circuit breaker. AniList has spent days at a time returning 403 "temporarily
+// disabled due to severe stability issues". Without this, every rail on every
+// page re-learns that independently, so a visitor pays the full retry cost over
+// and over for an answer the first request already gave. One failure marks it
+// down for a few minutes and everything else goes straight to the stand-ins.
+var AL_DOWN_KEY = 'mrcache:al-down-until';
+var AL_DOWN_MS = 5 * 60 * 1000;
+function alIsDown() {
+  try {
+    var until = Number(sessionStorage.getItem(AL_DOWN_KEY) || 0);
+    return until > Date.now();
+  } catch (e) { return false; }
+}
+function alMarkDown() {
+  try { sessionStorage.setItem(AL_DOWN_KEY, String(Date.now() + AL_DOWN_MS)); } catch (e) { /* private mode */ }
+}
+
 function alFetch(query, variables) {
   var key = cacheKey(query, variables);
   var cached = readCache(key);
   if (cached) return Promise.resolve(cached);
-  return alRequest(query, variables)
-    .catch(function () { return wait(1200).then(function () { return alRequest(query, variables); }); })
-    .catch(function () { return wait(2500).then(function () { return alRequest(query, variables); }); })
-    .then(function (data) { writeCache(key, data); return data; });
+  // Cached responses still serve while the breaker is open; only new requests
+  // are skipped, so a warm page stays fully populated during an outage.
+  if (alIsDown()) return Promise.reject(new Error('anilist unavailable'));
+
+  function attempt(retriesLeft, delay) {
+    return alRequest(query, variables).catch(function (err) {
+      if (retriesLeft <= 0 || !isTransient(err.status)) {
+        if (err.status && !isTransient(err.status)) alMarkDown();
+        throw err;
+      }
+      return wait(delay).then(function () { return attempt(retriesLeft - 1, delay * 2); });
+    });
+  }
+
+  return attempt(2, 1200).then(function (data) { writeCache(key, data); return data; });
 }
 
 var MEDIA_FIELDS = 'id title { romaji english native } description(asHtml: false) genres format status ' +
