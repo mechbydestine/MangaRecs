@@ -1170,7 +1170,31 @@
       window.addEventListener('resize', paint);
     }
 
-    if (typeof trendingMedia !== 'function') { render(FALLBACK); return; }
+    // Outage path: prefer the baked catalog stand-in (manhwa/manhua leaning,
+    // same as the live mix aims for) and only fall back to the four hardcoded
+    // titles if even that file can't be fetched.
+    function renderSpotlightFallback() {
+      // Lives on window because it's defined in the other script block; by the
+      // time an AniList request has failed, that block's DOMContentLoaded
+      // callback has long since run and set it.
+      var loader = window.loadFallbackTitles;
+      if (typeof loader !== 'function') { render(FALLBACK); return; }
+      loader().then(function (data) {
+        var list = (data && data.growing) || [];
+        if (!list.length) { render(FALLBACK); return; }
+        render(list.slice(0, 12).map(function (m, idx) {
+          return {
+            id: m.id,
+            genre: esc((m.genres && m.genres[0]) || 'From the catalog'),
+            title: esc((m.title && (m.title.english || m.title.romaji)) || 'Untitled'),
+            sub: 'From our catalog',
+            cover: m.coverImage && (m.coverImage.extraLarge || m.coverImage.large),
+          };
+        }));
+      }).catch(function () { render(FALLBACK); });
+    }
+
+    if (typeof trendingMedia !== 'function') { renderSpotlightFallback(); return; }
     function withCover(res) {
       return ((res && res.Page && res.Page.media) || []).filter(function (m) {
         return m.coverImage && (m.coverImage.extraLarge || m.coverImage.large);
@@ -1198,7 +1222,7 @@
       var pick = rotate(withCover(results[0]), 8)
         .concat(rotate(withCover(results[1]), 8))
         .concat(rotate(withCover(results[2]), 4));
-      if (!pick.length) { render(FALLBACK); return; }
+      if (!pick.length) { renderSpotlightFallback(); return; }
       render(pick.map(function (m, idx) {
         return {
           id: m.id,
@@ -1208,7 +1232,7 @@
           cover: (m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || m.bannerImage,
         };
       }));
-    }).catch(function () { render(FALLBACK); });
+    }).catch(function () { renderSpotlightFallback(); });
   }
   document.addEventListener('DOMContentLoaded', initSpotlight);
 })();
@@ -1407,6 +1431,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var gridEl = document.getElementById('trendingGrid');
 
+  // Both content rails are live AniList queries, so an AniList outage empties
+  // the middle of the homepage. It has happened — their API spent a whole day
+  // returning 403 "temporarily disabled due to severe stability issues" — and
+  // an apology where the covers should be is a worse answer than showing real
+  // titles from our own catalog. Fetched once, shared by both rails, and
+  // labelled so it never passes itself off as live data.
+  var fallbackPromise = null;
+  function loadFallbackTitles() {
+    if (!fallbackPromise) {
+      fallbackPromise = fetch('/assets/fallback-titles.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    }
+    return fallbackPromise;
+  }
+  // The spotlight lives in the other script block and needs this too.
+  window.loadFallbackTitles = loadFallbackTitles;
+  function renderFallback(el, key, emptyMessage) {
+    return loadFallbackTitles().then(function (data) {
+      var list = (data && data[key]) || [];
+      if (!list.length) {
+        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">' + emptyMessage + '</p>';
+        return;
+      }
+      el.innerHTML =
+        '<p style="grid-column:1/-1;margin:0 0 4px;font-size:0.8rem;color:var(--ink-faint);">'
+        + 'Live catalog data is unavailable right now, so these are picks from our own catalog.</p>'
+        + list.slice(0, 10).map(posterCard).join('');
+    });
+  }
+
   // Real AniList favourites counts, not a fabricated "X people just saved this" — cycles
   // through the top few of whatever's currently loaded so it stays true to the data.
   var liveStatEl = document.getElementById('liveStat');
@@ -1434,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', function () {
       gridEl.innerHTML = d.Page.media.slice(0, 10).map(posterCard).join('');
       updateLiveStat(d.Page.media.slice(0, 10));
     }).catch(function () {
-      gridEl.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">Couldn\'t load trending titles right now.</p>';
+      renderFallback(gridEl, 'trending', "Couldn't load trending titles right now.");
     });
   }
 
@@ -1491,7 +1546,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!media.length) throw new Error('empty');
         el.innerHTML = media.slice(0, 10).map(posterCard).join('');
       }).catch(function () {
-        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">No growing titles match that filter right now.</p>';
+        // A genre filter with genuinely no matches and a dead API look the
+        // same from here, so only stand in with catalog picks on the
+        // unfiltered view; a filtered miss says so plainly instead.
+        if (genre) {
+          el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">No growing titles match that genre right now.</p>';
+          return;
+        }
+        renderFallback(el, 'growing', 'No growing titles to show right now.');
       });
     }
 
