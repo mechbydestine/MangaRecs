@@ -97,19 +97,6 @@
   .brand img { height: 68px; width: auto; }
   .brand-word { font-family: 'Strip Text', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
   .brand-word b { color: var(--accent); font-weight: 800; }
-  .nav-cta {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--accent); color: #fff;
-    font-weight: 700; font-size: 0.86rem;
-    padding: 9px 18px; border-radius: var(--r-pill);
-    text-decoration: none; border: none;
-    /* Neutral, not accent-tinted. A purple button resting on its own purple
-       glow is the other half of the generated-page look; a plain shadow gives
-       the same lift without it. Content-derived glows (the --tile-c / --fc
-       hovers further down) stay coloured on purpose — those carry meaning. */
-    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45);
-  }
-  .nav-cta:hover { filter: brightness(1.08); }
 
   main { max-width: 1320px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
   @media (min-width: 1440px) { main { max-width: 1480px; } }
@@ -392,15 +379,69 @@
      hide inside it now lives in the shared drawer (initNavDrawer), which
      is reachable at every width instead of only under 480px. */
   @media (max-width: 480px) {
-    .nav-cta { padding: 9px 14px; font-size: 0.82rem; }
+    .account-toggle:not(.signed-in) { padding: 9px 14px; font-size: 0.82rem; }
   }
   .account-wrap { position: relative; flex: none; }
+  /* Signed-out default: the same pill treatment .nav-cta used to have.
+     Signed in, it shrinks to a plain circular profile icon — .icon-btn's
+     own look, duplicated rather than shared since the two states need
+     different padding/shape and swapping classes on auth change is more
+     moving parts than just branching the CSS on .signed-in. */
+  .account-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff; font-family: inherit;
+    font-weight: 700; font-size: 0.86rem;
+    padding: 9px 18px; border-radius: var(--r-pill); border: none; cursor: pointer;
+    box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45);
+  }
+  .account-toggle:hover:not(.signed-in) { filter: brightness(1.08); }
+  .account-toggle svg { width: 15px; height: 15px; flex: none; }
+  .account-toggle.signed-in {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; padding: 0; border-radius: 999px;
+    background: var(--bg-panel); border: 1px solid var(--line-strong);
+    color: var(--ink-muted); box-shadow: none;
+  }
+  .account-toggle.signed-in:hover { color: var(--accent); border-color: var(--accent); }
+  .account-toggle.signed-in svg { width: 17px; height: 17px; }
+  .account-toggle.signed-in .account-btn-label { display: none; }
   .account-panel {
     position: absolute; top: calc(100% + 10px); right: 0; width: 260px;
     background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--r-md);
     box-shadow: var(--shadow); padding: 16px; display: none; z-index: 60; text-align: left;
   }
   .account-panel.open { display: block; }
+
+  /* ── Search panel ──────────────────────────────────────────────────── */
+  .search-wrap { position: relative; flex: none; }
+  .search-panel {
+    position: absolute; top: calc(100% + 10px); left: 0; width: min(360px, 88vw);
+    background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--shadow); padding: 16px; z-index: 60; text-align: left;
+  }
+  .search-panel[hidden] { display: none; }
+  .search-input-row {
+    display: flex; align-items: center; gap: 8px; background: var(--bg-sunken);
+    border: 1px solid var(--line); border-radius: var(--r-pill); padding: 9px 14px;
+  }
+  .search-input-row svg { width: 15px; height: 15px; flex: none; color: var(--ink-faint); }
+  .search-input-row input {
+    flex: 1; min-width: 0; border: none; background: none; outline: none;
+    font: inherit; font-size: 0.88rem; color: var(--ink);
+  }
+  .search-input-row input::placeholder { color: var(--ink-faint); }
+  .search-suggest-label {
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 14px 0 8px;
+  }
+  .search-suggest-list { display: flex; flex-wrap: wrap; gap: 7px; }
+  .search-suggest-list button {
+    font: inherit; font-size: 0.78rem; font-weight: 700; color: var(--ink-muted);
+    background: var(--bg-sunken); border: 1px solid var(--line); border-radius: var(--r-pill);
+    padding: 6px 12px; cursor: pointer;
+  }
+  .search-suggest-list button:hover { color: var(--accent); border-color: var(--accent); }
+  @media (max-width: 420px) { .search-panel { left: -80px; } }
   .account-tabtitle { font-weight: 800; font-size: 0.95rem; margin-bottom: 10px; }
   .account-panel input {
     width: 100%; background: var(--bg-sunken); border: 1px solid var(--line);
@@ -706,18 +747,36 @@
     </a>
     <div class="nav-actions">
       <div class="nav-utils">
-        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg></button>
-        <div class="account-wrap">
-          <button class="icon-btn" id="accountBtn" aria-label="Account" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="search-wrap">
+          <button class="icon-btn" id="searchBtn" aria-label="Search" type="button" aria-expanded="false" aria-controls="searchPanel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           </button>
-          <div class="account-panel" id="accountPanel"></div>
+          <div class="search-panel" id="searchPanel" hidden>
+            <form id="searchForm">
+              <label class="sr-only" for="searchInput">Search the catalog</label>
+              <div class="search-input-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="searchInput" placeholder="Search manga, manhwa, manhua…" autocomplete="off" />
+              </div>
+            </form>
+            <p class="search-suggest-label">Popular searches</p>
+            <div class="search-suggest-list" id="searchSuggestList"></div>
+          </div>
         </div>
         <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
       </div>
-      <button class="nav-cta" id="navLoginBtn" type="button" data-guest-only>Log In</button>
+      <div class="account-wrap">
+        <!-- One control, two faces: a "Log In" pill signed out, a plain
+             profile icon signed in (nav-widgets.js toggles .signed-in and
+             swaps the click behavior — panel vs. straight to /profile). -->
+        <button class="account-toggle" id="accountBtn" aria-label="Log in or view profile" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="account-btn-label">Log In</span>
+        </button>
+        <div class="account-panel" id="accountPanel"></div>
+      </div>
     </div>
   </div>
 </nav>
@@ -1135,20 +1194,63 @@
 document.addEventListener('DOMContentLoaded', function () {
   window.navigate = function (path) { location.href = '/catalog/#' + path; };
 
-  initThemeToggle('themeToggle');
+  // No topbar theme toggle anymore — the drawer's Dark Mode row (wired
+  // inside initNavDrawer itself) is the only control left, and it still
+  // drives the same setTheme()/effectiveTheme() everything else reads.
   initNavDrawer('menuBtn');
   initAccountPanel('accountBtn', 'accountPanel');
-  // The nav's "Log In" pill opens the exact same panel the account icon
-  // does, rather than duplicating its sign-in logic — onAuthChange in
-  // nav-widgets.js already hides this button once a session exists.
-  var navLoginBtn = document.getElementById('navLoginBtn');
-  if (navLoginBtn) {
-    navLoginBtn.addEventListener('click', function () {
-      var accountBtn = document.getElementById('accountBtn');
-      if (accountBtn) accountBtn.click();
-    });
-  }
   wirePosterSaveButtons();
+
+  // Search panel — a handful of well-known series across all four formats
+  // as starting points, not fabricated "trending searches" stats we don't
+  // actually have telemetry for.
+  (function initSearchPanel() {
+    var btn = document.getElementById('searchBtn');
+    var panel = document.getElementById('searchPanel');
+    var form = document.getElementById('searchForm');
+    var input = document.getElementById('searchInput');
+    var suggestList = document.getElementById('searchSuggestList');
+    if (!btn || !panel || !form || !input || !suggestList) return;
+
+    var SUGGESTED = [
+      'Solo Leveling', 'Chainsaw Man', 'Jujutsu Kaisen', "Omniscient Reader's",
+      'Tower of God', 'Sakamoto Days', 'Dungeon Meshi', 'One Piece',
+      'Lookism', 'Tales of Demons and Gods'
+    ];
+    suggestList.innerHTML = SUGGESTED.map(function (q) {
+      return '<button type="button" data-q="' + esc(q) + '">' + esc(q) + '</button>';
+    }).join('');
+
+    function go(query) {
+      query = query.trim();
+      if (!query) return;
+      window.location.href = '/catalog/#/search/' + encodeURIComponent(query);
+    }
+
+    function setOpen(open) {
+      panel.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) input.focus();
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(panel.hidden);
+    });
+    document.addEventListener('click', function (e) {
+      if (!panel.contains(e.target) && !btn.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) { setOpen(false); btn.focus(); }
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      go(input.value);
+    });
+    suggestList.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (b) go(b.getAttribute('data-q'));
+    });
+  })();
 
   // "Why this exists" — a popup on first visit rather than a page section,
   // gated on localStorage so a returning visitor never sees it again.
