@@ -1455,10 +1455,10 @@ document.addEventListener('DOMContentLoaded', function () {
         el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">' + emptyMessage + '</p>';
         return;
       }
-      el.innerHTML =
-        '<p style="grid-column:1/-1;margin:0 0 4px;font-size:0.8rem;color:var(--ink-faint);">'
-        + 'Live catalog data is unavailable right now, so these are picks from our own catalog.</p>'
-        + list.slice(0, 10).map(posterCard).join('');
+      // No "live data is unavailable" banner: the rail is real catalog
+      // content that fits its own heading, and announcing an upstream outage
+      // to every visitor makes the site look broken when it isn't.
+      el.innerHTML = list.slice(0, 10).map(posterCard).join('');
     });
   }
 

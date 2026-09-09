@@ -51,19 +51,34 @@ function toMediaShape(m) {
   };
 }
 
-const usable = MANGA_POOL.filter((m) => !m.nsfw && m.description && POOL_COVER_URLS[m.id]);
+// Covers must be AniList-hosted. MangaDex swaps the cover file for a "you can
+// read this at mangadex.org" promo image once a title is licensed away, and
+// 246 of the pool's 321 manhwa/manhua covers point there — so a naive pick
+// filled the homepage with another site's logo and URL instead of cover art.
+const hasRealCover = (m) => /anilist/.test(POOL_COVER_URLS[m.id] || '');
 
-const byRating = (a, b) => (b.rating || 0) - (a.rating || 0);
+const usable = MANGA_POOL.filter((m) => !m.nsfw && m.description && hasRealCover(m));
 
-// Trending's stand-in: the best-rated of the pool, any origin.
-const trending = usable.slice().sort(byRating).slice(0, PER_RAIL);
+// Rank on readership, not score. Sorting by rating alone surfaced obscure
+// 9.4-rated titles nobody has heard of, which is the opposite of what a
+// "what's catching on" rail should feel like. Rating stays as a floor so
+// popular-but-poor doesn't get through.
+const MIN_RATING = 7;
+const byPopularity = (a, b) => (b.likeCount || 0) - (a.likeCount || 0);
 
-// Newly Growing's stand-in has to match what that rail is for — manhwa and
-// manhua, well rated, still short. Same shape of pick the live query makes,
-// just against local data.
+const trending = usable
+  .filter((m) => (m.rating || 0) >= MIN_RATING)
+  .sort(byPopularity)
+  .slice(0, PER_RAIL);
+
+// Newly Growing's stand-in keeps that rail's manhwa/manhua focus. The live
+// query's sub-100-chapter ceiling is dropped here on purpose: only 14 pool
+// titles clear both that and the cover requirement, which isn't enough for a
+// rail, and a stand-in that's too thin to fill the grid is worse than one
+// that's merely less precise.
 const growing = usable
-  .filter((m) => (m.lang === 'ko' || m.lang === 'zh') && (m.chapters || 0) > 0 && (m.chapters || 0) < 100)
-  .sort(byRating)
+  .filter((m) => (m.lang === 'ko' || m.lang === 'zh') && (m.rating || 0) >= MIN_RATING)
+  .sort(byPopularity)
   .slice(0, PER_RAIL);
 
 const payload = {
