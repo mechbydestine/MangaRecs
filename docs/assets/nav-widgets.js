@@ -57,6 +57,8 @@ var DRAWER_ICONS = {
   features: '<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/>',
   about: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>',
   app: '<rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M12 18h.01"/>',
+  foryou: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   // One mark per format. Four identical rows read as filler; these say
   // something about each: a bound volume, a phone you scroll vertically,
   // an ink brush, a browser window.
@@ -89,11 +91,19 @@ var DRAWER_SECTIONS = [
     // The personal/account side, split out from Discover rather than
     // sitting oddly alongside a public catalog link. Badges stays visible
     // to guests (it's a real public reference page too), just regrouped —
-    // My Library still hides for guests via data-library-link.
+    // the other three hide for guests via `gated`, since none of them
+    // resolve to anything real without a session behind them.
     heading: 'Your Library',
     links: [
-      { label: 'My Library', href: '/catalog/#/library', icon: 'library', library: true },
-      { label: 'Badges & Medals', href: '/badges/', icon: 'badges' }
+      { label: 'My Library', href: '/catalog/#/library', icon: 'library', gated: true },
+      { label: 'Badges & Medals', href: '/badges/', icon: 'badges' },
+      // No dedicated feed page on the web — the swipe-to-discover feed this
+      // describes is app-only. Points at the marketing explanation instead
+      // of a fabricated destination.
+      { label: 'For You', href: '/features/#discover', icon: 'foryou', gated: true },
+      // Reuses the profile page rather than a separate settings screen,
+      // which doesn't exist on the web yet — bio + sign-out live there today.
+      { label: 'Settings', href: '/catalog/#/profile', icon: 'settings', gated: true }
     ]
   },
   {
@@ -137,7 +147,7 @@ function drawerMarkup() {
       // /catalog/#/library are routes within a page, not the page itself.
       var current = link.href.indexOf('#') === -1 && path === here;
       html += '<a class="nav-drawer-link" href="' + link.href + '"' +
-        (link.library ? ' data-library-link style="display:none;"' : '') +
+        (link.gated ? ' data-account-only style="display:none;"' : '') +
         (current ? ' aria-current="page"' : '') + '>' +
         '<span class="nav-drawer-ico">' + svgIcon(DRAWER_ICONS[link.icon]) + '</span>' +
         '<span>' + link.label + '</span>' +
@@ -433,12 +443,11 @@ function initAccountPanel(btnId, panelId) {
   onAuthChange(function (user) {
     render(user);
     btn.classList.toggle('signed-in', !!user);
-    // Two copies of the Library link exist on pages with a mobile menu (the
-    // inline nav one and the one inside the menu panel), so toggle every
-    // marked link rather than the single id — otherwise the menu copy stays
-    // hidden for signed-in visitors on a phone.
-    var libLinks = document.querySelectorAll('[data-library-link], #libraryNavLink');
-    Array.prototype.forEach.call(libLinks, function (el) {
+    // Every drawer link that only resolves to something real once there's
+    // an account — My Library, For You, Settings — shares this one marker
+    // rather than each getting its own bespoke toggle.
+    var accountOnlyEls = document.querySelectorAll('[data-account-only], #libraryNavLink');
+    Array.prototype.forEach.call(accountOnlyEls, function (el) {
       el.style.display = user ? '' : 'none';
     });
     // Anything marked guest-only (the nav's "Log In" pill) makes no sense

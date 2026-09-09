@@ -3,7 +3,7 @@
 <meta charset="utf-8" />
 <script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MangaRecs — Your next story, recommended.</title>
+<title>MangaRecs - Your Next Story, Recommended!</title>
 <meta name="description" content="The social home for your manga & manhwa library. Track what you're reading, Rec titles to friends, talk chapters in Comms, and climb the badge ladder — with browser-based reading built in for whatever's not in your library yet. Coming soon to the App Store and Google Play." />
 <link rel="icon" href="/assets/favicon.png" />
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
@@ -453,39 +453,6 @@
   }
   .qn-tile svg { width: 13px; height: 13px; color: var(--tile-c, var(--accent)); }
 
-  /* ── Feature cards ─────────────────────────────────────────────────── */
-  /* flex, not a fixed 4-col grid: three of these four cards only show once
-     a visitor is signed in (see personalizeFeatureCards below), and a rigid
-     grid leaves the survivors stranded in their original tracks with dead
-     space around them instead of settling next to each other. */
-  .feature-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 12px; }
-  .fcard {
-    display: block; text-decoration: none; color: inherit; padding: 16px; border-radius: var(--r-md);
-    flex: 1 1 200px; max-width: 280px;
-    border: 1px solid var(--line);
-    background: linear-gradient(155deg, color-mix(in srgb, var(--fc, var(--accent)) 12%, var(--bg-panel)), var(--bg-panel) 62%);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  }
-  /* The class's own `display: block` ties in specificity with the UA
-     stylesheet's `[hidden] { display: none }` and author styles win that
-     tie, so the three auth-gated cards below rendered anyway — this rule
-     has to out-specify .fcard itself, not just repeat the browser default. */
-  .fcard[hidden] { display: none; }
-  .fcard:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--fc, var(--accent)) 55%, transparent);
-    box-shadow: 0 14px 34px -18px var(--fc, var(--accent));
-  }
-  .fcard-icon {
-    display: flex; align-items: center; justify-content: center;
-    width: 38px; height: 38px; border-radius: var(--r-sm); margin-bottom: 12px;
-    background: linear-gradient(150deg, var(--fc, var(--accent)), color-mix(in srgb, var(--fc, var(--accent)) 55%, #000));
-    box-shadow: 0 8px 18px -10px var(--fc, var(--accent));
-  }
-  .fcard-icon svg { width: 18px; height: 18px; color: #fff; }
-  .fcard-title { font-weight: 800; font-size: 0.96rem; line-height: 1.2; }
-  .fcard-sub { font-size: 0.78rem; color: var(--ink-muted); margin-top: 4px; line-height: 1.4; }
-  .fcard-sub em { font-style: normal; font-weight: 700; color: color-mix(in srgb, var(--fc, var(--accent)) 80%, var(--ink)); }
 
   /* ── Latest updates carousel ───────────────────────────────────────── */
   .updates {
@@ -552,45 +519,39 @@
     .qn-tile:hover { transform: none; }
   }
 
-  /* Below ~480px the feature cards are the tallest thing on the page — a
-     38px icon over a title and a subtitle that wraps to two lines. Trim the
-     box, keep every word. */
-  @media (max-width: 480px) {
-    .feature-cards { gap: 10px; margin-bottom: 20px; }
-    .fcard { padding: 13px; }
-    .fcard-icon { width: 32px; height: 32px; margin-bottom: 9px; }
-    .fcard-icon svg { width: 16px; height: 16px; }
-    .fcard-title { font-size: 0.9rem; }
-    .fcard-sub { font-size: 0.74rem; margin-top: 3px; }
-  }
-
   /* ── Trending strip (real AniList covers) ─────────────────────────── */
   .trending-home { position: relative; padding: 0 0 clamp(48px, 8vw, 80px); }
-  .format-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 18px; }
   .format-pill {
-    padding: 8px 15px; border-radius: var(--r-pill); font-size: 0.8rem; font-weight: 700;
+    flex: none; padding: 8px 15px; border-radius: var(--r-pill); font-size: 0.8rem; font-weight: 700;
     color: var(--ink-muted); border: 1px solid var(--line); background: var(--bg-panel); cursor: pointer;
   }
   .format-pill.active { background: var(--accent-wash); color: var(--accent); border-color: var(--accent); }
 
-  /* Mood filter: 14 genre pills wrapped onto two rows crowded the page, so
-     they live behind a disclosure button and the button carries the current
-     pick. Home-only — /catalog/ has its own always-on genre rail. */
-  .mood-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 2px 0 0; }
-  .mood-toggle {
-    display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px; border-radius: var(--r-pill);
-    font-family: inherit; font-size: 0.8rem; font-weight: 700; color: var(--ink);
-    background: var(--bg-panel); border: 1px solid var(--line); cursor: pointer;
+  /* Genre filter: an icon-only toggle (no label needed — the icon and what
+     it opens make the job clear) for a horizontal pill strip, closer to
+     AniList's own genre rail than the old expand-in-place list. */
+  .genre-bar { display: flex; align-items: center; gap: 10px; margin: 14px 0 18px; }
+  .genre-toggle {
+    display: flex; align-items: center; justify-content: center; flex: none;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted); cursor: pointer;
   }
-  .mood-toggle:hover { border-color: var(--accent); color: var(--accent); }
-  .mood-toggle[aria-expanded="true"] { background: var(--accent-wash); border-color: var(--accent); color: var(--accent); }
-  .mood-toggle svg { width: 14px; height: 14px; flex: none; }
-  .mood-toggle .chev { transition: transform 0.2s ease; }
-  .mood-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
-  .mood-current { color: var(--ink-faint); font-weight: 600; }
-  .mood-toggle:hover .mood-current, .mood-toggle[aria-expanded="true"] .mood-current { color: inherit; }
-  #moodPills { display: none; margin: 12px 0 4px; }
-  #moodPills.open { display: flex; }
+  .genre-toggle:hover, .genre-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+  .genre-toggle svg { width: 16px; height: 16px; }
+  .genre-scroll { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .genre-scroll[hidden] { display: none; }
+  .genre-arrow {
+    flex: none; width: 28px; height: 28px; border-radius: 50%; padding: 0;
+    background: var(--bg-panel); border: 1px solid var(--line); color: var(--ink-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .genre-arrow:hover { color: var(--accent); border-color: var(--accent); }
+  .genre-arrow svg { width: 13px; height: 13px; }
+  .genre-track {
+    display: flex; gap: 8px; flex: 1; min-width: 0; overflow-x: auto; scroll-behavior: smooth;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .genre-track::-webkit-scrollbar { display: none; }
 
   /* ── Poster grid — full-bleed cover with the title set over the art ─────
      Keep this block byte-identical to the copy in /catalog/, since both
@@ -791,29 +752,6 @@
   </section>
 
   <section class="glance">
-    <div class="feature-cards">
-      <a class="fcard" id="fcardLibrary" href="/catalog/#/library" style="--fc:#5B8DEF;" hidden>
-        <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-        <div class="fcard-title" data-i18n="fcard1.title">Manga Library</div>
-        <div class="fcard-sub" data-i18n-html="fcard1.sub">Manga, manhwa and manhua on <em>one shelf</em></div>
-      </a>
-      <a class="fcard" href="/catalog/webcomic/" style="--fc:#E85FA8;">
-        <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
-        <div class="fcard-title" data-i18n="fcard2.title">Novel Updates</div>
-        <div class="fcard-sub" data-i18n-html="fcard2.sub">Never miss a <em>chapter drop</em></div>
-      </a>
-      <a class="fcard" id="fcardBadges" href="/badges/" style="--fc:#E8A83C;" hidden>
-        <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/></svg></span>
-        <div class="fcard-title" data-i18n="fcard3.title">Badge Ladder</div>
-        <div class="fcard-sub" data-i18n-html="fcard3.sub">250 badges, <em>Bronze to Mythic</em></div>
-      </a>
-      <a class="fcard" id="fcardForYou" href="/features/#discover" style="--fc:#9B70FF;" hidden>
-        <span class="fcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg></span>
-        <div class="fcard-title" data-i18n="fcard4.title">For You</div>
-        <div class="fcard-sub" data-i18n-html="fcard4.sub">Recs that <em>learn as you read</em></div>
-      </a>
-    </div>
-
     <div class="updates" id="updates">
       <div class="updates-head">
         <h3 data-i18n="updates.title">Latest Updates</h3>
@@ -858,16 +796,20 @@
   <section class="trending-home">
     <p class="eyebrow" style="margin:0;" data-i18n="trending.eyebrow">Live from the catalog</p>
     <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;" data-i18n="trending.title">Trending Right Now</h2>
-    <div class="format-pills" id="formatPills"></div>
-    <div class="mood-bar">
-      <button class="mood-toggle" id="moodToggle" type="button" aria-expanded="false" aria-controls="moodPills">
+    <div class="genre-bar">
+      <button class="genre-toggle" id="moodToggle" type="button" aria-expanded="false" aria-controls="moodPills" aria-label="Filter by genre">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-        Mood
-        <span class="mood-current" id="moodCurrent">All moods</span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </button>
+      <div class="genre-scroll" id="moodPills" hidden>
+        <button class="genre-arrow genre-arrow-prev" type="button" aria-label="Scroll genres left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div class="genre-track" id="moodTrack"></div>
+        <button class="genre-arrow genre-arrow-next" type="button" aria-label="Scroll genres right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="format-pills" id="moodPills"></div>
     <div class="grid" id="trendingGrid"></div>
     <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
     <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/" data-i18n="trending.seeAll">See the full catalog</a></div>
@@ -876,16 +818,20 @@
   <section class="trending-home" id="growingSection">
     <p class="eyebrow" style="margin:0;">Small but climbing</p>
     <h2 class="chapter-title display" style="font-size:1.5rem;margin:6px 0 0;">Newly Growing</h2>
-    <div class="format-pills" id="growingFormatPills" style="margin-top:14px;"></div>
-    <div class="mood-bar">
-      <button class="mood-toggle" id="growingMoodToggle" type="button" aria-expanded="false" aria-controls="growingMoodPills">
+    <div class="genre-bar" style="margin-top:14px;">
+      <button class="genre-toggle" id="growingMoodToggle" type="button" aria-expanded="false" aria-controls="growingMoodPills" aria-label="Filter by genre">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-        Mood
-        <span class="mood-current" id="growingMoodCurrent">All moods</span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </button>
+      <div class="genre-scroll" id="growingMoodPills" hidden>
+        <button class="genre-arrow genre-arrow-prev" type="button" aria-label="Scroll genres left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div class="genre-track" id="growingMoodTrack"></div>
+        <button class="genre-arrow genre-arrow-next" type="button" aria-label="Scroll genres right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="format-pills" id="growingMoodPills"></div>
     <div class="grid" id="growingGrid" style="margin-top:20px;"></div>
     <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/catalog/">See more</a></div>
   </section>
@@ -1204,23 +1150,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   wirePosterSaveButtons();
 
-  // Library/Badges/For You only make sense once there's an account behind
-  // them — a signed-out visitor can't reach a personal library, earned
-  // badges, or a taste-based feed, so those three cards stay hidden (the
-  // HTML default) until onAuthChange confirms a session. Novel Updates
-  // needs no account to be relevant, so it's the one card guests keep.
-  (function personalizeFeatureCards() {
-    var gated = [
-      document.getElementById('fcardLibrary'),
-      document.getElementById('fcardBadges'),
-      document.getElementById('fcardForYou'),
-    ].filter(Boolean);
-    if (!gated.length || typeof onAuthChange !== 'function') return;
-    onAuthChange(function (user) {
-      gated.forEach(function (el) { el.hidden = !user; });
-    });
-  })();
-
   // "Why this exists" — a popup on first visit rather than a page section,
   // gated on localStorage so a returning visitor never sees it again.
   (function initWhyModal() {
@@ -1298,19 +1227,59 @@ document.addEventListener('DOMContentLoaded', function () {
     start();
   })();
 
-  var pillsEl = document.getElementById('formatPills');
-  var moodPillsEl = document.getElementById('moodPills');
+  // Shared by both genre bars (Trending's and Newly Growing's): wires the
+  // icon-only toggle, the scroll track's pill list, and its two arrow
+  // buttons. onPick receives the chosen genre (or null for "All genres")
+  // and is expected to reload that section's grid.
+  function initGenreBar(toggleId, scrollId, trackId, onPick) {
+    var toggle = document.getElementById(toggleId);
+    var scroll = document.getElementById(scrollId);
+    var track = document.getElementById(trackId);
+    if (!toggle || !scroll || !track) return null;
+    var current = null;
+
+    var GENRE_OPTIONS = ['All genres'].concat(GENRES);
+    track.innerHTML = GENRE_OPTIONS.map(function (g) {
+      return '<button class="format-pill' + (g === 'All genres' ? ' active' : '') + '" data-genre="' + g + '" type="button">' + g + '</button>';
+    }).join('');
+
+    function setOpen(open) {
+      scroll.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+    document.addEventListener('click', function (e) {
+      if (!scroll.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+
+    var prevBtn = scroll.querySelector('.genre-arrow-prev');
+    var nextBtn = scroll.querySelector('.genre-arrow-next');
+    prevBtn.addEventListener('click', function () { track.scrollBy({ left: -180, behavior: 'smooth' }); });
+    nextBtn.addEventListener('click', function () { track.scrollBy({ left: 180, behavior: 'smooth' }); });
+
+    track.addEventListener('click', function (e) {
+      var btn = e.target.closest('.format-pill');
+      if (!btn) return;
+      current = btn.getAttribute('data-genre');
+      Array.prototype.forEach.call(track.children, function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      onPick(current === 'All genres' ? null : current);
+    });
+
+    return { getCurrent: function () { return current === 'All genres' ? null : current; } };
+  }
+
   var gridEl = document.getElementById('trendingGrid');
-  var currentGenre = null;
-
-  pillsEl.innerHTML = CATEGORIES.map(function (c) {
-    return '<button class="format-pill' + (c.id === 'all' ? ' active' : '') + '" data-cat="' + c.id + '" type="button">' + c.label + '</button>';
-  }).join('');
-
-  var MOODS = ['All moods'].concat(GENRES);
-  moodPillsEl.innerHTML = MOODS.map(function (g) {
-    return '<button class="format-pill' + (g === 'All moods' ? ' active' : '') + '" data-genre="' + g + '" type="button">' + g + '</button>';
-  }).join('');
 
   // Real AniList favourites counts, not a fabricated "X people just saved this" — cycles
   // through the top few of whatever's currently loaded so it stays true to the data.
@@ -1333,17 +1302,9 @@ document.addEventListener('DOMContentLoaded', function () {
     liveStatTimer = setInterval(paint, 5000);
   }
 
-  var currentCatId = 'all';
-
-  function loadTrending(catId) {
-    currentCatId = catId;
-    Array.prototype.forEach.call(pillsEl.children, function (btn) {
-      btn.classList.toggle('active', btn.getAttribute('data-cat') === catId);
-    });
+  function loadTrending(genre) {
     gridEl.innerHTML = skeletonGrid(10);
-    var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0];
-    var genre = currentGenre === 'All moods' ? null : currentGenre;
-    trendingMedia(catId === 'all' ? null : cat, 1, 'TRENDING_DESC', genre).then(function (d) {
+    trendingMedia(null, 1, 'TRENDING_DESC', genre).then(function (d) {
       gridEl.innerHTML = d.Page.media.slice(0, 10).map(posterCard).join('');
       updateLiveStat(d.Page.media.slice(0, 10));
     }).catch(function () {
@@ -1351,85 +1312,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  pillsEl.addEventListener('click', function (e) {
-    var btn = e.target.closest('.format-pill');
-    if (btn) loadTrending(btn.getAttribute('data-cat'));
-  });
-
-  // The mood list is a disclosure, not a permanent row — 14 pills wrapping
-  // onto two lines was the single most cluttered thing above the fold. The
-  // button doubles as the readout, so the current mood stays visible closed.
-  var moodToggle = document.getElementById('moodToggle');
-  var moodCurrent = document.getElementById('moodCurrent');
-  function setMoodOpen(open) {
-    moodPillsEl.classList.toggle('open', open);
-    moodToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  }
-  moodToggle.addEventListener('click', function (e) {
-    e.stopPropagation();
-    setMoodOpen(moodToggle.getAttribute('aria-expanded') !== 'true');
-  });
-  document.addEventListener('click', function (e) {
-    if (!moodPillsEl.contains(e.target) && !moodToggle.contains(e.target)) setMoodOpen(false);
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && moodToggle.getAttribute('aria-expanded') === 'true') {
-      setMoodOpen(false);
-      moodToggle.focus();
-    }
-  });
-
-  moodPillsEl.addEventListener('click', function (e) {
-    var btn = e.target.closest('.format-pill');
-    if (!btn) return;
-    currentGenre = btn.getAttribute('data-genre');
-    moodCurrent.textContent = currentGenre;
-    Array.prototype.forEach.call(moodPillsEl.children, function (b) {
-      b.classList.toggle('active', b === btn);
-    });
-    setMoodOpen(false);
-    loadTrending(currentCatId);
-  });
-
-  loadTrending('all');
+  initGenreBar('moodToggle', 'moodPills', 'moodTrack', loadTrending);
+  loadTrending(null);
 
   // "Newly Growing" — niche titles still low on chapters but already
   // popular for their age, rather than the same overall top chart again.
   // A raw query (not trendingMedia()) since this needs a chapters ceiling
-  // that helper doesn't expose. Hides its section entirely on failure
-  // rather than showing an error — it's a bonus rail, not core content.
+  // that helper doesn't expose.
   (function initGrowing() {
     var el = document.getElementById('growingGrid');
-    var growPillsEl = document.getElementById('growingFormatPills');
-    var growMoodPillsEl = document.getElementById('growingMoodPills');
-    if (!el || !growPillsEl || !growMoodPillsEl || typeof alFetch !== 'function') return;
+    if (!el || typeof alFetch !== 'function') return;
 
-    growPillsEl.innerHTML = CATEGORIES.map(function (c) {
-      return '<button class="format-pill' + (c.id === 'all' ? ' active' : '') + '" data-cat="' + c.id + '" type="button">' + c.label + '</button>';
-    }).join('');
-    var GROWING_MOODS = ['All moods'].concat(GENRES);
-    growMoodPillsEl.innerHTML = GROWING_MOODS.map(function (g) {
-      return '<button class="format-pill' + (g === 'All moods' ? ' active' : '') + '" data-genre="' + g + '" type="button">' + g + '</button>';
-    }).join('');
-
-    var currentGrowCatId = 'all';
-    var currentGrowGenre = null;
-
-    // "Newly Growing" — niche titles still low on chapters but already
-    // popular for their age, rather than the same overall top chart again.
-    // A raw query (not trendingMedia()) since this needs a chapters ceiling
-    // that helper doesn't expose. Hides its section entirely on failure
-    // rather than showing an error — it's a bonus rail, not core content.
-    function loadGrowing(catId, genre) {
-      currentGrowCatId = catId;
-      Array.prototype.forEach.call(growPillsEl.children, function (btn) {
-        btn.classList.toggle('active', btn.getAttribute('data-cat') === catId);
-      });
+    function loadGrowing(genre) {
       el.innerHTML = skeletonGrid(10);
-      var cat = CATEGORIES.filter(function (c) { return c.id === catId; })[0];
       var filters = 'type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: POPULARITY_DESC';
-      if (cat && cat.country) filters += ', countryOfOrigin: "' + cat.country + '"';
-      if (cat && cat.formats) filters += ', format_in: [' + cat.formats.join(',') + ']';
       if (genre) filters += ', genre_in: ["' + genre + '"]';
       var gql = 'query { Page(page: 1, perPage: 20) { media(' + filters + ') { ' +
         'id title { romaji english native } coverImage { extraLarge large } genres format status chapters volumes averageScore popularity startDate { year } description(asHtml: false) } } }';
@@ -1442,43 +1338,8 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    growPillsEl.addEventListener('click', function (e) {
-      var btn = e.target.closest('.format-pill');
-      if (btn) loadGrowing(btn.getAttribute('data-cat'), currentGrowGenre === 'All moods' ? null : currentGrowGenre);
-    });
-
-    var growMoodToggle = document.getElementById('growingMoodToggle');
-    var growMoodCurrent = document.getElementById('growingMoodCurrent');
-    function setGrowMoodOpen(open) {
-      growMoodPillsEl.classList.toggle('open', open);
-      growMoodToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-    growMoodToggle.addEventListener('click', function (e) {
-      e.stopPropagation();
-      setGrowMoodOpen(growMoodToggle.getAttribute('aria-expanded') !== 'true');
-    });
-    document.addEventListener('click', function (e) {
-      if (!growMoodPillsEl.contains(e.target) && !growMoodToggle.contains(e.target)) setGrowMoodOpen(false);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && growMoodToggle.getAttribute('aria-expanded') === 'true') {
-        setGrowMoodOpen(false);
-        growMoodToggle.focus();
-      }
-    });
-    growMoodPillsEl.addEventListener('click', function (e) {
-      var btn = e.target.closest('.format-pill');
-      if (!btn) return;
-      currentGrowGenre = btn.getAttribute('data-genre');
-      growMoodCurrent.textContent = currentGrowGenre;
-      Array.prototype.forEach.call(growMoodPillsEl.children, function (b) {
-        b.classList.toggle('active', b === btn);
-      });
-      setGrowMoodOpen(false);
-      loadGrowing(currentGrowCatId, currentGrowGenre === 'All moods' ? null : currentGrowGenre);
-    });
-
-    loadGrowing('all', null);
+    initGenreBar('growingMoodToggle', 'growingMoodPills', 'growingMoodTrack', loadGrowing);
+    loadGrowing(null);
   })();
 });
 </script>
