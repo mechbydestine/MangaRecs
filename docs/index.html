@@ -162,7 +162,7 @@
   .spotlight-view { overflow: hidden; padding: 18px 0; }
   .spotlight-track { display: flex; align-items: center; gap: 20px; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); will-change: transform; }
   .spotlight-slide {
-    flex: 0 0 auto; width: min(230px, 19vw); aspect-ratio: 1/1.12;
+    flex: 0 0 auto; width: min(270px, 23vw); aspect-ratio: 2/3;
     position: relative; border-radius: var(--r-lg); overflow: hidden;
     background-size: cover; background-position: center;
     opacity: 0.4; transform: scale(0.9); filter: saturate(0.7);
@@ -203,7 +203,7 @@
   .spotlight-prev { left: clamp(4px, 2vw, 24px); }
   .spotlight-next { right: clamp(4px, 2vw, 24px); }
   @media (max-width: 700px) {
-    .spotlight-slide { width: 86vw; aspect-ratio: 1/1.1; }
+    .spotlight-slide { width: 62vw; aspect-ratio: 2/3; }
   }
 
   /* ── Chapters ───────────────────────────────────────────────────────── */
