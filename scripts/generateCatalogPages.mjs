@@ -354,6 +354,7 @@ function buildSitemap(titlePaths, formatPaths) {
     { loc: `${SITE}/catalog/`, changefreq: 'daily', priority: '0.8' },
     { loc: `${SITE}/features/`, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE}/badges/`, changefreq: 'monthly', priority: '0.6' },
+    { loc: `${SITE}/schedule/`, changefreq: 'weekly', priority: '0.5' },
     { loc: `${SITE}/about/`, changefreq: 'monthly', priority: '0.4' },
     { loc: `${SITE}/privacy/`, changefreq: 'monthly', priority: '0.3' },
     { loc: `${SITE}/terms/`, changefreq: 'monthly', priority: '0.3' },

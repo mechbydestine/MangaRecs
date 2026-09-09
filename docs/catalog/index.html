@@ -3042,9 +3042,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         (paceSparklineHtml
           ? '<div class="card"><div class="card-title">Reading Pace · last 12 weeks</div>' + paceSparklineHtml + '</div>'
-          : '') +
-
-        '<a class="btn-ghost" href="#/recap" style="display:inline-block;margin:4px 0 30px;text-decoration:none;">✨ View My MangaRecap</a>';
+          : '');
 
       document.getElementById('profileSignOutBtn').addEventListener('click', function () {
         signOut().then(function () { window.location.hash = '#/'; });

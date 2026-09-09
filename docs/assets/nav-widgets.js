@@ -66,7 +66,8 @@ var DRAWER_ICONS = {
   manhwa: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 7h5M9.5 11h5M9.5 15h3"/>',
   manhua: '<path d="M4 20c2.5 0 4-1.2 4-3.2 0-1.4-1-2.4-2.3-2.4C4.3 14.4 3 15.6 3 17"/><path d="m8.6 15.4 9.6-9.6a2 2 0 0 0-2.8-2.8l-9.6 9.6"/>',
   webcomic: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/><path d="M5.5 6.5h.01M8 6.5h.01"/>',
-  schedule: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'
+  schedule: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  signout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'
 };
 
 var DRAWER_SECTIONS = [
@@ -85,7 +86,8 @@ var DRAWER_SECTIONS = [
       { label: 'Manga', href: '/catalog/#/browse/manga', icon: 'manga' },
       { label: 'Manhwa', href: '/catalog/#/browse/manhwa', icon: 'manhwa' },
       { label: 'Manhua', href: '/catalog/#/browse/manhua', icon: 'manhua' },
-      { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' }
+      { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' },
+      { label: 'Release Schedule', href: '/schedule/', icon: 'schedule' }
     ]
   },
   {
@@ -103,8 +105,12 @@ var DRAWER_SECTIONS = [
       // of a fabricated destination.
       { label: 'For You', href: '/features/#discover', icon: 'foryou', gated: true },
       // Reuses the profile page rather than a separate settings screen,
-      // which doesn't exist on the web yet — bio + sign-out live there today.
-      { label: 'Settings', href: '/catalog/#/profile', icon: 'settings', gated: true }
+      // which doesn't exist on the web yet — bio lives there today.
+      { label: 'Settings', href: '/catalog/#/profile', icon: 'settings', gated: true },
+      // An action, not a destination: `action` makes drawerMarkup render a
+      // button and initNavDrawer wire it, so signing out doesn't require
+      // finding the profile page first.
+      { label: 'Sign Out', icon: 'signout', gated: true, action: 'signout' }
     ]
   },
   {
@@ -147,13 +153,17 @@ function drawerMarkup() {
       // Only a plain path marks the current page; /#download and
       // /catalog/#/library are routes within a page, not the page itself.
       var current = link.href.indexOf('#') === -1 && path === here;
-      html += '<a class="nav-drawer-link" href="' + link.href + '"' +
-        (link.gated ? ' data-account-only style="display:none;"' : '') +
-        (current ? ' aria-current="page"' : '') + '>' +
-        '<span class="nav-drawer-ico">' + svgIcon(DRAWER_ICONS[link.icon]) + '</span>' +
+      var gatedAttr = link.gated ? ' data-account-only style="display:none;"' : '';
+      var inner = '<span class="nav-drawer-ico">' + svgIcon(DRAWER_ICONS[link.icon]) + '</span>' +
         '<span>' + link.label + '</span>' +
-        (link.tag ? '<span class="nav-tag">' + link.tag + '</span>' : '') +
-        '</a>';
+        (link.tag ? '<span class="nav-tag">' + link.tag + '</span>' : '');
+      if (link.action) {
+        html += '<button class="nav-drawer-link" type="button" data-action="' + link.action + '"'
+          + gatedAttr + '>' + inner + '</button>';
+      } else {
+        html += '<a class="nav-drawer-link" href="' + link.href + '"' + gatedAttr +
+          (current ? ' aria-current="page"' : '') + '>' + inner + '</a>';
+      }
     }
     html += '</div>';
   }
@@ -194,6 +204,16 @@ function initNavDrawer(btnId) {
   window.addEventListener(THEME_EVENT, paintTheme);
   themeRow.addEventListener('click', function () {
     setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark');
+  });
+
+  // Action rows (currently just Sign Out) are buttons, not links, so they're
+  // handled here rather than by the browser following an href.
+  drawer.addEventListener('click', function (e) {
+    var actionBtn = e.target.closest && e.target.closest('[data-action]');
+    if (!actionBtn) return;
+    if (actionBtn.getAttribute('data-action') === 'signout' && typeof signOut === 'function') {
+      signOut().then(function () { window.location.href = '/'; });
+    }
   });
 
   var isOpen = false;

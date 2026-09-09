@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Release Schedule - MangaRecs</title>
+<meta name="description" content="Which days of the week series usually drop new chapters, estimated from their recent release history." />
+<link rel="icon" href="/assets/favicon.png" />
+<link rel="apple-touch-icon" href="/assets/icon-180.png" />
+<link rel="manifest" href="/assets/manifest.json" />
+<meta name="theme-color" content="#6B46F0" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://mangarecs.net/schedule/" />
+<meta property="og:title" content="Release Schedule - MangaRecs" />
+<meta property="og:description" content="Which days series usually drop new chapters." />
+<meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
+<link rel="canonical" href="https://mangarecs.net/schedule/" />
+<link rel="preload" href="/assets/fonts.css?v=20260826a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260826a" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260826a" />
+<style>
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Strip Text', -apple-system, system-ui, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  .topnav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px clamp(20px, 5vw, 56px);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+  .brand img { height: 52px; width: auto; }
+  main.sched { max-width: 1100px; margin: 0 auto; padding: 32px clamp(20px, 5vw, 56px) 64px; }
+  .sched-eyebrow {
+    font-weight: 700; font-size: 0.72rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 6px;
+  }
+  .sched h1 {
+    font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.01em;
+    font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0 0 10px;
+  }
+  .sched-sub { color: var(--ink-muted); font-size: 0.92rem; max-width: 60ch; margin: 0 0 28px; }
+
+  .day-tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 26px; scrollbar-width: none; }
+  .day-tabs::-webkit-scrollbar { display: none; }
+  .day-tab {
+    flex: none; font: inherit; font-size: 0.84rem; font-weight: 700; color: var(--ink-muted);
+    background: var(--bg-panel); border: 1px solid var(--line);
+    border-radius: var(--r-pill); padding: 8px 16px; cursor: pointer;
+  }
+  .day-tab:hover { color: var(--accent); border-color: var(--accent); }
+  .day-tab.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .day-tab .count { opacity: 0.7; font-weight: 600; margin-left: 5px; }
+
+  .sched-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+  .sched-card { text-decoration: none; color: inherit; display: block; }
+  .sched-cover {
+    position: relative; aspect-ratio: 2/3; border-radius: var(--r-md);
+    overflow: hidden; background: var(--bg-sunken); border: 1px solid var(--line);
+  }
+  .sched-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sched-card:hover .sched-cover { border-color: var(--accent); }
+  .sched-fmt {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 0.66rem; font-weight: 800; letter-spacing: 0.03em;
+    background: rgba(10,8,20,0.72); color: #fff; backdrop-filter: blur(4px);
+    padding: 3px 9px; border-radius: var(--r-pill);
+  }
+  .sched-name { font-weight: 800; font-size: 0.94rem; margin-top: 10px; line-height: 1.25; }
+  .sched-days { font-size: 0.78rem; color: var(--ink-muted); margin-top: 3px; }
+  .sched-genres { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+  .sched-genres span {
+    font-size: 0.68rem; font-weight: 700; color: var(--ink-muted);
+    background: var(--bg-sunken); border-radius: var(--r-pill); padding: 3px 9px;
+  }
+  .sched-empty { color: var(--ink-faint); padding: 40px 0; text-align: center; }
+  .sched-foot { margin-top: 34px; font-size: 0.8rem; color: var(--ink-faint); max-width: 70ch; }
+  footer.footer-main { border-top: 1px solid var(--line); padding: 30px clamp(20px, 5vw, 56px); text-align: center; font-size: 0.82rem; color: var(--ink-faint); }
+  footer.footer-main a { color: var(--ink-muted); text-decoration: none; }
+  footer.footer-main a:hover { color: var(--accent); }
+</style>
+<link rel="stylesheet" href="/assets/nav.css?v=20260826a" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260826a" />
+
+<nav class="topnav">
+  <a class="brand" href="/">
+    <img src="/assets/logo-mark.png" alt="MangaRecs" width="69" height="52" decoding="async" />
+  </a>
+  <div class="nav-actions">
+    <div class="nav-utils">
+      <button class="icon-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="navDrawer" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="sched">
+  <p class="sched-eyebrow">Estimated</p>
+  <h1>Release Schedule</h1>
+  <p class="sched-sub">Roughly when these usually drop. Days are estimates from each series' recent release history, not a promise from the publisher, and plenty of series don't keep to a schedule at all.</p>
+
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="sched-grid" id="schedGrid"><p class="sched-empty">Loading…</p></div>
+
+  <p class="sched-foot" id="schedFoot"></p>
+</main>
+
+<footer class="footer-main">
+  <a href="/">Home</a> · <a href="/catalog/">Catalog</a> · <a href="/features/">Features</a> · <a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a>
+  <br />© 2026 MangaRecs. Built by readers, for readers.
+</footer>
+
+<script src="/assets/supabase.js?v=20260826a" defer></script>
+<script src="/assets/auth.js?v=20260826a" defer></script>
+<script src="/assets/nav-widgets.js?v=20260826a" defer></script>
+<script src="/assets/motion.js?v=20260826a" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  initNavDrawer('menuBtn');
+
+  var tabsEl = document.getElementById('dayTabs');
+  var gridEl = document.getElementById('schedGrid');
+  var footEl = document.getElementById('schedFoot');
+  var SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var data = null;
+  var selected = new Date().getDay();
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : s;
+    return d.innerHTML;
+  }
+
+  function cardHtml(t) {
+    var days = t.days.map(function (d) { return data.days[d]; }).join(' & ');
+    return '<a class="sched-card" href="/catalog/#/title/' + encodeURIComponent(t.id) + '">'
+      + '<div class="sched-cover">'
+        + (t.cover ? '<img src="' + esc(t.cover) + '" alt="" loading="lazy" />' : '')
+        + '<span class="sched-fmt">' + esc(t.format) + '</span>'
+      + '</div>'
+      + '<div class="sched-name">' + esc(t.title) + '</div>'
+      + '<div class="sched-days">' + esc(days) + '</div>'
+      + (t.genres && t.genres.length
+          ? '<div class="sched-genres">' + t.genres.map(function (g) { return '<span>' + esc(g) + '</span>'; }).join('') + '</div>'
+          : '')
+      + '</a>';
+  }
+
+  function paint() {
+    Array.prototype.forEach.call(tabsEl.children, function (b) {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-day'), 10) === selected);
+    });
+    var forDay = data.titles.filter(function (t) { return t.days.indexOf(selected) !== -1; });
+    gridEl.innerHTML = forDay.length
+      ? forDay.map(cardHtml).join('')
+      : '<p class="sched-empty">Nothing known to drop on ' + data.days[selected] + 's yet.</p>';
+  }
+
+  fetch('/assets/release-days.json')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.titles || !d.titles.length) {
+        gridEl.innerHTML = '<p class="sched-empty">The schedule is empty right now.</p>';
+        return;
+      }
+      data = d;
+      tabsEl.innerHTML = SHORT.map(function (label, i) {
+        var n = d.titles.filter(function (t) { return t.days.indexOf(i) !== -1; }).length;
+        return '<button class="day-tab" data-day="' + i + '" type="button">' + label
+          + (n ? '<span class="count">' + n + '</span>' : '') + '</button>';
+      }).join('');
+      tabsEl.addEventListener('click', function (e) {
+        var b = e.target.closest('.day-tab');
+        if (!b) return;
+        selected = parseInt(b.getAttribute('data-day'), 10);
+        paint();
+      });
+      footEl.textContent = 'Covering ' + d.titles.length + ' series. This list grows as release patterns are confirmed — a series only appears once its schedule is actually known, rather than being guessed at.';
+      paint();
+    })
+    .catch(function () {
+      gridEl.innerHTML = '<p class="sched-empty">Couldn\'t load the schedule right now.</p>';
+    });
+});
+</script>
+<script src="/assets/analytics.js?v=20260826a" defer></script>
+</html>

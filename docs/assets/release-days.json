@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-09-09T15:45:33.417Z",
+  "days": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
+  "titles": [
+    {
+      "id": "dxacga",
+      "title": "Demon X Angel Can't Get Along!",
+      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx133837-8qVbpvPp2USW.jpg",
+      "format": "Manhua",
+      "genres": [
+        "Comedy",
+        "Fantasy"
+      ],
+      "days": [
+        0,
+        2,
+        5
+      ],
+      "source": "derived",
+      "coverage": 87
+    },
+    {
+      "id": "ntus",
+      "title": "Necromancer, the Ultimate Scourge!",
+      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b167372-zfQUGcQMWiAI.png",
+      "format": "Manhua",
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "derived",
+      "coverage": 93
+    },
+    {
+      "id": "pbmmv",
+      "title": "Please Bully Me, Miss Villainess!",
+      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx141756-vIDusikh4O38.png",
+      "format": "Manhua",
+      "genres": [
+        "Comedy",
+        "Fantasy"
+      ],
+      "days": [
+        0,
+        1,
+        2
+      ],
+      "source": "derived",
+      "coverage": 80
+    },
+    {
+      "id": "rotum",
+      "title": "Rebirth Of The Ultimate Master",
+      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx138726-ysRy6zaQMWT8.jpg",
+      "format": "Manhua",
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "days": [
+        1,
+        2
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "tdb",
+      "title": "The Devil Butler",
+      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx116353-DYuIigXuPwpZ.jpg",
+      "format": "Manhua",
+      "genres": [
+        "Action",
+        "Fantasy"
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "curated",
+      "coverage": null
+    },
+    {
+      "id": "trotdh",
+      "title": "The Return of the Disaster-Class Hero",
+      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143056-MEpVxW7346jz.jpg",
+      "format": "Manhwa",
+      "genres": [
+        "Action",
+        "Fantasy"
+      ],
+      "days": [
+        3
+      ],
+      "source": "derived",
+      "coverage": 100
+    }
+  ]
+}

@@ -186,6 +186,12 @@
   font-size: 0.93rem; font-weight: 600;
   transition: background 0.15s ease, color 0.15s ease;
 }
+/* Sign Out is a <button> wearing the same class, so it needs the defaults a
+   button brings and an <a> doesn't: full width, left-aligned, no chrome. */
+button.nav-drawer-link {
+  width: 100%; box-sizing: border-box; text-align: left;
+  background: none; border: none; font-family: inherit; cursor: pointer;
+}
 .nav-drawer-link:hover { background: var(--accent-wash); color: var(--accent); }
 .nav-drawer-link[aria-current="page"] { background: var(--accent-wash); color: var(--accent); font-weight: 700; }
 .nav-drawer-ico {

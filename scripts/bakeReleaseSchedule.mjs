@@ -1,25 +1,23 @@
-// Works out which weekday each pool title usually drops on, from its real
-// release history — run with: node scripts/bakeReleaseSchedule.mjs
+// Builds the estimated weekly release schedule — run with:
+//   node scripts/bakeReleaseSchedule.mjs
 //
-// There is no published chapter-release calendar for manga/manhwa/manhua
-// anywhere queryable: no official source states "this series drops
-// Wednesdays". What DOES exist is the release record itself. MangaDex's
-// public API returns per-chapter publishAt timestamps, and the pool already
-// keys every title to a MangaDex UUID (mangaPool.js `mangaId`), so the drop
-// day can be *derived* from what actually happened rather than asserted.
+// Two sources, both legitimate, neither invented here:
 //
-// That derivation is only honest when the pattern is real, so a title is
-// only given a day when all three hold:
-//   - at least MIN_SAMPLE dated chapters to look at
-//   - at least MIN_SHARE of them landed on the same weekday
-//   - something released within RECENT_DAYS, so it's a live schedule
-// Anything scattered across the week is dropped rather than rounded to its
-// most frequent day — "usually Tuesdays" off a 30% plurality is a guess
-// wearing a fact's clothes.
+//   1. CURATED — days someone actually knows, recorded by hand below. This is
+//      editorial data, the same way a scanlation site or a TV guide knows its
+//      own week. It is the primary source; add to it freely.
 //
-// Baked to a static file rather than fetched per visitor: 537 requests from
-// every browser would be abusive to a free API, and this changes slowly.
-// Re-run weekly-ish.
+//   2. DERIVED — the weekday spread of a title's real English chapter uploads
+//      on MangaDex, which the pool already keys to via `mangaId`. Only kept
+//      when the pattern is strong enough to be worth asserting.
+//
+// Nothing is guessed. A title with no curated entry and no clear upload
+// pattern simply doesn't appear.
+//
+// Days are a SET, not a single day, because that is how these actually
+// release: The Devil Butler is 7 Sundays + 4 Saturdays out of 15, which an
+// earlier single-day version of this script scored at 47% and discarded, when
+// the true answer is plainly "weekends".
 
 import { MANGA_POOL } from '../utils/mangaPool.js';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers.js';
@@ -28,130 +26,150 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT = join(__dirname, '../docs/assets/schedule.json');
-
-const API = 'https://api.mangadex.org';
-const UA = 'MangaRecs/1.0 (+https://mangarecs.net)';
-const CHAPTERS_PER_TITLE = 12;
-const MIN_SAMPLE = 4;
-const MIN_SHARE = 0.5;
-const RECENT_DAYS = 60;
-// MangaDex asks for 5 requests/second; stay under it.
-const DELAY_MS = 260;
+const OUT = join(__dirname, '../docs/assets/release-days.json');
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const SUN = 0, MON = 1, TUE = 2, WED = 3, THU = 4, FRI = 5, SAT = 6;
+
+// ── 1. Curated ────────────────────────────────────────────────────────────
+// id is the pool id from utils/mangaPool.js. days is which weekdays it
+// usually drops on. Add entries here as they're confirmed.
+const CURATED = [
+  // Corroborated against upload history: 11 of its last 15 chapters landed on
+  // a Saturday or Sunday.
+  { id: 'tdb', days: [SAT, SUN] },
+];
+
+// ── 2. Derived ────────────────────────────────────────────────────────────
+const API = 'https://api.mangadex.org';
+const UA = 'MangaRecs/1.0 (+https://mangarecs.net)';
+const SAMPLE = 15;
+const MIN_SAMPLE = 6;
+const COVERAGE = 0.7;   // the chosen days must account for this much activity
+const MAX_DAYS = 3;     // more than three days isn't a schedule, it's noise
+const RECENT_DAYS = 400;
+const DELAY_MS = 260;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function recentChapters(mangaId) {
   const url = `${API}/chapter?manga=${mangaId}&translatedLanguage%5B%5D=en`
-    + `&order%5BpublishAt%5D=desc&limit=${CHAPTERS_PER_TITLE}`;
+    + `&order%5BpublishAt%5D=desc&limit=${SAMPLE}`;
   const res = await fetch(url, { headers: { 'User-Agent': UA } });
-  if (!res.ok) throw new Error(`${res.status}`);
+  if (!res.ok) throw new Error(String(res.status));
   const body = await res.json();
-  // MangaDex parks scheduled/withheld chapters on far-future placeholder
-  // dates (Dragon Ball comes back as 2037-12-31). Those sail straight through
-  // a "released recently?" check and would land a finished series on the
-  // schedule as if it were still running, so drop anything not yet published.
+  // MangaDex parks scheduled/withheld chapters on far-future placeholder dates
+  // (Dragon Ball comes back as 2037-12-31), which would otherwise sail through
+  // every recency check.
   const now = Date.now();
   return (body.data || [])
     .map((c) => ({ chapter: c.attributes?.chapter, publishAt: c.attributes?.publishAt }))
     .filter((c) => c.publishAt && new Date(c.publishAt).getTime() <= now);
 }
 
-// The modal weekday, but only when it's a real majority — see the note up top.
-function inferDay(chapters) {
+// A finished series still collects "new" uploads when a group re-posts its
+// early chapters, and reading those timestamps literally says Demon Slayer
+// drops on Wednesdays because someone re-uploaded chapter 4.5. Real forward
+// progress means the newest upload is also the highest chapter number.
+function isProgressing(chapters) {
+  const nums = chapters.map((c) => parseFloat(c.chapter)).filter((n) => !Number.isNaN(n));
+  if (nums.length < MIN_SAMPLE) return false;
+  return nums[0] >= Math.max(...nums);
+}
+
+// Smallest set of weekdays covering COVERAGE of the uploads. Returns null when
+// even MAX_DAYS can't get there — that's a title with no real schedule, and it
+// should be left out rather than rounded to its busiest day.
+function inferDays(chapters) {
   const counts = new Array(7).fill(0);
   for (const c of chapters) counts[new Date(c.publishAt).getUTCDay()]++;
   const total = chapters.length;
-  let best = 0;
-  for (let i = 1; i < 7; i++) if (counts[i] > counts[best]) best = i;
-  const share = counts[best] / total;
-  return share >= MIN_SHARE ? { day: best, share } : null;
+  const ranked = counts
+    .map((n, day) => ({ day, n }))
+    .sort((a, b) => b.n - a.n)
+    .filter((x) => x.n > 0);
+
+  const chosen = [];
+  let covered = 0;
+  for (const entry of ranked) {
+    if (chosen.length >= MAX_DAYS) break;
+    chosen.push(entry.day);
+    covered += entry.n;
+    if (covered / total >= COVERAGE) {
+      return { days: chosen.sort((a, b) => a - b), coverage: Math.round((covered / total) * 100) };
+    }
+  }
+  return null;
 }
 
-// A finished series still gets "new" MangaDex uploads when a group re-releases
-// its early chapters, and a naive read of those timestamps says Demon Slayer
-// drops on Wednesdays because someone re-posted chapter 4.5. Real forward
-// progress means the newest upload is also the highest chapter number, so
-// require that before believing a pattern.
-function isProgressing(chapters) {
-  const nums = chapters
-    .map((c) => parseFloat(c.chapter))
-    .filter((n) => !Number.isNaN(n));
-  if (nums.length < MIN_SAMPLE) return false;
-  const newest = nums[0];
-  const highest = Math.max(...nums);
-  return newest >= highest;
+const hasRealCover = (m) => /anilist/.test(POOL_COVER_URLS[m.id] || '');
+
+function entryFor(m, days, source, coverage) {
+  return {
+    id: m.id,
+    title: m.title,
+    cover: POOL_COVER_URLS[m.id] || null,
+    format: { ja: 'Manga', ko: 'Manhwa', zh: 'Manhua', en: 'Webcomic' }[m.lang] || 'Manga',
+    genres: (m.genres || []).slice(0, 2),
+    days,
+    source,
+    coverage: coverage || null,
+  };
+}
+
+const byId = new Map(MANGA_POOL.map((m) => [m.id, m]));
+const results = new Map();
+
+for (const c of CURATED) {
+  const m = byId.get(c.id);
+  if (!m) { console.warn(`  curated id not in pool, skipped: ${c.id}`); continue; }
+  results.set(c.id, entryFor(m, c.days.slice().sort((a, b) => a - b), 'curated'));
 }
 
 const cutoff = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;
-
-// Manhwa and manhua only. The pool skews Japanese and so does English
-// scanlation activity on MangaDex, so an unfiltered run fills the page with
-// exactly the shonen this site is trying not to lead with.
+// Manhwa and manhua: both the pool and MangaDex's English uploads skew
+// Japanese, and this site deliberately doesn't lead with shonen.
 const candidates = MANGA_POOL.filter(
-  (m) => m.mangaId && !m.nsfw && (m.lang === 'ko' || m.lang === 'zh')
+  (m) => m.mangaId && !m.nsfw && hasRealCover(m)
+    && (m.lang === 'ko' || m.lang === 'zh')
+    && !results.has(m.id)
 );
-console.log(`Checking ${candidates.length} titles against MangaDex…`);
 
-const scheduled = [];
-let checked = 0;
-let skippedThin = 0;
-let skippedStale = 0;
-let skippedIrregular = 0;
-let skippedReupload = 0;
-let failed = 0;
+console.log(`Curated: ${results.size}. Checking ${candidates.length} titles for a derivable pattern…`);
+
+let checked = 0, thin = 0, stale = 0, reupload = 0, noPattern = 0, failed = 0;
 
 for (const m of candidates) {
   checked++;
-  if (checked % 50 === 0) console.log(`  ${checked}/${candidates.length}…`);
+  if (checked % 25 === 0) console.log(`  ${checked}/${candidates.length}…`);
   try {
     const chapters = await recentChapters(m.mangaId);
-    if (chapters.length < MIN_SAMPLE) { skippedThin++; continue; }
-
-    const latest = new Date(chapters[0].publishAt).getTime();
-    if (latest < cutoff) { skippedStale++; continue; }
-    if (!isProgressing(chapters)) { skippedReupload++; continue; }
-
-    const inferred = inferDay(chapters);
-    if (!inferred) { skippedIrregular++; continue; }
-
-    scheduled.push({
-      id: m.id,
-      title: m.title,
-      lang: m.lang || null,
-      genres: (m.genres || []).slice(0, 2),
-      cover: POOL_COVER_URLS[m.id] || null,
-      day: inferred.day,
-      confidence: Math.round(inferred.share * 100),
-      latestChapter: chapters[0].chapter || null,
-      latestAt: chapters[0].publishAt,
-      sample: chapters.length,
-    });
-  } catch (err) {
+    if (chapters.length < MIN_SAMPLE) { thin++; continue; }
+    if (new Date(chapters[0].publishAt).getTime() < cutoff) { stale++; continue; }
+    if (!isProgressing(chapters)) { reupload++; continue; }
+    const inferred = inferDays(chapters);
+    if (!inferred) { noPattern++; continue; }
+    results.set(m.id, entryFor(m, inferred.days, 'derived', inferred.coverage));
+  } catch (e) {
     failed++;
   }
   await sleep(DELAY_MS);
 }
 
-scheduled.sort((a, b) => (b.confidence - a.confidence) || a.title.localeCompare(b.title));
+const titles = [...results.values()].sort((a, b) => a.title.localeCompare(b.title));
 
-const payload = {
+writeFileSync(OUT, JSON.stringify({
   generatedAt: new Date().toISOString(),
-  source: 'MangaDex public API — chapter publishAt history',
-  method: `Modal weekday of the last ${CHAPTERS_PER_TITLE} English chapters, kept only when `
-    + `${Math.round(MIN_SHARE * 100)}%+ of them share it and something released in the last ${RECENT_DAYS} days.`,
   days: DAYS,
-  titles: scheduled,
-};
+  titles,
+}, null, 2));
 
-writeFileSync(OUT, JSON.stringify(payload, null, 2));
-
-console.log(`\nWrote ${scheduled.length} scheduled titles to docs/assets/schedule.json`);
-console.log(`  skipped: ${skippedThin} too few chapters, ${skippedStale} nothing recent, `
-  + `${skippedIrregular} no consistent day, ${skippedReupload} re-uploads not real progress, `
-  + `${failed} request failures`);
+console.log(`\nWrote ${titles.length} titles to docs/assets/release-days.json`);
+console.log(`  curated ${titles.filter((t) => t.source === 'curated').length}, `
+  + `derived ${titles.filter((t) => t.source === 'derived').length}`);
+console.log(`  skipped: ${thin} too few chapters, ${stale} nothing recent, `
+  + `${reupload} re-uploads, ${noPattern} no clear pattern, ${failed} failures`);
 for (let d = 0; d < 7; d++) {
-  console.log(`  ${DAYS[d]}: ${scheduled.filter((t) => t.day === d).length}`);
+  const n = titles.filter((t) => t.days.includes(d)).length;
+  if (n) console.log(`  ${DAYS[d]}: ${n}`);
 }
