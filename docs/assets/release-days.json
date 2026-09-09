@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T15:45:33.417Z",
+  "generatedAt": "2026-09-09T16:32:12.093Z",
   "days": [
     "Sunday",
     "Monday",
@@ -11,10 +11,62 @@
   ],
   "titles": [
     {
+      "id": "bb",
+      "title": "Ao no Hako",
+      "cover": null,
+      "format": "Manga",
+      "lang": "ja",
+      "genres": [
+        "Drama",
+        "Romance"
+      ],
+      "days": [
+        0,
+        3
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "as",
+      "title": "Astral Sutra",
+      "cover": null,
+      "format": "Manhua",
+      "lang": "zh",
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "days": [
+        3,
+        4
+      ],
+      "source": "derived",
+      "coverage": 73
+    },
+    {
+      "id": "bmotma",
+      "title": "Blink Master of the Magic Academy",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "days": [
+        0,
+        2
+      ],
+      "source": "derived",
+      "coverage": 86
+    },
+    {
       "id": "dxacga",
       "title": "Demon X Angel Can't Get Along!",
       "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx133837-8qVbpvPp2USW.jpg",
       "format": "Manhua",
+      "lang": "zh",
       "genres": [
         "Comedy",
         "Fantasy"
@@ -28,10 +80,110 @@
       "coverage": 87
     },
     {
+      "id": "ele",
+      "title": "Eleceed",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Action",
+        "Comedy"
+      ],
+      "days": [
+        2
+      ],
+      "source": "derived",
+      "coverage": 93
+    },
+    {
+      "id": "jojo",
+      "title": "JoJo's Bizarre Adventure Part 5: Golden Wind",
+      "cover": null,
+      "format": "Manga",
+      "lang": "ja",
+      "genres": [
+        "Action",
+        "Supernatural"
+      ],
+      "days": [
+        3
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "lks",
+      "title": "Lookism",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Drama",
+        "Action"
+      ],
+      "days": [
+        3
+      ],
+      "source": "derived",
+      "coverage": 93
+    },
+    {
+      "id": "merc",
+      "title": "Mercenary Enrollment",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Action",
+        "Drama"
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "derived",
+      "coverage": 80
+    },
+    {
+      "id": "mrmrpg",
+      "title": "Murim RPG Simulation",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Martial Arts",
+        "Fantasy"
+      ],
+      "days": [
+        0,
+        6
+      ],
+      "source": "derived",
+      "coverage": 80
+    },
+    {
+      "id": "mydscpl",
+      "title": "My Disciples Are All Big Villains",
+      "cover": null,
+      "format": "Manhua",
+      "lang": "zh",
+      "genres": [
+        "Fantasy",
+        "Comedy"
+      ],
+      "days": [
+        2,
+        6
+      ],
+      "source": "derived",
+      "coverage": 93
+    },
+    {
       "id": "ntus",
       "title": "Necromancer, the Ultimate Scourge!",
       "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b167372-zfQUGcQMWiAI.png",
       "format": "Manhua",
+      "lang": "zh",
       "genres": [
         "Action",
         "Adventure"
@@ -44,10 +196,28 @@
       "coverage": 93
     },
     {
+      "id": "plyr",
+      "title": "Player",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Action",
+        "Thriller"
+      ],
+      "days": [
+        4,
+        5
+      ],
+      "source": "derived",
+      "coverage": 73
+    },
+    {
       "id": "pbmmv",
       "title": "Please Bully Me, Miss Villainess!",
       "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx141756-vIDusikh4O38.png",
       "format": "Manhua",
+      "lang": "zh",
       "genres": [
         "Comedy",
         "Fantasy"
@@ -65,6 +235,7 @@
       "title": "Rebirth Of The Ultimate Master",
       "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx138726-ysRy6zaQMWT8.jpg",
       "format": "Manhua",
+      "lang": "zh",
       "genres": [
         "Action",
         "Adventure"
@@ -77,10 +248,75 @@
       "coverage": 100
     },
     {
+      "id": "ruic",
+      "title": "Rebirth Of The Urban Immortal Cultivator",
+      "cover": null,
+      "format": "Manhua",
+      "lang": "zh",
+      "genres": [
+        "Action",
+        "Fantasy"
+      ],
+      "days": [
+        1
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "tlntn",
+      "title": "Talentless Nana",
+      "cover": null,
+      "format": "Manga",
+      "lang": "ja",
+      "genres": [
+        "Thriller",
+        "Psychological"
+      ],
+      "days": [
+        1
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "wtat",
+      "title": "That Time I Got Reincarnated as a Slime",
+      "cover": null,
+      "format": "Manga",
+      "lang": "ja",
+      "genres": [
+        "Isekai",
+        "Fantasy"
+      ],
+      "days": [
+        1
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "taor",
+      "title": "The Art of Reincarnation",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "days": [
+        5
+      ],
+      "source": "derived",
+      "coverage": 78
+    },
+    {
       "id": "tdb",
       "title": "The Devil Butler",
       "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx116353-DYuIigXuPwpZ.jpg",
       "format": "Manhua",
+      "lang": "zh",
       "genres": [
         "Action",
         "Fantasy"
@@ -93,10 +329,78 @@
       "coverage": null
     },
     {
-      "id": "trotdh",
-      "title": "The Return of the Disaster-Class Hero",
-      "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143056-MEpVxW7346jz.jpg",
+      "id": "extracd",
+      "title": "The Extra's Academy Survival Guide",
+      "cover": null,
       "format": "Manhwa",
+      "lang": "ko",
+      "genres": [
+        "Fantasy",
+        "Comedy"
+      ],
+      "days": [
+        4,
+        5
+      ],
+      "source": "derived",
+      "coverage": 87
+    },
+    {
+      "id": "tgswii",
+      "title": "The Guy She Was Interested In Wasn't a Guy at All",
+      "cover": null,
+      "format": "Manga",
+      "lang": "ja",
+      "genres": [
+        "Music",
+        "Romance"
+      ],
+      "days": [
+        0
+      ],
+      "source": "derived",
+      "coverage": 100
+    },
+    {
+      "id": "tlodk",
+      "title": "The Laid Off Demon King",
+      "cover": null,
+      "format": "Manhua",
+      "lang": "zh",
+      "genres": [
+        "Action",
+        "Comedy"
+      ],
+      "days": [
+        0,
+        1
+      ],
+      "source": "derived",
+      "coverage": 80
+    },
+    {
+      "id": "trot",
+      "title": "The Ravages of Time",
+      "cover": null,
+      "format": "Manhua",
+      "lang": "zh",
+      "genres": [
+        "Action",
+        "Adventure"
+      ],
+      "days": [
+        0,
+        5
+      ],
+      "source": "derived",
+      "coverage": 93
+    },
+    {
+      "id": "rwthr",
+      "title": "The Return of the Disaster-Class Hero",
+      "cover": null,
+      "format": "Manhwa",
+      "lang": "ko",
       "genres": [
         "Action",
         "Fantasy"

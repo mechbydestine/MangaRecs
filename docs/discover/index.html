@@ -17,10 +17,10 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
 <link rel="canonical" href="https://mangarecs.net/discover/" />
-<link rel="preload" href="/assets/fonts.css?v=20260826a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260826a" /></noscript>
-<link rel="stylesheet" href="/assets/base.css?v=20260826a" />
-<link rel="stylesheet" href="/assets/poster.css?v=20260826a" />
+<link rel="preload" href="/assets/fonts.css?v=20260909a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260909a" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260909a" />
+<link rel="stylesheet" href="/assets/poster.css?v=20260909a" />
 <style>
   body {
     margin: 0; background: var(--bg); color: var(--ink);
@@ -76,8 +76,8 @@
   footer.footer-main a { color: var(--ink-muted); text-decoration: none; }
   footer.footer-main a:hover { color: var(--accent); }
 </style>
-<link rel="stylesheet" href="/assets/nav.css?v=20260826a" />
-<link rel="stylesheet" href="/assets/motion.css?v=20260826a" />
+<link rel="stylesheet" href="/assets/nav.css?v=20260909a" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260909a" />
 
 <nav class="topnav">
   <a class="brand" href="/">
@@ -123,11 +123,11 @@
   <br />© 2026 MangaRecs. Built by readers, for readers.
 </footer>
 
-<script src="/assets/supabase.js?v=20260826a" defer></script>
-<script src="/assets/auth.js?v=20260826a" defer></script>
-<script src="/assets/nav-widgets.js?v=20260826a" defer></script>
-<script src="/assets/anilist.js?v=20260826a" defer></script>
-<script src="/assets/motion.js?v=20260826a" defer></script>
+<script src="/assets/supabase.js?v=20260909a" defer></script>
+<script src="/assets/auth.js?v=20260909a" defer></script>
+<script src="/assets/nav-widgets.js?v=20260909a" defer></script>
+<script src="/assets/anilist.js?v=20260909a" defer></script>
+<script src="/assets/motion.js?v=20260909a" defer></script>
 <script>
 // posterCard() markup calls navigate() on click; off the catalog SPA that
 // means handing the route to it.
@@ -291,16 +291,14 @@ document.addEventListener('DOMContentLoaded', function () {
       var media = interleave(buckets, view.pattern, seen, PER_LOAD);
       var hasNext = pages.some(function (p) { return p && p.pageInfo && p.pageInfo.hasNextPage; });
 
+      // An empty first page and a dead API are the same thing from the
+      // reader's side: a screen with nothing on it. Both route to the
+      // stand-ins rather than only the thrown case, which is how this page
+      // managed to print "Nothing to show" while 24 usable titles sat in
+      // fallback-titles.json.
+      if (!media.length && first) throw new Error('first page empty');
+
       if (first) gridEl.innerHTML = '';
-      if (!media.length && first) {
-        gridEl.innerHTML = '<p class="disc-empty">' + (genre
-          ? 'Nothing matches that genre here right now.'
-          : 'Nothing to show here right now.') + '</p>';
-        exhausted = true;
-        setMore('');
-        loading = false;
-        return;
-      }
       appendCards(media);
       exhausted = !hasNext;
       // AniList's own paging is the only honest end signal; a page that
@@ -314,23 +312,18 @@ document.addEventListener('DOMContentLoaded', function () {
       loading = false;
       setMore('');
       if (!first) return;
-      // Same rule as the homepage rails: stand in with real catalog picks
-      // rather than telling every visitor the upstream API is down.
+      // A genre with genuinely no matches and a dead API look identical from
+      // here, so a filtered miss says so plainly instead of standing in with
+      // picks that ignore the filter the reader just set.
       if (genre) {
-        gridEl.innerHTML = '<p class="disc-empty">Nothing matches that genre here right now.</p>';
+        gridEl.innerHTML = '<p class="disc-empty">Nothing matches that genre right now. Try another.</p>';
         return;
       }
-      fetch('/assets/fallback-titles.json')
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (data) {
-          var list = (data && data[view.fallbackKey]) || [];
-          gridEl.innerHTML = list.length
-            ? list.map(posterCard).join('')
-            : '<p class="disc-empty">Nothing to show here right now.</p>';
-        })
-        .catch(function () {
-          gridEl.innerHTML = '<p class="disc-empty">Nothing to show here right now.</p>';
-        });
+      gridEl.innerHTML = '';
+      renderFallbackRail(gridEl, view.fallbackKey).then(function (drew) {
+        if (drew) return;
+        gridEl.innerHTML = '<p class="disc-empty">Nothing to show here right now. Try again in a moment.</p>';
+      });
     });
   }
 
@@ -378,5 +371,5 @@ document.addEventListener('DOMContentLoaded', function () {
   loadMore();
 });
 </script>
-<script src="/assets/analytics.js?v=20260826a" defer></script>
+<script src="/assets/analytics.js?v=20260909a" defer></script>
 </html>

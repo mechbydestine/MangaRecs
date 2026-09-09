@@ -194,3 +194,48 @@ function skeletonGrid(n) {
   for (var i = 0; i < n; i++) out += '<div class="poster"><div class="poster-img-wrap skeleton"></div></div>';
   return out + '</div>';
 }
+
+// ── Offline stand-ins ─────────────────────────────────────────────────
+// assets/fallback-titles.json is a baked slice of our own catalog, shaped
+// like AniList media nodes, for when AniList is unreachable. It has been
+// unreachable for days at a time ("temporarily disabled due to severe
+// stability issues"), so this is a normal path, not a corner case.
+//
+// Lives here rather than in each page because it didn't: the homepage and
+// /discover/ grew separate copies, and the second one rendered an empty
+// grid where the first rendered 24 covers. One implementation, one
+// behaviour, both pages.
+var _fallbackTitlesPromise = null;
+function loadFallbackTitles() {
+  if (!_fallbackTitlesPromise) {
+    _fallbackTitlesPromise = fetch('/assets/fallback-titles.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (data) {
+        // A failed fetch must not be memoised as "there is nothing" — the
+        // next caller (or the next rail on the page) deserves a real try.
+        if (!data) _fallbackTitlesPromise = null;
+        return data;
+      });
+  }
+  return _fallbackTitlesPromise;
+}
+
+// Fills `el` with stand-in posters. Resolves true if anything was drawn, so
+// the caller can decide what to say when there wasn't. Never writes an
+// "AniList is down" notice: an upstream outage is not the reader's problem
+// and makes a working site look broken.
+function renderFallbackRail(el, key, limit) {
+  return loadFallbackTitles().then(function (data) {
+    var list = (data && data[key]) || [];
+    if (!list.length) return false;
+    var html = '';
+    for (var i = 0; i < list.length && (!limit || i < limit); i++) {
+      // One malformed node shouldn't cost the whole rail.
+      try { html += posterCard(list[i]); } catch (e) { /* skip */ }
+    }
+    if (!html) return false;
+    el.innerHTML = html;
+    return true;
+  }).catch(function () { return false; });
+}

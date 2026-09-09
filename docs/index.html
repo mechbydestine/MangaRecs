@@ -45,16 +45,16 @@
 <link rel="preconnect" href="https://graphql.anilist.co" />
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260826a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260826a" /></noscript>
-<link rel="stylesheet" href="/assets/base.css?v=20260826a" />
-<link rel="stylesheet" href="/assets/poster.css?v=20260826a" />
+<link rel="preload" href="/assets/fonts.css?v=20260909a" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260909a" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260909a" />
+<link rel="stylesheet" href="/assets/poster.css?v=20260909a" />
 <style>
   /* ── Type: Big Shoulders (display, wt 900 only) + Libre Franklin (variable, body/UI) ── */
-  /* fonts loaded async via /assets/fonts.css?v=20260826a link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260909a link tag in <head> */
 
   /* Tokens, box-sizing reset, :focus-visible, .display/.eyebrow, and
-     .icon-btn* now live in /assets/base.css?v=20260826a (linked above) so every page
+     .icon-btn* now live in /assets/base.css?v=20260909a (linked above) so every page
      shares one cached copy instead of re-inlining ~90 identical lines. */
 
   /* ── Reset ──────────────────────────────────────────────────────────── */
@@ -375,7 +375,7 @@
   }
 
   /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ──
-     .icon-btn* base rules now live in /assets/base.css?v=20260826a, and the
+     .icon-btn* base rules now live in /assets/base.css?v=20260909a, and the
      .nav-actions / .nav-links / .nav-utils clustering in /assets/nav.css.
      The old .menu-panel dropdown is gone: every destination that used to
      hide inside it now lives in the shared drawer (initNavDrawer), which
@@ -630,9 +630,9 @@
   .notify-msg.error { color: #E0554F; }
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
-<link rel="stylesheet" href="/assets/nav.css?v=20260826a" />
-<link rel="stylesheet" href="/assets/motion.css?v=20260826a" />
-<script src="/assets/i18n.js?v=20260826a" defer></script>
+<link rel="stylesheet" href="/assets/nav.css?v=20260909a" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260909a" />
+<script src="/assets/i18n.js?v=20260909a" defer></script>
 
 <nav class="topnav has-cta">
   <div class="topnav-inner">
@@ -772,7 +772,7 @@
     </div>
     <div class="grid" id="trendingGrid"></div>
     <p id="liveStat" style="text-align:center;margin-top:14px;font-size:0.82rem;color:var(--ink-faint);min-height:1.2em;"></p>
-    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/discover/?c=trending" data-i18n="trending.seeAll">See more trending</a></div>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/discover/?c=trending" data-i18n="trending.seeAll">See more</a></div>
   </section>
 
   <section class="trending-home" id="growingSection">
@@ -793,7 +793,7 @@
       </div>
     </div>
     <div class="grid" id="growingGrid" style="margin-top:20px;"></div>
-    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/discover/?c=growing" data-i18n="growing.seeAll">See more climbing titles</a></div>
+    <div style="text-align:center;margin-top:4px;"><a class="btn-ghost" href="/discover/?c=growing" data-i18n="trending.seeAll">See more</a></div>
   </section>
 
   <section class="hero">
@@ -974,13 +974,13 @@
 }
 </script>
 
-<script src="/assets/supabase.js?v=20260826a" defer></script>
-<script src="/assets/auth.js?v=20260826a" defer></script>
-<script src="/assets/nav-widgets.js?v=20260826a" defer></script>
-<script src="/assets/anilist.js?v=20260826a" defer></script>
+<script src="/assets/supabase.js?v=20260909a" defer></script>
+<script src="/assets/auth.js?v=20260909a" defer></script>
+<script src="/assets/nav-widgets.js?v=20260909a" defer></script>
+<script src="/assets/anilist.js?v=20260909a" defer></script>
 <!-- badges.js is loaded on demand from the progress card below, not here —
      it's only useful to a signed-in visitor. -->
-<script src="/assets/motion.js?v=20260826a" defer></script>
+<script src="/assets/motion.js?v=20260909a" defer></script>
 <script>
 (function () {
   // Spotlight — full-width multi-peek discovery carousel that opens the
@@ -1067,12 +1067,10 @@
     // same as the live mix aims for) and only fall back to the four hardcoded
     // titles if even that file can't be fetched.
     function renderSpotlightFallback() {
-      // Lives on window because it's defined in the other script block; by the
-      // time an AniList request has failed, that block's DOMContentLoaded
-      // callback has long since run and set it.
-      var loader = window.loadFallbackTitles;
-      if (typeof loader !== 'function') { render(FALLBACK); return; }
-      loader().then(function (data) {
+      // Now a plain global from assets/anilist.js rather than something the
+      // other script block had to hang on window for this one to reach.
+      if (typeof loadFallbackTitles !== 'function') { render(FALLBACK); return; }
+      loadFallbackTitles().then(function (data) {
         var list = (data && data.growing) || [];
         if (!list.length) { render(FALLBACK); return; }
         render(list.slice(0, 12).map(function (m, idx) {
@@ -1330,28 +1328,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // an apology where the covers should be is a worse answer than showing real
   // titles from our own catalog. Fetched once, shared by both rails, and
   // labelled so it never passes itself off as live data.
-  var fallbackPromise = null;
-  function loadFallbackTitles() {
-    if (!fallbackPromise) {
-      fallbackPromise = fetch('/assets/fallback-titles.json')
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .catch(function () { return null; });
-    }
-    return fallbackPromise;
-  }
-  // The spotlight lives in the other script block and needs this too.
-  window.loadFallbackTitles = loadFallbackTitles;
+  // loadFallbackTitles/renderFallbackRail now live in assets/anilist.js so
+  // this page and /discover/ share one implementation. They had drifted:
+  // the copy on /discover/ printed an empty grid where this one drew covers.
   function renderFallback(el, key, emptyMessage) {
-    return loadFallbackTitles().then(function (data) {
-      var list = (data && data[key]) || [];
-      if (!list.length) {
-        el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">' + emptyMessage + '</p>';
-        return;
-      }
-      // No "live data is unavailable" banner: the rail is real catalog
-      // content that fits its own heading, and announcing an upstream outage
-      // to every visitor makes the site look broken when it isn't.
-      el.innerHTML = list.slice(0, 10).map(posterCard).join('');
+    return renderFallbackRail(el, key, 10).then(function (drew) {
+      if (drew) return;
+      el.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:30px 0;">' + emptyMessage + '</p>';
     });
   }
 
@@ -1456,5 +1439,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body><script src="/assets/analytics.js?v=20260826a" defer></script>
+</body><script src="/assets/analytics.js?v=20260909a" defer></script>
 </html>
