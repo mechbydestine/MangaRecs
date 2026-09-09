@@ -1325,7 +1325,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function loadGrowing(genre) {
       el.innerHTML = skeletonGrid(10);
-      var filters = 'type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: POPULARITY_DESC';
+      // TRENDING_DESC, not POPULARITY_DESC: AniList computes trending from
+      // the *rate* recent list-adds/activity is climbing, not the all-time
+      // total, which is the closest real signal to "catching on right now"
+      // that's actually available (see chat: no TikTok/social API access).
+      var filters = 'type: MANGA, isAdult: false, status: RELEASING, chapters_lesser: 40, sort: TRENDING_DESC';
       if (genre) filters += ', genre_in: ["' + genre + '"]';
       var gql = 'query { Page(page: 1, perPage: 20) { media(' + filters + ') { ' +
         'id title { romaji english native } coverImage { extraLarge large } genres format status chapters volumes averageScore popularity startDate { year } description(asHtml: false) } } }';
