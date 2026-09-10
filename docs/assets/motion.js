@@ -356,10 +356,32 @@ function initMascotEmptyStates() {
 }
 
 // ── Offline shell for the marketing site + catalog (see /sw.js) ─────────
+//
+// sw.js calls skipWaiting()/clients.claim() on every update, but that closes
+// only half the gap. clients.claim() hands control of an already-open tab to
+// the new worker, but the page's JS is already loaded and running — nothing
+// re-executes it. And the very reload someone makes to pick up a fix can
+// itself still be dispatched to the OUTGOING worker, because the browser
+// resolves which worker handles a navigation before the new one has
+// necessarily finished taking over. So a visitor who has had a tab open
+// across several deploys — exactly the shape of this whole conversation —
+// can refresh and still be looking at code from hours ago, with nothing on
+// screen to say so.
+//
+// controllerchange fires the moment a new worker actually takes control, so
+// reloading then is a real signal to try again, not a guess. Guarded with a
+// flag because the event can fire more than once (e.g. once for this claim
+// and again on a normal navigation) and reloading twice would loop.
 function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+  var reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (reloaded) return;
+    reloaded = true;
+    location.reload();
   });
 }
 
