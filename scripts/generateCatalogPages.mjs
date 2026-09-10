@@ -356,6 +356,8 @@ function buildSitemap(titlePaths, formatPaths) {
     // bare URL is the one crawlers get; the query variant is the same
     // document with a different rail loaded into it.
     { loc: `${SITE}/discover/`, changefreq: 'daily', priority: '0.7' },
+    // Not in the sitemap: /foryou/ has no content for a crawler (it's
+    // per-signed-in-user, robots-noindexed) — it belongs in the drawer, not here.
     { loc: `${SITE}/features/`, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE}/badges/`, changefreq: 'monthly', priority: '0.6' },
     { loc: `${SITE}/schedule/`, changefreq: 'weekly', priority: '0.5' },

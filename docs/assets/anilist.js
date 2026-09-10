@@ -179,9 +179,17 @@ function posterCard(m) {
   var cover = (m.coverImage.extraLarge || m.coverImage.large);
   var meta = (m.startDate && m.startDate.year ? m.startDate.year : '') + (m.chapters ? ' · ' + m.chapters + ' ch' : '');
   var tags = (m.genres || []).slice(0, 2).map(function (g) { return '<span>' + esc(g) + '</span>'; }).join('');
+  // Every live AniList query brings a real cover, so this branch only exists
+  // for our own catalog data (fallback rails, For You): manga_pool's cover_url
+  // is MangaDex's uploads host for most rows, which 403s to any site but its
+  // own. A stylised initial reads as deliberate; a broken-image icon doesn't.
+  var initial = titleOf(m).replace(/^(the|a|an)\s+/i, '').charAt(0).toUpperCase();
+  var art = cover
+    ? '<img src="' + cover + '" alt="' + esc(titleOf(m)) + ' cover art" loading="lazy" />'
+    : '<div class="poster-no-cover" data-fmt="' + fmt + '" aria-hidden="true">' + esc(initial) + '</div>';
   return '<a class="poster" data-title="' + esc(titleOf(m)) + '" href="#/title/' + m.id + '" onclick="navigate(\'/title/' + m.id + '\');return false;">' +
     '<div class="poster-img-wrap">' +
-      '<img src="' + cover + '" alt="' + esc(titleOf(m)) + ' cover art" loading="lazy" />' +
+      art +
       '<div class="poster-chips">' +
         '<span class="poster-badge" data-fmt="' + fmt + '">' + fmt + '</span>' +
         '<span class="poster-chips-right">' +
@@ -226,6 +234,40 @@ function wirePosterSaveButtons() {
       }
     });
   });
+}
+
+// Shapes a live manga_pool row (our own Supabase catalog table — id, title,
+// cover_url, genres, rating, likes, chapters, status, lang) into the same
+// AniList media node posterCard() already renders, so a query against our own
+// data needs no second card renderer. Mirrors scripts/bakeFallbackTitles.mjs's
+// toMediaShape() exactly, field for field, just built at request time instead
+// of at bake time — this is for genuinely per-user data (For You), which
+// can't be baked ahead of time the way the outage stand-ins are.
+//
+// cover_url is passed through only when it's AniList-hosted. Most rows point
+// at MangaDex's uploads host, which 403s to any site but its own — an
+// unfiltered pass-through would render a broken-image icon on most cards.
+// posterCard() draws a lettered tile instead when coverImage is empty.
+var POOL_FORMAT_BY_LANG = { ja: 'MANGA', ko: 'MANHWA', zh: 'MANHUA', en: 'NOVEL' };
+var POOL_COUNTRY_BY_LANG = { ja: 'JP', ko: 'KR', zh: 'CN', en: 'US' };
+function poolRowToMedia(row) {
+  var cover = row.cover_url && /anilist\.co/.test(row.cover_url) ? row.cover_url : null;
+  return {
+    id: row.id,
+    title: { english: row.title, romaji: row.title, native: null },
+    coverImage: { extraLarge: cover, large: cover },
+    genres: row.genres || [],
+    format: POOL_FORMAT_BY_LANG[row.lang] || 'MANGA',
+    countryOfOrigin: POOL_COUNTRY_BY_LANG[row.lang] || null,
+    status: row.status === 'completed' ? 'FINISHED' : 'RELEASING',
+    chapters: row.chapters || null,
+    volumes: null,
+    averageScore: row.rating ? Math.round(row.rating * 10) : null,
+    popularity: row.likes || 0,
+    favourites: row.likes || 0,
+    startDate: { year: null },
+    description: row.description || '',
+  };
 }
 
 function skeletonGrid(n) {

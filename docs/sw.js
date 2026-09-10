@@ -7,7 +7,7 @@
 // <style> blocks into assets/poster.css. A client still on v7 would serve
 // its cached copies of those pages, which no longer carry the rules, and
 // render every cover grid unstyled.
-var CACHE_NAME = 'mangarecs-shell-v11';
+var CACHE_NAME = 'mangarecs-shell-v12';
 var PRECACHE = [
   '/',
   '/catalog/',

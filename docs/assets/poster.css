@@ -60,6 +60,15 @@
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .poster-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.poster-no-cover {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Panel Display', 'Strip Text', sans-serif; font-weight: 900;
+  font-size: 3.4rem; color: rgba(255,255,255,0.4);
+}
+.poster-no-cover[data-fmt="Manhwa"] { background: #7A3E63; }
+.poster-no-cover[data-fmt="Manhua"] { background: #7A5C2E; }
+.poster-no-cover[data-fmt="Manga"]  { background: #7A3A36; }
+.poster-no-cover[data-fmt="Novel"]  { background: #35508C; }
 /* Scrim sits above the art but below the chips/body, which are z-index 2. */
 .poster-img-wrap::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;

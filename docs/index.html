@@ -45,16 +45,16 @@
 <link rel="preconnect" href="https://graphql.anilist.co" />
 <link rel="preconnect" href="https://s4.anilist.co" />
 <link rel="preconnect" href="https://jlzsnmwyyjefjekscvgs.supabase.co" />
-<link rel="preload" href="/assets/fonts.css?v=20260909d" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260909d" /></noscript>
-<link rel="stylesheet" href="/assets/base.css?v=20260909d" />
-<link rel="stylesheet" href="/assets/poster.css?v=20260909d" />
+<link rel="preload" href="/assets/fonts.css?v=20260909e" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+<noscript><link rel="stylesheet" href="/assets/fonts.css?v=20260909e" /></noscript>
+<link rel="stylesheet" href="/assets/base.css?v=20260909e" />
+<link rel="stylesheet" href="/assets/poster.css?v=20260909e" />
 <style>
   /* ── Type: Big Shoulders (display, wt 900 only) + Libre Franklin (variable, body/UI) ── */
-  /* fonts loaded async via /assets/fonts.css?v=20260909d link tag in <head> */
+  /* fonts loaded async via /assets/fonts.css?v=20260909e link tag in <head> */
 
   /* Tokens, box-sizing reset, :focus-visible, .display/.eyebrow, and
-     .icon-btn* now live in /assets/base.css?v=20260909d (linked above) so every page
+     .icon-btn* now live in /assets/base.css?v=20260909e (linked above) so every page
      shares one cached copy instead of re-inlining ~90 identical lines. */
 
   /* ── Reset ──────────────────────────────────────────────────────────── */
@@ -375,7 +375,7 @@
   }
 
   /* ── Nav icon buttons + account panel (shared pattern with /catalog/) ──
-     .icon-btn* base rules now live in /assets/base.css?v=20260909d, and the
+     .icon-btn* base rules now live in /assets/base.css?v=20260909e, and the
      .nav-actions / .nav-links / .nav-utils clustering in /assets/nav.css.
      The old .menu-panel dropdown is gone: every destination that used to
      hide inside it now lives in the shared drawer (initNavDrawer), which
@@ -630,9 +630,9 @@
   .notify-msg.error { color: #E0554F; }
   .notify-msg.ok { color: var(--accent-soft); }
 </style>
-<link rel="stylesheet" href="/assets/nav.css?v=20260909d" />
-<link rel="stylesheet" href="/assets/motion.css?v=20260909d" />
-<script src="/assets/i18n.js?v=20260909d" defer></script>
+<link rel="stylesheet" href="/assets/nav.css?v=20260909e" />
+<link rel="stylesheet" href="/assets/motion.css?v=20260909e" />
+<script src="/assets/i18n.js?v=20260909e" defer></script>
 
 <nav class="topnav has-cta">
   <div class="topnav-inner">
@@ -974,13 +974,13 @@
 }
 </script>
 
-<script src="/assets/supabase.js?v=20260909d" defer></script>
-<script src="/assets/auth.js?v=20260909d" defer></script>
-<script src="/assets/nav-widgets.js?v=20260909d" defer></script>
-<script src="/assets/anilist.js?v=20260909d" defer></script>
+<script src="/assets/supabase.js?v=20260909e" defer></script>
+<script src="/assets/auth.js?v=20260909e" defer></script>
+<script src="/assets/nav-widgets.js?v=20260909e" defer></script>
+<script src="/assets/anilist.js?v=20260909e" defer></script>
 <!-- badges.js is loaded on demand from the progress card below, not here —
      it's only useful to a signed-in visitor. -->
-<script src="/assets/motion.js?v=20260909d" defer></script>
+<script src="/assets/motion.js?v=20260909e" defer></script>
 <script>
 (function () {
   // Spotlight — full-width multi-peek discovery carousel that opens the
@@ -1139,6 +1139,15 @@ document.addEventListener('DOMContentLoaded', function () {
   initNavDrawer('menuBtn');
   initAccountPanel('accountBtn', 'accountPanel');
   wirePosterSaveButtons();
+
+  // A gated page (For You, Library) can only ask a guest to sign in — it has
+  // no account panel of its own. #signin lands here and opens the real one,
+  // rather than dropping the visitor on the homepage to go hunt for it.
+  if (location.hash === '#signin') {
+    history.replaceState(null, '', location.pathname);
+    var accountBtn = document.getElementById('accountBtn');
+    if (accountBtn) accountBtn.click();
+  }
 
   // Search panel — a handful of well-known series across all four formats
   // as starting points, not fabricated "trending searches" stats we don't
@@ -1439,5 +1448,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body><script src="/assets/analytics.js?v=20260909d" defer></script>
+</body><script src="/assets/analytics.js?v=20260909e" defer></script>
 </html>

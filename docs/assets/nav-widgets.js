@@ -87,10 +87,10 @@ var DRAWER_SECTIONS = [
       { label: 'Browse Catalog', href: '/catalog/', icon: 'catalog' },
       { label: 'Trending Now', href: '/discover/?c=trending', icon: 'trending' },
       { label: 'Newly Growing', href: '/discover/?c=growing', icon: 'growing' },
-      { label: 'Manga', href: '/catalog/#/browse/manga', icon: 'manga' },
-      { label: 'Manhwa', href: '/catalog/#/browse/manhwa', icon: 'manhwa' },
-      { label: 'Manhua', href: '/catalog/#/browse/manhua', icon: 'manhua' },
-      { label: 'Webcomics', href: '/catalog/#/browse/webcomic', icon: 'webcomic' },
+      // The four per-format rows (Manga/Manhwa/Manhua/Webcomics) used to sit
+      // here as their own links. Browse Catalog already reaches every one of
+      // them via its own in-page tabs, so this was four extra taps to the
+      // same destination — clutter, not a shortcut.
       { label: 'Release Schedule', href: '/schedule/', icon: 'schedule' }
     ]
   },
@@ -104,10 +104,10 @@ var DRAWER_SECTIONS = [
     links: [
       { label: 'My Library', href: '/catalog/#/library', icon: 'library', gated: true },
       { label: 'Badges & Medals', href: '/badges/', icon: 'badges' },
-      // No dedicated feed page on the web — the swipe-to-discover feed this
-      // describes is app-only. Points at the marketing explanation instead
-      // of a fabricated destination.
-      { label: 'For You', href: '/features/#discover', icon: 'foryou', gated: true },
+      // Real per-user genre weights from user_genre_preferences, the same
+      // table the app's swipe feed writes to — not the marketing explanation
+      // this used to point at.
+      { label: 'For You', href: '/foryou/', icon: 'foryou', gated: true },
       // Reuses the profile page rather than a separate settings screen,
       // which doesn't exist on the web yet — bio lives there today.
       { label: 'Settings', href: '/catalog/#/profile', icon: 'settings', gated: true },
