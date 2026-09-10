@@ -153,10 +153,17 @@ function drawerMarkup() {
     html += '<div class="nav-drawer-section"><div class="nav-drawer-heading">' + section.heading + '</div>';
     for (var j = 0; j < section.links.length; j++) {
       var link = section.links[j];
-      var path = link.href.split('#')[0].replace(/\/+$/, '') || '/';
+      // Action rows (Sign Out) carry no href, so this has to tolerate one
+      // being absent. It didn't: link.href.split() threw on every page that
+      // built the drawer, which killed initNavDrawer and, with it, whatever
+      // else shared that DOMContentLoaded handler. On /discover/ that was the
+      // call that fills the grid, so the page rendered empty with no error
+      // anyone could see.
+      var href = link.href || '';
+      var path = href.split('#')[0].replace(/\/+$/, '') || '/';
       // Only a plain path marks the current page; /#download and
       // /catalog/#/library are routes within a page, not the page itself.
-      var current = link.href.indexOf('#') === -1 && path === here;
+      var current = !!href && href.indexOf('#') === -1 && path === here;
       var gatedAttr = link.gated ? ' data-account-only style="display:none;"' : '';
       var inner = '<span class="nav-drawer-ico">' + svgIcon(DRAWER_ICONS[link.icon]) + '</span>' +
         '<span>' + link.label + '</span>' +
