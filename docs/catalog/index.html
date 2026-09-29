@@ -336,22 +336,6 @@
   .profile-next-bar i { display: block; height: 100%; background: var(--tier-c, var(--accent)); }
   .profile-next-count { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); flex: none; }
 
-  /* MangaRecap teaser — mirrors the app profile's closing card. The #/recap
-     route already exists; this was the only entry point missing on the web. */
-  .profile-recap-card {
-    display: flex; align-items: center; gap: 14px; padding: 16px 18px; margin-top: 4px;
-    border-radius: 16px; background: var(--accent-wash); border: 1px solid var(--line);
-    text-decoration: none;
-  }
-  .profile-recap-icon {
-    flex: none; width: 38px; height: 38px; border-radius: 12px; font-size: 1.1rem;
-    background: rgba(123,92,255,0.18); display: flex; align-items: center; justify-content: center;
-  }
-  .profile-recap-body { flex: 1; min-width: 0; }
-  .profile-recap-title { font-size: 0.92rem; font-weight: 800; color: var(--ink); }
-  .profile-recap-sub { font-size: 0.78rem; color: var(--ink-muted); margin-top: 2px; }
-  .profile-recap-arrow { flex: none; color: var(--ink-faint); font-size: 1.2rem; }
-
   /* Auto width in the rail column would size the card to the 53-week grid
      and blow past its track. */
   .profile-streak-card { max-width: 100%; overflow: hidden; }
@@ -3084,16 +3068,6 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>'
         : '';
 
-      var recapCardHtml =
-        '<a class="profile-recap-card" href="#/recap">' +
-          '<div class="profile-recap-icon">✨</div>' +
-          '<div class="profile-recap-body">' +
-            '<div class="profile-recap-title">MangaRecap</div>' +
-            '<div class="profile-recap-sub">Your reading, wrapped: see your half-year story</div>' +
-          '</div>' +
-          '<span class="profile-recap-arrow">&rsaquo;</span>' +
-        '</a>';
-
       var friendsCount = stats.friends_count || 0;
       var metaHtml =
         '<div class="profile-meta-row">' +
@@ -3161,7 +3135,6 @@ document.addEventListener('DOMContentLoaded', function () {
               : '') +
 
             badgesHtml +
-            recapCardHtml +
           '</div>' +
 
           '<aside class="profile-rail">' +
