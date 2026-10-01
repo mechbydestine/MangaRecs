@@ -218,7 +218,6 @@ const EMBLEMS = {
 const EMBLEM_ALIAS = {
   manga_titles: 'manga',
   manhwa_titles: 'series',
-  followers: 'friends',
   discussions: 'comments',
   reactions: 'likes',
   badges: 'special',

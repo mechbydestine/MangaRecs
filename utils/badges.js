@@ -73,10 +73,10 @@ export const ALL_BADGES = [
   { id: 'community_contributor', name: "Community Contributor", grade: 'green', desc: "Ten comments in the threads", requirement: { type: 'comments', value: 10 } },
   { id: 'helper', name: "Helper", grade: 'green', desc: "Twenty-five replies given freely", requirement: { type: 'comments', value: 25 } },
   { id: 'guild_member', name: "Guild Member", grade: 'blue', desc: "Fifteen readers in your corner", requirement: { type: 'friends', value: 15 } },
-  { id: 'popular_user', name: "Popular User", grade: 'blue', desc: "Twenty-five readers following you", requirement: { type: 'followers', value: 25 } },
+  { id: 'popular_user', name: "Popular User", grade: 'blue', desc: "Twenty-five readers in your circle", requirement: { type: 'friends', value: 25 } },
   { id: 'mentor', name: "Mentor", grade: 'blue', desc: "Fifty comments guiding others", requirement: { type: 'comments', value: 50 } },
   { id: 'discussion_starter', name: "Discussion Starter", grade: 'indigo', desc: "Fifty discussions you began", requirement: { type: 'discussions', value: 50 } },
-  { id: 'social_butterfly', name: "Social Butterfly", grade: 'indigo', desc: "Thirty readers in your circle", requirement: { type: 'friends', value: 30 } },
+  { id: 'social_butterfly', name: "Social Butterfly", grade: 'indigo', desc: "Fifty readers riding with you", requirement: { type: 'friends', value: 50 } },
   { id: 'trusted_member', name: "Trusted Member", grade: 'indigo', desc: "A full year with MangaRecs", requirement: { type: 'account', value: 365 } },
   { id: 'community_leader', name: "Community Leader", grade: 'gold', desc: "Four hundred comments, a real voice", requirement: { type: 'comments', value: 400 } },
 
@@ -150,7 +150,6 @@ export function profileToBadgeStats(profile) {
     weekend_reads:       profile.weekend_reads       || 0,
     manga_titles:        profile.manga_titles        || 0,
     manhwa_titles:       profile.manhwa_titles       || 0,
-    followers_count:     profile.followers_count     || 0,
     discussions_started: profile.discussions_started || 0,
     reactions_given:     profile.reactions_given     || 0,
     has_avatar:  !!profile.avatar_url,
@@ -170,8 +169,7 @@ const STAT_KEY_BY_TYPE = {
   genres: 'genres_count', shares: 'shares_count', manga: 'manga_count',
   ratings: 'ratings_count', account: 'account_days', weekend: 'weekend_reads',
   manga_titles: 'manga_titles', manhwa_titles: 'manhwa_titles',
-  followers: 'followers_count', discussions: 'discussions_started',
-  reactions: 'reactions_given',
+  discussions: 'discussions_started', reactions: 'reactions_given',
 };
 
 export function computeEarnedBadgeIds(rawStats = {}) {

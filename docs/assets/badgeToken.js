@@ -122,7 +122,7 @@
   // Requirement types without their own drawing borrow the nearest one, until
   // the commissioned art lands. Mirrors EMBLEM_ALIAS in BadgeIcon.js.
   var ALIAS = {
-    manga_titles: 'manga', manhwa_titles: 'series', followers: 'friends',
+    manga_titles: 'manga', manhwa_titles: 'series',
     discussions: 'comments', reactions: 'likes', badges: 'special'
   };
 

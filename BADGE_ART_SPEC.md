@@ -102,10 +102,10 @@ Community Veteran, Recommendation Explorer, App Anniversary.
 | `community_contributor` | Community Contributor | Uncommon | comments:10 |
 | `helper` | Helper | Uncommon | comments:25 |
 | `guild_member` | Guild Member | Platinum | friends:15 |
-| `popular_user` | Popular User | Platinum | **followers:25** |
+| `popular_user` | Popular User | Platinum | friends:25 |
 | `mentor` | Mentor | Platinum | comments:50 |
 | `discussion_starter` | Discussion Starter | Diamond | **discussions:50** |
-| `social_butterfly` | Social Butterfly | Diamond | friends:30 |
+| `social_butterfly` | Social Butterfly | Diamond | friends:50 |
 | `trusted_member` | Trusted Member | Diamond | account:365 |
 | `community_leader` | Community Leader | Legendary | comments:400 |
 
@@ -154,14 +154,13 @@ requirement until unlocked.
 
 ## New stats to build
 
-Six badges need data that doesn't exist. Five need a migration; one is free.
+Five badges need data that doesn't exist. Four need a migration; one is free.
 
 | Stat | Powers | Where it comes from | Cost |
 |---|---|---|---|
 | `badges_earned` | Milestone Tracker, The Legend | `computeEarnedBadgeIds().size`, client-side | **free, no DB** |
 | `weekend_reads` | Weekend Reader | new `profiles` column, incremented when a read lands on Sat/Sun — mirrors how `night_reads` already works | 1 column + 1 increment |
 | `manga_titles` / `manhwa_titles` | Manga Explorer, Manhwa Explorer | distinct `reading_progress` titles joined to `manga_pool.lang` (`ja` → manga, `ko` → manhwa) | 1 RPC |
-| `followers_count` | Popular User | the `followers` table already exists, just never counted onto the profile | 1 RPC or counter |
 | `discussions_started` | Discussion Starter | `comments` where `parent_id is null` | 1 column + trigger |
 | `reactions_given` | Friend Reaction | `dm_message_reactions` already exists | 1 column + trigger |
 
@@ -223,7 +222,7 @@ Event, Limited Edition, The Pillar.
 
 1. Replace `ALL_BADGES` with these 70; point each at `assets/badges/<id>.png`.
 2. Collapse `BADGE_GRADES` / `GRADE_ORDER` to the 6 tiers, retire the `purple` key.
-3. Add the six new stats — `badges_earned` first since it needs no migration.
+3. Add the five new stats — `badges_earned` first since it needs no migration.
 4. Render hidden-unearned Mythics as `???` for both name and requirement.
 5. Re-port `docs/assets/badges.js`; website switches to `<img>` off the same files.
 6. Re-check: `badge_rarity` RPC inputs, the 3-slot showcase, `nextUpBadges`, the
@@ -234,3 +233,22 @@ dead ids will silently drop, and the 15 hand-rendered Relic Vault badges go with
 If there are live users with progress, say so and I'll write a migration that clears dead
 pins first. The migration for the new stat columns will need applying against Supabase —
 per my notes the token on file is dead, so you'll need to supply a fresh one.
+
+---
+
+## Correction log
+
+**2026-10-01 — followers removed from this spec.** Popular User was specified
+against a `followers` table. That table was dropped on 2026-08-23
+(`migration68_friends_only.sql`), and the follower graph was removed from the
+product deliberately in 1.5.1: "MangaRecs now has one relationship between two
+people: a friendship both sides agreed to." Counting followers would have
+reintroduced a concept the product retired, so Popular User now reads
+`friends_count` (25), and Social Butterfly moved 30 → 50 to keep the friends
+ladder spaced: 1 / 5 / 15 / 25 / 50. No artwork is affected — the name, tier and
+emblem are unchanged; only the hidden unlock condition moved.
+
+The migration also moved out of `supabase_migrations.sql` into
+`migration71_badge_stats.sql`, both because its number collided with
+`migration65_drop_profile_email.sql` and because standalone numbered files are
+how the last nine migrations were written.
