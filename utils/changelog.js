@@ -2,6 +2,22 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.5.2',
+    date: 'October 1, 2026',
+    highlights: [
+      'The username you pick during sign-up now actually sticks. It was being silently thrown away for anyone who signed up through onboarding or with Google, even though the screen told you it was permanent',
+      'Words like "cockpit", "Dickens" and "cocktail" are no longer blocked from your bio, comments and messages. The language filter was matching anything that merely started with a blocked word',
+      '"Copy Link" on a feed post now copies the link. It used to open the share sheet and then claim it had copied',
+      'A series that has finished no longer shows as Ongoing on its feed card while sitting in your Completed shelf. Both now read the same source',
+      'Someone you have blocked, or who has blocked you, can no longer find you in search or send you a friend request',
+      'Series pages now pull to refresh, and a long synopsis no longer cuts off mid-word',
+      'The Reader no longer shows English while it looks for your series, and your Library tabs, sort buttons and rating prompts are translated too',
+      'Sign-in errors, the guest sign-up prompt and the mature-content setting are no longer English-only',
+      'Privacy Policy and Terms now cover crash reporting, the AniList and MyAnimeList import, and MangaDex, and add a copyright/DMCA process, a data retention schedule and your GDPR and California rights',
+      'The Creator Dashboard no longer throws an error every time it opens',
+    ],
+  },
+  {
     version: '1.5.1',
     date: 'August 23, 2026',
     highlights: [

@@ -1,5 +1,7 @@
 export default {
   common: {
+    go: "검색",
+    unknownError: '알 수 없는 오류',
     ok: '확인',
     or: '또는',
     gotIt: '알겠어요',
@@ -52,6 +54,9 @@ export default {
   },
 
   feed: {
+    hideReplies: "답글 숨기기",
+    replyCount_one: "답글 {count}개",
+    replyCount_other: "답글 {count}개",
     trending: '인기 급상승',
     destEmail: "이메일",
     creatorLabel: "MangaRecs 크리에이터",
@@ -91,6 +96,22 @@ export default {
   },
 
   library: {
+    tabReading: '읽는 중',
+    tabBookmarked: '저장함',
+    tabDownloaded: '다운로드',
+    tabCompleted: '완독',
+    deleteFromReading: '읽는 중에서 삭제',
+    deleteFromCompleted: '완독에서 삭제',
+    deleteFromBookmarked: '저장함에서 삭제',
+    deleteFromDownloaded: '다운로드에서 삭제',
+    deleteFromLibrary: '서재에서 삭제',
+    sortRecent: '최근',
+    sortAlpha: 'A–Z',
+    sortCustom: '사용자 지정',
+    arrangeDone: '완료',
+    arrangeMove: '이동',
+    tapToRate: '탭하여 평가',
+    tapToChangeRating: '탭하여 평가 변경',
     downloadForOffline: '→ 오프라인으로 읽으려면 챕터 다운로드',
     newChapter: "새 화",
     trending: "인기",
@@ -160,7 +181,11 @@ export default {
     invertHint: '페이지 색을 반전합니다 — 만화 페이지는 그대로',
     recent: "최근",
     autoScrollSpeed: "자동 스크롤 속도",
-    rotateHint: "기기를 돌리면 가로 모드로 읽을 수 있습니다",
+    findingManga: '작품을 찾고 있습니다…',
+    resumingWhereLeftOff: '이어서 보기를 준비하고 있습니다…',
+    loadingFromSite: '{site}에서 불러오는 중…',
+    searchingOnSite: '{site}에서 검색 중…',
+    findingBestSource: '가장 좋은 소스를 찾고 있습니다…',
     doublePage: "두 쪽 보기",
     screenDimmer: "화면 밝기 낮추기",
     downloadDesc: "페이지를 라이브러리에 저장해 오프라인으로 읽으세요",
@@ -183,7 +208,6 @@ export default {
     openInBrowser: '브라우저에서 열기',
     nightFilter: '야간 독서 필터',
     forceDark: '사이트를 강제로 다크 모드로',
-    allowLandscape: '가로 모드 허용',
     playing: '재생 중',
     loadingFrom: '{site}에서 불러오는 중…',
     nextChapter: '다음 화',
@@ -391,9 +415,11 @@ export default {
     termsLabel: '이용약관',
     appearance: '화면',
     theme: '테마',
-    themeDefault: '기본',
+    themeLegacy: '레거시',
     themeDark: '다크',
     themeLight: '라이트',
+    themeRecommended: '추천',
+    themeHint: '밤에는 다크나 레거시가 눈에 덜 부담되니 한번 사용해 보세요.',
     reader: {
       section: '뷰어',
       defaultMode: '기본 모드',
@@ -433,9 +459,18 @@ export default {
       section: '콘텐츠',
       nsfw: '성인 콘텐츠 표시',
       nsfwDesc: '연령 확인이 필요합니다',
+      nsfwDescOn: '19+ 콘텐츠를 가리지 않고 표시합니다. 끄면 성인 표지는 앱 전체에서 계속 흐리게 표시됩니다.',
+      nsfwDescVerify: '연령을 확인하면 성인 콘텐츠를 이용할 수 있습니다.',
       aiRecs: 'AI 추천',
       clearCache: '이미지 캐시 삭제',
       cacheCleared: '이미지 캐시를 삭제했습니다',
+    },
+    update: {
+      disabled: '이 빌드에서는 업데이트가 비활성화되어 있습니다 (Expo Go / 개발 클라이언트)',
+      latest: '최신 버전입니다',
+      found: '업데이트를 찾았습니다. 다운로드 중…',
+      downloaded: '다운로드 완료. 재시작합니다…',
+      failed: '확인 실패: {error}',
     },
     trackers: {
       section: '외부 연동',
@@ -487,6 +522,20 @@ export default {
   },
 
   auth: {
+    err: {
+      googleFailed: "Google 로그인에 실패했습니다",
+      invalidCredentials: "로그인 정보가 올바르지 않습니다",
+      usernameTooShort: "사용자 이름은 3자 이상(영문과 숫자만)이어야 합니다.",
+      usernameTaken: "이미 사용 중인 사용자 이름입니다. 다른 이름을 사용해 주세요.",
+      passwordTooShort: "비밀번호는 6자 이상이어야 합니다.",
+      passwordMismatch: "비밀번호가 일치하지 않습니다",
+      profileSetupFailed: "프로필 설정에 실패했습니다. 다시 시도해 주세요.",
+    },
+    notice: {
+      accountCreated: "계정을 만들었습니다. 이메일에서 확인한 뒤 로그인해 주세요.",
+      passwordUpdated: "비밀번호를 변경했습니다. 새 비밀번호로 로그인해 주세요.",
+    },
+    enterCodeSentTo: "{email}(으)로 보낸 6자리 코드를 입력하고 새 비밀번호를 설정해 주세요.",
     createAccount: '계정 만들기',
     createAnAccount: '계정을 만드세요',
     logInExisting: '기존 계정으로 로그인',
@@ -518,11 +567,14 @@ export default {
     dobPrivacy: '생년월일은 연령 확인에만 사용되며 서버에 저장되지 않습니다.',
     ageTitle: "연령 확인",
     confirmAge: "나이 확인",
-    title: '{action}하려면 계정이 필요합니다',
-    saveSeries: '작품을 저장',
-    comment: '댓글을 작성',
-    message: '메시지를 보내',
-    later: '나중에',
+    makeItYours: '내 것으로 만들기',
+    guestBody: '게스트로 읽고 있어 아직 {action} 곳이 없습니다. 무료 계정을 만들면 서재, 진행 상황, 연속 기록이 어느 기기에서도 그대로 이어집니다.',
+    notNow: '나중에',
+    createAccount: '계정 만들기',
+    actionSave: '이 작품을 저장할',
+    actionRate: '이 작품을 평가할',
+    actionComment: '댓글을 작성할',
+    actionFriends: '친구를 추가할',
   },
 
   discussion: {
@@ -596,6 +648,7 @@ export default {
   },
 
   recap: {
+    dropsOn: "MangaRecap은 {date}에 공개됩니다.",
     shareSquare: '정사각형 이미지로 공유',
     blankMap: '당신의 지도는 아직 백지입니다 — 그게 재미있는 부분이죠.',
     compareEmpty: '친구를 몇 명 추가하면 이번 반기 비교를 볼 수 있습니다.',
@@ -671,6 +724,7 @@ export default {
   },
 
   toast: {
+    usernameNotSaved: '사용자 이름을 저장하지 못했습니다. 설정에서 지정해 주세요',
     savedToLibrary: '서재에 저장했습니다',
     removedFromLibrary: '서재에서 삭제했습니다',
     bioUpdated: '소개를 수정했습니다',
@@ -700,6 +754,8 @@ export default {
   },
 
   placeholder: {
+    addComment: "댓글 추가...",
+    addSpoilerComment: "스포일러 댓글 추가...",
     chapterTitleNum: '{n}화 제목 (선택)',
     usernameOrEmail: '사용자 이름 또는 이메일',
     usernameRules: '사용자 이름 (영문·숫자만)',
@@ -831,6 +887,9 @@ export default {
     addToProfile: '프로필에 추가',
     showcaseFull: '진열장이 가득 참 (3/3)',
     nextBadge: '다음 배지',
+    nextTier: '다음 등급',
+    moreToGo: '{n} 남음',
+    from: '출처: {source}',
   },
 
   share: {
@@ -848,6 +907,12 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    unlike: "좋아요 취소",
+    like: "좋아요",
+    removeBookmark: "저장 해제",
+    bookmark: "저장",
+    notifications: "알림",
+    notificationsUnread: "알림, 읽지 않음 {count}개",
     likeCount: '좋아요 {n}개',
     commentCount: '댓글 {n}개',
     decreaseGenreWeight: '{genre} 가중치 낮추기',

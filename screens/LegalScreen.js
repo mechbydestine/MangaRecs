@@ -7,7 +7,7 @@ import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { useResponsive } from '../utils/responsive';
 
-const LAST_UPDATED = 'July 3, 2026';
+const LAST_UPDATED = 'October 1, 2026';
 
 const PRIVACY_SECTIONS = [
   {
@@ -23,7 +23,7 @@ const PRIVACY_SECTIONS = [
   {
     title: 'Third parties',
     body:
-      'Reading content and cover art are fetched live from the MangaDex API — the pages you read are served directly from MangaDex/its mirrors, not stored by us except when you explicitly download a chapter for offline reading. Account data, images, and messages are stored with Supabase, our database and file-storage provider. We do not sell your data or share it with advertisers.',
+      'Reading content and cover art are fetched live from the MangaDex API — the pages you read are served directly from MangaDex/its mirrors, not stored by us except when you explicitly download a chapter for offline reading. Account data, images, and messages are stored with Supabase, our database and file-storage provider. If you choose to import a list, we send the username you enter to AniList (public GraphQL API) or, for MyAnimeList, to Jikan; we send nothing else and no credentials. When crash reporting is enabled in a build, we use Sentry to receive crash and error reports, which include your signed-in user ID so we can tell whether a crash affected one account or many. We do not sell your data or share it with advertisers.',
   },
   {
     title: 'Your choices',
@@ -33,7 +33,12 @@ const PRIVACY_SECTIONS = [
   {
     title: 'Data retention',
     body:
-      'Your data is kept as long as your account is active. Deleting your account removes it immediately and permanently; this cannot be undone.',
+      'Account data, reading activity, and posted content are kept while your account is active. Deleting your account removes your profile, messages, friendships, comments, and uploaded images immediately and permanently; this cannot be undone. Crash reports are retained by Sentry for up to 90 days. Backups that may still contain deleted records are rotated out within 30 days. We keep nothing after that except where the law requires it.',
+  },
+  {
+    title: 'Your rights',
+    body:
+      'Wherever you live, you can see your data, correct it, export it, or delete it — Settings covers most of this directly, and anything else you can request at support@mangarecs.net. If you are in the EU, UK, or EEA, you also have the right to object to or restrict processing, the right to data portability, and the right to complain to your local data-protection authority. If you are in California, you have the right to know what we collect, the right to delete it, and the right to opt out of sale or sharing — we do not sell or share personal information, so there is nothing to opt out of. We will not treat you differently for exercising any of these rights.',
   },
   {
     title: "Children's privacy",
@@ -50,7 +55,7 @@ const TERMS_SECTIONS = [
   {
     title: 'Using MangaRecs',
     body:
-      'MangaRecs is a manga/webtoon discovery and social app. You must be old enough to use this app under the laws of your country, and you’re responsible for keeping your account credentials secure.',
+      'MangaRecs is a manga/webtoon discovery and social app. You must be at least 13 years old to use it, and old enough to do so under the laws of your country if that age is higher. Adult (18+) content is opt-in and gated behind a separate age check. You’re responsible for keeping your account credentials secure.',
   },
   {
     title: 'Content you post',
@@ -63,9 +68,19 @@ const TERMS_SECTIONS = [
       'Manga/webtoon pages shown in the reader are sourced from MangaDex and, in the in-app browser mode, from third-party manga sites. MangaRecs does not host or claim ownership of this content and is not responsible for its availability or accuracy.',
   },
   {
+    title: 'Copyright and DMCA',
+    body:
+      'MangaRecs does not host manga or webtoon pages. If you own the rights to a work and believe a catalog listing or something a user posted infringes them, email support@mangarecs.net with: the work you own, where in MangaRecs you saw it, your contact details, a statement that you believe in good faith the use is unauthorized, a statement that the information is accurate and that you are the owner or authorized to act for them, and your signature (typing your name is fine). We remove or disable infringing material we can verify and will tell the user who posted it, who may send a counter-notice. Repeat infringers lose their accounts. Creator uploads are covered by the same process.',
+  },
+  {
     title: 'No warranty',
     body:
       'MangaRecs is provided "as is." We do not guarantee uninterrupted access, and reading sources outside our control (MangaDex, third-party sites) may change or become unavailable.',
+  },
+  {
+    title: 'Limitation of liability',
+    body:
+      'To the extent the law allows, MangaRecs is not liable for indirect, incidental, or consequential damages, or for lost data or lost profits. Where liability cannot be excluded, it is capped at the greater of the amount you paid us in the twelve months before the claim or US$50. Nothing here limits liability for fraud, death or personal injury caused by negligence, or anything else that cannot legally be limited.',
   },
   {
     title: 'Account termination',

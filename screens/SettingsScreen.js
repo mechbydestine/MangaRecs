@@ -540,7 +540,7 @@ export default function SettingsScreen({ navigation }) {
 
   async function handleCheckForUpdate() {
     if (!Updates.isEnabled) {
-      setUpdateStatus('Updates disabled in this build (Expo Go / dev client)');
+      setUpdateStatus(t('settings.update.disabled'));
       return;
     }
     setUpdateChecking(true);
@@ -548,16 +548,16 @@ export default function SettingsScreen({ navigation }) {
     try {
       const result = await Updates.checkForUpdateAsync();
       if (!result.isAvailable) {
-        setUpdateStatus("You're on the latest version");
+        setUpdateStatus(t('settings.update.latest'));
         setUpdateChecking(false);
         return;
       }
-      setUpdateStatus('Update found — downloading…');
+      setUpdateStatus(t('settings.update.found'));
       await Updates.fetchUpdateAsync();
-      setUpdateStatus('Downloaded — restarting…');
+      setUpdateStatus(t('settings.update.downloaded'));
       await Updates.reloadAsync();
     } catch (e) {
-      setUpdateStatus(`Check failed: ${e.message || 'unknown error'}`);
+      setUpdateStatus(t('settings.update.failed', { error: e.message || t('common.unknownError') }));
       setUpdateChecking(false);
     }
   }
@@ -953,8 +953,8 @@ export default function SettingsScreen({ navigation }) {
               </View>
               <Text style={[styles.settingsRowDesc, { color: colors.muted }]}>
                 {ageVerified
-                  ? 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.'
-                  : 'Verify your age to unlock adult content.'}
+                  ? t('settings.content.nsfwDescOn')
+                  : t('settings.content.nsfwDescVerify')}
               </Text>
             </View>
             {ageVerified ? (

@@ -35,7 +35,9 @@ export function recapReleaseDate(period) {
 
 // On while the app is still being tested — waiting six months to look at the
 // screen is not a workable way to build it. Set to false before launch and the
-// schedule above takes over; nothing else has to change.
+// schedule above takes over: RecapScreen consults isRecapOpen() on load and
+// shows the "drops on <date>" panel instead of building a recap, so this flag
+// is the only thing that needs changing.
 export const RECAP_ALWAYS_OPEN = true;
 
 export function isRecapOpen(now = new Date(), period = getPeriod(now)) {

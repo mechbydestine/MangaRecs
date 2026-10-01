@@ -136,7 +136,7 @@ export default function AuthScreen() {
     try {
       await signInWithGoogle();
     } catch (err) {
-      setError(err.message || 'Google sign-in failed');
+      setError(err.message || t('auth.err.googleFailed'));
     } finally {
       setGoogleLoading(false);
     }
@@ -150,7 +150,7 @@ export default function AuthScreen() {
     if (!identifier.includes('@')) {
       const { data: resolvedEmail, error: lookupError } = await supabase.rpc('email_for_login', { identifier });
       if (lookupError || !resolvedEmail) {
-        setError('Invalid login credentials');
+        setError(t('auth.err.invalidCredentials'));
         setLoading(false);
         return;
       }
@@ -164,19 +164,19 @@ export default function AuthScreen() {
   async function handleRegister() {
     setError('');
     if (username.length < 3) {
-      setError('Username must be at least 3 characters (letters and numbers only).');
+      setError(t('auth.err.usernameTooShort'));
       return;
     }
     if (usernameStatus === 'taken') {
-      setError('That username is already taken — try another.');
+      setError(t('auth.err.usernameTaken'));
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('auth.err.passwordTooShort'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.err.passwordMismatch'));
       return;
     }
     setLoading(true);
@@ -203,14 +203,14 @@ export default function AuthScreen() {
         created_at: new Date().toISOString(),
       }, { onConflict: 'id' });
       if (profileError) {
-        setError(profileError.message || 'Profile setup failed. Please try again.');
+        setError(profileError.message || t('auth.err.profileSetupFailed'));
         setLoading(false);
         return;
       }
     }
     setLoading(false);
     if (!data.session) {
-      setNotice('Account created! Check your email to confirm, then log in.');
+      setNotice(t('auth.notice.accountCreated'));
       switchMode('login');
     }
   }
@@ -247,7 +247,7 @@ export default function AuthScreen() {
       setError(updateError.message);
       return;
     }
-    setNotice('Password updated! Log in with your new password.');
+    setNotice(t('auth.notice.passwordUpdated'));
     setPassword('');
     setResetCode('');
     setNewPassword('');
@@ -433,7 +433,7 @@ export default function AuthScreen() {
           {mode === 'forgot-code' && (
             <>
               <Text style={[styles.cardTitle, { color: colors.text }]}>{t('auth.checkEmail')}</Text>
-              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>Enter the 6-digit code we sent to {email}, then choose a new password.</Text>
+              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>{t('auth.enterCodeSentTo', { email })}</Text>
 
               {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 

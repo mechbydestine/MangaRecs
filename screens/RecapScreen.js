@@ -45,7 +45,7 @@ import {
 } from '../utils/badges';
 import BadgeIcon from '../components/BadgeIcon';
 import { buildIdentity, surfaceFor, rgba } from '../utils/recapIdentity';
-import { getPeriod, isRecapOpen, recapReleaseDate, RECAP_ALWAYS_OPEN } from '../utils/recapSchedule';
+import { getPeriod, isRecapOpen, recapReleaseDate } from '../utils/recapSchedule';
 import { getState as ambienceState } from '../utils/ambiencePlayer';
 import { trackFor, fadeIn, fadeOutAndStop, MUSIC_VOLUME } from '../utils/recapMusic';
 import {
@@ -59,7 +59,6 @@ import {
   fetchPreviousSnapshot, fetchOldestSnapshot, fetchFriendsRecap, saveSnapshot,
   readingDnaCode, ratingPersonality,
 } from '../utils/recapHistory';
-import { selection, light as hapticLight, success as hapticSuccess } from '../utils/haptics';
 import { HIT_SLOP } from '../utils/tokens';
 import { TABLET_CONTENT_MAX_WIDTH } from '../utils/responsive';
 import { useReducedMotion } from '../utils/a11y';
@@ -140,9 +139,14 @@ function genreBreakdown(series) {
     .filter((r) => r.pct > 0);
 }
 
-// Reading personality, from real signals only, ordered by how distinctive the
-// signal is — the rarest true statement about a reader wins. Every entry
-// carries its own seal glyph for the trading card on slide 7.
+// Reading personality, from real signals only. Base weights are ordered by how
+// distinctive the signal is, but note that several entries scale with the value
+// itself (completed, longest, genres, series), so a large enough value DOES
+// outrank a higher base weight — 17 completed series (90+17) beats Night Owl's
+// flat 100. That is deliberate: a reader with 17 finished series really is more
+// a Completionist than a night reader. It is not "rarest always wins", which is
+// what this comment used to claim.
+// Every entry carries its own seal glyph for the trading card on slide 7.
 function personality(d) {
   const c = [];
   const night = d.peakWindow && (d.peakWindow.startHour >= 21 || d.peakWindow.startHour < 4);
@@ -598,7 +602,6 @@ function S3Chapters({ d, s, id, w, cw }) {
   const shake = useRef(new Animated.Value(0)).current;
   const onDone = useCallback(() => {
     setLanded(true);
-    hapticSuccess();
     Animated.sequence([
       Animated.timing(shake, { toValue: 1, duration: 55, useNativeDriver: true }),
       Animated.timing(shake, { toValue: -1, duration: 55, useNativeDriver: true }),
@@ -636,7 +639,7 @@ function S3Chapters({ d, s, id, w, cw }) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ height: 1, width: 26, backgroundColor: s.faint }} />
             <Text style={[styles.sub, { color: s.dim, marginTop: 0 }]}>
-              across {d.series} {d.series === 1 ? 'series' : 'series'}
+              across {d.series} series
             </Text>
             <View style={{ height: 1, width: 26, backgroundColor: s.faint }} />
           </View>
@@ -835,7 +838,7 @@ function S5TopSeries({ d, s, id, cw }) {
       {d.waiting > 0 && (
         <Reveal delay={1350}>
           <Text style={[styles.subSmall, { color: s.dim, marginTop: 4 }]}>
-            {d.waiting} more {d.waiting === 1 ? 'series' : 'series'} waiting on your shelf.
+            {d.waiting} more series waiting on your shelf.
           </Text>
         </Reveal>
       )}
@@ -1491,7 +1494,6 @@ export default function RecapScreen() {
 
   const onShareImage = useCallback(async (ratio) => {
     if (!data || exporting) return;
-    hapticSuccess();
     setExporting(true);
     setExportRatio(ratio);
     try {
@@ -1517,7 +1519,6 @@ export default function RecapScreen() {
 
   const onShareSlide = useCallback(async () => {
     if (exporting) return;
-    hapticLight();
     try {
       const uri = await slideShotRef.current?.capture?.();
       if (uri) await shareUri(uri, 'Share this moment');
@@ -1528,6 +1529,11 @@ export default function RecapScreen() {
   useEffect(() => {
     if (profileLoading) return;
     if (!userId) { setStatus('signedout'); return; }
+    // The release window was computed and tested but never actually consulted,
+    // so flipping RECAP_ALWAYS_OPEN to false — the one thing it exists for —
+    // changed nothing. Gating here rather than at the Profile entry point
+    // covers deep links and the share-sheet route too.
+    if (!isRecapOpen()) { setStatus('notopen'); return; }
     let dead = false;
     setStatus('loading');
 
@@ -1889,7 +1895,6 @@ export default function RecapScreen() {
   const advance = useCallback((dir) => {
     const t = idxRef.current + dir;
     if (t < 0 || t >= SLIDES.length) return;
-    selection();
     go(t);
   }, [go]);
 
@@ -1919,7 +1924,7 @@ export default function RecapScreen() {
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 12 || Math.abs(g.dx) > 12,
     onPanResponderGrant: () => {
       didHold.current = false;
-      holdTimer.current = setTimeout(() => { didHold.current = true; hapticLight(); pause(); }, 220);
+      holdTimer.current = setTimeout(() => { didHold.current = true; pause(); }, 220);
     },
     onPanResponderRelease: (e, g) => {
       clearTimeout(holdTimer.current);
@@ -1946,6 +1951,19 @@ export default function RecapScreen() {
   // ── states ─────────────────────────────────────────────────────────────
   if (profileLoading || status === 'loading') {
     return <LoadingStage />;
+  }
+  if (status === 'notopen') {
+    const dropsOn = recapReleaseDate(getPeriod());
+    return (
+      <View style={[styles.root, styles.center]}>
+        <Text style={styles.fallbackText}>
+          {t('recap.dropsOn', { date: dropsOn.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }) })}
+        </Text>
+        <TouchableOpacity style={[styles.btnGhost, { borderColor: 'rgba(255,255,255,0.34)' }]} onPress={close} accessibilityRole="button" accessibilityLabel={t('common.close')}>
+          <Text style={[styles.btnGhostText, { color: '#fff' }]}>{t('common.close')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
   if (status === 'signedout' || status === 'error' || !data) {
     return (

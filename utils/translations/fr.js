@@ -1,5 +1,7 @@
 export default {
   common: {
+    go: "OK",
+    unknownError: 'erreur inconnue',
     ok: 'OK',
     or: 'ou',
     gotIt: "C'est compris",
@@ -52,6 +54,9 @@ export default {
   },
 
   feed: {
+    hideReplies: "Masquer les réponses",
+    replyCount_one: "{count} réponse",
+    replyCount_other: "{count} réponses",
     trending: 'Tendances',
     destEmail: "E-mail",
     creatorLabel: "Créateur MangaRecs",
@@ -91,6 +96,22 @@ export default {
   },
 
   library: {
+    tabReading: 'En cours',
+    tabBookmarked: 'Enregistrés',
+    tabDownloaded: 'Téléchargés',
+    tabCompleted: 'Terminés',
+    deleteFromReading: 'Retirer de En cours',
+    deleteFromCompleted: 'Retirer de Terminés',
+    deleteFromBookmarked: 'Retirer de Enregistrés',
+    deleteFromDownloaded: 'Retirer de Téléchargés',
+    deleteFromLibrary: 'Retirer de la bibliothèque',
+    sortRecent: 'Récent',
+    sortAlpha: 'A–Z',
+    sortCustom: 'Personnalisé',
+    arrangeDone: 'Terminé',
+    arrangeMove: 'Déplacer',
+    tapToRate: 'Appuyez pour noter',
+    tapToChangeRating: 'Appuyez pour modifier votre note',
     downloadForOffline: '→ Télécharger le chapitre pour la lecture hors ligne',
     newChapter: "NOUV. CHAP.",
     trending: "Tendances",
@@ -160,7 +181,11 @@ export default {
     invertHint: 'Inverse les couleurs — les pages de manga restent normales',
     recent: "Récent",
     autoScrollSpeed: "Vitesse de défilement",
-    rotateHint: "Tournez l'appareil pour lire en paysage",
+    findingManga: 'Recherche du manga…',
+    resumingWhereLeftOff: 'Reprise là où vous en étiez…',
+    loadingFromSite: 'Chargement depuis {site}…',
+    searchingOnSite: 'Recherche sur {site}…',
+    findingBestSource: 'Recherche de la meilleure source…',
     doublePage: "Double page",
     screenDimmer: "Atténuateur d'écran",
     downloadDesc: "Enregistrez les pages pour lire hors ligne",
@@ -183,7 +208,6 @@ export default {
     openInBrowser: 'Ouvrir dans le navigateur',
     nightFilter: 'Filtre de lecture nocturne',
     forceDark: 'Forcer le mode sombre sur les sites',
-    allowLandscape: 'Autoriser le mode paysage',
     playing: 'En lecture',
     loadingFrom: 'Chargement depuis {site}…',
     nextChapter: 'Chapitre suivant',
@@ -391,9 +415,11 @@ export default {
     termsLabel: "Conditions d'utilisation",
     appearance: 'Apparence',
     theme: 'Thème',
-    themeDefault: 'Par défaut',
+    themeLegacy: 'Classique',
     themeDark: 'Sombre',
     themeLight: 'Clair',
+    themeRecommended: 'Recommandé',
+    themeHint: 'Sombre et Classique fatiguent moins les yeux le soir, essayez-en un.',
     reader: {
       section: 'Lecteur',
       defaultMode: 'Mode par défaut',
@@ -433,9 +459,18 @@ export default {
       section: 'Contenu',
       nsfw: 'Afficher le contenu adulte',
       nsfwDesc: "Nécessite une vérification de l'âge",
+      nsfwDescOn: 'Affiche le contenu 18+ sans flou. Désactivé, les couvertures pour adultes restent floutées dans toute l’application.',
+      nsfwDescVerify: 'Vérifiez votre âge pour débloquer le contenu pour adultes.',
       aiRecs: 'Recommandations par IA',
       clearCache: 'Vider le cache des images',
       cacheCleared: 'Cache des images vidé',
+    },
+    update: {
+      disabled: 'Mises à jour désactivées dans cette version (Expo Go / client de développement)',
+      latest: 'Vous avez la dernière version',
+      found: 'Mise à jour trouvée. Téléchargement…',
+      downloaded: 'Téléchargée. Redémarrage…',
+      failed: 'Échec de la vérification : {error}',
     },
     trackers: {
       section: 'Services externes',
@@ -487,6 +522,20 @@ export default {
   },
 
   auth: {
+    err: {
+      googleFailed: "La connexion Google a échoué",
+      invalidCredentials: "Identifiants invalides",
+      usernameTooShort: "Le nom d’utilisateur doit comporter au moins 3 caractères (lettres et chiffres uniquement).",
+      usernameTaken: "Ce nom d’utilisateur est déjà pris. Essayez-en un autre.",
+      passwordTooShort: "Le mot de passe doit comporter au moins 6 caractères.",
+      passwordMismatch: "Les mots de passe ne correspondent pas",
+      profileSetupFailed: "La création du profil a échoué. Veuillez réessayer.",
+    },
+    notice: {
+      accountCreated: "Compte créé ! Confirmez votre adresse e-mail, puis connectez-vous.",
+      passwordUpdated: "Mot de passe mis à jour ! Connectez-vous avec le nouveau.",
+    },
+    enterCodeSentTo: "Saisissez le code à 6 chiffres envoyé à {email}, puis choisissez un nouveau mot de passe.",
     createAccount: 'Créer un compte',
     createAnAccount: 'Créer un compte',
     logInExisting: 'Se connecter à un compte existant',
@@ -518,11 +567,14 @@ export default {
     dobPrivacy: 'Votre date de naissance sert uniquement à vérifier votre âge et n’est pas conservée sur nos serveurs.',
     ageTitle: "Vérification de l’âge",
     confirmAge: "Confirmer l’âge",
-    title: 'Créez un compte pour {action}',
-    saveSeries: 'enregistrer des séries',
-    comment: 'commenter',
-    message: 'écrire aux lecteurs',
-    later: 'Plus tard',
+    makeItYours: 'Faites-en la vôtre',
+    guestBody: 'Vous lisez en tant qu’invité, il n’y a donc pas encore d’endroit pour {action}. Créez un compte gratuit et votre bibliothèque, votre progression et votre série vous suivront sur tous vos appareils.',
+    notNow: 'Pas maintenant',
+    createAccount: 'Créer un compte',
+    actionSave: 'enregistrer cette série',
+    actionRate: 'noter cette série',
+    actionComment: 'publier un commentaire',
+    actionFriends: 'ajouter des amis',
   },
 
   discussion: {
@@ -596,6 +648,7 @@ export default {
   },
 
   recap: {
+    dropsOn: "Votre MangaRecap arrive le {date}.",
     shareSquare: 'Partager en image carrée',
     blankMap: 'Votre carte est encore vierge — c’est tout l’intérêt.',
     compareEmpty: 'Ajoutez quelques amis et la comparaison de ce semestre vous attendra ici.',
@@ -671,6 +724,7 @@ export default {
   },
 
   toast: {
+    usernameNotSaved: "Impossible d'enregistrer votre nom d'utilisateur. Définissez-le dans les Réglages",
     savedToLibrary: 'Enregistré dans la bibliothèque',
     removedFromLibrary: 'Retiré de la bibliothèque',
     bioUpdated: 'Bio mise à jour',
@@ -700,6 +754,8 @@ export default {
   },
 
   placeholder: {
+    addComment: "Ajouter un commentaire...",
+    addSpoilerComment: "Ajouter un commentaire spoiler...",
     chapterTitleNum: 'Titre du chapitre {n} (facultatif)',
     usernameOrEmail: "Nom d'utilisateur ou e-mail",
     usernameRules: "Nom d'utilisateur (lettres et chiffres)",
@@ -831,6 +887,9 @@ export default {
     addToProfile: 'Ajouter au profil',
     showcaseFull: 'Vitrine pleine (3/3)',
     nextBadge: 'Badge suivant',
+    nextTier: 'Palier suivant',
+    moreToGo: 'Encore {n}',
+    from: 'De {source}',
   },
 
   share: {
@@ -848,6 +907,12 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    unlike: "Je n’aime plus",
+    like: "J’aime",
+    removeBookmark: "Retirer des favoris",
+    bookmark: "Enregistrer",
+    notifications: "Notifications",
+    notificationsUnread: "Notifications, {count} non lues",
     likeCount: '{n} j’aime',
     commentCount: '{n} commentaires',
     decreaseGenreWeight: 'Diminuer le poids de {genre}',

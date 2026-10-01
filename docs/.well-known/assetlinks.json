@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mangarecs.app",
+      "sha256_cert_fingerprints": ["SHA256_FINGERPRINT_FILL_IN_AFTER_EAS_CREDENTIALS_SETUP"]
+    }
+  }
+]

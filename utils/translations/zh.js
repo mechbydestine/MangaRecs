@@ -1,6 +1,8 @@
 // Simplified Chinese.
 export default {
   common: {
+    go: "搜索",
+    unknownError: '未知错误',
     ok: '确定',
     or: '或',
     gotIt: '知道了',
@@ -53,6 +55,9 @@ export default {
   },
 
   feed: {
+    hideReplies: "隐藏回复",
+    replyCount_one: "{count} 条回复",
+    replyCount_other: "{count} 条回复",
     trending: '趋势',
     destEmail: "电子邮件",
     creatorLabel: "MangaRecs 创作者",
@@ -92,6 +97,22 @@ export default {
   },
 
   library: {
+    tabReading: '在读',
+    tabBookmarked: '收藏',
+    tabDownloaded: '已下载',
+    tabCompleted: '已读完',
+    deleteFromReading: '从在读中移除',
+    deleteFromCompleted: '从已读完中移除',
+    deleteFromBookmarked: '从收藏中移除',
+    deleteFromDownloaded: '从已下载中移除',
+    deleteFromLibrary: '从书架移除',
+    sortRecent: '最近',
+    sortAlpha: 'A–Z',
+    sortCustom: '自定义',
+    arrangeDone: '完成',
+    arrangeMove: '移动',
+    tapToRate: '点击评分',
+    tapToChangeRating: '点击修改评分',
     downloadForOffline: '→ 下载章节以离线阅读',
     newChapter: "新章节",
     trending: "热门",
@@ -161,7 +182,11 @@ export default {
     invertHint: '反转页面颜色 — 漫画页面保持不变',
     recent: "最近",
     autoScrollSpeed: "自动滚动速度",
-    rotateHint: "旋转设备即可横屏阅读",
+    findingManga: '正在查找作品…',
+    resumingWhereLeftOff: '正在从上次的位置继续…',
+    loadingFromSite: '正在从{site}加载…',
+    searchingOnSite: '正在{site}搜索…',
+    findingBestSource: '正在寻找最佳来源…',
     doublePage: "双页跨页",
     screenDimmer: "屏幕调暗",
     downloadDesc: "将页面保存到书库以离线阅读",
@@ -184,7 +209,6 @@ export default {
     openInBrowser: '在浏览器中打开',
     nightFilter: '夜间阅读滤镜',
     forceDark: '强制网站使用深色',
-    allowLandscape: '允许横屏',
     playing: '播放中',
     loadingFrom: '正在从{site}加载…',
     nextChapter: '下一话',
@@ -392,9 +416,11 @@ export default {
     termsLabel: '使用条款',
     appearance: '外观',
     theme: '主题',
-    themeDefault: '默认',
+    themeLegacy: '经典',
     themeDark: '深色',
     themeLight: '浅色',
+    themeRecommended: '推荐',
+    themeHint: '夜间深色和经典更护眼，不妨试试。',
     reader: {
       section: '阅读器',
       defaultMode: '默认模式',
@@ -434,9 +460,18 @@ export default {
       section: '内容',
       nsfw: '显示成人内容',
       nsfwDesc: '需要验证年龄',
+      nsfwDescOn: '清晰显示 18+ 内容。关闭后，成人封面在整个应用内仍会模糊处理。',
+      nsfwDescVerify: '验证年龄即可解锁成人内容。',
       aiRecs: 'AI 推荐',
       clearCache: '清除图片缓存',
       cacheCleared: '已清除图片缓存',
+    },
+    update: {
+      disabled: '此版本已停用更新（Expo Go / 开发客户端）',
+      latest: '已是最新版本',
+      found: '发现更新，正在下载…',
+      downloaded: '下载完成，正在重启…',
+      failed: '检查失败：{error}',
     },
     trackers: {
       section: '外部同步',
@@ -488,6 +523,20 @@ export default {
   },
 
   auth: {
+    err: {
+      googleFailed: "Google 登录失败",
+      invalidCredentials: "登录信息有误",
+      usernameTooShort: "用户名至少需要 3 个字符（仅限字母和数字）。",
+      usernameTaken: "该用户名已被占用，请换一个。",
+      passwordTooShort: "密码至少需要 6 个字符。",
+      passwordMismatch: "两次输入的密码不一致",
+      profileSetupFailed: "资料创建失败，请重试。",
+    },
+    notice: {
+      accountCreated: "账号已创建！请在邮箱中确认后登录。",
+      passwordUpdated: "密码已更新！请使用新密码登录。",
+    },
+    enterCodeSentTo: "请输入我们发送到 {email} 的 6 位验证码，然后设置新密码。",
     createAccount: '创建账号',
     createAnAccount: '创建一个账号',
     logInExisting: '登录已有账号',
@@ -519,11 +568,14 @@ export default {
     dobPrivacy: '你的出生日期仅用于年龄验证，不会存储在我们的服务器上。',
     ageTitle: "年龄验证",
     confirmAge: "确认年龄",
-    title: '{action}需要先创建账号',
-    saveSeries: '收藏作品',
-    comment: '发表评论',
-    message: '发送私信',
-    later: '以后再说',
+    makeItYours: '让它属于你',
+    guestBody: '你正在以访客身份阅读，暂时还没有地方{action}。创建免费账号后，你的书架、阅读进度和连续记录会同步到任何设备。',
+    notNow: '暂不',
+    createAccount: '创建账号',
+    actionSave: '收藏这部作品',
+    actionRate: '为这部作品评分',
+    actionComment: '发表评论',
+    actionFriends: '添加好友',
   },
 
   discussion: {
@@ -597,6 +649,7 @@ export default {
   },
 
   recap: {
+    dropsOn: "你的 MangaRecap 将于 {date} 发布。",
     shareSquare: '以方形图片分享',
     blankMap: '你的地图还是空白的 — 这正是有趣之处。',
     compareEmpty: '添加几位好友，本半年的对比就会在这里等你。',
@@ -672,6 +725,7 @@ export default {
   },
 
   toast: {
+    usernameNotSaved: '无法保存用户名，请在设置中设置',
     savedToLibrary: '已加入书架',
     removedFromLibrary: '已从书架移除',
     bioUpdated: '简介已更新',
@@ -701,6 +755,8 @@ export default {
   },
 
   placeholder: {
+    addComment: "添加评论...",
+    addSpoilerComment: "添加剧透评论...",
     chapterTitleNum: '第 {n} 话标题（可选）',
     usernameOrEmail: '用户名或邮箱',
     usernameRules: '用户名（仅限字母和数字）',
@@ -832,6 +888,9 @@ export default {
     addToProfile: '添加到资料',
     showcaseFull: '展示位已满 (3/3)',
     nextBadge: '下一个徽章',
+    nextTier: '下一等级',
+    moreToGo: '还差 {n}',
+    from: '来自 {source}',
   },
 
   share: {
@@ -849,6 +908,12 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    unlike: "取消点赞",
+    like: "点赞",
+    removeBookmark: "取消收藏",
+    bookmark: "收藏",
+    notifications: "通知",
+    notificationsUnread: "通知，{count} 条未读",
     likeCount: '{n} 个赞',
     commentCount: '{n} 条评论',
     decreaseGenreWeight: '降低 {genre} 权重',

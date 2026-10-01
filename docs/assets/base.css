@@ -121,7 +121,7 @@
 .lang-menu {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
   display: none; flex-direction: column; min-width: 152px; padding: 6px;
-  background: var(--surface, #14121c); border: 1px solid var(--line, rgba(128,128,140,0.3));
+  background: var(--bg-panel, #FFFFFF); border: 1px solid var(--line, rgba(128,128,140,0.3));
   border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.28);
 }
 .lang-wrap.open .lang-menu { display: flex; }

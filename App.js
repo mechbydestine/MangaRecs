@@ -117,8 +117,15 @@ function flushPendingNotifResponse() {
 // Deep links: mangarecs://series/<title> opens the Reader on that series,
 // mangarecs://discussion/<title> opens its discussion. Share messages include
 // these links so a friend with the app lands directly on the series.
+// https://mangarecs.net/series/<title> and /discussion/<title> resolve the
+// same way via Universal Links (iOS) / App Links (Android) — see
+// docs/.well-known/apple-app-site-association + assetlinks.json and
+// app.json's associatedDomains/intentFilters. NOTE: this does NOT yet cover
+// the real catalog URLs (mangarecs.net/catalog/title/<id>/), which key on a
+// stable pool id rather than a title string — resolving those into the app
+// needs an id→title lookup that hasn't been built yet.
 const linking = {
-  prefixes: ['mangarecs://'],
+  prefixes: ['mangarecs://', 'https://mangarecs.net', 'https://www.mangarecs.net'],
   config: {
     screens: {
       Reader: 'series/:searchQuery',

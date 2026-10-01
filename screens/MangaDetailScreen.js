@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Share, Animated, RefreshControl } from 'react-native';
 // expo-image, not RN's Image: these are remote URLs and RN's Android cache is
 // effectively nonexistent, so covers/favicons re-downloaded on every visit.
 import { Image } from 'expo-image';
@@ -21,6 +21,22 @@ import { supabase } from '../supabase';
 import { requireAccount } from '../utils/guestGate';
 import { HIT_SLOP } from '../utils/tokens';
 import { useResponsive } from '../utils/responsive';
+
+// Mirrors the word-boundary truncation the website's catalog generator uses
+// (scripts/generateCatalogPages.mjs). A raw .slice() cut mid-word — "ended up
+// becoming a" — was the single worst-looking bug on the public site; this
+// screen had the identical cut and wasn't fixed alongside it.
+const DANGLING = /\s+(a|an|and|as|at|but|by|for|from|in|into|of|on|or|the|to|with|that|which|who|when|while)$/i;
+
+function truncateAtWord(text, max) {
+  const clean = (text || '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  const slice = clean.slice(0, max);
+  const lastSpace = slice.lastIndexOf(' ');
+  let out = (lastSpace > max * 0.5 ? slice.slice(0, lastSpace) : slice).replace(/[\s,;:\-–—]+$/, '');
+  while (DANGLING.test(out)) out = out.replace(DANGLING, '');
+  return out + '…';
+}
 
 function formatLabel(lang) {
   if (lang === 'ko') return 'Manhwa';
@@ -85,6 +101,11 @@ export default function MangaDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [details, setDetails] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  // Bumping the nonce re-runs the detail fetch; the ref tells that run it was
+  // user-initiated so it refreshes in place instead of clearing the screen.
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const refreshingRef = useRef(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [characters, setCharacters] = useState([]);
   const [anilistLinks, setAnilistLinks] = useState([]);
@@ -160,9 +181,16 @@ export default function MangaDetailScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
-      setDetails(null);
-      setDetailsReady(false);
+      // A pull-to-refresh keeps the current content on screen while it
+      // re-fetches — blanking to a spinner on a manual refresh reads as
+      // "I just lost the page", which is the opposite of reassuring.
+      const isRefresh = refreshingRef.current;
+      refreshingRef.current = false;
+      if (!isRefresh) {
+        setLoading(true);
+        setDetails(null);
+        setDetailsReady(false);
+      }
       try {
         let id = routeMangaId;
         if (!id) {
@@ -178,9 +206,14 @@ export default function MangaDetailScreen() {
       } finally {
         if (!cancelled) {
           setLoading(false);
+          setRefreshing(false);
           // In `finally`, so a failed lookup still unblocks the source
           // resolver rather than leaving the row spinning forever.
           setDetailsReady(true);
+          // Entrance stagger is for arriving at the screen, not for refreshing
+          // it in place — replaying it on every pull would make the whole page
+          // flicker for no information gain.
+          if (isRefresh) return;
           const stagger = (a, delay, duration = 260) => Animated.timing(a, { toValue: 1, duration, delay, useNativeDriver: true });
           [synopsisAnim, detailsAnim, genresAnim, warningsAnim, charactersAnim, recsAnim].forEach((a) => a.setValue(0));
           Animated.parallel([
@@ -198,7 +231,7 @@ export default function MangaDetailScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [routeMangaId, searchKey, title, lang]);
+  }, [routeMangaId, searchKey, title, lang, refreshNonce]);
 
   // Best-effort — a wrong/no AniList match just means an empty Characters
   // card (already conditionally hidden below), nothing else depends on this.
@@ -382,7 +415,7 @@ export default function MangaDetailScreen() {
     // guest bookmark lives on an anonymous session that dies with the install.
     if (next) {
       requireAccount({
-        what: 'save this series',
+        whatKey: 'gate.actionSave',
         onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
         action: () => applyBookmark(true),
       });
@@ -405,9 +438,15 @@ export default function MangaDetailScreen() {
     }
   }
 
+  const handleRefresh = useCallback(() => {
+    refreshingRef.current = true;
+    setRefreshing(true);
+    setRefreshNonce((n) => n + 1);
+  }, []);
+
   const synopsis = details?.description || poolEntry?.description || '';
   const showToggle = synopsis.length > 260;
-  const displaySynopsis = expanded || !showToggle ? synopsis : synopsis.slice(0, 260).trim() + '…';
+  const displaySynopsis = expanded || !showToggle ? synopsis : truncateAtWord(synopsis, 260);
   const genres = (details?.genres?.length ? details.genres : poolEntry?.genres) || [];
   const rating = poolEntry?.rating || null;
   const readers = poolEntry?.readers || null;
@@ -425,7 +464,18 @@ export default function MangaDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[isTablet && styles.tabletWrap, { paddingBottom: insets.bottom + 32 }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[isTablet && styles.tabletWrap, { paddingBottom: insets.bottom + 32 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         <Animated.View style={[styles.hero, heroStyle]}>
           <View style={[styles.coverWrap, { paddingTop: insets.top + 14 }]}>
             <TouchableOpacity

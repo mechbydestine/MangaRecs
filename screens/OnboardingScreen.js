@@ -12,6 +12,7 @@ import { GENRES as GENRE_OPTIONS } from '../utils/genres';
 import { useKeyboardPadding } from '../utils/keyboard';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
+import { showAppToast } from '../utils/appToast';
 import { useUsernameAvailability, UsernameStatusIcon } from './AuthScreen';
 import { GoogleButton, AuthDivider } from '../components/AuthButtons';
 import StarLogo from '../components/StarLogo';
@@ -347,7 +348,32 @@ export default function OnboardingScreen({ onComplete }) {
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         if (username.trim()) {
-          await supabase.rpc('claim_username', { new_username: username.trim() });
+          // handle_new_user() seeds a username from the email local-part (or the
+          // OAuth profile) the instant the auth row is created, so by the time
+          // this step runs, claim_username's `WHERE username IS NULL` guard can
+          // never match for anyone who signed up through this flow — it returned
+          // ok:false and the handle the user was just told is "permanent" was
+          // silently discarded. Try the RPC first (it's race-safe for the
+          // genuinely-unset case, e.g. an anonymous guest with no email), then
+          // fall back to writing the column directly, which the owner holds a
+          // column-level UPDATE grant for on their own row.
+          const desired = username.trim();
+          let claimed = false;
+          try {
+            const { data: claim } = await supabase.rpc('claim_username', { new_username: desired });
+            claimed = claim?.ok === true;
+          } catch (_) {}
+          if (!claimed) {
+            const normalized = desired.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const { error: renameError } = await supabase
+              .from('profiles')
+              .update({ username: normalized })
+              .eq('id', data.user.id);
+            claimed = !renameError;
+          }
+          // Don't trap the user in onboarding over this, but never let it fail
+          // silently either — they were explicitly promised this handle.
+          if (!claimed) showAppToast(t('toast.usernameNotSaved'));
         }
         const profileUpdates = {};
         if (genres.length > 0) profileUpdates.favorite_genre = genres[0];

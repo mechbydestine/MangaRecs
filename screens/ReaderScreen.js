@@ -23,7 +23,6 @@ import { updateDailyLog, setLastRead, incrementSharesCount, localDateKey, syncLi
 import { maybePrimePushPermission } from '../utils/pushNotifications';
 import { PRESETS as AMBIENCE_PRESETS, play as ambiencePlay, stop as ambienceStop, setVolume as ambienceSetVolume, subscribe as ambienceSubscribe, getState as ambienceGetState } from '../utils/ambiencePlayer';
 import { useKeepAwake } from 'expo-keep-awake';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../utils/ThemeContext';
 import { useT } from '../utils/LanguageContext';
 import { useResponsive } from '../utils/responsive';
@@ -40,7 +39,6 @@ const DIMMER_KEY       = '@mangarecs/dimmer';
 const NIGHT_FILTER_KEY = '@mangarecs/nightFilter';
 const DOUBLE_PAGE_KEY  = '@mangarecs/doublePage';
 const SCROLL_SPEED_KEY = '@mangarecs/autoScrollSpeed';
-const LANDSCAPE_KEY    = '@mangarecs/allowLandscape';
 const READER_MODE_KEY  = '@mangarecs/readerMode'; // must match SettingsScreen
 const PAGE_ANIM_KEY    = '@mangarecs/pageAnim';   // must match SettingsScreen
 const CHAPTERS_DIR    = FileSystem.documentDirectory + 'chapters/';
@@ -1298,7 +1296,7 @@ export default function ReaderScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { isTablet } = useResponsive();
   const { width: screenW, height: screenH } = useWindowDimensions();
-  const isWideLayout = isTablet || screenW > screenH; // tablet, or phone rotated to landscape
+  const isWideLayout = isTablet;
   useKeepAwake(); // screen must not sleep mid-chapter
 
   // HUD palette — switches with the app theme
@@ -1365,7 +1363,6 @@ export default function ReaderScreen({ route, navigation }) {
   const [nightFilter,        setNightFilter]        = useState(0); // 0–0.5 warm amber overlay opacity
   const [doublePageMode,     setDoublePageMode]      = useState(false); // side-by-side spread — only actually applied when isWideLayout
   const [autoScrollSpeed,    setAutoScrollSpeed]    = useState('normal');
-  const [allowLandscape,     setAllowLandscape]     = useState(false);
   const [showChapterSelect,  setShowChapterSelect]  = useState(false);
   const [showShare,          setShowShare]          = useState(false);
 
@@ -1858,7 +1855,7 @@ export default function ReaderScreen({ route, navigation }) {
 
   // Load reader comfort prefs; force-dark defaults to following the app theme
   useEffect(() => {
-    AsyncStorage.multiGet([FORCE_DARK_KEY, DIMMER_KEY, SCROLL_SPEED_KEY, LANDSCAPE_KEY, NIGHT_FILTER_KEY, DOUBLE_PAGE_KEY]).then(([[, fdRaw], [, dimRaw], [, spdRaw], [, lsRaw], [, nfRaw], [, dpRaw]]) => {
+    AsyncStorage.multiGet([FORCE_DARK_KEY, DIMMER_KEY, SCROLL_SPEED_KEY, NIGHT_FILTER_KEY, DOUBLE_PAGE_KEY]).then(([[, fdRaw], [, dimRaw], [, spdRaw], [, nfRaw], [, dpRaw]]) => {
       setForceDarkSites(fdRaw === null ? isDark : fdRaw === 'true');
       if (dimRaw !== null) {
         const v = parseFloat(dimRaw);
@@ -1869,7 +1866,6 @@ export default function ReaderScreen({ route, navigation }) {
         if (!Number.isNaN(v)) setNightFilter(Math.min(0.5, Math.max(0, v)));
       }
       if (spdRaw && AUTO_SCROLL_SPEEDS.some((s) => s.id === spdRaw)) setAutoScrollSpeed(spdRaw);
-      setAllowLandscape(lsRaw === 'true');
       setDoublePageMode(dpRaw === 'true');
     }).catch(() => {});
   }, []);
@@ -1912,26 +1908,6 @@ export default function ReaderScreen({ route, navigation }) {
       return next;
     });
   }
-
-  function toggleLandscape() {
-    setAllowLandscape((prev) => {
-      const next = !prev;
-      AsyncStorage.setItem(LANDSCAPE_KEY, String(next)).catch(() => {});
-      return next;
-    });
-  }
-
-  // Rotation is unlocked only while this screen is mounted AND the preference
-  // is on; always restored to portrait on unmount so the rest of the app
-  // (which was never designed for landscape) isn't affected.
-  useEffect(() => {
-    if (allowLandscape) {
-      ScreenOrientation.unlockAsync().catch(() => {});
-    } else {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-    }
-    return () => { ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {}); };
-  }, [allowLandscape]);
 
   useEffect(() => {
     sessionStartRef.current = Date.now();
@@ -2754,9 +2730,9 @@ export default function ReaderScreen({ route, navigation }) {
     [chapterListForPicker]
   );
 
-  // Double-page spread only actually applies on a wide layout (tablet, or a
-  // phone rotated to landscape) even if the user has it toggled on — pairing
-  // pages side by side on a narrow portrait phone would just shrink everything.
+  // Double-page spread only actually applies on a wide layout (tablet) even
+  // if the user has it toggled on — pairing pages side by side on a narrow
+  // portrait phone would just shrink everything.
   // Deliberately keeps `data={pages}` and every index-based viewability/resume
   // calculation untouched — only renderItem changes, pairing index N with N+1
   // and skipping N+1's own cell, rather than restructuring the list's data
@@ -3604,23 +3580,13 @@ export default function ReaderScreen({ route, navigation }) {
                 </View>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleLandscape}>
-              <Ionicons name={allowLandscape ? 'phone-landscape' : 'phone-portrait-outline'} size={18} color={allowLandscape ? colors.primary : '#9B9AA3'} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.allowLandscape')}</Text>
-                <Text style={styles.settingsRowSub}>{t('reader.rotateHint')}</Text>
-              </View>
-              <View style={[styles.settingsToggle, allowLandscape && styles.settingsToggleOn]}>
-                <View style={[styles.settingsToggleDot, allowLandscape && styles.settingsToggleDotOn]} />
-              </View>
-            </TouchableOpacity>
             {readerMode === 'api' && (
               <TouchableOpacity style={[styles.settingsRow, sheetC.rowBorder]} onPress={toggleDoublePage}>
                 <Ionicons name="book-outline" size={18} color={doublePageMode ? colors.primary : '#9B9AA3'} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={[styles.settingsRowText, sheetC.rowText]}>{t('reader.doublePage')}</Text>
                   <Text style={styles.settingsRowSub}>
-                    {isWideLayout ? 'Two pages side by side' : 'Needs a tablet or landscape orientation'}
+                    {isWideLayout ? 'Two pages side by side' : 'Needs a tablet'}
                   </Text>
                 </View>
                 <View style={[styles.settingsToggle, doublePageMode && styles.settingsToggleOn]}>
@@ -3774,16 +3740,18 @@ export default function ReaderScreen({ route, navigation }) {
           </TouchableOpacity>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.resolvingTitle} numberOfLines={2}>
-            {routeTitle || searchQuery || 'Finding manga…'}
+            {routeTitle || searchQuery || t('reader.findingManga')}
           </Text>
           <Text style={styles.resolvingSub}>
             {resuming
-              ? 'Resuming where you left off…'
+              ? t('reader.resumingWhereLeftOff')
               : resolvingSiteName === 'MangaDex'
-                ? 'Loading from MangaDex…'
+                /* MangaDex is read through its API, so it loads directly —
+                   every other site has to be searched first. */
+                ? t('reader.loadingFromSite', { site: resolvingSiteName })
                 : resolvingSiteName
-                  ? `Searching on ${resolvingSiteName}…`
-                  : 'Finding the best source…'}
+                  ? t('reader.searchingOnSite', { site: resolvingSiteName })
+                  : t('reader.findingBestSource')}
           </Text>
         </View>
       )}

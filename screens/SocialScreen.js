@@ -17,13 +17,11 @@ import { useT } from '../utils/LanguageContext';
 import { supabase } from '../supabase';
 import { sendFriendRequestPush } from '../utils/pushNotifications';
 import { showAppToast } from '../utils/appToast';
-import { getBlockedIds } from '../utils/blocking';
+import { getBlockedIds, getBlockedEitherWay } from '../utils/blocking';
 import { MangaCover } from '../utils/mangaCovers';
-import { ALL_BADGES } from '../utils/badges';
 import { fetchPopularManga } from '../utils/mangaDexApi';
 import { prewarmCoverCache } from '../utils/mangaCovers';
 import StarLogo from '../components/StarLogo';
-import BadgeIcon from '../components/BadgeIcon';
 import { computePresenceStatus, PRESENCE_COLORS, PRESENCE_LABELS } from '../utils/presence';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useResponsive } from '../utils/responsive';
@@ -86,18 +84,6 @@ function timeAgo(ts) {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function RareBadge({ badgeId }) {
-  const badge = ALL_BADGES.find(b => b.id === badgeId);
-  if (!badge) return null;
-  if (!['purple', 'gold', 'mythic'].includes(badge.grade)) return null;
-  // The shield already carries the tier color — no pill wrapper needed
-  return (
-    <View style={{ marginRight: 3, marginTop: 2 }}>
-      <BadgeIcon badge={badge} size={16} />
-    </View>
-  );
-}
 
 // Friend avatar with a corner presence dot — tap to peek status/reading via
 // toast, long-press to open their profile. Replaces the old always-expanded
@@ -810,7 +796,11 @@ export default function SocialScreen() {
 
     setSearchLoading(false);
     if (error) { setSearchError('Search failed. Please try again.'); setSearchResults([]); return; }
-    const results = (data || []).filter((u) => u.id !== currentUserId);
+    // Blocks are symmetric for discovery: neither someone I blocked nor someone
+    // who blocked me should surface here (and the empty-state message below
+    // reads the same either way, so this can't be used to detect a block).
+    const blocked = await getBlockedEitherWay(currentUserId);
+    const results = (data || []).filter((u) => u.id !== currentUserId && !blocked.has(u.id));
     if (results.length === 0) { setSearchError(`No users found for "@${q}"`); setSearchResults([]); return; }
     setSearchResults(results);
   }
@@ -827,6 +817,11 @@ export default function SocialScreen() {
 
   async function handleAddFriend(userId) {
     if (!currentUserId || !userId) return;
+
+    // Second line of defence behind the search filter — a stale result list or
+    // a profile reached by another route must not be able to open a request.
+    const blocked = await getBlockedEitherWay(currentUserId);
+    if (blocked.has(userId)) return;
 
     const { data: existing } = await supabase
       .from('friendships')

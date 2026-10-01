@@ -20,7 +20,7 @@ import { supabase } from '../supabase';
 import { syncReadOpen, getLastRead, getReadingHistory, setLastRead as saveLastRead, syncLibraryWrite } from '../utils/readerUtils';
 import { searchMangaDexList, searchMangaDex, getMangaStatistics } from '../utils/mangaDexApi';
 import { light, medium, success as hapticSuccess, warning as hapticWarning } from '../utils/haptics';
-import { MANGA_POOL, COMPLETED_IDS, getRecentlyAddedIds, findPoolEntry } from '../utils/mangaPool';
+import { MANGA_POOL, getRecentlyAddedIds, findPoolEntry, isConcludedSeries } from '../utils/mangaPool';
 import {
   getLibraryBadgesSnapshot, subscribeLibraryBadges, refreshLibraryBadges,
 } from '../utils/libraryBadges';
@@ -35,15 +35,24 @@ import { HIT_SLOP } from '../utils/tokens';
 import { useReducedMotion, useAnnounceOnOpen } from '../utils/a11y';
 
 const TRENDING = ['TBATE', 'Solo Leveling', 'Murim Login', 'Omniscient Reader', 'Tower of God'];
+// The tab strings double as state identity (activeTab, DELETE_LABEL_KEYS,
+// per-tab caches), so they stay English constants — only the rendered label
+// goes through t(), via the key map below.
 const TABS = ['Reading', 'Bookmarked', 'Downloaded', 'Completed'];
+const TAB_LABEL_KEYS = {
+  Reading:    'library.tabReading',
+  Bookmarked: 'library.tabBookmarked',
+  Downloaded: 'library.tabDownloaded',
+  Completed:  'library.tabCompleted',
+};
 // Context-menu delete label matches whichever tab the long-pressed entry lives
 // in, instead of a generic "Delete from Library" — each entry only ever lives
 // in one section at a time, so this is always accurate.
-const DELETE_LABEL = {
-  Reading: 'Delete from Reading',
-  Completed: 'Delete from Completed',
-  Bookmarked: 'Delete from Bookmarked',
-  Downloaded: 'Delete from Downloaded',
+const DELETE_LABEL_KEYS = {
+  Reading:    'library.deleteFromReading',
+  Completed:  'library.deleteFromCompleted',
+  Bookmarked: 'library.deleteFromBookmarked',
+  Downloaded: 'library.deleteFromDownloaded',
 };
 const JUST_ADDED_WINDOW = 10 * 60 * 1000; // 10 minutes — how long the "JUST ADDED" badge lingers
 // v2: getMangaStatistics now returns { rating, readers } (was a bare, halved
@@ -54,9 +63,9 @@ const RATINGS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SORT_MODE_KEY = '@mangarecs/library_sort_mode';
 const CUSTOM_ORDER_KEY = '@mangarecs/library_custom_order';
 const SORT_MODES = [
-  { key: 'recent', label: 'Recent' },
-  { key: 'alpha',  label: 'A–Z' },
-  { key: 'custom', label: 'Custom' },
+  { key: 'recent', labelKey: 'library.sortRecent' },
+  { key: 'alpha',  labelKey: 'library.sortAlpha' },
+  { key: 'custom', labelKey: 'library.sortCustom' },
 ];
 
 // Stable identity for a library item across tabs and sessions
@@ -268,7 +277,7 @@ function TabButton({ tab, active, onPress }) {
           adjustsFontSizeToFit={Platform.OS === 'ios'}
           minimumFontScale={0.75}
         >
-          {tab}
+          {t(TAB_LABEL_KEYS[tab])}
         </Text>
       </TouchableOpacity>
     </Animated.View>
@@ -527,7 +536,7 @@ export default function LibraryScreen() {
   function isKnownFinished(title) {
     const pool = findPoolEntry(title);
     if (!pool) return false;
-    return pool.status === 'completed' || COMPLETED_IDS.has(String(pool.id));
+    return isConcludedSeries(pool);
   }
 
   useEffect(() => {
@@ -1311,12 +1320,12 @@ export default function LibraryScreen() {
 
         <View style={styles.sortRow}>
           <Ionicons name="swap-vertical" size={12} color={colors.muted} />
-          {SORT_MODES.map(({ key, label }) => (
+          {SORT_MODES.map(({ key, labelKey }) => (
             <TouchableOpacity
               key={key}
               style={[styles.sortChip, { backgroundColor: colors.border }, sortMode === key && styles.sortChipActive]}
               onPress={() => changeSortMode(key)}>
-              <Text style={[styles.sortChipText, { color: sortMode === key ? colors.primary : colors.muted }]}>{label}</Text>
+              <Text style={[styles.sortChipText, { color: sortMode === key ? colors.primary : colors.muted }]}>{t(labelKey)}</Text>
             </TouchableOpacity>
           ))}
           {sortMode === 'custom' && (
@@ -1324,7 +1333,7 @@ export default function LibraryScreen() {
               style={[styles.arrangeBtn, arranging && styles.arrangeBtnActive]}
               onPress={toggleArranging}>
               <Ionicons name={arranging ? 'checkmark' : 'move-outline'} size={11} color={arranging ? '#fff' : colors.primary} />
-              <Text style={[styles.arrangeBtnText, arranging && { color: '#fff' }]}>{arranging ? 'Done' : 'Move'}</Text>
+              <Text style={[styles.arrangeBtnText, arranging && { color: '#fff' }]}>{arranging ? t('library.arrangeDone') : t('library.arrangeMove')}</Text>
             </TouchableOpacity>
           )}
           {tabGenres.length > 1 && (
@@ -1447,7 +1456,7 @@ export default function LibraryScreen() {
             <View style={[styles.contextMenu, { top: menuTop, left: menuLeft }]}>
               <TouchableOpacity style={styles.contextMenuItem} onPress={handleDeleteFromLibrary}>
                 <Ionicons name="trash-outline" size={15} color="#FF3B30" />
-                <Text style={[styles.contextMenuText, { color: '#FF3B30' }]}>{DELETE_LABEL[activeTab] || 'Delete from Library'}</Text>
+                <Text style={[styles.contextMenuText, { color: '#FF3B30' }]}>{t(DELETE_LABEL_KEYS[activeTab] || 'library.deleteFromLibrary')}</Text>
               </TouchableOpacity>
               {activeTab !== 'Bookmarked' && (
                 <>
@@ -1488,7 +1497,7 @@ export default function LibraryScreen() {
               <>
                 <StarRatingDisplay avg={rateModal.avg} count={rateModal.count} size={14} showLabel />
                 <Text style={[styles.rateSub, { color: colors.muted }]}>
-                  {rateModal.yourRating ? 'Tap to change your rating' : 'Tap to rate'}
+                  {rateModal.yourRating ? t('library.tapToChangeRating') : t('library.tapToRate')}
                 </Text>
                 <View style={{ marginTop: 10 }}>
                   <StarRatingInput value={rateModal.yourRating} onRate={handleSubmitRating} size={32} disabled={rateModal.submitting} />

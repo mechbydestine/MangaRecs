@@ -116,7 +116,7 @@ export default function DiscussionScreen() {
     // anonymous session it would vanish with the install and could never be
     // edited, so this is one of the actions that earns the signup prompt.
     const ran = await requireAccount({
-      what: 'rate this series',
+      whatKey: 'gate.actionRate',
       onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
       action: () => {},
     });
@@ -292,7 +292,7 @@ export default function DiscussionScreen() {
     setUrlError('');
     // Posting attaches your name to something other people will read.
     const canPost = await requireAccount({
-      what: 'post a comment',
+      whatKey: 'gate.actionComment',
       onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
       action: () => {},
     });

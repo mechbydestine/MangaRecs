@@ -85,4 +85,26 @@ describe('containsBlockedLanguage', () => {
     expect(containsBlockedLanguage('Scunthorpe')).toBe(false);
     expect(containsBlockedLanguage('classic')).toBe(false);
   });
+
+  it('does not fire on ordinary words that START with a term', () => {
+    // The mirror image of the Scunthorpe case, and the one that was actually
+    // broken: \b guards the left edge but \w* used to swallow the rest, so a
+    // bio saying "cockpit" or "Dickens" was silently rejected.
+    expect(containsBlockedLanguage('cockpit')).toBe(false);
+    expect(containsBlockedLanguage('a cocktail party')).toBe(false);
+    expect(containsBlockedLanguage('Charles Dickens')).toBe(false);
+    expect(containsBlockedLanguage('coonhound')).toBe(false);
+    expect(containsBlockedLanguage('Cockney humour')).toBe(false);
+    expect(containsBlockedLanguage('shitake mushrooms')).toBe(false);
+  });
+
+  it('still blocks the real terms alongside those exceptions', () => {
+    // Guards against an over-broad allowlist: the exceptions above must not
+    // have opened a bypass for the bare terms they're derived from.
+    expect(containsBlockedLanguage('cock')).toBe(true);
+    expect(containsBlockedLanguage('what a dick')).toBe(true);
+    expect(containsBlockedLanguage('coon')).toBe(true);
+    expect(containsBlockedLanguage('shit')).toBe(true);
+    expect(containsBlockedLanguage('nice cockpit, asshole')).toBe(true);
+  });
 });

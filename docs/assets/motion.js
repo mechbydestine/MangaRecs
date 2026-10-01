@@ -377,9 +377,15 @@ function initServiceWorker() {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('/sw.js').catch(function () {});
   });
+  // controllerchange also fires the FIRST time an uncontrolled page acquires a
+  // controller, which is a brand-new visitor's very first load — not a deploy.
+  // Reloading them would be an unexplained flash on first impression, so only
+  // reload pages that already had a controller when they loaded, i.e. ones that
+  // genuinely got swapped onto a newer worker.
+  var hadController = !!navigator.serviceWorker.controller;
   var reloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function () {
-    if (reloaded) return;
+    if (reloaded || !hadController) return;
     reloaded = true;
     location.reload();
   });

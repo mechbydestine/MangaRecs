@@ -135,19 +135,6 @@ export default function CreatorDashboardScreen() {
     setSeriesLoading(false);
   }
 
-  async function loadFollowers(uid) {
-    if (!uid) return;
-    // Count distinct readers across all series owned by this creator
-    const { data: seriesRows } = await supabase.from('series').select('title').eq('creator_id', uid);
-    if (!seriesRows?.length) return;
-    const titles = seriesRows.map((s) => s.title);
-    const { count } = await supabase
-      .from('reading_progress')
-      .select('user_id', { count: 'exact', head: true })
-      .in('series_title', titles);
-    if (count != null) setFollowerCount(count);
-  }
-
   async function loadWeeklyReads(seriesList) {
     if (!seriesList?.length) return;
     const titles = seriesList.map((s) => s.title);
@@ -173,7 +160,6 @@ export default function CreatorDashboardScreen() {
       const uid = session?.user?.id ?? null;
       setCurrentUserId(uid);
       loadMySeries(uid);
-      loadFollowers(uid);
     });
   }, []);
 

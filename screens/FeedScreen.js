@@ -4,6 +4,7 @@
   Platform, Animated, Image, ActivityIndicator, ScrollView, Share, Linking,
 } from 'react-native';
 import { profileAccent } from '../utils/profileThemes';
+import * as Clipboard from 'expo-clipboard';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +26,7 @@ import { buildTrending } from '../utils/trendingFeed';
 import { requireAccount } from '../utils/guestGate';
 import { useNotifications } from '../utils/NotificationsContext';
 
-import { MANGA_POOL, COMPLETED_IDS } from '../utils/mangaPool';
+import { MANGA_POOL, isConcludedSeries } from '../utils/mangaPool';
 import { POOL_COVER_URLS } from '../utils/mangaPoolCovers';
 import { containsBlockedLanguage } from '../utils/contentFilter';
 import { showAppToast } from '../utils/appToast';
@@ -192,7 +193,7 @@ function getNextBatch(count = 8, savedIds = new Set()) {
       liked:        false,
       bookmarked:   savedIds.has(m.id),
       feedKey:      `${m.id}_${++_feedCounter}`,
-      status:       COMPLETED_IDS.has(m.id) ? 'Completed' : 'Ongoing',
+      status:       isConcludedSeries(m) ? 'Completed' : 'Ongoing',
     }));
 }
 
@@ -224,7 +225,7 @@ async function refillQueue() {
         bookmarked:    false,
         _fromSupabase: true,
         feedKey:       `${m.id}_${++_feedCounter}`,
-        status:        COMPLETED_IDS.has(m.id) ? 'Completed' : 'Ongoing',
+        status:        isConcludedSeries(m) ? 'Completed' : 'Ongoing',
       }));
       mapped.sort((a, b) => {
         const scoreDiff = preferenceScore(b) - preferenceScore(a);
@@ -258,7 +259,7 @@ function dequeueItems(n, savedIds = new Set()) {
     liked:      false,
     bookmarked: savedIds.has(m.id),
     feedKey:    `${m.id}_${++_feedCounter}`,
-    status:     COMPLETED_IDS.has(m.id) ? 'Completed' : 'Ongoing',
+    status:     isConcludedSeries(m) ? 'Completed' : 'Ongoing',
   }));
 }
 
@@ -288,7 +289,7 @@ async function buildSectionedFeed(savedIds, likedSet) {
     liked:        likedSet instanceof Set ? likedSet.has(item.id) : false,
     bookmarked:   savedIds.has(item.id),
     feedKey:      item.feedKey || `${item.id}_${++_feedCounter}`,
-    status:       COMPLETED_IDS.has(item.id) ? 'Completed' : 'Ongoing',
+    status:       isConcludedSeries(item) ? 'Completed' : 'Ongoing',
   }));
 }
 
@@ -767,7 +768,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
           onPress={handleLikeTap}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={liked ? 'Unlike' : 'Like'}
+          accessibilityLabel={liked ? t('a11y.unlike') : t('a11y.like')}
           accessibilityState={{ selected: liked }}
           accessibilityHint={t('a11y.likeCount', { n: formatCount(likeCount) })}>
           <Animated.View style={{ transform: [{ scale: likeScale }] }}>
@@ -806,7 +807,7 @@ const FeedCard = memo(function FeedCard({ item, index = 0, scrollY, onLike, onBo
           onPress={handleBookmarkTap}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark'}
+          accessibilityLabel={bookmarked ? t('a11y.removeBookmark') : t('a11y.bookmark')}
           accessibilityState={{ selected: bookmarked }}>
           <Animated.View style={{ transform: [{ scale: saveScale }] }}>
             <Ionicons
@@ -917,8 +918,8 @@ function CommentItem({ item, onLike, onReveal, revealed, onReply, colors }) {
             <TouchableOpacity onPress={toggleReplies}>
               <Text style={styles.repliesBtnText}>
                 {repliesExpanded
-                  ? '↑ Hide replies'
-                  : `↳ ${item.replyCount} ${item.replyCount === 1 ? 'reply' : 'replies'}`}
+                  ? `↑ ${t('feed.hideReplies')}`
+                  : `↳ ${t('feed.replyCount', { count: item.replyCount })}`}
               </Text>
             </TouchableOpacity>
           )}
@@ -1239,9 +1240,7 @@ export default function FeedScreen() {
   // the feed, so counts are live without needing a tap. Realtime keeps them
   // fresh afterwards.
   async function syncLiveCounts(items) {
-    // Video cards carry no manga_pool row — their ids would just be 120 misses
-    // on every batch.
-    const ids = [...new Set(items.filter((i) => i && !i.isCreatorUpload && i.kind !== 'video').map((i) => i.id))];
+    const ids = [...new Set(items.filter((i) => i && !i.isCreatorUpload).map((i) => i.id))];
     if (ids.length === 0) return;
     const { data, error } = await supabase
       .from('manga_pool')
@@ -1375,7 +1374,7 @@ export default function FeedScreen() {
     // install — so this is the moment the signup ask actually justifies itself.
     if (isNowSaved) {
       requireAccount({
-        what: 'save this series',
+        whatKey: 'gate.actionSave',
         onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
         action: () => applyBookmark(id, item, true),
       });
@@ -1490,8 +1489,11 @@ export default function FeedScreen() {
   }
 
   async function handleCopyLink() {
+    // This used to call Share.share() and then report "Copied!" regardless of
+    // what the user actually did with the share sheet — the one thing the
+    // button promises was the one thing it never did.
     try {
-      await Share.share({ message: getShareText().full });
+      await Clipboard.setStringAsync(getShareText().link);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (_) {}
@@ -1824,7 +1826,7 @@ export default function FeedScreen() {
             style={styles.headerBtn}
             onPress={openNotif}
             accessibilityRole="button"
-            accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
+            accessibilityLabel={unreadCount > 0 ? t('a11y.notificationsUnread', { count: unreadCount }) : t('a11y.notifications')}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
             {unreadCount > 0 && (
               <View style={styles.badge}>
@@ -1978,7 +1980,7 @@ export default function FeedScreen() {
                 style={[styles.commentInput, { color: colors.text, backgroundColor: colors.inputBg }]}
                 value={commentInput}
                 onChangeText={setCommentInput}
-                placeholder={commentSpoiler ? 'Add spoiler comment...' : 'Add comment...'}
+                placeholder={commentSpoiler ? t('placeholder.addSpoilerComment') : t('placeholder.addComment')}
                 placeholderTextColor={colors.muted}
                 multiline
                 maxLength={300}
@@ -2280,7 +2282,7 @@ export default function FeedScreen() {
                 accessibilityLabel={t('placeholder.searchOrUrl')}/>
               {siteInput ? (
                 <TouchableOpacity onPress={handleGo} style={styles.searchGoBtn}>
-                  <Text style={styles.searchGoBtnText}>Go</Text>
+                  <Text style={styles.searchGoBtnText}>{t('common.go')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>

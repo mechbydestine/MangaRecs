@@ -8,7 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const LEGACY_STORAGE_KEY = 'mangarecs_theme';
 export const THEME_STORAGE_KEY = 'mangarecs_theme_v2';
 
-// "Default" — the app's original black + purple look.
+// "Legacy" — the app's original black + purple look, and what used to be the
+// default. The stored id is still `default`: it is written into every existing
+// install's AsyncStorage, so renaming it would mean a second migration to buy
+// nothing. Only the label users see moved.
 //
 // One value has moved since: `primary` went #7B5CFF -> #7858FF. White label
 // text on the old #7B5CFF measured 4.36:1, just under the 4.5:1 WCAG AA bar
@@ -30,26 +33,24 @@ const defaultColors = {
   inputBg: '#080808',
 };
 
-// "Dark" — a distinct, moodier option: true-black surfaces and a monochrome
-// accent instead of Default's vivid purple.
+// "Dark" — true-black surfaces, same brand purple accent as Legacy/Light.
 //
-// `primary` has been through three values here. #5B4E8A measured 2.70:1
-// against the card, below the 3:1 WCAG floor for a colour that carries meaning
-// (active tabs, icons, selected states), so it read as disabled. #635495
-// cleared the bar but was still a desaturated purple — muddy next to Default's
-// and not really its own look. White is: it's the sharpest possible accent on
-// true black, and it makes Dark read as deliberately monochrome rather than as
-// Default with the colour drained out of it.
+// `primary` was white for a while (a monochrome-accent experiment — see git
+// history), but that reads as too bright/glary on a true-black background, so
+// it's back to the same #7858FF used everywhere else: one accent colour across
+// all three themes, Dark's distinctiveness comes from the true-black
+// background/card instead. #7858FF clears the 3:1 AA_LARGE floor against both
+// #000000 and #0C0C0E — verified by scripts/check-contrast.js.
 //
-// This is why `onPrimary` exists. Everywhere primary is a *fill* — button
-// backgrounds, the logo mark, filled pills — white-on-white would be invisible,
-// so the foreground has to come from the palette instead of a hardcoded #fff.
+// `onPrimary` flips back to white since primary is purple again: everywhere
+// primary is a *fill* — button backgrounds, the logo mark, filled pills — the
+// label needs to come from the palette instead of a hardcoded colour.
 // `muted` was #77777F at 4.40:1 on card, just under the body-text bar.
 const darkColors = {
   background: '#000000',
   card: '#0C0C0E',
-  primary: '#FFFFFF',
-  onPrimary: '#000000',
+  primary: '#7858FF',
+  onPrimary: '#FFFFFF',
   muted: '#797981',
   border: '#1A1A1C',
   accent: '#1D9E75',
@@ -79,10 +80,12 @@ const lightColors = {
 const PALETTES = { default: defaultColors, dark: darkColors, light: lightColors };
 const VALID_THEMES = ['default', 'dark', 'light'];
 
+// Where a brand-new install lands: whatever the OS is set to. A phone set to
+// light opens in Light; anything else (dark, or no preference) opens in
+// Legacy — never the moodier Dark, which is opt-in only. Also seeds the
+// *first paint*, before AsyncStorage has answered, so there's no flash: a
+// phone set to dark never paints Light for a frame.
 function seedFromSystem(systemScheme) {
-  // Brand-new installs (nothing saved yet, old or new key) start from the
-  // OS setting: a phone set to light opens in Light, anything else opens in
-  // Default — never the moodier Dark, which is opt-in only.
   return systemScheme === 'light' ? 'light' : 'default';
 }
 
@@ -107,10 +110,12 @@ export function ThemeProvider({ children }) {
           setThemeState(saved);
           return;
         }
-        // No v2 value yet — migrate from the old light/dark/system scheme so
-        // nobody's chosen look changes out from under them: old "dark" was
-        // this exact black+purple palette under a different name, and old
-        // "system" resolved to it on any phone with a dark OS setting.
+        // No v2 value yet. Either this is a genuinely new install — seeded
+        // from the OS setting, same as the first-paint guess above — or an
+        // old one that predates the split, in which case migrate so nobody's
+        // chosen look changes out from under them: old "dark" was this exact
+        // black+purple palette under a different name, and old "system"
+        // resolved to it on any dark-set phone.
         const legacy = await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
         let migrated = seedFromSystem(systemScheme);
         if (legacy === 'light') migrated = 'light';

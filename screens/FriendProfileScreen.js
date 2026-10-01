@@ -6,7 +6,7 @@
 // every render. cachePolicy defaults to 'disk'.
 import { Image } from 'expo-image';
 import { badgeName, badgeDesc } from '../utils/badgeText';
-import { getBlockedIds, blockUser, unblockUser } from '../utils/blocking';
+import { getBlockedIds, getBlockedEitherWay, blockUser, unblockUser } from '../utils/blocking';
 import { showAppToast } from '../utils/appToast';
 import { showAppAlert } from '../utils/appAlert';
 import { Ionicons } from '@expo/vector-icons';
@@ -222,11 +222,17 @@ export default function FriendProfileScreen({ route }) {
     // A friendship is the account's, not the install's — an anonymous session
     // loses the whole graph the moment the app goes away.
     const ok = await requireAccount({
-      what: 'add friends',
+      whatKey: 'gate.actionFriends',
       onSignUp: () => navigation.navigate('Profile', { screen: 'Settings' }),
       action: () => {},
     });
     if (!ok) return;
+
+    // Same symmetric block guard the Social tab's search/add path uses — this
+    // screen is reachable from a DM thread or an old notification, so it needs
+    // its own check rather than relying on the list that linked here.
+    const blocked = await getBlockedEitherWay(myId);
+    if (blocked.has(id)) return;
 
     // Re-read before inserting. UNIQUE(requester_id, addressee_id) is on the
     // ordered pair, so it does NOT stop a second row in the other direction:

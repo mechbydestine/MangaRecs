@@ -67,8 +67,20 @@ export const COMPLETED_IDS = new Set([
   'bttw','kngav','tgcf','mdzs','batf','blhvn','cold','awe','issh',
   'lotm','slt','wdqk','blcs','grtl','ssv','pfw',
   // English (concluded series in pool)
-  'loly','ily','orgns','alwhm','hmstk','prnce','sgac',
+  'loly','ily','orgns','alwhm','sgac',
 ]);
+
+// Whether a series' story has concluded. Checks the entry's own `status` field
+// first, then falls back to the curated set above for entries that don't carry
+// one. Both callers MUST go through this: FeedScreen's status chip used to test
+// only COMPLETED_IDS while LibraryScreen tested both, so the 311 pool entries
+// that have their own `status: 'completed'` but aren't in the set (My Hero
+// Academia among them) showed "Ongoing" on a Feed card while the Library
+// simultaneously shelved them as Completed.
+export function isConcludedSeries(entry) {
+  if (!entry) return false;
+  return entry.status === 'completed' || COMPLETED_IDS.has(String(entry.id));
+}
 
 export const MANGA_POOL = [
 

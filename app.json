@@ -3,11 +3,11 @@
     "name": "MangaRecs",
     "slug": "inklore",
     "scheme": "mangarecs",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,6 +19,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mangarecs.app",
+      "associatedDomains": [
+        "applinks:mangarecs.net"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Used to upload your profile photo.",
         "NSPhotoLibraryUsageDescription": "Used to select your profile photo.",
@@ -38,6 +41,17 @@
       "package": "com.mangarecs.app",
       "permissions": [
         "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "mangarecs.net", "pathPrefix": "/series" },
+            { "scheme": "https", "host": "mangarecs.net", "pathPrefix": "/discussion" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {

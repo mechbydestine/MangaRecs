@@ -10,6 +10,9 @@
 // following a series, rating, posting, messaging.
 import { supabase } from '../supabase';
 import { showAppAlert } from './appAlert';
+// Non-hook translator: this is a util called from event handlers, not a
+// component, so there's no useT() to reach for here.
+import { t } from './i18n';
 
 // Anonymous Supabase sessions are real users with real rows, so `session`
 // existing is not proof of an account. is_anonymous is the actual signal.
@@ -27,23 +30,26 @@ export async function isGuest() {
  * and offers to make one, without performing the action.
  *
  * @param {object}   opts
- * @param {string}   opts.what      what they were trying to do, lowercase — "save this series"
+ * @param {string}   opts.whatKey   i18n key for what they were trying to do,
+ *                                  e.g. 'gate.actionSave' — a key rather than a
+ *                                  literal so the phrase is translated in the
+ *                                  same language as the sentence it lands in
  * @param {Function} opts.onSignUp  navigate to signup
  * @param {Function} opts.action    the thing to run when they do have an account
  * @returns {Promise<boolean>} whether the action ran
  */
-export async function requireAccount({ what, onSignUp, action }) {
+export async function requireAccount({ whatKey, onSignUp, action }) {
   if (!(await isGuest())) {
     await action?.();
     return true;
   }
 
   showAppAlert(
-    'Make it yours',
-    `You're reading as a guest, so there's nowhere to ${what} yet. Create a free account and your library, progress, and streak follow you to any device.`,
+    t('gate.makeItYours'),
+    t('gate.guestBody', { action: t(whatKey) }),
     [
-      { text: 'Not now', style: 'cancel' },
-      { text: 'Create account', onPress: () => onSignUp?.() },
+      { text: t('gate.notNow'), style: 'cancel' },
+      { text: t('gate.createAccount'), onPress: () => onSignUp?.() },
     ],
   );
   return false;

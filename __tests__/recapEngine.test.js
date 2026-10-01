@@ -32,7 +32,6 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('../utils/LanguageContext', () => ({ useT: () => (k) => k }));
 jest.mock('../components/BadgeIcon', () => require('react-native').View);
-jest.mock('../utils/haptics', () => ({ selection() {}, light() {}, success() {} }));
 jest.mock('../utils/ambiencePlayer', () => ({ getState: () => ({ presetId: 'x' }) }));
 jest.mock('../utils/mangaCovers', () => ({ fetchMangaInfo: async () => null }));
 jest.mock('../utils/recapHistory', () => ({

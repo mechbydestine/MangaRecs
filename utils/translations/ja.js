@@ -1,5 +1,7 @@
 export default {
   common: {
+    go: "検索",
+    unknownError: '不明なエラー',
     ok: 'OK',
     or: 'または',
     gotIt: '了解',
@@ -52,6 +54,9 @@ export default {
   },
 
   feed: {
+    hideReplies: "返信を隠す",
+    replyCount_one: "返信{count}件",
+    replyCount_other: "返信{count}件",
     trending: '急上昇',
     destEmail: "メール",
     creatorLabel: "MangaRecs クリエイター",
@@ -91,6 +96,22 @@ export default {
   },
 
   library: {
+    tabReading: '読書中',
+    tabBookmarked: '保存済み',
+    tabDownloaded: 'ダウンロード済み',
+    tabCompleted: '読了',
+    deleteFromReading: '読書中から削除',
+    deleteFromCompleted: '読了から削除',
+    deleteFromBookmarked: '保存済みから削除',
+    deleteFromDownloaded: 'ダウンロード済みから削除',
+    deleteFromLibrary: 'ライブラリから削除',
+    sortRecent: '最近',
+    sortAlpha: 'A–Z',
+    sortCustom: 'カスタム',
+    arrangeDone: '完了',
+    arrangeMove: '並べ替え',
+    tapToRate: 'タップして評価',
+    tapToChangeRating: 'タップして評価を変更',
     downloadForOffline: '→ オフラインで読むためにチャプターをダウンロード',
     newChapter: "新章",
     trending: "トレンド",
@@ -160,7 +181,11 @@ export default {
     invertHint: 'ページの色を反転します（マンガのページはそのまま）',
     recent: "最近",
     autoScrollSpeed: "自動スクロール速度",
-    rotateHint: "端末を横向きにすると横画面で読めます",
+    findingManga: '作品を検索中…',
+    resumingWhereLeftOff: '前回の続きから再開します…',
+    loadingFromSite: '{site}から読み込み中…',
+    searchingOnSite: '{site}で検索中…',
+    findingBestSource: '最適なソースを探しています…',
     doublePage: "見開き表示",
     screenDimmer: "画面の明るさ調整",
     downloadDesc: "ページをライブラリに保存してオフラインで読めます",
@@ -183,7 +208,6 @@ export default {
     openInBrowser: 'ブラウザで開く',
     nightFilter: 'ナイトリーディング',
     forceDark: 'サイトを強制的にダークに',
-    allowLandscape: '横向きを許可',
     playing: '再生中',
     loadingFrom: '{site}から読み込み中…',
     nextChapter: '次の話',
@@ -391,9 +415,11 @@ export default {
     termsLabel: '利用規約',
     appearance: '外観',
     theme: 'テーマ',
-    themeDefault: 'デフォルト',
+    themeLegacy: 'レガシー',
     themeDark: 'ダーク',
     themeLight: 'ライト',
+    themeRecommended: 'おすすめ',
+    themeHint: '夜はダークやレガシーのほうが目に優しいので、ぜひお試しください。',
     reader: {
       section: 'リーダー',
       defaultMode: 'デフォルトのモード',
@@ -433,9 +459,18 @@ export default {
       section: 'コンテンツ',
       nsfw: '成人向けコンテンツを表示',
       nsfwDesc: '年齢確認が必要です',
+      nsfwDescOn: '18歳以上向けの内容をぼかさずに表示します。オフの場合、成人向けの表紙はアプリ全体でぼかされたままになります。',
+      nsfwDescVerify: '年齢を確認すると成人向けコンテンツが利用できます。',
       aiRecs: 'AIによるおすすめ',
       clearCache: '画像キャッシュを削除',
       cacheCleared: '画像キャッシュを削除しました',
+    },
+    update: {
+      disabled: 'このビルドでは更新が無効です（Expo Go / 開発クライアント）',
+      latest: '最新バージョンです',
+      found: '更新が見つかりました。ダウンロード中…',
+      downloaded: 'ダウンロード完了。再起動します…',
+      failed: '確認に失敗しました: {error}',
     },
     trackers: {
       section: '外部サービス連携',
@@ -487,6 +522,20 @@ export default {
   },
 
   auth: {
+    err: {
+      googleFailed: "Googleでのログインに失敗しました",
+      invalidCredentials: "ログイン情報が正しくありません",
+      usernameTooShort: "ユーザー名は3文字以上（英数字のみ）で入力してください。",
+      usernameTaken: "そのユーザー名は既に使われています。別の名前をお試しください。",
+      passwordTooShort: "パスワードは6文字以上で入力してください。",
+      passwordMismatch: "パスワードが一致しません",
+      profileSetupFailed: "プロフィールの作成に失敗しました。もう一度お試しください。",
+    },
+    notice: {
+      accountCreated: "アカウントを作成しました。メールで確認してからログインしてください。",
+      passwordUpdated: "パスワードを更新しました。新しいパスワードでログインしてください。",
+    },
+    enterCodeSentTo: "{email}に送信した6桁のコードを入力し、新しいパスワードを設定してください。",
     createAccount: 'アカウントを作成',
     createAnAccount: 'アカウントを作成する',
     logInExisting: '既存のアカウントでログイン',
@@ -518,11 +567,14 @@ export default {
     dobPrivacy: '生年月日は年齢確認のみに使用され、当社のサーバーには保存されません。',
     ageTitle: "年齢確認",
     confirmAge: "年齢を確認",
-    title: '{action}にはアカウントが必要です',
-    saveSeries: '作品の保存',
-    comment: 'コメント',
-    message: 'メッセージの送信',
-    later: 'あとで',
+    makeItYours: 'あなたのものに',
+    guestBody: 'ゲストとして読んでいるため、まだ{action}場所がありません。無料アカウントを作成すれば、ライブラリ・進捗・連続記録がどの端末にも引き継がれます。',
+    notNow: '今はしない',
+    createAccount: 'アカウントを作成',
+    actionSave: 'この作品を保存する',
+    actionRate: 'この作品を評価する',
+    actionComment: 'コメントを投稿する',
+    actionFriends: 'フレンドを追加する',
   },
 
   discussion: {
@@ -596,6 +648,7 @@ export default {
   },
 
   recap: {
+    dropsOn: "MangaRecapは{date}に公開されます。",
     shareSquare: '正方形画像として共有',
     blankMap: 'あなたの地図はまだ真っ白。そこが面白いところです。',
     compareEmpty: 'フレンドを何人か追加すれば、今期の比較が見られるようになります。',
@@ -671,6 +724,7 @@ export default {
   },
 
   toast: {
+    usernameNotSaved: 'ユーザー名を保存できませんでした。設定から変更してください',
     savedToLibrary: 'ライブラリに保存しました',
     removedFromLibrary: 'ライブラリから削除しました',
     bioUpdated: '自己紹介を更新しました',
@@ -700,6 +754,8 @@ export default {
   },
 
   placeholder: {
+    addComment: "コメントを追加...",
+    addSpoilerComment: "ネタバレコメントを追加...",
     chapterTitleNum: '第{n}話のタイトル（任意）',
     usernameOrEmail: 'ユーザー名またはメールアドレス',
     usernameRules: 'ユーザー名（英数字のみ）',
@@ -831,6 +887,9 @@ export default {
     addToProfile: 'プロフィールに追加',
     showcaseFull: '枠がいっぱいです (3/3)',
     nextBadge: '次のバッジ',
+    nextTier: '次のティア',
+    moreToGo: 'あと{n}',
+    from: '出典：{source}',
   },
 
   share: {
@@ -848,6 +907,12 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    unlike: "いいねを取り消す",
+    like: "いいね",
+    removeBookmark: "保存を解除",
+    bookmark: "保存",
+    notifications: "通知",
+    notificationsUnread: "通知、未読{count}件",
     likeCount: 'いいね {n} 件',
     commentCount: 'コメント {n} 件',
     decreaseGenreWeight: '{genre} の重みを下げる',

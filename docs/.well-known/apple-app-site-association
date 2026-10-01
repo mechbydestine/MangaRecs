@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID_FILL_IN_AFTER_APPLE_DEVELOPER_ENROLLMENT.com.mangarecs.app",
+        "paths": ["/series/*", "/discussion/*"]
+      }
+    ]
+  }
+}

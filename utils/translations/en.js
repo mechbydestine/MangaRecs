@@ -3,6 +3,8 @@
 // in English rather than breaking.
 export default {
   common: {
+    go: "Go",
+    unknownError: 'unknown error',
     ok: 'OK',
     or: 'or',
     gotIt: 'Got it',
@@ -55,6 +57,9 @@ export default {
   },
 
   feed: {
+    hideReplies: "Hide replies",
+    replyCount_one: "{count} reply",
+    replyCount_other: "{count} replies",
     trending: 'Trending',
     destEmail: "Email",
     creatorLabel: "MangaRecs Creator",
@@ -94,6 +99,22 @@ export default {
   },
 
   library: {
+    tabReading: 'Reading',
+    tabBookmarked: 'Bookmarked',
+    tabDownloaded: 'Downloaded',
+    tabCompleted: 'Completed',
+    deleteFromReading: 'Delete from Reading',
+    deleteFromCompleted: 'Delete from Completed',
+    deleteFromBookmarked: 'Delete from Bookmarked',
+    deleteFromDownloaded: 'Delete from Downloaded',
+    deleteFromLibrary: 'Delete from Library',
+    sortRecent: 'Recent',
+    sortAlpha: 'A–Z',
+    sortCustom: 'Custom',
+    arrangeDone: 'Done',
+    arrangeMove: 'Move',
+    tapToRate: 'Tap to rate',
+    tapToChangeRating: 'Tap to change your rating',
     downloadForOffline: '→ Download Chapter for offline reading',
     newChapter: "NEW CHAPTER",
     trending: "Trending",
@@ -163,7 +184,11 @@ export default {
     invertHint: 'Inverts page colors — manga pages stay normal',
     recent: "Recent",
     autoScrollSpeed: "Auto-scroll speed",
-    rotateHint: "Rotate your device to read in landscape",
+    findingManga: 'Finding manga…',
+    resumingWhereLeftOff: 'Resuming where you left off…',
+    loadingFromSite: 'Loading from {site}…',
+    searchingOnSite: 'Searching on {site}…',
+    findingBestSource: 'Finding the best source…',
     doublePage: "Double-page spread",
     screenDimmer: "Screen dimmer",
     downloadDesc: "Save pages to your Library for offline reading",
@@ -186,7 +211,6 @@ export default {
     openInBrowser: 'Open in Browser',
     nightFilter: 'Night reading filter',
     forceDark: 'Force dark on websites',
-    allowLandscape: 'Allow landscape',
     playing: 'Playing',
     loadingFrom: 'Loading from {site}…',
     nextChapter: 'Next chapter',
@@ -394,9 +418,11 @@ export default {
     termsLabel: 'Terms of Use',
     appearance: 'Appearance',
     theme: 'App Theme',
-    themeDefault: 'Default',
+    themeLegacy: 'Legacy',
     themeDark: 'Dark',
     themeLight: 'Light',
+    themeRecommended: 'Recommended',
+    themeHint: 'Dark and Legacy are easier on the eyes at night, so give one a try.',
     reader: {
       section: 'Reader',
       defaultMode: 'Default mode',
@@ -436,9 +462,18 @@ export default {
       section: 'Content',
       nsfw: 'Show mature content',
       nsfwDesc: 'Requires age verification',
+      nsfwDescOn: 'Show 18+ content clearly. When off, mature covers stay blurred throughout the app.',
+      nsfwDescVerify: 'Verify your age to unlock adult content.',
       aiRecs: 'AI recommendations',
       clearCache: 'Clear image cache',
       cacheCleared: 'Image cache cleared',
+    },
+    update: {
+      disabled: 'Updates disabled in this build (Expo Go / dev client)',
+      latest: "You're on the latest version",
+      found: 'Update found — downloading…',
+      downloaded: 'Downloaded — restarting…',
+      failed: 'Check failed: {error}',
     },
     trackers: {
       section: 'External Trackers',
@@ -490,6 +525,20 @@ export default {
   },
 
   auth: {
+    err: {
+      googleFailed: "Google sign-in failed",
+      invalidCredentials: "Invalid login credentials",
+      usernameTooShort: "Username must be at least 3 characters (letters and numbers only).",
+      usernameTaken: "That username is already taken — try another.",
+      passwordTooShort: "Password must be at least 6 characters.",
+      passwordMismatch: "Passwords do not match",
+      profileSetupFailed: "Profile setup failed. Please try again.",
+    },
+    notice: {
+      accountCreated: "Account created! Check your email to confirm, then log in.",
+      passwordUpdated: "Password updated! Log in with your new password.",
+    },
+    enterCodeSentTo: "Enter the 6-digit code we sent to {email}, then choose a new password.",
     createAccount: 'Create account',
     createAnAccount: 'Create an account',
     logInExisting: 'Log in to an existing account',
@@ -521,11 +570,14 @@ export default {
     dobPrivacy: 'Your date of birth is used only for age verification and is not stored on our servers.',
     ageTitle: "Age Verification",
     confirmAge: "Confirm Age",
-    title: 'Create an account to {action}',
-    saveSeries: 'save series',
-    comment: 'comment',
-    message: 'message readers',
-    later: 'Maybe later',
+    makeItYours: 'Make it yours',
+    guestBody: "You're reading as a guest, so there's nowhere to {action} yet. Create a free account and your library, progress, and streak follow you to any device.",
+    notNow: 'Not now',
+    createAccount: 'Create account',
+    actionSave: 'save this series',
+    actionRate: 'rate this series',
+    actionComment: 'post a comment',
+    actionFriends: 'add friends',
   },
 
   discussion: {
@@ -599,6 +651,7 @@ export default {
   },
 
   recap: {
+    dropsOn: "Your MangaRecap drops on {date}.",
     shareSquare: 'Share as a square image',
     blankMap: 'Your map is still blank — that is the fun part.',
     compareEmpty: "Add a few friends and this half's comparison will be waiting for you.",
@@ -674,6 +727,7 @@ export default {
   },
 
   toast: {
+    usernameNotSaved: "Couldn't save your username — set it in Settings",
     savedToLibrary: 'Saved to Library',
     removedFromLibrary: 'Removed from Library',
     bioUpdated: 'Bio updated',
@@ -703,6 +757,8 @@ export default {
   },
 
   placeholder: {
+    addComment: "Add comment...",
+    addSpoilerComment: "Add spoiler comment...",
     chapterTitleNum: 'Chapter {n} title (optional)',
     usernameOrEmail: 'Username or email',
     usernameRules: 'Username (letters & numbers only)',
@@ -794,6 +850,9 @@ export default {
     addToProfile: 'Add to profile',
     showcaseFull: 'Showcase full (3/3)',
     nextBadge: 'Next badge',
+    nextTier: 'Next tier',
+    moreToGo: '{n} more to go',
+    from: 'From {source}',
   },
 
   share: {
@@ -811,6 +870,12 @@ export default {
   // Screen-reader labels for controls that show only an icon. A sighted user
   // reads the glyph; VoiceOver/TalkBack has nothing to read without these.
   a11y: {
+    unlike: "Unlike",
+    like: "Like",
+    removeBookmark: "Remove bookmark",
+    bookmark: "Bookmark",
+    notifications: "Notifications",
+    notificationsUnread: "Notifications, {count} unread",
     likeCount: '{n} likes',
     commentCount: '{n} comments',
     decreaseGenreWeight: 'Decrease {genre} weight',
