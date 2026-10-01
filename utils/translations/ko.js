@@ -529,7 +529,6 @@ export default {
       usernameTaken: "이미 사용 중인 사용자 이름입니다. 다른 이름을 사용해 주세요.",
       passwordTooShort: "비밀번호는 6자 이상이어야 합니다.",
       passwordMismatch: "비밀번호가 일치하지 않습니다",
-      profileSetupFailed: "프로필 설정에 실패했습니다. 다시 시도해 주세요.",
     },
     notice: {
       accountCreated: "계정을 만들었습니다. 이메일에서 확인한 뒤 로그인해 주세요.",

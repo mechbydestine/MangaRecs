@@ -532,7 +532,6 @@ export default {
       usernameTaken: "That username is already taken — try another.",
       passwordTooShort: "Password must be at least 6 characters.",
       passwordMismatch: "Passwords do not match",
-      profileSetupFailed: "Profile setup failed. Please try again.",
     },
     notice: {
       accountCreated: "Account created! Check your email to confirm, then log in.",

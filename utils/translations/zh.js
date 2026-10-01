@@ -530,7 +530,6 @@ export default {
       usernameTaken: "该用户名已被占用，请换一个。",
       passwordTooShort: "密码至少需要 6 个字符。",
       passwordMismatch: "两次输入的密码不一致",
-      profileSetupFailed: "资料创建失败，请重试。",
     },
     notice: {
       accountCreated: "账号已创建！请在邮箱中确认后登录。",

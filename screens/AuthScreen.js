@@ -187,26 +187,22 @@ export default function AuthScreen() {
       return;
     }
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: data.user.id,
-        username,
-        display_name: username,
-        streak_count: 0,
-        chapters_read: 0,
-        hours_read: 0,
-        night_reads: 0,
-        genres_count: 0,
-        shares_count: 0,
-        manga_count: 0,
-        ratings_count: 0,
-        accepted_guidelines: false,
-        created_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
-      if (profileError) {
-        setError(profileError.message || t('auth.err.profileSetupFailed'));
-        setLoading(false);
-        return;
-      }
+      // handle_new_user() already created this profile row from the username in
+      // the signup metadata, and every stat column carries a DEFAULT, so there
+      // is nothing left to insert. What used to be here was an upsert of
+      // `username` plus the whole stat block; since the row already exists it
+      // always took the ON CONFLICT DO UPDATE path, and section 36f revoked
+      // column UPDATE on the stat columns on purpose (they are writable only
+      // through the server-side RPCs, so a client cannot set hours_read=99999).
+      // It therefore always returned 42501, and this screen treated that as
+      // fatal for an account that had in fact just been created — the user saw
+      // a permission error and was then told the email was already registered.
+      // display_name IS in the granted set, so seed it and treat a failure as
+      // cosmetic: the UI already falls back to the username when it is unset.
+      await supabase
+        .from('profiles')
+        .update({ display_name: username })
+        .eq('id', data.user.id);
     }
     setLoading(false);
     if (!data.session) {

@@ -529,7 +529,6 @@ export default {
       usernameTaken: "Ce nom d’utilisateur est déjà pris. Essayez-en un autre.",
       passwordTooShort: "Le mot de passe doit comporter au moins 6 caractères.",
       passwordMismatch: "Les mots de passe ne correspondent pas",
-      profileSetupFailed: "La création du profil a échoué. Veuillez réessayer.",
     },
     notice: {
       accountCreated: "Compte créé ! Confirmez votre adresse e-mail, puis connectez-vous.",

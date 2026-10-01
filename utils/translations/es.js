@@ -529,7 +529,6 @@ export default {
       usernameTaken: "Ese nombre de usuario ya está en uso. Prueba con otro.",
       passwordTooShort: "La contraseña debe tener al menos 6 caracteres.",
       passwordMismatch: "Las contraseñas no coinciden",
-      profileSetupFailed: "No se pudo crear el perfil. Inténtalo de nuevo.",
     },
     notice: {
       accountCreated: "¡Cuenta creada! Revisa tu correo para confirmarla y luego inicia sesión.",

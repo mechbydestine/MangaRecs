@@ -529,7 +529,6 @@ export default {
       usernameTaken: "そのユーザー名は既に使われています。別の名前をお試しください。",
       passwordTooShort: "パスワードは6文字以上で入力してください。",
       passwordMismatch: "パスワードが一致しません",
-      profileSetupFailed: "プロフィールの作成に失敗しました。もう一度お試しください。",
     },
     notice: {
       accountCreated: "アカウントを作成しました。メールで確認してからログインしてください。",

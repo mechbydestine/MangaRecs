@@ -348,29 +348,23 @@ export default function OnboardingScreen({ onComplete }) {
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         if (username.trim()) {
-          // handle_new_user() seeds a username from the email local-part (or the
-          // OAuth profile) the instant the auth row is created, so by the time
-          // this step runs, claim_username's `WHERE username IS NULL` guard can
-          // never match for anyone who signed up through this flow — it returned
-          // ok:false and the handle the user was just told is "permanent" was
-          // silently discarded. Try the RPC first (it's race-safe for the
-          // genuinely-unset case, e.g. an anonymous guest with no email), then
-          // fall back to writing the column directly, which the owner holds a
-          // column-level UPDATE grant for on their own row.
+          // claim_username is the only path that can write this column, and
+          // that is deliberate: migration 62 phase B revoked `username` from
+          // the column-level UPDATE grant so a client cannot bypass the
+          // function's validation. 1.5.2 added a direct-update fallback here on
+          // the mistaken belief that the owner held that grant — it could only
+          // ever return 42501. The real defect was in the function: its guard
+          // was `WHERE username IS NULL`, a sentinel handle_new_user() had
+          // already made unreachable by seeding a handle at signup, so the
+          // claim silently failed for everyone. Migration 69 moves the guard
+          // onto an explicit username_claimed flag and makes re-claiming your
+          // own handle a success, so one call is now both necessary and enough.
           const desired = username.trim();
           let claimed = false;
           try {
             const { data: claim } = await supabase.rpc('claim_username', { new_username: desired });
             claimed = claim?.ok === true;
           } catch (_) {}
-          if (!claimed) {
-            const normalized = desired.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const { error: renameError } = await supabase
-              .from('profiles')
-              .update({ username: normalized })
-              .eq('id', data.user.id);
-            claimed = !renameError;
-          }
           // Don't trap the user in onboarding over this, but never let it fail
           // silently either — they were explicitly promised this handle.
           if (!claimed) showAppToast(t('toast.usernameNotSaved'));
