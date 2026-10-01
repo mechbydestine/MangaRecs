@@ -124,23 +124,31 @@ REVOKE ALL ON FUNCTION public.derive_unique_username(TEXT, UUID) FROM PUBLIC, an
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
-  asked    TEXT := NULLIF(NEW.raw_user_meta_data->>'username', '');
-  seed     TEXT := COALESCE(asked, split_part(COALESCE(NEW.email, ''), '@', 1));
-  final    TEXT;
-  wanted   TEXT;
+  asked  TEXT;
+  seed   TEXT;
+  seeded TEXT;
+  wanted TEXT;
 BEGIN
-  final  := public.derive_unique_username(seed, NEW.id);
+  -- Assigned here rather than as DECLARE defaults on purpose: defaults are
+  -- evaluated on block entry, which is not unambiguously covered by this
+  -- block's own EXCEPTION clause, and the whole point of that clause is that
+  -- nothing in this function can cost the user their account.
+  asked  := NULLIF(NEW.raw_user_meta_data->>'username', '');
+  seed   := COALESCE(asked, split_part(COALESCE(NEW.email, ''), '@', 1));
+  seeded := public.derive_unique_username(seed, NEW.id);
   wanted := lower(regexp_replace(COALESCE(asked, ''), '[^a-zA-Z0-9]', '', 'g'));
 
   INSERT INTO public.profiles (id, username, display_name, username_claimed)
   VALUES (
     NEW.id,
-    final,
-    COALESCE(asked, final),
+    seeded,
+    -- Raw, not normalized: display_name carries no format constraint, so this
+    -- keeps the capitalization the user actually typed.
+    COALESCE(asked, seeded),
     -- Only treat the handle as already claimed when the user explicitly asked
     -- for it AND got exactly it. If a collision forced a numeric suffix, leave
     -- the claim open so onboarding can let them pick again.
-    wanted <> '' AND wanted = final
+    wanted <> '' AND wanted = seeded
   )
   ON CONFLICT (id) DO NOTHING;
 
