@@ -2162,6 +2162,47 @@ GRANT EXECUTE ON FUNCTION set_feed_video_active(BIGINT, BOOLEAN) TO authenticate
 -- reads them off its profile row and can never write them, so a badge can't be
 -- awarded by a tampered UPDATE. Until this runs, the six badges that depend on
 -- them simply sit unearned — the client defaults every one of these to 0.
+--
+-- Run the whole section as one block. It opens a transaction and asserts every
+-- column it depends on before creating anything, because plpgsql does NOT
+-- resolve column references in a function body until that function runs: a
+-- wrong guess here would create cleanly and then break every comment insert,
+-- follow and DM reaction on a live app. The assertions turn that into a loud
+-- failure at migration time with nothing applied, instead of a silent one.
+
+BEGIN;
+
+DO $guard$
+DECLARE
+  missing TEXT := '';
+  expected TEXT[][] := ARRAY[
+    ['followers',            'following_id'],
+    ['comments',             'parent_id'],
+    ['comments',             'user_id'],
+    ['dm_message_reactions', 'user_id'],
+    ['reading_progress',     'user_id'],
+    ['reading_progress',     'series_title'],
+    ['manga_pool',           'title'],
+    ['manga_pool',           'lang'],
+    ['profiles',             'id']
+  ];
+  i INT;
+BEGIN
+  FOR i IN 1 .. array_length(expected, 1) LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name   = expected[i][1]
+         AND column_name  = expected[i][2]
+    ) THEN
+      missing := missing || expected[i][1] || '.' || expected[i][2] || '  ';
+    END IF;
+  END LOOP;
+  IF missing <> '' THEN
+    RAISE EXCEPTION 'section 65 aborted — these columns do not exist: %', missing
+      USING HINT = 'Fix the column names in section 65 to match the real schema, then re-run. Nothing has been applied.';
+  END IF;
+END $guard$;
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS weekend_reads       INTEGER DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS manga_titles        INTEGER DEFAULT 0;
@@ -2286,3 +2327,8 @@ WHERE p.id = sub.user_id;
 --   discussions -> discussions_started, reactions -> reactions_given
 -- (left as a note rather than a blind patch: the function body is section 37's
 -- and should be re-issued whole rather than edited in place.)
+-- Until that happens the client holds those six types back from the rarity call
+-- on purpose — see RARITY_TYPES in utils/badges.js — so this is a missing line
+-- of flavour text, not a broken request.
+
+COMMIT;
