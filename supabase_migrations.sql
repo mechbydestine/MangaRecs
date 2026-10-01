@@ -2155,3 +2155,134 @@ BEGIN
 END; $$;
 REVOKE ALL ON FUNCTION set_feed_video_active(BIGINT, BOOLEAN) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION set_feed_video_active(BIGINT, BOOLEAN) TO authenticated;
+
+-- 65. Badge stats for the 70-badge set (NOT YET APPLIED) ----------------------
+-- Six stats the new badge collection needs that nothing tracked before. All
+-- are server-owned like the rest of the stat columns (section 36): the client
+-- reads them off its profile row and can never write them, so a badge can't be
+-- awarded by a tampered UPDATE. Until this runs, the six badges that depend on
+-- them simply sit unearned — the client defaults every one of these to 0.
+
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS weekend_reads       INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS manga_titles        INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS manhwa_titles       INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS followers_count     INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS discussions_started INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS reactions_given     INTEGER DEFAULT 0;
+
+-- Weekend reads. Mirrors increment_night_reads: the SERVER decides whether it
+-- is the weekend, never the caller, so a client can't claim Saturday on a
+-- Tuesday. Rate limited the same way to cap a single day's contribution.
+CREATE OR REPLACE FUNCTION increment_weekend_reads()
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN; END IF;
+  IF EXTRACT(DOW FROM now()) NOT IN (0, 6) THEN RETURN; END IF;
+  PERFORM consume_rate(auth.uid(), 'weekend_reads', 5, INTERVAL '24 hours');
+  UPDATE profiles SET weekend_reads = COALESCE(weekend_reads, 0) + 1 WHERE id = auth.uid();
+END; $$;
+REVOKE ALL ON FUNCTION increment_weekend_reads() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION increment_weekend_reads() TO authenticated;
+
+-- Distinct manga vs manhwa titles, derived rather than counted incrementally so
+-- it stays correct if reading_progress is edited or back-filled. Language comes
+-- from manga_pool (ja = manga, ko = manhwa); titles not in the pool count for
+-- neither rather than guessing.
+CREATE OR REPLACE FUNCTION refresh_format_counts()
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_manga INTEGER; v_manhwa INTEGER;
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN; END IF;
+  SELECT
+    COUNT(DISTINCT rp.series_title) FILTER (WHERE mp.lang = 'ja'),
+    COUNT(DISTINCT rp.series_title) FILTER (WHERE mp.lang = 'ko')
+  INTO v_manga, v_manhwa
+  FROM reading_progress rp
+  JOIN manga_pool mp ON lower(trim(mp.title)) = lower(trim(rp.series_title))
+  WHERE rp.user_id = auth.uid();
+  UPDATE profiles
+     SET manga_titles  = COALESCE(v_manga, 0),
+         manhwa_titles = COALESCE(v_manhwa, 0)
+   WHERE id = auth.uid();
+END; $$;
+REVOKE ALL ON FUNCTION refresh_format_counts() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION refresh_format_counts() TO authenticated;
+
+-- Followers. The table has existed since the follow feature shipped; it was
+-- just never counted onto the profile, which is why no badge could read it.
+CREATE OR REPLACE FUNCTION sync_followers_count()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE target UUID;
+BEGIN
+  target := COALESCE(NEW.following_id, OLD.following_id);
+  UPDATE profiles SET followers_count = (
+    SELECT COUNT(*) FROM followers WHERE following_id = target
+  ) WHERE id = target;
+  RETURN NULL;
+END; $$;
+DROP TRIGGER IF EXISTS trg_sync_followers_count ON followers;
+CREATE TRIGGER trg_sync_followers_count
+AFTER INSERT OR DELETE ON followers
+FOR EACH ROW EXECUTE FUNCTION sync_followers_count();
+
+-- Discussions started = top-level comments only (a reply is not a discussion).
+CREATE OR REPLACE FUNCTION sync_discussions_started()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE target UUID;
+BEGIN
+  target := COALESCE(NEW.user_id, OLD.user_id);
+  UPDATE profiles SET discussions_started = (
+    SELECT COUNT(*) FROM comments WHERE user_id = target AND parent_id IS NULL
+  ) WHERE id = target;
+  RETURN NULL;
+END; $$;
+DROP TRIGGER IF EXISTS trg_sync_discussions_started ON comments;
+CREATE TRIGGER trg_sync_discussions_started
+AFTER INSERT OR DELETE ON comments
+FOR EACH ROW EXECUTE FUNCTION sync_discussions_started();
+
+-- Reactions given on DM messages.
+CREATE OR REPLACE FUNCTION sync_reactions_given()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE target UUID;
+BEGIN
+  target := COALESCE(NEW.user_id, OLD.user_id);
+  UPDATE profiles SET reactions_given = (
+    SELECT COUNT(*) FROM dm_message_reactions WHERE user_id = target
+  ) WHERE id = target;
+  RETURN NULL;
+END; $$;
+DROP TRIGGER IF EXISTS trg_sync_reactions_given ON dm_message_reactions;
+CREATE TRIGGER trg_sync_reactions_given
+AFTER INSERT OR DELETE ON dm_message_reactions
+FOR EACH ROW EXECUTE FUNCTION sync_reactions_given();
+
+-- Back-fill the derived counters for everyone who already has history, so the
+-- new badges reflect what people have actually done rather than starting at 0.
+UPDATE profiles p SET
+  followers_count     = (SELECT COUNT(*) FROM followers f WHERE f.following_id = p.id),
+  discussions_started = (SELECT COUNT(*) FROM comments c WHERE c.user_id = p.id AND c.parent_id IS NULL),
+  reactions_given     = (SELECT COUNT(*) FROM dm_message_reactions r WHERE r.user_id = p.id);
+
+-- Format counts back-fill. refresh_format_counts() only ever touches the
+-- caller's own row, so it can't do this; without it an existing reader starts
+-- at zero manga/manhwa until their next read triggers a refresh.
+UPDATE profiles p SET
+  manga_titles = sub.manga, manhwa_titles = sub.manhwa
+FROM (
+  SELECT rp.user_id,
+         COUNT(DISTINCT rp.series_title) FILTER (WHERE mp.lang = 'ja') AS manga,
+         COUNT(DISTINCT rp.series_title) FILTER (WHERE mp.lang = 'ko') AS manhwa
+    FROM reading_progress rp
+    JOIN manga_pool mp ON lower(trim(mp.title)) = lower(trim(rp.series_title))
+   GROUP BY rp.user_id
+) sub
+WHERE p.id = sub.user_id;
+
+-- badge_rarity knows types by a CASE over column names; the new ones need to be
+-- in it or every badge built on them reports no rarity at all.
+--   weekend -> weekend_reads, manga_titles -> manga_titles,
+--   manhwa_titles -> manhwa_titles, followers -> followers_count,
+--   discussions -> discussions_started, reactions -> reactions_given
+-- (left as a note rather than a blind patch: the function body is section 37's
+-- and should be re-issued whole rather than edited in place.)

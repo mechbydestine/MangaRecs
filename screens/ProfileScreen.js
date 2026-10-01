@@ -5,7 +5,7 @@
 // RN's Android disk cache is effectively absent, so they re-downloaded on
 // every render. cachePolicy defaults to 'disk'.
 import { Image } from 'expo-image';
-import { badgeName } from '../utils/badgeText';
+import { badgeName, badgeDisplayName } from '../utils/badgeText';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigation, useScrollToTop, useFocusEffect } from '@react-navigation/native';
@@ -285,13 +285,16 @@ export default function ProfileScreen() {
     () => Object.keys(BADGE_GRADES).map((gradeKey) => ({
       gradeKey,
       grade: BADGE_GRADES[gradeKey],
-      // Locked badges are visible (with progress) only for Bronze→Gold tiers;
-      // Platinum and above stay hidden until earned. Seasonal badges appear
-      // only inside their event window.
+      // Locked badges show with progress for Common→Platinum; Diamond and
+      // Legendary stay out of sight until earned. Mythics are the exception:
+      // they hold their slot as an unreadable silhouette, so the shape of what
+      // is left to chase is visible even when the badge itself isn't.
+      // Seasonal badges appear only inside their event window.
       badges: ALL_BADGES.filter((b) =>
         b.grade === gradeKey &&
         (!b.season || seasonActive(b) || earnedIds.has(b.id)) &&
-        (earnedIds.has(b.id) || b.image || (PROGRESS_GRADES.has(b.grade) && !b.hidden))),
+        (earnedIds.has(b.id) || b.image || b.grade === 'mythic' ||
+          (PROGRESS_GRADES.has(b.grade) && !b.hidden))),
     })).filter((g) => g.badges.length > 0),
     [earnedIds]
   );
@@ -1287,7 +1290,7 @@ export default function ProfileScreen() {
                               <BadgeIcon badge={badge} size={44} locked={!earned} />
                             </View>
                             <View style={styles.fullBadgeInfo}>
-                              <Text style={[styles.fullBadgeName, { color: earned ? item.grade.color : colors.muted }]}>{badgeName(badge)}</Text>
+                              <Text style={[styles.fullBadgeName, { color: earned ? item.grade.color : colors.muted }]}>{badgeDisplayName(badge, earned)}</Text>
                               {pinned && <Text style={[styles.badgePinHint, { color: colors.primary }]}>{t('profile.onProfile')}</Text>}
                               {prog && (
                                 <View style={styles.badgeProgWrap}>

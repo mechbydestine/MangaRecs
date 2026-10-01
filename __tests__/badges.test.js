@@ -41,16 +41,33 @@ describe('computeEarnedBadgeIds', () => {
   });
 
   it('awards the first-chapter badge at exactly 1', () => {
-    expect(computeEarnedBadgeIds({ chapters_read: 0 }).has('first_page')).toBe(false);
-    expect(computeEarnedBadgeIds({ chapters_read: 1 }).has('first_page')).toBe(true);
+    expect(computeEarnedBadgeIds({ chapters_read: 0 }).has('first_chapter')).toBe(false);
+    expect(computeEarnedBadgeIds({ chapters_read: 1 }).has('first_chapter')).toBe(true);
   });
 
   it('honours the boolean flags as well as the counters', () => {
     // has_comment exists because the counter can lag behind the action.
-    expect(computeEarnedBadgeIds({ has_comment: true }).has('speak_up')).toBe(true);
-    expect(computeEarnedBadgeIds({ comments_count: 1 }).has('speak_up')).toBe(true);
-    expect(computeEarnedBadgeIds({ has_like: true }).has('first_heart')).toBe(true);
-    expect(computeEarnedBadgeIds({ has_friend: true }).has('not_alone')).toBe(true);
+    expect(computeEarnedBadgeIds({ has_comment: true }).has('active_reader')).toBe(true);
+    expect(computeEarnedBadgeIds({ comments_count: 1 }).has('active_reader')).toBe(true);
+    expect(computeEarnedBadgeIds({ has_friend: true }).has('first_friend')).toBe(true);
+    expect(computeEarnedBadgeIds({ friends_count: 1 }).has('first_friend')).toBe(true);
+  });
+
+  it('counts badges-of-badges without letting them count each other', () => {
+    // `badges` requirements are measured against the first pass only, so two
+    // of them can never bootstrap one another into existence.
+    const everything = computeEarnedBadgeIds({
+      chapters_read: 99999, hours_read: 9999, streak_count: 9999, manga_count: 9999,
+      completed_count: 9999, comments_count: 9999, ratings_count: 9999,
+      likes_given: 9999, shares_count: 9999, friends_count: 9999,
+      genres_count: 99, account_days: 9999, night_reads: 999,
+    });
+    const meta = ALL_BADGES.filter((b) => b.requirement.type === 'badges');
+    expect(meta.length).toBeGreaterThan(0);
+    const nonMeta = [...everything].filter((id) => !meta.some((m) => m.id === id));
+    for (const m of meta) {
+      expect(everything.has(m.id)).toBe(nonMeta.length >= m.requirement.value);
+    }
   });
 
   it('is monotonic — more reading never removes a badge', () => {

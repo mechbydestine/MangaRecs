@@ -3,7 +3,12 @@ import { supabase } from '../supabase';
 import { ALL_BADGES, computeEarnedBadgeIds, profileToBadgeStats } from './badges';
 import { success as hapticSuccess } from './haptics';
 
-const EARNED_KEY = '@mangarecs/earnedBadgeIds_v1';
+// _v2: the 70-badge set renamed every id. Against a _v1 cache every badge a
+// reader already qualifies for would look newly earned and queue its own
+// ceremony — dozens of them, back to back, on the first launch after the
+// update. A new key means that launch takes the "no previous state" path below
+// and seeds silently instead.
+const EARNED_KEY = '@mangarecs/earnedBadgeIds_v2';
 
 // Held off until the badge system rework shipped — it has, so unlocks announce
 // again (activity feed, notification row, push) on top of the in-app ceremony.

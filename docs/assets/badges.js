@@ -1,409 +1,133 @@
-// Ported from utils/badges.js (the app's real badge engine) so the website
-// profile page computes the exact same earned badges from the same profiles
-// row. Kept in sync by hand — if utils/badges.js's ALL_BADGES/engine changes,
-// re-port here. Excludes: badge rarity (needs a Supabase RPC round-trip) and
-// the unused LEADERBOARD/relic/EARLY-MOMENTS tail in the source file, which
-// ProfileScreen.js itself never imports.
+// GENERATED FROM utils/badges.js — do not hand-edit.
+// Regenerate with scratchpad/port-web.mjs whenever the app's badge data or
+// engine changes, so mangarecs.net computes exactly the same earned set from
+// the same profiles row. Badge rarity is intentionally absent here: it needs a
+// Supabase RPC round-trip the static site doesn't make.
 
-var BADGE_GRADES = {
-  grey:   { label: 'Bronze',   color: '#D08A4E', bg: 'rgba(208,138,78,0.15)',  border: '#D08A4E',                glow: null },
-  green:  { label: 'Silver',   color: '#C4CCD8', bg: 'rgba(196,204,216,0.15)', border: '#C4CCD8',                glow: null },
-  blue:   { label: 'Gold',     color: '#F2B93B', bg: 'rgba(242,185,59,0.15)',  border: '#F2B93B',                glow: null },
-  indigo: { label: 'Platinum', color: '#4ECDC0', bg: 'rgba(78,205,192,0.15)',  border: '#4ECDC0',                glow: 'rgba(62,201,181,0.25)' },
-  purple: { label: 'Diamond',  color: '#7CC6FF', bg: 'rgba(124,198,255,0.15)', border: '#7CC6FF',                glow: 'rgba(90,169,240,0.20)' },
-  gold:   { label: 'Master',   color: '#B48CFF', bg: 'rgba(180,140,255,0.15)', border: '#B48CFF',                glow: 'rgba(143,92,240,0.30)' },
-  mythic: { label: 'Mythic',   color: '#FF5C7A', bg: 'rgba(244,63,94,0.20)',   border: 'rgba(251,113,133,0.60)', glow: 'rgba(244,63,94,0.40)' },
+import { supabase } from '../supabase';
+
+// Grade keys are historical (grey..mythic) — visible label/colors are the medal
+// ladder: Bronze → Silver → Gold → Platinum → Diamond → Master → Mythic.
+const BADGE_GRADES = {
+  grey:   { label: 'Common',    color: '#D4DCE8', bg: 'rgba(212,220,232,0.14)', border: '#D4DCE8',                glow: null },
+  green:  { label: 'Uncommon',  color: '#8CEFB4', bg: 'rgba(140,239,180,0.14)', border: '#8CEFB4',                glow: 'rgba(39,163,94,0.20)' },
+  blue:   { label: 'Platinum',  color: '#8FEFF9', bg: 'rgba(143,239,249,0.14)', border: '#8FEFF9',                glow: 'rgba(34,167,189,0.26)' },
+  indigo: { label: 'Diamond',   color: '#7FB2FF', bg: 'rgba(127,178,255,0.15)', border: '#7FB2FF',                glow: 'rgba(30,70,180,0.32)' },
+  gold:   { label: 'Legendary', color: '#FBE08A', bg: 'rgba(251,224,138,0.15)', border: '#FBE08A',                glow: 'rgba(217,154,20,0.38)' },
+  mythic: { label: 'Mythic',    color: '#FF9AAA', bg: 'rgba(255,154,170,0.18)', border: 'rgba(255,154,170,0.65)', glow: 'rgba(210,31,60,0.45)' },
 };
 
-var ALL_BADGES = [
+const ALL_BADGES = [
 
   // ══════════════════════════════════════════════════════════════════════
-  // BRONZE (15)   First steps. Welcome to MangaRecs.
+  // READING (15)
   // ══════════════════════════════════════════════════════════════════════
 
-  { id: 'first_page',       name: 'First Page',         icon: '📄', grade: 'grey', desc: 'Your very first page turned here',          requirement: { type: 'chapters',  value: 1   } },
-  { id: 'new_chapter',      name: 'New Chapter',         icon: '📖', grade: 'grey', desc: 'Your first series journey begins',                       requirement: { type: 'series',    value: 1   } },
-  { id: 'speak_up',         name: 'Speak Up',            icon: '💬', grade: 'grey', desc: 'First words shared with everyone',             requirement: { type: 'comments',  value: 1   } },
-  { id: 'first_heart',      name: 'First Heart',         icon: '❤️', grade: 'grey', desc: 'First heart given to a story',         requirement: { type: 'likes',     value: 1   } },
-  { id: 'not_alone',        name: 'Not Alone',           icon: '🤝', grade: 'grey', desc: 'Your first reading companion found',              requirement: { type: 'friends',   value: 1   } },
-  { id: 'face_of_mangarecs',  name: 'Fresh Face',    icon: '🪞', grade: 'grey', desc: 'Your face, now part of MangaRecs',                        requirement: { type: 'profile',   value: 1   } },
-  { id: 'getting_hooked',   name: 'Getting Hooked',      icon: '🪝', grade: 'grey', desc: '10 chapters down, the hook is set',         requirement: { type: 'chapters',  value: 10  } },
-  { id: 'first_hour',       name: 'First Hour',          icon: '⏱️', grade: 'grey', desc: 'One full hour lost in story',             requirement: { type: 'hours',     value: 1   } },
-  { id: 'day_one',          name: 'Day One',             icon: '📅', grade: 'grey', desc: 'Day one of the reading habit',              requirement: { type: 'streak',    value: 1   } },
-  { id: 'curious',          name: 'Curious',             icon: '🔍', grade: 'grey', desc: 'First genre of many explored',                       requirement: { type: 'genres',    value: 1   } },
-  { id: 'first_word',       name: 'First Word',          icon: '🗣️', grade: 'grey', desc: '3 comments echoing through the community',   requirement: { type: 'comments',  value: 3   } },
-  { id: 'spread_the_word',  name: 'Spread the Word',     icon: '📲', grade: 'grey', desc: 'Your first recommendation sent out',              requirement: { type: 'shares',    value: 1   } },
-  { id: 'your_verdict',     name: 'Your Verdict',        icon: '⭐', grade: 'grey', desc: 'Your first verdict on a story',              requirement: { type: 'ratings',   value: 1   } },
-  { id: 'more_please',      name: 'More Please',         icon: '📚', grade: 'grey', desc: 'Following 2 series all at once',   requirement: { type: 'series',    value: 2   } },
-  { id: 'sunrise_reader',   name: 'Sunrise Reader',      icon: '🌅', grade: 'grey', desc: 'Reading before the sun even rises',                     requirement: { type: 'special',   value: 1   }, hidden: true },
+  { id: 'first_chapter', name: "First Chapter", grade: 'grey', desc: "Your very first page turned here", requirement: { type: 'chapters', value: 1 } },
+  { id: 'hours_in', name: "Hours In", grade: 'grey', desc: "One full hour lost in story", requirement: { type: 'hours', value: 1 } },
+  { id: 'page_turner', name: "Page Turner", grade: 'green', desc: "Twenty-five chapters deep", requirement: { type: 'chapters', value: 25 } },
+  { id: 'chapter_hunter', name: "Chapter Hunter", grade: 'green', desc: "One hundred chapters down", requirement: { type: 'chapters', value: 100 } },
+  { id: 'time_spent', name: "Time Spent", grade: 'green', desc: "Ten hours given to the panels", requirement: { type: 'hours', value: 10 } },
+  { id: 'week_strong', name: "Week Strong", grade: 'green', desc: "Seven days straight, no gaps", requirement: { type: 'streak', value: 7 } },
+  { id: 'two_weeks', name: "Two Weeks", grade: 'green', desc: "Fourteen days without missing one", requirement: { type: 'streak', value: 14 } },
+  { id: 'deep_reader', name: "Deep Reader", grade: 'blue', desc: "Two hundred fifty chapters in", requirement: { type: 'chapters', value: 250 } },
+  { id: 'five_hundred', name: "Five Hundred", grade: 'blue', desc: "Five hundred chapters behind you", requirement: { type: 'chapters', value: 500 } },
+  { id: 'night_reader', name: "Night Reader", grade: 'blue', desc: "Ten nights reading past midnight", requirement: { type: 'midnight', value: 10 } },
+  { id: 'weekend_reader', name: "Weekend Reader", grade: 'blue', desc: "Ten weekends spent in the panels", requirement: { type: 'weekend', value: 10 } },
+  { id: 'the_thousand', name: "The Thousand", grade: 'indigo', desc: "One thousand chapters read", requirement: { type: 'chapters', value: 1000 } },
+  { id: 'speed_reader', name: "Speed Reader", grade: 'indigo', desc: "Two hundred fifty hours logged", requirement: { type: 'hours', value: 250 } },
+  { id: 'veteran_reader', name: "Veteran Reader", grade: 'gold', desc: "Five thousand chapters, still going", requirement: { type: 'chapters', value: 5000 } },
+  { id: 'bookworm', name: "Bookworm", grade: 'mythic', desc: "Fifteen thousand chapters consumed", requirement: { type: 'chapters', value: 15000 }, hidden: true },
 
   // ══════════════════════════════════════════════════════════════════════
-  // SILVER (45)   You're getting into it.
+  // DISCOVERY (12)
   // ══════════════════════════════════════════════════════════════════════
 
-  // Reader Journey
-  { id: 'page_turner',       name: 'Page Turner',         icon: '📑', grade: 'green', desc: '40 chapters down, the hook is set',   requirement: { type: 'chapters',  value: 40  } },
-  { id: 'deep_diver',        name: 'Panel Hopper',           icon: '🤿', grade: 'green', desc: '75 chapters down, the hook is set',          requirement: { type: 'chapters',  value: 75  } },
-  { id: 'bookworm',          name: 'Binge Reader',             icon: '📗', grade: 'green', desc: '150 chapters deep into the panels',       requirement: { type: 'chapters',  value: 150 } },
-  { id: 'story_addict',      name: 'Deep Diver',         icon: '📘', grade: 'green', desc: '300 chapters deep into the panels',     requirement: { type: 'chapters',  value: 300 } },
-
-  // Time Spent
-  { id: 'regular_reader',    name: 'Time Dipper',       icon: '🕐', grade: 'green', desc: '3 hours given to the panels',               requirement: { type: 'hours',     value: 3   } },
-  { id: 'time_well_spent',   name: 'Regular Reader',      icon: '🕙', grade: 'green', desc: '8 hours given to the panels',                            requirement: { type: 'hours',     value: 8   } },
-  { id: 'dedicated',         name: 'Hooked Hours',            icon: '📌', grade: 'green', desc: '15 hours given to the panels',              requirement: { type: 'hours',     value: 15  } },
-  { id: 'deep_session',      name: 'Deep Session',         icon: '🕕', grade: 'green', desc: '30 hours given to the panels',             requirement: { type: 'hours',     value: 30  } },
-  { id: 'committed',         name: 'Committed',            icon: '⏰', grade: 'green', desc: '50 hours given to the panels',         requirement: { type: 'hours',     value: 50  } },
-
-  // Streaks
-  { id: 'back_again',        name: 'Back Again',           icon: '🔁', grade: 'green', desc: '2 days straight without missing one',               requirement: { type: 'streak',    value: 2   } },
-  { id: 'consistent',        name: 'Three Straight',           icon: '🔁', grade: 'green', desc: '3 days straight without missing one',             requirement: { type: 'streak',    value: 3   } },
-  { id: 'week_warrior',      name: 'Week Warrior',         icon: '🗓️', grade: 'green', desc: '7 days straight without missing one',              requirement: { type: 'streak',    value: 7   } },
-  { id: 'habit_formed',      name: 'Habit Formed',         icon: '💪', grade: 'green', desc: '14 days straight without missing one',    requirement: { type: 'streak',    value: 14  } },
-  { id: 'cant_stop_wont',    name: 'Three Weeks',   icon: '🔥', grade: 'green', desc: '21 days straight without missing one',        requirement: { type: 'streak',    value: 21  } },
-
-  // Social Comments
-  { id: 'chatty',            name: 'Chatty',               icon: '💬', grade: 'green', desc: '8 comments echoing through the community',                requirement: { type: 'comments',  value: 8   } },
-  { id: 'vocal',             name: 'Vocal',                icon: '📣', grade: 'green', desc: '40 comments echoing through the community',           requirement: { type: 'comments',  value: 40  } },
-
-  // Social Likes
-  { id: 'appreciator',       name: 'Appreciator',          icon: '👍', grade: 'green', desc: '15 hearts spread across MangaRecs',                     requirement: { type: 'likes',     value: 15  } },
-  { id: 'fifty_hearts',      name: 'Fifty Hearts',         icon: '❤️', grade: 'green', desc: '75 hearts spread across MangaRecs',     requirement: { type: 'likes',     value: 75  } },
-  { id: 'seventy_five_hearts',name: 'Heart Giver', icon: '💗', grade: 'green', desc: '120 hearts spread across MangaRecs',             requirement: { type: 'likes',     value: 120  } },
-
-  // Social Friends
-  { id: 'growing_circle',    name: 'Growing Circle',       icon: '👥', grade: 'green', desc: '5 readers riding with you now',                        requirement: { type: 'friends',   value: 5   } },
-  { id: 'squad_goals',       name: 'Squad Goals',          icon: '🤜', grade: 'green', desc: '8 readers riding with you now',             requirement: { type: 'friends',   value: 8   } },
-
-  // Discovery
-  { id: 'genre_curious',     name: 'Genre Curious',        icon: '🎲', grade: 'green', desc: 'Reading across 2 different genres',                      requirement: { type: 'genres',    value: 2   } },
-  { id: 'diverse_taste',     name: 'Diverse Taste',        icon: '🎨', grade: 'green', desc: 'Reading across 3 different genres',               requirement: { type: 'genres',    value: 3   } },
-  { id: 'well_rounded',      name: 'Well-Rounded',         icon: '🎯', grade: 'green', desc: 'Reading across 4 different genres',    requirement: { type: 'genres',    value: 4   } },
-
-  // Completed
-  { id: 'finisher',          name: 'Finisher',             icon: '✅', grade: 'green', desc: '2 stories finished, no loose ends',           requirement: { type: 'completed', value: 2   } },
-  { id: 'three_down',        name: 'Three Down',           icon: '🏁', grade: 'green', desc: '5 stories finished, no loose ends',               requirement: { type: 'completed', value: 5   } },
-
-  // Night
-  { id: 'night_reader',      name: 'Night Reader',         icon: '🌙', grade: 'green', desc: '2 nights reading past midnight',        requirement: { type: 'midnight',  value: 2   } },
-  { id: 'nightcrawler',      name: 'Nightcrawler',         icon: '🌃', grade: 'green', desc: '8 nights reading past midnight',       requirement: { type: 'midnight',  value: 8   } },
-
-  // Collection
-  { id: 'ten_titles',        name: 'Ten Titles',           icon: '🔟', grade: 'green', desc: '15 different worlds explored so far',                       requirement: { type: 'manga',     value: 15  } },
-  { id: 'growing_shelf',     name: 'Shelf Starter',        icon: '📦', grade: 'green', desc: '40 different worlds explored so far',               requirement: { type: 'manga',     value: 40  } },
-  { id: 'collector',         name: 'Collector',            icon: '🗃️', grade: 'green', desc: '75 different worlds explored so far',      requirement: { type: 'manga',     value: 75  } },
-  { id: 'enthusiast',        name: 'Enthusiast',           icon: '📙', grade: 'green', desc: '120 different worlds explored so far',  requirement: { type: 'manga',     value: 120  } },
-
-  // Series
-  { id: 'library_builder',   name: 'Library Builder',      icon: '🏗️', grade: 'green', desc: 'Following 8 series all at once',       requirement: { type: 'series',    value: 8   } },
-  { id: 'ten_on_the_go',     name: 'Ten On the Go',        icon: '📚', grade: 'green', desc: 'Following 15 series all at once',                 requirement: { type: 'series',    value: 15  } },
-
-  // Shares & Ratings
-  { id: 'word_spreader',     name: 'Word Spreader',        icon: '📤', grade: 'green', desc: '8 series recommended to other readers',                  requirement: { type: 'shares',    value: 8   } },
-  { id: 'early_opinion',     name: 'Early Opinion',        icon: '⭐', grade: 'green', desc: '8 series judged and rated',              requirement: { type: 'ratings',   value: 8   } },
-  { id: 'opinionated',       name: 'Opinionated',          icon: '🌟', grade: 'green', desc: '15 series judged and rated',           requirement: { type: 'ratings',   value: 15  } },
-
-  // Hidden
-  { id: 'lucky_seven',       name: 'Lucky Seven',   icon: '🎲', grade: 'green', desc: 'Seven chapters daily for seven days',      requirement: { type: 'special',   value: 1   }, hidden: true },
-  { id: 'cant_sleep',        name: 'Can\'t Sleep',         icon: '🌃', grade: 'green', desc: 'Five straight nights reading past midnight',               requirement: { type: 'special',   value: 1   }, hidden: true },
+  { id: 'new_series', name: "New Series", grade: 'grey', desc: "Your first series journey begins", requirement: { type: 'series', value: 1 } },
+  { id: 'genre_hopper', name: "Genre Hopper", grade: 'green', desc: "Reading across three different genres", requirement: { type: 'genres', value: 3 } },
+  { id: 'manga_explorer', name: "Manga Explorer", grade: 'green', desc: "Ten manga titles explored", requirement: { type: 'manga_titles', value: 10 } },
+  { id: 'manhwa_explorer', name: "Manhwa Explorer", grade: 'green', desc: "Ten manhwa titles explored", requirement: { type: 'manhwa_titles', value: 10 } },
+  { id: 'library_explorer', name: "Library Explorer", grade: 'green', desc: "Twenty-five different worlds visited", requirement: { type: 'manga', value: 25 } },
+  { id: 'completed_hunter', name: "Completed Hunter", grade: 'blue', desc: "Thirty stories seen through", requirement: { type: 'completed', value: 30 } },
+  { id: 'author_explorer', name: "Author Explorer", grade: 'blue', desc: "Fifty titles across many hands", requirement: { type: 'manga', value: 50 } },
+  { id: 'hidden_gem_hunter', name: "Hidden Gem Hunter", grade: 'indigo', desc: "One hundred titles unearthed", requirement: { type: 'manga', value: 100 } },
+  { id: 'trending_explorer', name: "Trending Explorer", grade: 'indigo', desc: "Eight genres followed at once", requirement: { type: 'genres', value: 8 } },
+  { id: 'deep_dive', name: "Deep Dive", grade: 'gold', desc: "One thousand hours below the surface", requirement: { type: 'hours', value: 1000 } },
+  { id: 'world_builder', name: "World Builder", grade: 'gold', desc: "Four hundred worlds collected", requirement: { type: 'manga', value: 400 } },
+  { id: 'multiverse_seeker', name: "Multiverse Seeker", grade: 'mythic', desc: "One thousand worlds, one reader", requirement: { type: 'manga', value: 1000 }, hidden: true },
 
   // ══════════════════════════════════════════════════════════════════════
-  // GOLD (50)   You're serious now.
+  // COLLECTION (8)
   // ══════════════════════════════════════════════════════════════════════
 
-  // Reader Journey
-  { id: 'chapter_chaser',    name: 'Story Addict',       icon: '⚡', grade: 'blue', desc: '500 chapters deep into the panels',                  requirement: { type: 'chapters',  value: 500  } },
-  { id: 'saga_reader',       name: 'Panel Storm',          icon: '⚔️', grade: 'blue', desc: '1,000 chapters — most readers never get here',   requirement: { type: 'chapters',  value: 1000  } },
-  { id: 'four_digits',       name: 'Volume Lord',          icon: '🔢', grade: 'blue', desc: '2,000 chapters — most readers never get here',         requirement: { type: 'chapters',  value: 2000 } },
-  { id: 'fifteen_hundred',   name: 'Ink Devourer',      icon: '📚', grade: 'blue', desc: '3,000 chapters — most readers never get here',        requirement: { type: 'chapters',  value: 3000 } },
-
-  // Time Spent
-  { id: 'forty_hours',       name: 'Night Owl',          icon: '🕑', grade: 'blue', desc: '80 hours given to the panels',                      requirement: { type: 'hours',     value: 80   } },
-  { id: 'fifty_hours',       name: 'Marathon Reader',          icon: '🕔', grade: 'blue', desc: '100 hours lived inside other worlds',          requirement: { type: 'hours',     value: 100   } },
-  { id: 'night_owl',         name: 'Time Sink',            icon: '🦉', grade: 'blue', desc: '150 hours lived inside other worlds',  requirement: { type: 'hours',     value: 150   } },
-  { id: 'marathon_reader',   name: 'Clock Breaker',      icon: '🏃', grade: 'blue', desc: '250 hours lived inside other worlds',           requirement: { type: 'hours',     value: 250  } },
-  { id: 'time_sink',         name: 'Hour Hoarder',            icon: '⌛', grade: 'blue', desc: '300 hours lived inside other worlds',                  requirement: { type: 'hours',     value: 300  } },
-
-  // Streaks
-  { id: 'monthly_master',    name: 'Monthly Master',       icon: '🗓️', grade: 'blue', desc: '30 straight days of pure discipline',                requirement: { type: 'streak',    value: 30   } },
-  { id: 'six_weeks_solid',   name: 'Six Weeks',      icon: '💪', grade: 'blue', desc: '45 straight days of pure discipline',                  requirement: { type: 'streak',    value: 45   } },
-  { id: 'two_month_titan',   name: 'Two Month Titan',      icon: '🔥', grade: 'blue', desc: '60 straight days of pure discipline',               requirement: { type: 'streak',    value: 60   } },
-
-  // Collection
-  { id: 'triple_digits',     name: 'World Hopper',        icon: '💥', grade: 'blue', desc: '200 different worlds explored so far',          requirement: { type: 'manga',     value: 200  } },
-  { id: 'rising_reader',     name: 'Triple Digits',        icon: '📚', grade: 'blue', desc: '250 different worlds explored so far',             requirement: { type: 'manga',     value: 250  } },
-  { id: 'heavy_shelf',       name: 'Shelf Filler',          icon: '🗄️', grade: 'blue', desc: '400 different worlds explored so far',   requirement: { type: 'manga',     value: 400  } },
-  { id: 'two_hundred_manga', name: 'Heavy Shelf',             icon: '🎖️', grade: 'blue', desc: '500 different worlds explored so far', requirement: { type: 'manga',   value: 500  } },
-
-  // Completed
-  { id: 'arc_ender',         name: 'Arc Ender',            icon: '🎬', grade: 'blue', desc: '10 stories finished, no loose ends',            requirement: { type: 'completed', value: 10    } },
-  { id: 'seven_complete',    name: 'Closer',       icon: '🎯', grade: 'blue', desc: '15 stories finished, no loose ends',                   requirement: { type: 'completed', value: 15    } },
-  { id: 'dozen_done',        name: 'Dozen Done',           icon: '🎬', grade: 'blue', desc: '25 stories finished, no loose ends',                        requirement: { type: 'completed', value: 25   } },
-
-  // Series & Friends
-  { id: 'twenty_series',     name: 'Twenty Series',        icon: '📚', grade: 'blue', desc: 'Following 40 series all at once',                requirement: { type: 'series',    value: 40   } },
-  { id: 'social_node',       name: 'Social Node',          icon: '🌐', grade: 'blue', desc: '20 readers riding with you now',                          requirement: { type: 'friends',   value: 20   } },
-  { id: 'wide_network',      name: 'Wide Network',         icon: '🌐', grade: 'blue', desc: '30 readers riding with you now',                           requirement: { type: 'friends',   value: 30   } },
-
-  // Comments & Likes
-  { id: 'discussion_king',   name: 'Discussion King',      icon: '👑', grade: 'blue', desc: '100 comments echoing through the community',      requirement: { type: 'comments',  value: 100   } },
-  { id: 'loud_voice',        name: 'Loud Voice',           icon: '📢', grade: 'blue', desc: '150 comments echoing through the community',       requirement: { type: 'comments',  value: 150   } },
-  { id: 'always_there',      name: 'Always There',         icon: '🗨️', grade: 'blue', desc: '250 comments echoing through the community',   requirement: { type: 'comments',  value: 250  } },
-  { id: 'love_machine',      name: 'Love Machine',         icon: '💝', grade: 'blue', desc: '200 hearts spread across MangaRecs',         requirement: { type: 'likes',     value: 200  } },
-  { id: 'two_fifty_hearts',  name: 'Heart Cannon',     icon: '💞', grade: 'blue', desc: '500 hearts spread across MangaRecs',                 requirement: { type: 'likes',     value: 500  } },
-
-  // Night, Genre, Shares
-  { id: 'midnight_regular',  name: 'Midnight Club',     icon: '🌃', grade: 'blue', desc: '30 nights reading past midnight',       requirement: { type: 'midnight',  value: 30   } },
-  { id: 'omnivore',          name: 'Omnivore',             icon: '🌈', grade: 'blue', desc: 'Reading across 5 different genres',         requirement: { type: 'genres',    value: 5    } },
-  { id: 'fifty_shares',      name: 'Town Crier',           icon: '📣', grade: 'blue', desc: '100 series recommended to other readers',         requirement: { type: 'shares',    value: 100   } },
-
-  // Discovery & Hidden
-  { id: 'world_traveler',    name: 'World Traveler',       icon: '🌍', grade: 'blue', desc: 'Manga, manhwa and manhua all read',              requirement: { type: 'special',   value: 1    } },
-  { id: 'one_more_chapter',  name: 'One More Chapter',     icon: '🎭', grade: 'blue', desc: 'Four straight hours in one sitting',             requirement: { type: 'binge',     value: 1    }, hidden: true },
-  { id: 'conversation_start',name: 'Icebreaker', icon: '💬', grade: 'blue', desc: 'Ten different readers replied to you',            requirement: { type: 'special',   value: 1    }, hidden: true },
+  { id: 'first_save', name: "First Save", grade: 'grey', desc: "Your first title saved", requirement: { type: 'manga', value: 1 } },
+  { id: 'save_10', name: "Save 10", grade: 'green', desc: "Ten titles on the shelf", requirement: { type: 'manga', value: 10 } },
+  { id: 'save_50', name: "Save 50", grade: 'green', desc: "Fifty titles on the shelf", requirement: { type: 'manga', value: 50 } },
+  { id: 'series_collector', name: "Series Collector", grade: 'green', desc: "Ten series followed at once", requirement: { type: 'series', value: 10 } },
+  { id: 'save_100', name: "Save 100", grade: 'blue', desc: "One hundred titles shelved", requirement: { type: 'manga', value: 100 } },
+  { id: 'genre_collector', name: "Genre Collector", grade: 'blue', desc: "Five genres in the collection", requirement: { type: 'genres', value: 5 } },
+  { id: 'massive_library', name: "Massive Library", grade: 'indigo', desc: "Two hundred titles gathered", requirement: { type: 'manga', value: 200 } },
+  { id: 'curator', name: "Curator", grade: 'gold', desc: "Two hundred fifty verdicts delivered", requirement: { type: 'ratings', value: 250 } },
 
   // ══════════════════════════════════════════════════════════════════════
-  // PLATINUM (50)   Beyond normal reader territory.
+  // COMMUNITY (12)
   // ══════════════════════════════════════════════════════════════════════
 
-  // Reader Journey
-  { id: 'three_thousand',    name: 'Panel Sage',       icon: '🌊', grade: 'indigo', desc: '6,000 chapters read — a living legend', requirement: { type: 'chapters',  value: 6000 } },
-  { id: 'library_dweller',   name: 'Library Ghost',      icon: '🏛️', grade: 'indigo', desc: '8,000 chapters read — a living legend',   requirement: { type: 'chapters',  value: 8000 } },
-
-  // Time Spent
-  { id: 'two_hundred_hrs',   name: 'Panel Dweller',    icon: '🕰️', grade: 'indigo', desc: '500 hours lived inside other worlds',           requirement: { type: 'hours',     value: 500  } },
-  { id: 'three_hundred_hrs', name: 'Time Bender',  icon: '⏰', grade: 'indigo', desc: '700 hours lived inside other worlds',                   requirement: { type: 'hours',     value: 700  } },
-  { id: 'year_in_hours',     name: 'Hour Legend',      icon: '📆', grade: 'indigo', desc: '750 hours lived inside other worlds', requirement: { type: 'hours',     value: 750  } },
-  { id: 'five_fifty_hrs',    name: 'Time Lord',     icon: '🕰️', grade: 'indigo', desc: '950 hours lived inside other worlds', requirement: { type: 'hours',   value: 950  } },
-
-  // Streaks
-  { id: 'century_streak',    name: 'Century Streak',       icon: '🌟', grade: 'indigo', desc: '100 straight days of pure discipline',                requirement: { type: 'streak',    value: 100  } },
-  { id: 'four_months_str',   name: 'Four Months',          icon: '🏆', grade: 'indigo', desc: '120 straight days of pure discipline',     requirement: { type: 'streak',    value: 120  } },
-  { id: 'one_sixty_str',     name: 'Iron Routine',       icon: '🏅', grade: 'indigo', desc: '160 straight days of pure discipline',     requirement: { type: 'streak',    value: 160  } },
-
-  // Collection
-  { id: 'three_hundred_mng', name: 'Archivist',        icon: '🔮', grade: 'indigo', desc: '750 different worlds explored so far', requirement: { type: 'manga',   value: 750  } },
-  { id: 'the_archivist',     name: 'Grand Curator',        icon: '🗄️', grade: 'indigo', desc: '900 different worlds explored so far',  requirement: { type: 'manga',     value: 900  } },
-  { id: 'five_hundred_mng',  name: 'Realm Collector',   icon: '📘', grade: 'indigo', desc: '1,200 different worlds explored so far',  requirement: { type: 'manga',     value: 1200  } },
-
-  // Completed
-  { id: 'fifteen_done',      name: 'Ending Hunter',         icon: '🎬', grade: 'indigo', desc: '30 stories finished, no loose ends',       requirement: { type: 'completed', value: 30   } },
-  { id: 'series_hunter',     name: 'Series Hunter',        icon: '🎯', grade: 'indigo', desc: '50 stories finished, no loose ends',  requirement: { type: 'completed', value: 50   } },
-  { id: 'thirty_five_done',  name: 'Forty Finisher',          icon: '🎯', grade: 'indigo', desc: '70 stories finished, no loose ends',    requirement: { type: 'completed', value: 70   } },
-
-  // Friends & Comments
-  { id: 'thirty_strong',     name: 'Crew Captain',        icon: '🤝', grade: 'indigo', desc: '60 readers riding with you now',               requirement: { type: 'friends',   value: 60   } },
-  { id: 'thirty_five_frnd',  name: 'Guild Leader',  icon: '👥', grade: 'indigo', desc: '70 readers riding with you now',                  requirement: { type: 'friends',   value: 70   } },
-  { id: 'voice_of_mangarecs',  name: 'The Voice',     icon: '📢', grade: 'indigo', desc: '400 comments echoing through the community',  requirement: { type: 'comments',  value: 400  } },
-  { id: 'two_fifty_voices',  name: 'Thread Weaver',     icon: '🗣️', grade: 'indigo', desc: '500 comments echoing through the community',         requirement: { type: 'comments',  value: 500  } },
-
-  // Likes & Night
-  { id: 'four_hundred_hrt',  name: 'Love Tsunami',  icon: '💕', grade: 'indigo', desc: '800 hearts spread across MangaRecs',         requirement: { type: 'likes',     value: 800  } },
-  { id: 'the_appreciator',   name: 'The Appreciator',      icon: '💎', grade: 'indigo', desc: '1,000 hearts spread across MangaRecs', requirement: { type: 'likes',    value: 1000  } },
-  { id: 'night_regular',     name: 'Night Regular',        icon: '🌌', grade: 'indigo', desc: '100 nights reading past midnight',  requirement: { type: 'midnight',  value: 100   } },
-  { id: 'darkness_dweller',  name: 'Nocturnal Soul',     icon: '🌌', grade: 'indigo', desc: '150 nights reading past midnight',      requirement: { type: 'midnight',  value: 150   } },
-  { id: 'nocturnal_soul',    name: 'Moon Reader',       icon: '🌑', grade: 'indigo', desc: '200 nights reading past midnight',       requirement: { type: 'midnight',  value: 200  } },
-
-  // AI Badges
-  { id: 'ai_approved',       name: 'AI Approved',          icon: '🤖', grade: 'indigo', desc: 'Took the algorithm up on one',               requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'trust_the_algo',    name: 'Trust the Algo',  icon: '🧠', grade: 'indigo', desc: 'Twenty AI picks read back to back',            requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'perfect_match_ai',  name: 'Perfect Match',        icon: '✨', grade: 'indigo', desc: 'Ten AI picks rated five stars', requirement: { type: 'special', value: 1    }, hidden: true },
-
-  // Genre, Series, Shares, Ratings
-  { id: 'six_genres',        name: 'Six Genres',           icon: '🌈', grade: 'indigo', desc: 'Reading across 6 different genres',             requirement: { type: 'genres',    value: 6    } },
-  { id: 'thirty_five_ser',   name: 'Grand Library',   icon: '📜', grade: 'indigo', desc: 'Following 70 series all at once',                requirement: { type: 'series',    value: 70   } },
+  { id: 'first_friend', name: "First Friend", grade: 'grey', desc: "Your first reading companion", requirement: { type: 'friends', value: 1 } },
+  { id: 'active_reader', name: "Active Reader", grade: 'grey', desc: "First words shared with everyone", requirement: { type: 'comments', value: 1 } },
+  { id: 'friend_circle', name: "Friend Circle", grade: 'green', desc: "Five readers riding with you", requirement: { type: 'friends', value: 5 } },
+  { id: 'community_contributor', name: "Community Contributor", grade: 'green', desc: "Ten comments in the threads", requirement: { type: 'comments', value: 10 } },
+  { id: 'helper', name: "Helper", grade: 'green', desc: "Twenty-five replies given freely", requirement: { type: 'comments', value: 25 } },
+  { id: 'guild_member', name: "Guild Member", grade: 'blue', desc: "Fifteen readers in your corner", requirement: { type: 'friends', value: 15 } },
+  { id: 'popular_user', name: "Popular User", grade: 'blue', desc: "Twenty-five readers following you", requirement: { type: 'followers', value: 25 } },
+  { id: 'mentor', name: "Mentor", grade: 'blue', desc: "Fifty comments guiding others", requirement: { type: 'comments', value: 50 } },
+  { id: 'discussion_starter', name: "Discussion Starter", grade: 'indigo', desc: "Fifty discussions you began", requirement: { type: 'discussions', value: 50 } },
+  { id: 'social_butterfly', name: "Social Butterfly", grade: 'indigo', desc: "Thirty readers in your circle", requirement: { type: 'friends', value: 30 } },
+  { id: 'trusted_member', name: "Trusted Member", grade: 'indigo', desc: "A full year with MangaRecs", requirement: { type: 'account', value: 365 } },
+  { id: 'community_leader', name: "Community Leader", grade: 'gold', desc: "Four hundred comments, a real voice", requirement: { type: 'comments', value: 400 } },
 
   // ══════════════════════════════════════════════════════════════════════
-  // DIAMOND (45)   The obsessed. The dedicated.
+  // RECOMMENDATIONS & SOCIAL (8)
   // ══════════════════════════════════════════════════════════════════════
 
-  // Reader Journey
-  { id: 'living_encyclopedia',name: 'Ink Legend', icon: '📚', grade: 'purple', desc: '10,000 chapters read — a living legend', requirement: { type: 'chapters', value: 10000 } },
-  { id: 'archive_keeper',    name: 'Page Emperor',       icon: '🗄️', grade: 'purple', desc: '12,000 chapters read — a living legend',  requirement: { type: 'chapters',  value: 12000 } },
-  { id: 'legend_of_ink',     name: 'Chapter Titan',        icon: '📖', grade: 'purple', desc: '15,000 chapters read — a living legend', requirement: { type: 'chapters', value: 15000 } },
-
-  // Time Spent
-  { id: 'five_hundred_hrs',  name: 'Chrono Reader',   icon: '🕰️', grade: 'purple', desc: '1,000 hours — reading is your life', requirement: { type: 'hours',     value: 1000  } },
-  { id: 'six_hundred_hrs',   name: 'Eternal Clock',    icon: '🌀', grade: 'purple', desc: '1,500 hours — reading is your life',  requirement: { type: 'hours',     value: 1500  } },
-  { id: 'seven_hundred_hrs', name: 'Hour Deity',  icon: '🌀', grade: 'purple', desc: '2,000 hours — reading is your life', requirement: { type: 'hours',    value: 2000  } },
-  { id: 'eight_hundred_hrs', name: 'Chrono Titan',  icon: '⏱️', grade: 'purple', desc: '2,500 hours — reading is your life',  requirement: { type: 'hours',     value: 2500  } },
-
-  // Streaks
-  { id: 'half_year_str',     name: 'Half Year Soul',            icon: '🌠', grade: 'purple', desc: '180 straight days of pure discipline',       requirement: { type: 'streak',    value: 180  } },
-  { id: 'eight_months_str',  name: 'Eight Months',         icon: '🏅', grade: 'purple', desc: '240 straight days of pure discipline',        requirement: { type: 'streak',    value: 240  } },
-  { id: 'nine_months_str',   name: 'Nine Months',    icon: '🏅', grade: 'purple', desc: '270 straight days of pure discipline',   requirement: { type: 'streak',    value: 270  } },
-  { id: 'three_hundred_str', name: '300 Day Club',   icon: '🏆', grade: 'purple', desc: '300 straight days of pure discipline',      requirement: { type: 'streak',    value: 300  } },
-
-  // Collection
-  { id: 'seven_hundred_mng', name: 'Atlas Reader',  icon: '🧿', grade: 'purple', desc: '2,000 different worlds explored so far',   requirement: { type: 'manga',     value: 2000  } },
-  { id: 'eight_hundred_mng', name: 'Myriad Worlds',  icon: '🔭', grade: 'purple', desc: '2,500 different worlds explored so far',              requirement: { type: 'manga',     value: 2500  } },
-  { id: 'nine_hundred_mng',  name: 'Infinite Shelf',   icon: '🧿', grade: 'purple', desc: '3,000 different worlds explored so far',      requirement: { type: 'manga',     value: 3000  } },
-
-  // Completed
-  { id: 'forty_finisher',    name: 'Saga Collector',       icon: '🎯', grade: 'purple', desc: '80 stories finished, no loose ends',    requirement: { type: 'completed', value: 80   } },
-  { id: 'conclusion_seeker', name: 'Grand Finisher',    icon: '🔚', grade: 'purple', desc: '150 stories finished, no loose ends', requirement: { type: 'completed', value: 150  } },
-
-  // Social
-  { id: 'community_pillar',  name: 'Hundred Strong',     icon: '🏟️', grade: 'purple', desc: '100 readers riding with you now',    requirement: { type: 'friends',   value: 100   } },
-  { id: 'forum_legend',      name: 'Debate Master',         icon: '🗿', grade: 'purple', desc: '1,000 comments echoing through the community',      requirement: { type: 'comments',  value: 1000  } },
-
-  // Genre, Series, Ratings, Likes, Night, Shares
-  { id: 'genre_master',      name: 'Genre Master',         icon: '🎭', grade: 'purple', desc: 'Reading across 8 different genres',  requirement: { type: 'genres',    value: 8    } },
-  { id: 'grand_library',     name: 'Sixty Following',        icon: '📜', grade: 'purple', desc: 'Following 100 series all at once',  requirement: { type: 'series',    value: 100   } },
-  { id: 'century_critic',    name: 'Century Critic',       icon: '✍️', grade: 'purple', desc: '200 series judged and rated',      requirement: { type: 'ratings',   value: 200  } },
-  { id: 'prolific_critic',   name: 'Prolific Critic',      icon: '✍️', grade: 'purple', desc: '300 series judged and rated',       requirement: { type: 'ratings',   value: 300  } },
-  { id: 'thousand_hearts',   name: 'Endless Love',  icon: '💜', grade: 'purple', desc: '2,000 hearts spread across MangaRecs', requirement: { type: 'likes',     value: 2000 } },
-  { id: 'movement_maker',    name: 'Movement Maker',       icon: '📡', grade: 'purple', desc: '300 series recommended to other readers',      requirement: { type: 'shares',    value: 300  } },
-
-  // Genre Mastery Collection
-  { id: 'isekai_survivor',   name: 'Isekai Survivor',      icon: '⚡', grade: 'purple', desc: 'Fifty isekai worlds survived and finished',    requirement: { type: 'special',   value: 1    } },
-  { id: 'romance_master',    name: 'Romance Master',       icon: '💖', grade: 'purple', desc: 'Fifty romance stories loved to completion',   requirement: { type: 'special',   value: 1    } },
-  { id: 'murim_disciple',    name: 'Murim Disciple',       icon: '⚔️', grade: 'purple', desc: 'Thirty murim paths walked to mastery',  requirement: { type: 'special',  value: 1    } },
-  { id: 'tower_climber',     name: 'Tower Climber',        icon: '🗼', grade: 'purple', desc: 'Thirty towers climbed to the top',          requirement: { type: 'special',   value: 1    } },
-  { id: 'regression_expert', name: 'Regressor',   icon: '♻️', grade: 'purple', desc: 'Thirty regressions lived all over again', requirement: { type: 'special', value: 1  } },
-
-  // Social Mastery Hidden
-  { id: 'reading_buddy',     name: 'Reading Buddy',        icon: '🤝', grade: 'purple', desc: 'A thirty-day streak shared with a friend', requirement: { type: 'special', value: 1   }, hidden: true },
-  { id: 'book_club',         name: 'Book Club',            icon: '📚', grade: 'purple', desc: 'Same series, same time, three friends',  requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'debate_club',       name: 'Debate Club',          icon: '💬', grade: 'purple', desc: 'One hundred likes on your comments',                 requirement: { type: 'special',   value: 1    }, hidden: true },
-
-  // Quirky Hidden
-  { id: 'touch_grass',       name: 'Touch Grass',          icon: '🌱', grade: 'purple', desc: 'Twelve hours read in one day',                   requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'double_feature',    name: 'Double Feature',       icon: '🎬', grade: 'purple', desc: 'Two different finales in one day',  requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'silent_reader',     name: 'Silent Reader',        icon: '🤫', grade: 'purple', desc: 'Five hundred chapters, not one comment',    requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'speed_reader',      name: 'Speed Reader',         icon: '💨', grade: 'purple', desc: 'Fifty chapters devoured in one day',                    requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'the_return',        name: 'The Return',           icon: '🔄', grade: 'purple', desc: 'Gone six months, came back hungry',  requirement: { type: 'special',   value: 1    }, hidden: true },
-  { id: 'true_completionist',name: 'Flawless Run',   icon: '🎯', grade: 'purple', desc: 'Finished without skipping a single day',     requirement: { type: 'special',   value: 1    }, hidden: true },
+  { id: 'first_recommendation', name: "First Recommendation", grade: 'grey', desc: "Your first recommendation sent", requirement: { type: 'shares', value: 1 } },
+  { id: 'recommender', name: "Recommender", grade: 'green', desc: "Five stories passed along", requirement: { type: 'shares', value: 5 } },
+  { id: 'recs_10', name: "10 Recs", grade: 'green', desc: "Ten recommendations shared", requirement: { type: 'shares', value: 10 } },
+  { id: 'social_reader', name: "Social Reader", grade: 'green', desc: "Fifty hearts given out", requirement: { type: 'likes', value: 50 } },
+  { id: 'recs_50', name: "50 Recs", grade: 'blue', desc: "Fifty recommendations sent", requirement: { type: 'shares', value: 50 } },
+  { id: 'friend_reaction', name: "Friend Reaction", grade: 'blue', desc: "Twenty-five reactions given", requirement: { type: 'reactions', value: 25 } },
+  { id: 'recs_100', name: "100 Recs", grade: 'indigo', desc: "One hundred recommendations shared", requirement: { type: 'shares', value: 100 } },
+  { id: 'shared_discovery', name: "Shared Discovery", grade: 'gold', desc: "One thousand hearts spread around", requirement: { type: 'likes', value: 1000 } },
 
   // ══════════════════════════════════════════════════════════════════════
-  // MASTER (30)   Legends. Events. The endgame.
+  // MASTERY / LONG-TERM (7)
   // ══════════════════════════════════════════════════════════════════════
 
-  // Reader Journey
-  { id: 'ten_thousand',      name: 'Panel Master',         icon: '🔑', grade: 'gold', desc: '20,000 chapters read — a living legend', requirement: { type: 'chapters', value: 20000 } },
-  { id: 'fifteen_thousand',  name: 'Ink Sovereign',     icon: '🌐', grade: 'gold', desc: '30,000 chapters read — a living legend',              requirement: { type: 'chapters',  value: 30000 } },
-
-  // Time Spent
-  { id: 'thousand_hours',    name: 'Hour Infinity',   icon: '🕯️', grade: 'gold', desc: '3,000 hours — reading is your life',       requirement: { type: 'hours',     value: 3000  } },
-  { id: 'fifteen_h_hrs',     name: 'Time Absolute',icon: '⚜️', grade: 'gold', desc: '4,000 hours — reading is your life', requirement: { type: 'hours',   value: 4000  } },
-  { id: 'two_thousand_hrs',  name: 'Beyond Time',   icon: '🔱', grade: 'gold', desc: '5,000 hours — reading is your life',       requirement: { type: 'hours',     value: 5000  } },
-
-  // Streaks
-  { id: 'full_year',         name: 'Year of Ink',            icon: '🎊', grade: 'gold', desc: '365 days unbroken — truly unstoppable', requirement: { type: 'streak',   value: 365   } },
-  { id: 'unstoppable',       name: 'Unstoppable',          icon: '⚡', grade: 'gold', desc: '500 days unbroken — truly unstoppable',       requirement: { type: 'streak',    value: 500   } },
-  { id: 'two_year_streak',   name: 'Two Year Flame',      icon: '🎗️', grade: 'gold', desc: '730 days unbroken — truly unstoppable',    requirement: { type: 'streak',    value: 730   } },
-
-  // Collection
-  { id: 'the_thousand',      name: 'World Sovereign',         icon: '🏆', grade: 'gold', desc: '4,000 different worlds explored so far',     requirement: { type: 'manga',     value: 4000  } },
-  { id: 'twelve_hundred_mng',name: 'Realm Emperor',       icon: '🥇', grade: 'gold', desc: '5,000 different worlds explored so far', requirement: { type: 'manga', value: 5000  } },
-  { id: 'fifteen_h_manga',   name: 'World Eater',icon: '👑', grade: 'gold', desc: '6,000 different worlds explored so far',        requirement: { type: 'manga',     value: 6000  } },
-  { id: 'two_thousand_manga',name: 'Omniverse',   icon: '🌟', grade: 'gold', desc: '7,000 different worlds explored so far', requirement: { type: 'manga',  value: 7000  } },
-
-  // Completed, Friends, Comments, Likes, Night
-  { id: 'the_completionist', name: 'Finale King',    icon: '🎖️', grade: 'gold', desc: '200 stories finished, no loose ends',  requirement: { type: 'completed', value: 200   } },
-  { id: 'grand_finisher',    name: 'Ending Emperor',       icon: '🏁', grade: 'gold', desc: '300 stories finished, no loose ends', requirement: { type: 'completed', value: 300   } },
-  { id: 'two_hundred_comp',  name: 'Finale Deity',          icon: '📰', grade: 'gold', desc: '400 stories finished, no loose ends',     requirement: { type: 'completed', value: 400   } },
-  { id: 'hundred_strong',    name: 'The Architect',       icon: '🌏', grade: 'gold', desc: '200 readers riding with you now',        requirement: { type: 'friends',   value: 200   } },
-  { id: 'community_builder', name: 'Server Famous',    icon: '🏙️', grade: 'gold', desc: '400 readers riding with you now',         requirement: { type: 'friends',   value: 400   } },
-  { id: 'comment_god',       name: 'Eternal Voice',          icon: '🎙️', grade: 'gold', desc: '2,000 comments echoing through the community',          requirement: { type: 'comments',  value: 2000  } },
-  { id: 'endless_love',      name: 'Love Deity',         icon: '💛', grade: 'gold', desc: '4,000 hearts spread across MangaRecs',  requirement: { type: 'likes',     value: 4000  } },
-  { id: 'eternal_night',     name: 'Night Sovereign',        icon: '🌑', grade: 'gold', desc: '750 nights reading past midnight', requirement: { type: 'midnight', value: 750  } },
-
-  // Account / Veteran
-  { id: 'veteran_1yr',       name: '1 Year Veteran',       icon: '🎂', grade: 'gold', desc: 'One full year with MangaRecs',                      requirement: { type: 'account',   value: 365   } },
-  { id: 'veteran_2yr',       name: '2 Year Legend',        icon: '🎁', grade: 'gold', desc: 'Two loyal years with MangaRecs',           requirement: { type: 'account',   value: 730   } },
-  { id: 'veteran_3yr',       name: '3 Year Deity',         icon: '🎇', grade: 'gold', desc: 'Three legendary years with MangaRecs',         requirement: { type: 'account',   value: 1095  } },
-
-  // Shares & Series
-  { id: 'the_spreader',      name: 'The Spreader',         icon: '🌍', grade: 'gold', desc: '1,000 series recommended to other readers',          requirement: { type: 'shares',    value: 1000   } },
-  { id: 'epic_library',      name: 'Story Ocean',         icon: '🏛️', grade: 'gold', desc: 'Following 200 series all at once',            requirement: { type: 'series',    value: 200   } },
-
-  // Event & Social Legends (hidden)
-  { id: 'founding_member',   name: 'Founding Member',      icon: '🏛️', grade: 'gold', desc: 'Here in the very first month',       requirement: { type: 'special',   value: 1     }, hidden: true },
-  { id: 'trusted_recomm',    name: 'Trendsetter',  icon: '🏅', grade: 'gold', desc: 'Five friends started reading your picks', requirement: { type: 'special', value: 1  }, hidden: true },
-  { id: 'taste_maker',       name: 'Taste Maker',          icon: '👑', grade: 'gold', desc: 'Ten readers bookmarked from your profile',       requirement: { type: 'special',   value: 1     }, hidden: true },
-  { id: 'community_fav',     name: 'Crowd Favorite',   icon: '💫', grade: 'gold', desc: 'Two hundred fifty profile likes earned',          requirement: { type: 'special',   value: 1     }, hidden: true },
-  { id: 'iron_will',         name: 'Iron Will',            icon: '🪨', grade: 'gold', desc: 'A full year without breaking once',         requirement: { type: 'special',   value: 1     }, hidden: true },
+  { id: 'daily_reader', name: "Daily Reader", grade: 'green', desc: "Three days in a row", requirement: { type: 'streak', value: 3 } },
+  { id: 'monthly_reader', name: "Monthly Reader", grade: 'blue', desc: "Thirty days unbroken", requirement: { type: 'streak', value: 30 } },
+  { id: 'milestone_tracker', name: "Milestone Tracker", grade: 'indigo', desc: "Twenty-five badges collected", requirement: { type: 'badges', value: 25 } },
+  { id: 'the_scholar', name: "The Scholar", grade: 'indigo', desc: "Five hundred hours of study", requirement: { type: 'hours', value: 500 } },
+  { id: 'yearly_reader', name: "Yearly Reader", grade: 'gold', desc: "One hundred eighty days straight", requirement: { type: 'streak', value: 180 } },
+  { id: 'the_critic', name: "The Critic", grade: 'gold', desc: "Two hundred fifty series judged", requirement: { type: 'ratings', value: 250 } },
+  { id: 'the_legend', name: "The Legend", grade: 'mythic', desc: "Sixty badges earned", requirement: { type: 'badges', value: 60 }, hidden: true },
 
   // ══════════════════════════════════════════════════════════════════════
-  // MYTHIC (15)   The impossible. Few will ever see these.
+  // SECRET / SPECIAL (8)
   // ══════════════════════════════════════════════════════════════════════
 
-  { id: 'mythic_transcendent',  name: 'Transcendent',      icon: '🌌', grade: 'mythic', desc: '7,500 different worlds explored so far',         requirement: { type: 'manga',     value: 7500  }, hidden: true },
-  { id: 'mythic_time_devourer', name: 'Time Devourer',         icon: '⏳', grade: 'mythic', desc: '15,000 hours — reading is your life',        requirement: { type: 'hours',     value: 15000 }, hidden: true },
-  { id: 'mythic_unbroken',      name: 'The Unbroken',          icon: '🔥', grade: 'mythic', desc: '1,000 days unbroken — truly unstoppable',  requirement: { type: 'streak',    value: 1000  }, hidden: true },
-  { id: 'mythic_three_year',    name: 'Immortal',   icon: '♾️', grade: 'mythic', desc: '1,095 days unbroken — truly unstoppable',         requirement: { type: 'streak',    value: 1095  }, hidden: true },
-  { id: 'mythic_singularity',   name: 'Singularity',   icon: '🌠', grade: 'mythic', desc: '75,000 chapters read — a living legend',  requirement: { type: 'chapters',  value: 75000 }, hidden: true },
-  { id: 'mythic_grand_comp',    name: 'Grand Finale',   icon: '👁️', grade: 'mythic', desc: '750 stories finished, no loose ends',       requirement: { type: 'completed', value: 750   }, hidden: true },
-  { id: 'mythic_god_community', name: 'God of Community',      icon: '🌐', grade: 'mythic', desc: '1,500 readers riding with you now',                      requirement: { type: 'friends',   value: 1500  }, hidden: true },
-  { id: 'mythic_eternal_voice', name: 'Voice of Ages',     icon: '📯', grade: 'mythic', desc: '15,000 comments echoing through the community',            requirement: { type: 'comments',  value: 15000 }, hidden: true },
-  { id: 'mythic_love_deity',    name: 'Boundless Heart',        icon: '💘', grade: 'mythic', desc: '75,000 hearts spread across MangaRecs',                   requirement: { type: 'likes',     value: 75000 }, hidden: true },
-  { id: 'mythic_night_dwell',   name: 'Night Eternal', icon: '🌑', grade: 'mythic', desc: '1,500 nights reading past midnight',               requirement: { type: 'midnight',  value: 1500  }, hidden: true },
-  { id: 'mythic_grand_curator', name: 'Story Sovereign',     icon: '📚', grade: 'mythic', desc: 'Following 750 series all at once',                   requirement: { type: 'series',    value: 750   }, hidden: true },
-  { id: 'mythic_supreme_spr',   name: 'Evangelist',  icon: '🌍', grade: 'mythic', desc: '7,500 series recommended to other readers',   requirement: { type: 'shares',    value: 7500  }, hidden: true },
-  { id: 'mythic_oracle',        name: 'The Oracle',            icon: '🔮', grade: 'mythic', desc: '1,500 series judged and rated',                 requirement: { type: 'ratings',   value: 1500  }, hidden: true },
-  { id: 'mythic_decade',        name: 'The Decade',   icon: '🪐', grade: 'mythic', desc: 'A whole decade with MangaRecs',        requirement: { type: 'account',   value: 3650  }, hidden: true },
-  { id: 'mythic_incarnate',     name: 'Incarnate',     icon: '✴️', grade: 'mythic', desc: 'Every single badge — the final one',  requirement: { type: 'special',   value: 1     }, hidden: true },
-
-  // ═══ SEASONAL EVENTS — visible & earnable only inside their window ═══
-  { id: 'event_halloween26', name: "Night Shift '26", icon: '🎃', grade: 'purple', desc: '13 nights reading past midnight', requirement: { type: 'midnight', value: 13 }, season: { start: '2026-10-18', end: '2026-11-02' } },
-  { id: 'event_newyear27',   name: "New Year '27",    icon: '🎆', grade: 'purple', desc: '7 days straight without missing one',      requirement: { type: 'streak',   value: 7  }, season: { start: '2026-12-26', end: '2027-01-08' } },
-
-  // ═══ RELIC VAULT — Gold and above only. One-of-a-kind rendered relics, ═══
-  //     not a repeating ladder: 1 at Gold, 2 at Platinum, 3 at Diamond,
-  //     4 at Master, 5 at Mythic. Pre-rendered PNG art (assets/badges/relics),
-  // ═══ no frame — the render is the badge. ═══
-  { id: 'wv_katana_1', name: 'Twilight Fang', grade: 'blue', desc: 'A blade earned through countless chapters', requirement: { type: 'chapters', value: 15000 } },
-  { id: 'wv_daggers_1', name: 'Hunter\'s Twin Fang', grade: 'indigo', desc: 'Twin blades forged for the night owls', requirement: { type: 'midnight', value: 100 } },
-  { id: 'wv_bow_1', name: 'Twin-Moon Bow', grade: 'indigo', desc: 'A critic\'s eye, expertly trained', requirement: { type: 'ratings', value: 200 } },
-  { id: 'wv_greatsword_1', name: 'Ashborn Cleaver', grade: 'purple', desc: 'Forged from nine hundred read hours', requirement: { type: 'hours', value: 900 } },
-  { id: 'wv_spear_1', name: 'Stormpiercer', grade: 'purple', desc: 'A voice that pierces every thread', requirement: { type: 'comments', value: 400 } },
-  { id: 'wv_tome_1', name: 'Forbidden Grimoire', grade: 'purple', desc: 'Every genre, mastered and catalogued', requirement: { type: 'genres', value: 10 } },
-  { id: 'wv_scythe_1', name: 'Reaper\'s Toll', grade: 'gold', desc: 'Endings collected like a debt owed', requirement: { type: 'completed', value: 120 } },
-  { id: 'wv_crown_1', name: 'Vanguard Circlet', grade: 'gold', desc: 'Crowned by one hundred fifty friends', requirement: { type: 'friends', value: 150 } },
-  { id: 'wv_katana_2', name: 'Moonfall Katana', grade: 'gold', desc: 'Five hundred days, one unbroken blade', requirement: { type: 'streak', value: 500 } },
-  { id: 'wv_daggers_2', name: 'Twin Voidfangs', grade: 'gold', desc: 'Three thousand hearts, two silent blades', requirement: { type: 'likes', value: 3000 } },
-  { id: 'wv_greatsword_2', name: 'World Ender', grade: 'mythic', desc: 'Sixty thousand chapters — the world ends', requirement: { type: 'chapters', value: 60000 } },
-  { id: 'wv_tome_2', name: 'Codex of Eternity', grade: 'mythic', desc: 'Eleven years bound in one codex', requirement: { type: 'account', value: 4000 } },
-  { id: 'wv_scythe_2', name: 'Soulharvest', grade: 'mythic', desc: 'Six hundred endings, one true reaper', requirement: { type: 'completed', value: 600 } },
-  { id: 'wv_spear_2', name: 'Heaven\'s Lance', grade: 'mythic', desc: 'Twelve thousand hours pierce the sky', requirement: { type: 'hours', value: 12000 } },
-  { id: 'wv_crown_2', name: 'Crown of the Infinite', grade: 'mythic', desc: 'Six thousand titles, one final crown', requirement: { type: 'manga', value: 6000 } },
-
-  // ═══ EARLY MOMENTS — small, generous Bronze/Silver wins (2026-07-08 pass) ═══
-  { id: 'spark_one', name: 'Spark', grade: 'grey', desc: 'A tiny spark — three chapters in', requirement: { type: 'chapters', value: 3 } },
-  { id: 'first_flip', name: 'First Flip', grade: 'grey', desc: 'Six pages flipped, the habit begins', requirement: { type: 'chapters', value: 6 } },
-  { id: 'double_take', name: 'Double Take', grade: 'grey', desc: 'Three glances, one series worth it', requirement: { type: 'series', value: 3 } },
-  { id: 'quiet_nod', name: 'Quiet Nod', grade: 'grey', desc: 'A quiet nod — two things loved', requirement: { type: 'likes', value: 2 } },
-  { id: 'first_reply', name: 'First Reply', grade: 'grey', desc: 'Two comments — you found your voice', requirement: { type: 'comments', value: 2 } },
-  { id: 'hey_there', name: 'Hey There', grade: 'grey', desc: 'Two readers now in your corner', requirement: { type: 'friends', value: 2 } },
-  { id: 'tiny_taste', name: 'Tiny Taste', grade: 'grey', desc: 'Two genres tasted, more await', requirement: { type: 'genres', value: 2 } },
-  { id: 'first_pass', name: 'First Pass', grade: 'grey', desc: 'Two stories passed along already', requirement: { type: 'shares', value: 2 } },
-  { id: 'quick_take', name: 'Quick Take', grade: 'grey', desc: 'Two verdicts delivered, taste forming', requirement: { type: 'ratings', value: 2 } },
-  { id: 'half_hour_in', name: 'Half Hour In', grade: 'grey', desc: 'Two hours lost in a story', requirement: { type: 'hours', value: 2 } },
-  { id: 'first_stretch', name: 'First Stretch', grade: 'grey', desc: 'Two days in, a streak begins', requirement: { type: 'streak', value: 2 } },
-  { id: 'toe_dipped', name: 'Toe Dipped', grade: 'grey', desc: 'Two worlds visited, more calling', requirement: { type: 'manga', value: 2 } },
-  { id: 'light_read', name: 'Light Read', grade: 'grey', desc: 'Fifteen chapters, comfortably hooked now', requirement: { type: 'chapters', value: 15 } },
-  { id: 'first_close', name: 'First Close', grade: 'grey', desc: 'One story reached its final page', requirement: { type: 'completed', value: 1 } },
-  { id: 'echo_back', name: 'Echo Back', grade: 'grey', desc: 'Four words shared with the room', requirement: { type: 'comments', value: 4 } },
-  { id: 'soft_glow', name: 'Soft Glow', grade: 'grey', desc: 'Five things worth a little love', requirement: { type: 'likes', value: 5 } },
-  { id: 'brief_note', name: 'Brief Note', grade: 'grey', desc: 'Three series, three honest opinions', requirement: { type: 'ratings', value: 3 } },
-  { id: 'casual_start', name: 'Casual Start', grade: 'grey', desc: 'Three hours in, no rush at all', requirement: { type: 'hours', value: 3 } },
-  { id: 'gentle_pull', name: 'Gentle Pull', grade: 'grey', desc: 'Three genres pulling at your attention', requirement: { type: 'genres', value: 3 } },
-  { id: 'third_wheel', name: 'Third Wheel', grade: 'grey', desc: 'Three readers riding along with you', requirement: { type: 'friends', value: 3 } },
-  { id: 'warm_up', name: 'Warm-Up', grade: 'green', desc: 'Thirty-five chapters, properly warmed up', requirement: { type: 'chapters', value: 35 } },
-  { id: 'taking_notes', name: 'Taking Notes', grade: 'green', desc: 'Fifteen comments, you pay attention', requirement: { type: 'comments', value: 15 } },
-  { id: 'heart_open', name: 'Heart Open', grade: 'green', desc: 'Thirty-five hearts given without hesitation', requirement: { type: 'likes', value: 35 } },
-  { id: 'circle_grows', name: 'Circle Grows', grade: 'green', desc: 'Four readers, a real circle now', requirement: { type: 'friends', value: 4 } },
-  { id: 'well_read', name: 'Well Read', grade: 'green', desc: 'Four series running, well and truly read', requirement: { type: 'series', value: 4 } },
-  { id: 'steady_hand', name: 'Steady Hand', grade: 'green', desc: 'Four days steady, the habit holds', requirement: { type: 'streak', value: 4 } },
-  { id: 'clocking_in', name: 'Clocking In', grade: 'green', desc: 'Sixteen hours clocked, a real habit', requirement: { type: 'hours', value: 16 } },
-  { id: 'fair_verdict', name: 'Fair Verdict', grade: 'green', desc: 'Seven fair verdicts, your taste sharpens', requirement: { type: 'ratings', value: 7 } },
-  { id: 'sharing_care', name: 'Sharing Is Caring', grade: 'green', desc: 'Seven recommendations sent with care', requirement: { type: 'shares', value: 7 } },
-  { id: 'open_book', name: 'Open Book', grade: 'green', desc: 'Five genres deep, staying curious', requirement: { type: 'genres', value: 5 } },
-  { id: 'collector_start', name: 'Starter Shelf', grade: 'green', desc: 'Sixteen titles, a shelf taking shape', requirement: { type: 'manga', value: 16 } },
-  { id: 'finishing_touch', name: 'Finishing Touch', grade: 'green', desc: 'Three endings seen, all satisfying', requirement: { type: 'completed', value: 3 } },
-  { id: 'night_creeps_in', name: 'Night Creeps In', grade: 'green', desc: 'Three nights the clock stopped mattering', requirement: { type: 'midnight', value: 3 } },
-  { id: 'keeping_pace', name: 'Keeping Pace', grade: 'green', desc: 'Sixty-five chapters, keeping steady pace', requirement: { type: 'chapters', value: 65 } },
+  { id: 'seasonal_event', name: "Seasonal Event", grade: 'blue', desc: "Thirteen nights past midnight", requirement: { type: 'midnight', value: 13 }, hidden: true },
+  { id: 'early_adopter', name: "Early Adopter", grade: 'indigo', desc: "Here before most of them", requirement: { type: 'account', value: 900 }, hidden: true },
+  { id: 'beta_tester', name: "Beta Tester", grade: 'gold', desc: "Two years with MangaRecs", requirement: { type: 'account', value: 730 }, hidden: true },
+  { id: 'collab_event', name: "Collab Event", grade: 'gold', desc: "Five hundred stories passed along", requirement: { type: 'shares', value: 500 }, hidden: true },
+  { id: 'the_oracle', name: "The Oracle", grade: 'mythic', desc: "Fifteen hundred series judged", requirement: { type: 'ratings', value: 1500 }, hidden: true },
+  { id: 'the_pillar', name: "The Pillar", grade: 'mythic', desc: "Two thousand comments written", requirement: { type: 'comments', value: 2000 }, hidden: true },
+  { id: 'limited_edition', name: "Limited Edition", grade: 'mythic', desc: "Three thousand hours given", requirement: { type: 'hours', value: 3000 }, hidden: true },
+  { id: 'the_secret', name: "The Secret", grade: 'mythic', desc: "Three hundred stories finished", requirement: { type: 'completed', value: 300 }, hidden: true },
 ];
+
+// ══════════════════════════════════════════════════════════════════════
+// Dynamic badge engine
+// ══════════════════════════════════════════════════════════════════════
 
 function profileToBadgeStats(profile) {
   if (!profile) return {};
@@ -425,6 +149,16 @@ function profileToBadgeStats(profile) {
     account_days:   profile.created_at
       ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000)
       : (profile.account_days || 0),
+    // Columns added for the 70-badge set. All default to 0 rather than being
+    // derived from anything else: a badge nobody can earn yet is better than
+    // one that unlocks off a guess. See BADGE_ART_SPEC.md for where each comes
+    // from once the migration lands.
+    weekend_reads:       profile.weekend_reads       || 0,
+    manga_titles:        profile.manga_titles        || 0,
+    manhwa_titles:       profile.manhwa_titles       || 0,
+    followers_count:     profile.followers_count     || 0,
+    discussions_started: profile.discussions_started || 0,
+    reactions_given:     profile.reactions_given     || 0,
     has_avatar:  !!profile.avatar_url,
     has_friend:  (profile.friends_count  || 0) >= 1,
     has_comment: (profile.comments_count || 0) >= 1,
@@ -432,77 +166,77 @@ function profileToBadgeStats(profile) {
   };
 }
 
-function computeEarnedBadgeIds(stats = {}) {
-  const {
-    chapters_read   = 0, hours_read      = 0, streak_count    = 0,
-    series_count    = 0, friends_count   = 0, comments_count  = 0,
-    likes_given     = 0, completed_count = 0, night_reads     = 0,
-    genres_count    = 0, shares_count    = 0, manga_count     = 0,
-    ratings_count   = 0, account_days    = 0,
-    has_avatar = false, has_friend = false, has_comment = false, has_like = false,
-  } = stats;
+// Every requirement type maps to exactly one stat key. Anything not in here is
+// unearnable by construction — which is how 29 badges in the old 250 silently
+// never unlocked, so new types go here first and get a badge second.
+const STAT_KEY_BY_TYPE = {
+  chapters: 'chapters_read', hours: 'hours_read', streak: 'streak_count',
+  series: 'series_count', friends: 'friends_count', comments: 'comments_count',
+  likes: 'likes_given', completed: 'completed_count', midnight: 'night_reads',
+  genres: 'genres_count', shares: 'shares_count', manga: 'manga_count',
+  ratings: 'ratings_count', account: 'account_days', weekend: 'weekend_reads',
+  manga_titles: 'manga_titles', manhwa_titles: 'manhwa_titles',
+  followers: 'followers_count', discussions: 'discussions_started',
+  reactions: 'reactions_given',
+};
 
+function computeEarnedBadgeIds(stats = {}) {
   const earned = new Set();
 
-  if (chapters_read  >= 1)  earned.add('first_page');
-  if (series_count   >= 1)  earned.add('new_chapter');
-  if (has_comment || comments_count >= 1) earned.add('speak_up');
-  if (has_like    || likes_given    >= 1) earned.add('first_heart');
-  if (has_friend  || friends_count  >= 1) earned.add('not_alone');
-  if (has_avatar)                         earned.add('face_of_mangarecs');
-  if (series_count   >= 2 || chapters_read >= 30) earned.add('more_please');
-  if (genres_count   >= 1 || chapters_read >= 1)  earned.add('curious');
-
+  // Pass one: everything measured directly off a stat.
   for (const badge of ALL_BADGES) {
-    if (badge.requirement.type === 'special' || badge.requirement.type === 'binge') continue;
+    const { type, value } = badge.requirement || {};
+    if (type === 'badges') continue;              // needs the count from this pass
     if (badge.season && !seasonActive(badge)) continue;
-    const { type, value } = badge.requirement;
-    if (type === 'chapters'  && chapters_read   >= value) earned.add(badge.id);
-    if (type === 'hours'     && hours_read       >= value) earned.add(badge.id);
-    if (type === 'streak'    && streak_count     >= value) earned.add(badge.id);
-    if (type === 'series'    && series_count     >= value) earned.add(badge.id);
-    if (type === 'friends'   && friends_count    >= value) earned.add(badge.id);
-    if (type === 'comments'  && comments_count   >= value) earned.add(badge.id);
-    if (type === 'likes'     && likes_given      >= value) earned.add(badge.id);
-    if (type === 'completed' && completed_count  >= value) earned.add(badge.id);
-    if (type === 'midnight'  && night_reads      >= value) earned.add(badge.id);
-    if (type === 'genres'    && genres_count     >= value) earned.add(badge.id);
-    if (type === 'shares'    && shares_count     >= value) earned.add(badge.id);
-    if (type === 'manga'     && manga_count      >= value) earned.add(badge.id);
-    if (type === 'ratings'   && ratings_count    >= value) earned.add(badge.id);
-    if (type === 'account'   && account_days     >= value) earned.add(badge.id);
-    if (type === 'profile'   && has_avatar)                earned.add(badge.id);
+    if (type === 'profile') {
+      if (stats.has_avatar) earned.add(badge.id);
+      continue;
+    }
+    const key = STAT_KEY_BY_TYPE[type];
+    if (key && (stats[key] || 0) >= value) earned.add(badge.id);
+  }
+
+  // Pass two: badges that count other badges. Deliberately measured against the
+  // first pass only, so they can never count each other and cascade.
+  const collected = earned.size;
+  for (const badge of ALL_BADGES) {
+    if (badge.requirement?.type !== 'badges') continue;
+    if (badge.season && !seasonActive(badge)) continue;
+    if (collected >= badge.requirement.value) earned.add(badge.id);
   }
 
   return earned;
 }
 
-var GRADE_ORDER = ['grey', 'green', 'blue', 'indigo', 'purple', 'gold', 'mythic'];
+// ── Badge progress & discovery helpers ──────────────────────────────────────
 
-var STAT_KEY_BY_TYPE = {
-  chapters: 'chapters_read', hours: 'hours_read', streak: 'streak_count',
-  series: 'series_count', friends: 'friends_count', comments: 'comments_count',
-  likes: 'likes_given', completed: 'completed_count', midnight: 'night_reads',
-  genres: 'genres_count', shares: 'shares_count', manga: 'manga_count',
-  ratings: 'ratings_count', account: 'account_days',
-};
+const GRADE_ORDER = ['grey', 'green', 'blue', 'indigo', 'gold', 'mythic'];
 
-var PROGRESS_GRADES = new Set(['grey', 'green', 'blue']);
+// Grades that show locked entries with a progress bar (Common/Uncommon/
+// Platinum); Diamond and above stay a mystery silhouette until earned.
+const PROGRESS_GRADES = new Set(['grey', 'green', 'blue']);
 
-function badgeProgress(badge, stats = {}) {
+// Progress toward a badge: { current, target, pct } — null when unmeasurable.
+// `badges` is measured against the caller's own earned count, since it counts
+// other badges rather than a profile column.
+function badgeProgress(badge, stats = {}, earnedCount = null) {
   const { type, value } = badge.requirement || {};
-  const key = STAT_KEY_BY_TYPE[type];
-  if (!key || !value) return null;
-  const current = Math.max(0, stats[key] || 0);
+  if (!value) return null;
+  const current = type === 'badges'
+    ? Math.max(0, earnedCount ?? stats.badges_earned ?? 0)
+    : Math.max(0, stats[STAT_KEY_BY_TYPE[type]] || 0);
+  if (type !== 'badges' && !STAT_KEY_BY_TYPE[type]) return null;
   return { current: Math.min(current, value), target: value, pct: Math.max(0, Math.min(1, current / value)) };
 }
 
+// Seasonal badge window check — non-seasonal badges are always active
 function seasonActive(badge, now = new Date()) {
   if (!badge.season) return true;
   const t = now.getTime();
   return t >= new Date(badge.season.start).getTime() && t < new Date(badge.season.end).getTime();
 }
 
+// The N unearned, visible badges closest to unlocking
 function nextUpBadges(stats = {}, earnedIds = new Set(), count = 3) {
   const candidates = [];
   for (const b of ALL_BADGES) {
@@ -516,6 +250,26 @@ function nextUpBadges(stats = {}, earnedIds = new Set(), count = 3) {
   return candidates.slice(0, count);
 }
 
+// The next rung in a badge's own line. There is no multi-tier "challenge"
+// object in this model — a line is just the badges that share a requirement
+// type, each a separate id pinned to one grade — so "what's next" is derived
+// here rather than stored, and the detail view can show a progression without
+// restructuring ids that earned-state, pins and rarity all key off.
+function nextInLine(badge) {
+  const { type, value } = badge?.requirement || {};
+  if (!type || !value) return null;
+  let best = null;
+  for (const b of ALL_BADGES) {
+    if (b.id === badge.id || b.requirement?.type !== type) continue;
+    if (b.hidden || (b.season && !seasonActive(b))) continue;
+    const v = b.requirement.value;
+    if (typeof v !== 'number' || v <= value) continue;
+    if (!best || v < best.requirement.value) best = b;
+  }
+  return best;
+}
+
+// Highest medal grade among earned badges — null when none earned
 function highestGradeEarned(earnedIds = new Set()) {
   let best = -1;
   for (const b of ALL_BADGES) {
@@ -526,6 +280,7 @@ function highestGradeEarned(earnedIds = new Set()) {
   return best >= 0 ? GRADE_ORDER[best] : null;
 }
 
+// True when grade meets or exceeds the required grade (for tier-gated rewards)
 function gradeAtLeast(grade, required) {
   return GRADE_ORDER.indexOf(grade) >= GRADE_ORDER.indexOf(required);
 }

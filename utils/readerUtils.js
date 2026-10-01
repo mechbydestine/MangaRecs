@@ -74,6 +74,13 @@ export function syncReadOpen(userId, title) {
     if (hour >= 0 && hour < 4) {
       supabase.rpc('increment_night_reads', { uid: userId }).then(() => {});
     }
+
+    // Weekend reads and the manga/manhwa split (migration section 65). Both are
+    // no-ops until that migration runs, and both decide on the server — the
+    // weekend check in particular, so the device clock can't claim Saturday.
+    // Errors are swallowed deliberately: a missing RPC must not break a read.
+    supabase.rpc('increment_weekend_reads').then(() => {}, () => {});
+    supabase.rpc('refresh_format_counts').then(() => {}, () => {});
   }
 }
 

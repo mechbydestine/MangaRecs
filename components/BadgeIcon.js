@@ -19,14 +19,15 @@ import { GRADE_ORDER, PROGRESS_GRADES } from '../utils/badges';
 // here is a radial-gradient disc, which also keeps this file portable to the
 // website renderer (docs/assets/badgeToken.js) with the same geometry.
 
+// Six tiers: Common / Uncommon / Platinum / Diamond / Legendary / Mythic.
+// Keys stay historical so showcase pins and the rarity RPC keep resolving.
 const TIERS = {
-  grey:   { rim:'#E0A264', mid:'#B06C33', deep:'#5A3418', disc:'#1A1310', leaves:5, rows:1, bigGem:false, ticks:false, motes:0, glow:0.00, irid:false },
-  green:  { rim:'#E8EEF6', mid:'#AAB4C4', deep:'#5A6475', disc:'#131519', leaves:6, rows:1, bigGem:false, ticks:false, motes:0, glow:0.10, irid:false },
-  blue:   { rim:'#FBE08A', mid:'#E8A921', deep:'#8A5A0A', disc:'#191307', leaves:7, rows:1, bigGem:true,  ticks:false, motes:0, glow:0.18, irid:false },
-  indigo: { rim:'#B5F5EA', mid:'#3EC9B5', deep:'#116E60', disc:'#091715', leaves:7, rows:1, bigGem:true,  ticks:true,  motes:0, glow:0.26, irid:false },
-  purple: { rim:'#CFEAFF', mid:'#5AA9F0', deep:'#1E5A9E', disc:'#0A131D', leaves:8, rows:1, bigGem:true,  ticks:true,  motes:3, glow:0.34, irid:false },
-  gold:   { rim:'#D9C2FF', mid:'#8F5CF0', deep:'#4A1FA0', disc:'#0F0A1B', leaves:8, rows:2, bigGem:true,  ticks:true,  motes:5, glow:0.42, irid:false },
-  mythic: { rim:'#FFD4DC', mid:'#F43F5E', deep:'#7A0F2E', disc:'#17080E', leaves:9, rows:2, bigGem:true,  ticks:true,  motes:7, glow:0.52, irid:true  },
+  grey:   { rim:'#D4DCE8', mid:'#8A93A3', deep:'#474E5A', disc:'#141619', leaves:5, rows:1, bigGem:false, ticks:false, motes:0, glow:0.00, irid:false },
+  green:  { rim:'#8CEFB4', mid:'#27A35E', deep:'#12512F', disc:'#0B1711', leaves:6, rows:1, bigGem:false, ticks:false, motes:0, glow:0.12, irid:false },
+  blue:   { rim:'#8FEFF9', mid:'#22A7BD', deep:'#0C5361', disc:'#071618', leaves:7, rows:1, bigGem:true,  ticks:true,  motes:0, glow:0.22, irid:false },
+  indigo: { rim:'#7FB2FF', mid:'#1E46B4', deep:'#0D1F5E', disc:'#070C1A', leaves:8, rows:1, bigGem:true,  ticks:true,  motes:3, glow:0.32, irid:false },
+  gold:   { rim:'#FBE08A', mid:'#D99A14', deep:'#6E4A05', disc:'#191307', leaves:8, rows:2, bigGem:true,  ticks:true,  motes:5, glow:0.42, irid:false },
+  mythic: { rim:'#FF9AAA', mid:'#D21F3C', deep:'#5E0C1C', disc:'#17080E', leaves:9, rows:2, bigGem:true,  ticks:true,  motes:7, glow:0.54, irid:true  },
 };
 
 const CX = 50, CY = 50, RING = 36, DISC = 30, WREATH = 40;
@@ -211,8 +212,22 @@ const EMBLEMS = {
   </>),
 };
 
+// Requirement types that don't have their own drawing borrow the nearest one.
+// These are placeholders until the commissioned art lands — once a badge has an
+// `image`, none of this runs for it.
+const EMBLEM_ALIAS = {
+  manga_titles: 'manga',
+  manhwa_titles: 'series',
+  followers: 'friends',
+  discussions: 'comments',
+  reactions: 'likes',
+  badges: 'special',
+  weekend: 'weekend',
+};
+
 export function badgeEmblemKey(badge) {
-  const k = badge?.emblem || badge?.requirement?.type;
+  const raw = badge?.emblem || badge?.requirement?.type;
+  const k = EMBLEM_ALIAS[raw] || raw;
   return EMBLEMS[k] ? k : 'special';
 }
 

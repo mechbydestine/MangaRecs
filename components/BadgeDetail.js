@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { badgeName, badgeDesc } from '../utils/badgeText';
+import { badgeDisplayName, badgeDisplayDesc, isMasked } from '../utils/badgeText';
 import { useT } from '../utils/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import BadgeIcon from './BadgeIcon';
@@ -16,7 +16,9 @@ export default function BadgeDetail({
   const t = useT();
   if (!badge) return null;
   const grade = BADGE_GRADES[badge.grade] || BADGE_GRADES.grey;
-  const rarity = formatRarity(badge);
+  // A rarity line on a masked badge still tells you how hard it is, which is
+  // most of what the mask is hiding.
+  const rarity = isMasked(badge, earned) ? null : formatRarity(badge);
   const prog = !earned && (PROGRESS_GRADES.has(badge.grade) || badge.image) ? badgeProgress(badge, stats || {}) : null;
 
   // What this badge leads to. Shown dimmed so the line reads as a progression
@@ -35,12 +37,12 @@ export default function BadgeDetail({
 
       <BadgeIcon badge={badge} size={96} locked={!earned} />
 
-      <Text style={[styles.name, { color: earned ? grade.color : colors.text }]}>{badgeName(badge)}</Text>
+      <Text style={[styles.name, { color: earned ? grade.color : colors.text }]}>{badgeDisplayName(badge, earned)}</Text>
       <View style={[styles.tierChip, { backgroundColor: grade.bg, borderColor: grade.border }]}>
         <Text style={[styles.tierChipText, { color: grade.color }]}>{grade.label}</Text>
       </View>
 
-      <Text style={[styles.desc, { color: colors.muted }]}>{badgeDesc(badge)}</Text>
+      <Text style={[styles.desc, { color: colors.muted }]}>{badgeDisplayDesc(badge, earned)}</Text>
 
       {/* Series badges always name the work they came from, never just the art. */}
       {!!badge.source && (
@@ -94,7 +96,7 @@ export default function BadgeDetail({
               <BadgeIcon badge={next} size={46} locked />
             </View>
             <View style={styles.nextTextWrap}>
-              <Text style={[styles.nextName, { color: colors.text }]} numberOfLines={1}>{badgeName(next)}</Text>
+              <Text style={[styles.nextName, { color: colors.text }]} numberOfLines={1}>{badgeDisplayName(next, false)}</Text>
               <Text style={[styles.nextTier, { color: nextGrade.color }]}>{nextGrade.label}</Text>
               {remaining > 0 && (
                 <Text style={[styles.nextRemaining, { color: colors.muted }]}>

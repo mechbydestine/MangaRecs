@@ -43,6 +43,9 @@ const SERVER_OWNED_FIELDS = new Set([
   'hours_read', 'chapters_read', 'streak_count', 'daily_log', 'manga_count',
   'completed_count', 'night_reads', 'shares_count', 'comments_count',
   'likes_given', 'friends_count', 'ratings_count',
+  // added with the 70-badge set (migration section 65)
+  'weekend_reads', 'manga_titles', 'manhwa_titles', 'followers_count',
+  'discussions_started', 'reactions_given',
 ]);
 
 export function ProfileProvider({ children }) {
@@ -104,6 +107,8 @@ export function ProfileProvider({ children }) {
     'friends_count', 'comments_count', 'likes_given', 'completed_count',
     'night_reads', 'genres_count', 'shares_count', 'manga_count',
     'ratings_count', 'account_days', 'avatar_url',
+    'weekend_reads', 'manga_titles', 'manhwa_titles', 'followers_count',
+    'discussions_started', 'reactions_given',
   ]);
 
   async function updateProfile(changes) {

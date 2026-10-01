@@ -15,14 +15,15 @@
 (function (global) {
   'use strict';
 
+  // Six tiers: Common / Uncommon / Platinum / Diamond / Legendary / Mythic.
+  // Must stay identical to TIERS in components/BadgeIcon.js.
   var TIERS = {
-    grey:   { rim:'#E0A264', mid:'#B06C33', deep:'#5A3418', disc:'#1A1310', leaves:5, rows:1, bigGem:false, ticks:false, motes:0, glow:0.00, irid:false },
-    green:  { rim:'#E8EEF6', mid:'#AAB4C4', deep:'#5A6475', disc:'#131519', leaves:6, rows:1, bigGem:false, ticks:false, motes:0, glow:0.10, irid:false },
-    blue:   { rim:'#FBE08A', mid:'#E8A921', deep:'#8A5A0A', disc:'#191307', leaves:7, rows:1, bigGem:true,  ticks:false, motes:0, glow:0.18, irid:false },
-    indigo: { rim:'#B5F5EA', mid:'#3EC9B5', deep:'#116E60', disc:'#091715', leaves:7, rows:1, bigGem:true,  ticks:true,  motes:0, glow:0.26, irid:false },
-    purple: { rim:'#CFEAFF', mid:'#5AA9F0', deep:'#1E5A9E', disc:'#0A131D', leaves:8, rows:1, bigGem:true,  ticks:true,  motes:3, glow:0.34, irid:false },
-    gold:   { rim:'#D9C2FF', mid:'#8F5CF0', deep:'#4A1FA0', disc:'#0F0A1B', leaves:8, rows:2, bigGem:true,  ticks:true,  motes:5, glow:0.42, irid:false },
-    mythic: { rim:'#FFD4DC', mid:'#F43F5E', deep:'#7A0F2E', disc:'#17080E', leaves:9, rows:2, bigGem:true,  ticks:true,  motes:7, glow:0.52, irid:true  }
+    grey:   { rim:'#D4DCE8', mid:'#8A93A3', deep:'#474E5A', disc:'#141619', leaves:5, rows:1, bigGem:false, ticks:false, motes:0, glow:0.00, irid:false },
+    green:  { rim:'#8CEFB4', mid:'#27A35E', deep:'#12512F', disc:'#0B1711', leaves:6, rows:1, bigGem:false, ticks:false, motes:0, glow:0.12, irid:false },
+    blue:   { rim:'#8FEFF9', mid:'#22A7BD', deep:'#0C5361', disc:'#071618', leaves:7, rows:1, bigGem:true,  ticks:true,  motes:0, glow:0.22, irid:false },
+    indigo: { rim:'#7FB2FF', mid:'#1E46B4', deep:'#0D1F5E', disc:'#070C1A', leaves:8, rows:1, bigGem:true,  ticks:true,  motes:3, glow:0.32, irid:false },
+    gold:   { rim:'#FBE08A', mid:'#D99A14', deep:'#6E4A05', disc:'#191307', leaves:8, rows:2, bigGem:true,  ticks:true,  motes:5, glow:0.42, irid:false },
+    mythic: { rim:'#FF9AAA', mid:'#D21F3C', deep:'#5E0C1C', disc:'#17080E', leaves:9, rows:2, bigGem:true,  ticks:true,  motes:7, glow:0.54, irid:true  }
   };
 
   var CX = 50, CY = 50, RING = 36, DISC = 30, WREATH = 40;
@@ -118,8 +119,16 @@
     weekend: '<circle cx="41" cy="49" r="9" fill="E"/><path d="M41 34v4.5M41 59.5V64M26 49h4.5M51.5 49H56M30.5 38.5l3 3M51.5 56.5l-3-3M30.5 59.5l3-3M51.5 41.5l-3 3" stroke="E" stroke-width="2" stroke-linecap="round" opacity="0.8"/><path d="M68 36c-6 2-10 7.5-10 13.5S62 61 68 63c-4-3.5-6.5-8-6.5-13.5S64 39.5 68 36Z" fill="E" opacity="0.85"/>'
   };
 
+  // Requirement types without their own drawing borrow the nearest one, until
+  // the commissioned art lands. Mirrors EMBLEM_ALIAS in BadgeIcon.js.
+  var ALIAS = {
+    manga_titles: 'manga', manhwa_titles: 'series', followers: 'friends',
+    discussions: 'comments', reactions: 'likes', badges: 'special'
+  };
+
   function emblemKey(badge) {
-    var k = (badge && badge.emblem) || (badge && badge.requirement && badge.requirement.type);
+    var raw = (badge && badge.emblem) || (badge && badge.requirement && badge.requirement.type);
+    var k = ALIAS[raw] || raw;
     return EMBLEMS[k] ? k : 'special';
   }
 

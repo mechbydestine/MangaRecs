@@ -4,14 +4,14 @@
 <script>(function(){try{var t=localStorage.getItem('mangarecs_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Badges — MangaRecs</title>
-<meta name="description" content="All 250 MangaRecs badges, Bronze through Mythic — what each one takes, and which ones are still secret." />
+<meta name="description" content="All 70 MangaRecs badges, Common through Mythic — what each one takes, and which ones are still secret." />
 <link rel="icon" href="/assets/favicon.png" />
 <link rel="apple-touch-icon" href="/assets/icon-180.png" />
 <link rel="manifest" href="/assets/manifest.json" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://mangarecs.net/badges/" />
 <meta property="og:title" content="Badges — MangaRecs" />
-<meta property="og:description" content="All 250 MangaRecs badges, Bronze through Mythic — what each one takes, and which ones are still secret." />
+<meta property="og:description" content="All 70 MangaRecs badges, Common through Mythic — what each one takes, and which ones are still secret." />
 <meta property="og:image" content="https://mangarecs.net/assets/og-image.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://mangarecs.net/assets/og-image.png" />
@@ -144,9 +144,9 @@
 
 <main>
   <section class="badges-hero">
-    <div class="eyebrow">Bronze → Mythic</div>
+    <div class="eyebrow">Common → Mythic</div>
     <h1 class="display">Every Badge in MangaRecs</h1>
-    <p>250 real badges, seven tiers, and a handful that stay secret until you earn them. Sign in to see your own progress on every one below.</p>
+    <p>70 real badges, six tiers, and a handful that stay secret until you earn them. Sign in to see your own progress on every one below.</p>
     <div class="badges-stat-band" id="statBand"></div>
   </section>
 
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('statBand').innerHTML =
     '<div class="badges-stat-pill"><b>' + ALL_BADGES.length + '</b><span>Total badges</span></div>' +
-    '<div class="badges-stat-pill"><b>7</b><span>Tiers, Bronze to Mythic</span></div>' +
+    '<div class="badges-stat-pill"><b>6</b><span>Tiers, Common to Mythic</span></div>' +
     '<div class="badges-stat-pill"><b>' + hiddenCount + '</b><span>Still secret</span></div>';
 
   document.getElementById('hiddenNote').textContent =
