@@ -8,10 +8,14 @@ import { maybeAskForReview } from '../utils/reviewPrompt';
 import { useT } from '../utils/LanguageContext';
 import { useReducedMotion } from '../utils/a11y';
 
-// Full-screen unlock ceremony. The spectacle scales with the tier: Bronze gets
-// a clean pop, Diamond+ adds a particle burst, Mythic gets the full show.
+// Full-screen unlock ceremony. Motion is reserved for Diamond and up: anything
+// below that tier unlocks often enough that an animated reveal every time reads
+// as noise, so those present already-landed — the haptic and the card still
+// arrive, they just don't perform. Diamond+ gets the spring, the glow pulse and
+// the particles; Mythic adds the rotating halo.
 // Mounted once in App.js; fed by ProfileContext.newBadges.
 
+const ANIM_RANK = 4;                            // Diamond — the motion floor
 const PARTICLE_COUNT = { 4: 10, 5: 14, 6: 20 }; // rank → burst dots (Diamond/Master/Mythic)
 
 function ParticleBurst({ color, count, radius }) {
@@ -84,12 +88,13 @@ export default function BadgeCeremony() {
     glow.setValue(0);
     textFade.setValue(0);
     spin.setValue(0);
-    (rank >= 4 ? hapticHeavy : hapticMedium)();
-    // Reduce Motion: present the badge already landed rather than springing,
-    // pulsing and (at Mythic) rotating a halo. The reward still arrives — the
-    // haptic above still fires and the card is fully readable — it just does
-    // not perform. Nothing here gates dismissal, so the queue advances the same.
-    if (reduced) {
+    (rank >= ANIM_RANK ? hapticHeavy : hapticMedium)();
+    // Below Diamond, and under Reduce Motion at any tier, present the badge
+    // already landed rather than springing, pulsing and (at Mythic) rotating a
+    // halo. The reward still arrives — the haptic above still fires and the card
+    // is fully readable — it just does not perform. Nothing here gates
+    // dismissal, so the queue advances the same either way.
+    if (reduced || rank < ANIM_RANK) {
       scale.setValue(1);
       glow.setValue(0.7);
       textFade.setValue(1);
@@ -191,7 +196,12 @@ export default function BadgeCeremony() {
           )}
         </Animated.View>
 
-        <TouchableOpacity style={[styles.continueBtn, { borderColor: grade.border }]} onPress={advance} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.continueBtn, { borderColor: grade.border }]}
+          onPress={advance}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={isLast ? t('common.continue') : t('badge.nextBadge')}>
           <Text style={[styles.continueText, { color: grade.color }]}>{isLast ? t('common.continue') : t('badge.nextBadge')}</Text>
         </TouchableOpacity>
       </View>

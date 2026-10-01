@@ -69,18 +69,18 @@
 
   .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
   .badge-card {
-    position: relative; padding: 20px 16px; border-radius: 14px;
+    position: relative; padding: 20px 16px; border-radius: var(--r-md);
     background: var(--bg-panel); border: 1px solid var(--line); text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .badge-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px -14px var(--tier-c, var(--accent)); }
   .badge-card.earned { border-color: var(--tier-c, var(--accent)); box-shadow: 0 0 0 1px var(--tier-c, var(--accent)); }
   .badge-card.earned::after { content: '✓'; position: absolute; top: 8px; right: 11px; color: var(--tier-c, var(--accent)); font-weight: 900; }
-  .badge-icon { font-size: 1.9rem; margin-bottom: 8px; }
+  .badge-icon { margin: 0 auto 8px; line-height: 0; }
   .badge-tier-label { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tier-c, var(--accent)); margin-bottom: 6px; }
   .badge-name { font-weight: 800; font-size: 0.9rem; margin-bottom: 4px; }
   .badge-desc { font-size: 0.76rem; color: var(--ink-muted); line-height: 1.4; min-height: 2.6em; }
-  .badge-progress { height: 4px; border-radius: 999px; background: var(--bg-sunken); margin-top: 10px; overflow: hidden; }
+  .badge-progress { height: 4px; border-radius: var(--r-pill); background: var(--bg-sunken); margin-top: 10px; overflow: hidden; }
   .badge-progress i { display: block; height: 100%; background: var(--tier-c, var(--accent)); }
 
   .hidden-note { text-align: center; font-size: 0.84rem; color: var(--ink-faint); margin: 8px 0 56px; }
@@ -182,7 +182,7 @@
   </div>
   <div class="footer-bottom">
     <span>© 2026 MangaRecs. Built by readers, for readers. Catalog data via <a href="https://anilist.co" target="_blank" rel="noopener">AniList</a>.</span>
-    <span><a href="/">Home</a> · <a href="/catalog/">Catalog</a> · <a href="mailto:hello@mangarecs.net">Contact</a></span>
+    <span><a href="/">Home</a> · <a href="/catalog/">Catalog</a> · <a href="mailto:support@mangarecs.net">Contact</a></span>
   </div>
 </footer>
 
@@ -190,7 +190,8 @@
 <script src="/assets/auth.js?v=20260909e" defer></script>
 <script src="/assets/nav-widgets.js?v=20260909e" defer></script>
 <script src="/assets/anilist.js?v=20260909e" defer></script>
-<script src="/assets/badges.js?v=20260909e" defer></script>
+<script src="/assets/badges.js?v=20261001a" defer></script>
+<script src="/assets/badgeToken.js?v=20261001a" defer></script>
 <script src="/assets/motion.js?v=20260909e" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -226,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var earned = earnedIds.has(b.id);
     var prog = !earned ? badgeProgress(b, stats) : null;
     return '<div class="badge-card' + (earned ? ' earned' : '') + '" style="--tier-c:' + g.color + ';">' +
-      '<div class="badge-icon">' + b.icon + '</div>' +
+      '<div class="badge-icon">' + renderBadgeToken(b, { size: 76, locked: !earned }) + '</div>' +
       '<div class="badge-tier-label">' + g.label + '</div>' +
       '<div class="badge-name">' + esc(b.name) + '</div>' +
       '<div class="badge-desc">' + esc(b.desc) + '</div>' +
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var daysUntil = Math.ceil((new Date(candidate.season.start).getTime() - Date.now()) / 86400000);
     banner.style.display = 'flex';
     banner.innerHTML =
-      '<div><div style="font-weight:800;">' + candidate.icon + ' ' + esc(candidate.name) + '</div>' +
+      '<div><div style="font-weight:800;">' + esc(candidate.name) + '</div>' +
       '<div style="font-size:0.84rem;color:var(--ink-muted);margin-top:4px;">' + esc(candidate.desc) + '</div></div>' +
       '<div style="font-weight:800;color:var(--accent);white-space:nowrap;">' +
       (active ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left' : 'starts in ' + daysUntil + ' day' + (daysUntil === 1 ? '' : 's')) +
@@ -292,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
           nextupEl.innerHTML = nextUp.map(function (n) {
             var g = BADGE_GRADES[n.badge.grade];
             return '<div class="badge-card" style="--tier-c:' + g.color + ';">' +
-              '<div class="badge-icon">' + n.badge.icon + '</div>' +
+              '<div class="badge-icon">' + renderBadgeToken(n.badge, { size: 76, locked: true }) + '</div>' +
               '<div class="badge-tier-label">Almost there</div>' +
               '<div class="badge-name">' + esc(n.badge.name) + '</div>' +
               '<div class="badge-desc">' + n.current + ' / ' + n.target + '</div>' +

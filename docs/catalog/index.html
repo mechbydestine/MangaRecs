@@ -242,9 +242,7 @@
   .profile-showcase-row { display: flex; gap: 8px; margin-top: 10px; }
   .profile-showcase-badge {
     display: flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; border-radius: 50%; font-size: 1.05rem; flex: none;
-    background: var(--tier-bg, var(--bg-sunken)); border: 1.5px solid var(--tier-c, var(--line));
-    text-decoration: none;
+    width: 34px; height: 34px; flex: none; line-height: 0; text-decoration: none;
   }
   .profile-bio-text { font-size: 0.9rem; color: var(--ink-muted); margin: 0; display: inline; }
   .profile-bio-empty { color: var(--ink-faint); }
@@ -320,7 +318,7 @@
     background: var(--tier-bg, var(--bg-sunken));
     border: 1px solid var(--tier-c, var(--line));
   }
-  .profile-badge-chip .ico { font-size: 1.05rem; line-height: 1; flex: none; }
+  .profile-badge-chip .ico { line-height: 0; flex: none; }
   .profile-badge-chip .nm {
     font-size: 0.74rem; font-weight: 700; color: var(--ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -329,7 +327,7 @@
 
   .profile-next-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
   .profile-next-row + .profile-next-row { border-top: 1px solid var(--line); }
-  .profile-next-ico { font-size: 1.1rem; flex: none; }
+  .profile-next-ico { flex: none; line-height: 0; }
   .profile-next-body { flex: 1; min-width: 0; }
   .profile-next-name { font-size: 0.8rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .profile-next-bar { height: 4px; border-radius: 999px; background: var(--bg-sunken); margin-top: 5px; overflow: hidden; }
@@ -1004,7 +1002,8 @@
 <script src="/assets/auth.js?v=20260909e" defer></script>
 <script src="/assets/nav-widgets.js?v=20260909e" defer></script>
 <script src="/assets/anilist.js?v=20260909e" defer></script>
-<script src="/assets/badges.js?v=20260909e" defer></script>
+<script src="/assets/badges.js?v=20261001a" defer></script>
+<script src="/assets/badgeToken.js?v=20261001a" defer></script>
 <script src="/assets/motion.js?v=20260909e" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -1018,8 +1017,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Real notification bell — reads the same `notifications` table and
   // RLS (auth.uid() = user_id) the app itself uses, just a lighter-weight
   // port of NotificationsContext.js's buildNotification()/text mapping.
-  // Badge-unlock notifications stay hidden here too, matching the app
-  // (comment there: "hidden until the badge system rework ships").
+  // Badge unlocks were hidden here until the badge system rework shipped; it
+  // has, so they come through like any other notification now.
   function notifTypeText(row) {
     var d = row.data || {};
     var name = row.actor ? (row.actor.display_name || row.actor.username || 'Someone') : 'Someone';
@@ -3023,7 +3022,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var g = BADGE_GRADES[b.grade] || {};
         return '<div class="profile-badge-chip" title="' + esc(b.name + ': ' + b.desc) + '"' +
           ' style="--tier-c:' + g.border + ';--tier-bg:' + g.bg + ';">' +
-          '<span class="ico">' + b.icon + '</span>' +
+          '<span class="ico">' + renderBadgeToken(b, { size: 26 }) + '</span>' +
           '<span class="nm">' + esc(b.name) + '</span>' +
         '</div>';
       }
@@ -3048,7 +3047,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nextUp.map(function (n) {
               var g = BADGE_GRADES[n.badge.grade] || {};
               return '<div class="profile-next-row" style="--tier-c:' + g.border + ';">' +
-                '<span class="profile-next-ico">' + n.badge.icon + '</span>' +
+                '<span class="profile-next-ico">' + renderBadgeToken(n.badge, { size: 30, locked: true }) + '</span>' +
                 '<span class="profile-next-body">' +
                   '<span class="profile-next-name">' + esc(n.badge.name) + '</span>' +
                   '<span class="profile-next-bar"><i style="width:' + Math.round(n.pct * 100) + '%;"></i></span>' +
@@ -3063,7 +3062,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ? '<div class="profile-showcase-row">' +
             showcaseBadges.map(function (b) {
               var g = BADGE_GRADES[b.grade] || {};
-              return '<a class="profile-showcase-badge" href="/badges/" title="' + esc(b.name + ': ' + b.desc) + '" style="--tier-c:' + g.border + ';--tier-bg:' + g.bg + ';">' + b.icon + '</a>';
+              return '<a class="profile-showcase-badge" href="/badges/" title="' + esc(b.name + ': ' + b.desc) + '" style="--tier-c:' + g.border + ';--tier-bg:' + g.bg + ';">' + renderBadgeToken(b, { size: 34 }) + '</a>';
             }).join('') +
           '</div>'
         : '';

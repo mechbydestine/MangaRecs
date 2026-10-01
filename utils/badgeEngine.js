@@ -5,9 +5,9 @@ import { success as hapticSuccess } from './haptics';
 
 const EARNED_KEY = '@mangarecs/earnedBadgeIds_v1';
 
-// Push/notification-row announcements stay off for now, but newly earned
-// badges are always RETURNED so the in-app unlock ceremony can play.
-const ANNOUNCE_BADGE_UNLOCKS = false;
+// Held off until the badge system rework shipped — it has, so unlocks announce
+// again (activity feed, notification row, push) on top of the in-app ceremony.
+const ANNOUNCE_BADGE_UNLOCKS = true;
 
 async function getStoredEarnedIds() {
   try {
@@ -86,7 +86,7 @@ export async function checkAndNotifyBadges(userId, profile) {
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'Accept-Encoding': 'gzip, deflate' },
         body: JSON.stringify({
           to: token,
-          title: `${badge.icon} Badge Unlocked!`,
+          title: 'Badge Unlocked!',
           body: `You earned "${badge.name}" — ${badge.desc}`,
           data: { type: 'badge', badge_id: badge.id },
           sound: 'default',

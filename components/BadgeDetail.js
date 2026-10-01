@@ -3,7 +3,7 @@ import { badgeName, badgeDesc } from '../utils/badgeText';
 import { useT } from '../utils/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import BadgeIcon from './BadgeIcon';
-import { BADGE_GRADES, PROGRESS_GRADES, badgeProgress, formatRarity } from '../utils/badges';
+import { BADGE_GRADES, PROGRESS_GRADES, badgeProgress, formatRarity, nextInLine } from '../utils/badges';
 
 // Badge detail card: big shield, tier, 5-7 word description, rarity ("12.4% of
 // readers have this"), progress bar when locked, and an optional pin button.
@@ -19,6 +19,14 @@ export default function BadgeDetail({
   const rarity = formatRarity(badge);
   const prog = !earned && (PROGRESS_GRADES.has(badge.grade) || badge.image) ? badgeProgress(badge, stats || {}) : null;
 
+  // What this badge leads to. Shown dimmed so the line reads as a progression
+  // rather than a wall of unrelated tokens — but only once this rung is in
+  // hand, otherwise it's two locked badges stacked on each other.
+  const next = earned ? nextInLine(badge) : null;
+  const nextGrade = next ? (BADGE_GRADES[next.grade] || BADGE_GRADES.grey) : null;
+  const nextProg = next ? badgeProgress(next, stats || {}) : null;
+  const remaining = nextProg ? Math.max(0, nextProg.target - nextProg.current) : 0;
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: earned ? grade.border : colors.border }]} onStartShouldSetResponder={() => true}>
       <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={t('common.close')}>
@@ -33,6 +41,11 @@ export default function BadgeDetail({
       </View>
 
       <Text style={[styles.desc, { color: colors.muted }]}>{badgeDesc(badge)}</Text>
+
+      {/* Series badges always name the work they came from, never just the art. */}
+      {!!badge.source && (
+        <Text style={[styles.source, { color: colors.muted }]}>{t('badge.from', { source: badge.source })}</Text>
+      )}
 
       {rarity && (
         <View style={styles.rarityRow}>
@@ -72,6 +85,26 @@ export default function BadgeDetail({
           <Text style={[styles.lockedText, { color: colors.muted }]}>{t('badge.notEarned')}</Text>
         </View>
       )}
+
+      {next && (
+        <View style={[styles.nextWrap, { borderTopColor: colors.border }]}>
+          <Text style={[styles.nextLabel, { color: colors.muted }]}>{t('badge.nextTier')}</Text>
+          <View style={styles.nextRow}>
+            <View style={{ opacity: 0.55 }}>
+              <BadgeIcon badge={next} size={46} locked />
+            </View>
+            <View style={styles.nextTextWrap}>
+              <Text style={[styles.nextName, { color: colors.text }]} numberOfLines={1}>{badgeName(next)}</Text>
+              <Text style={[styles.nextTier, { color: nextGrade.color }]}>{nextGrade.label}</Text>
+              {remaining > 0 && (
+                <Text style={[styles.nextRemaining, { color: colors.muted }]}>
+                  {t('badge.moreToGo', { n: remaining.toLocaleString() })}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -93,4 +126,12 @@ const styles = StyleSheet.create({
   pinBtnText: { fontSize: 13, fontWeight: '700' },
   lockedRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 16 },
   lockedText: { fontSize: 11, fontWeight: '600' },
+  source: { fontSize: 11, fontWeight: '700', marginTop: 8, textAlign: 'center', letterSpacing: 0.2 },
+  nextWrap: { width: '100%', marginTop: 18, paddingTop: 14, borderTopWidth: 1, alignItems: 'center' },
+  nextLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 10 },
+  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextTextWrap: { flexShrink: 1 },
+  nextName: { fontSize: 13, fontWeight: '800' },
+  nextTier: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4, marginTop: 1 },
+  nextRemaining: { fontSize: 11, fontWeight: '600', marginTop: 3 },
 });
