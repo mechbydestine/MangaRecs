@@ -90,7 +90,6 @@ const GRADE_RANK = { mythic: 0, gold: 1, purple: 2, indigo: 3, blue: 4, green: 5
 function getBadgeScale(anim, grade) {
   if (grade === 'mythic') return anim.interpolate({ inputRange: [0, 0.50, 0.75, 1], outputRange: [0, 1.65, 0.82, 1], extrapolate: 'clamp' });
   if (grade === 'gold')   return anim.interpolate({ inputRange: [0, 0.52, 0.76, 1], outputRange: [0, 1.48, 0.86, 1], extrapolate: 'clamp' });
-  if (grade === 'purple') return anim.interpolate({ inputRange: [0, 0.55, 0.78, 1], outputRange: [0, 1.32, 0.91, 1], extrapolate: 'clamp' });
   if (grade === 'indigo') return anim.interpolate({ inputRange: [0, 0.57, 0.79, 1], outputRange: [0, 1.26, 0.93, 1], extrapolate: 'clamp' });
   if (grade === 'blue')   return anim.interpolate({ inputRange: [0, 0.58, 0.80, 1], outputRange: [0, 1.22, 0.94, 1], extrapolate: 'clamp' });
   return anim.interpolate({ inputRange: [0, 0.62, 0.84, 1], outputRange: [0, 1.12, 0.97, 1], extrapolate: 'clamp' });

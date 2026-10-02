@@ -1,7 +1,9 @@
 ﻿import { supabase } from '../supabase';
 
-// Grade keys are historical (grey..mythic) — visible label/colors are the medal
-// ladder: Bronze → Silver → Gold → Platinum → Diamond → Master → Mythic.
+// Grade keys are historical (grey..mythic) and deliberately kept through the
+// rename, because showcase pins, the badge_rarity RPC and stored progress all
+// key off them. The visible ladder is Common → Uncommon → Platinum → Diamond →
+// Legendary → Mythic; the old `purple` key retired with the 70-badge set.
 export const BADGE_GRADES = {
   grey:   { label: 'Common',    color: '#D4DCE8', bg: 'rgba(212,220,232,0.14)', border: '#D4DCE8',                glow: null },
   green:  { label: 'Uncommon',  color: '#8CEFB4', bg: 'rgba(140,239,180,0.14)', border: '#8CEFB4',                glow: 'rgba(39,163,94,0.20)' },

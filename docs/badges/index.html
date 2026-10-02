@@ -210,7 +210,9 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('hiddenNote').textContent =
     hiddenCount + ' more badges are hidden — they only show up once you\'ve actually earned them in the app.';
 
-  var TIER_ORDER = ['grey', 'green', 'blue', 'indigo', 'purple', 'gold', 'mythic'];
+  // GRADE_ORDER comes from badges.js — a hand-copied duplicate of it here is
+  // what silently broke this page when the tier ladder changed.
+  var TIER_ORDER = GRADE_ORDER;
   var filtersEl = document.getElementById('tierFilters');
   filtersEl.innerHTML = '<button class="tier-pill active" data-tier="all" type="button">All</button>' +
     TIER_ORDER.map(function (t) {

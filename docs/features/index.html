@@ -298,19 +298,19 @@
     <div class="chapter-copy">
       <p class="eyebrow">Chapter 3</p>
       <h2 class="chapter-title display">Progress</h2>
-      <p class="chapter-desc">250 badges worth chasing. Climb Bronze to Mythic and keep a streak alive. It's also the groundwork for the community modes we're building next, starting with server-wide events.</p>
+      <p class="chapter-desc">70 badges worth chasing. Climb Common to Mythic and keep a streak alive. It's also the groundwork for the community modes we're building next, starting with server-wide events.</p>
       <ul class="chapter-list">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span>Bronze → Silver → Gold → Mythic, a real ladder with real rungs</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span>Common → Platinum → Legendary → Mythic, a real ladder with real rungs</span></li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span>Streaks and a live leaderboard against your friends</span></li>
       </ul>
     </div>
     <div class="chapter-visual">
       <p class="visual-tag" id="progressTag">Sample profile</p>
       <div class="badge-row" id="progressBadgeRow">
-        <span class="medal" style="--medal-c:#CD7F32"><i></i>Bronze</span>
-        <span class="medal" style="--medal-c:#C0C0C0"><i></i>Silver</span>
-        <span class="medal" style="--medal-c:#FFD700"><i></i>Gold</span>
-        <span class="medal" style="--medal-c:#7B5CFF"><i></i>Mythic</span>
+        <span class="medal" style="--medal-c:#D4DCE8"><i></i>Common</span>
+        <span class="medal" style="--medal-c:#8FEFF9"><i></i>Platinum</span>
+        <span class="medal" style="--medal-c:#FBE08A"><i></i>Legendary</span>
+        <span class="medal" style="--medal-c:#FF9AAA"><i></i>Mythic</span>
       </div>
       <div class="stat-row" style="margin-top:6px"><span>Streak</span><span id="progressStreakVal">14 days</span></div>
       <div class="meter"><i id="progressStreakBar" style="width:70%"></i></div>
@@ -503,12 +503,14 @@ document.addEventListener('DOMContentLoaded', function () {
   (function personalizeChapters() {
     var progressTag = document.getElementById('progressTag');
     var readTag = document.getElementById('readTag');
-    var TIER_ORDER = ['grey', 'green', 'blue', 'indigo', 'purple', 'gold', 'mythic'];
+    // Resolved from badges.js once it loads rather than hand-copied — the copy
+    // that used to live here kept a retired tier and broke the ordering.
+    var TIER_ORDER = [];
     var MEDAL_SHOW = [
-      { grade: 'grey', label: 'Bronze', color: '#CD7F32' },
-      { grade: 'green', label: 'Silver', color: '#C0C0C0' },
-      { grade: 'blue', label: 'Gold', color: '#FFD700' },
-      { grade: 'mythic', label: 'Mythic', color: '#7B5CFF' },
+      { grade: 'grey',   label: 'Common',    color: '#D4DCE8' },
+      { grade: 'blue',   label: 'Platinum',  color: '#8FEFF9' },
+      { grade: 'gold',   label: 'Legendary', color: '#FBE08A' },
+      { grade: 'mythic', label: 'Mythic',    color: '#FF9AAA' },
     ];
     // badges.js is 48KB of badge definitions that only a signed-in visitor's
     // progress card can use, so it's fetched on demand instead of shipping to
@@ -518,8 +520,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (badgesPromise) return badgesPromise;
       badgesPromise = new Promise(function (resolve, reject) {
         var s = document.createElement('script');
-        s.src = '/assets/badges.js?v=20260909e';
-        s.onload = resolve;
+        s.src = '/assets/badges.js?v=20261001a';
+        s.onload = function () { TIER_ORDER = GRADE_ORDER; resolve(); };
         s.onerror = reject;
         document.head.appendChild(s);
       });
