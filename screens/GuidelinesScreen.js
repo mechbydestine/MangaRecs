@@ -105,11 +105,7 @@ export default function GuidelinesScreen({ onComplete, navigation }) {
         bounces={false}>
 
         <View style={styles.logoWrap}>
-          <StarLogo size={52} />
-          <View style={styles.logoTextRow}>
-            <Text style={[styles.logoTextWhite, { color: colors.text }]}>Manga</Text>
-            <Text style={[styles.logoTextPurple, { color: colors.primary, textShadowColor: colors.primary }]}>Recs</Text>
-          </View>
+          <StarLogo size={76} />
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>{t('nav.guidelines')}</Text>

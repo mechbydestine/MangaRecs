@@ -262,11 +262,7 @@ export default function AuthScreen() {
             style={styles.brandGlow}
             pointerEvents="none"
           />
-          <StarLogo size={64} />
-        </View>
-        <View style={styles.wordmarkRow}>
-          <Text style={[styles.wordmarkWhite, { color: colors.text }]}>Manga</Text>
-          <Text style={[styles.wordmarkPurple, { color: colors.primary, textShadowColor: colors.primary }]}>Recs</Text>
+          <StarLogo size={96} />
         </View>
         <Text style={[styles.tagline, { color: colors.textSecondary }]}>{t('auth.tagline')}</Text>
 

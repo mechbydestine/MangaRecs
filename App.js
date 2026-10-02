@@ -999,17 +999,9 @@ export default function App() {
           style={{ ...StyleSheet.absoluteFillObject, opacity: splashOpacity, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}
         >
           <View style={{ marginBottom: 18 }}>
-            <StarLogo size={112} />
+            <StarLogo size={150} />
           </View>
-          {fontsLoaded && (
-            <>
-              <View style={{ flexDirection: 'row' }}>
-                <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#FFFFFF', fontSize: 30, letterSpacing: 0.5 }}>Manga</Text>
-                <Text style={{ fontFamily: 'MangaRecsBrand', textTransform: 'uppercase', color: '#B18CFF', fontSize: 30, letterSpacing: 0.5, textShadowColor: '#9B6BFF', textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } }}>Recs</Text>
-              </View>
-              <Text style={{ color: '#9C99B8', fontSize: 14, marginTop: 10, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
-            </>
-          )}
+          <Text style={{ color: '#9C99B8', fontSize: 14, letterSpacing: 0.3 }}>Your next story, recommended.</Text>
         </Animated.View>
       )}
     </View>

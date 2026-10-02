@@ -2,19 +2,14 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
-    version: '1.6.0',
+    version: '1.5.2',
     date: 'October 2, 2026',
     highlights: [
       'Signing up with an email address works again. Registration had been failing outright since August: the app reported an error and stopped, for an account it had in fact just finished creating',
       'Badges are now collectible wreath tokens, and the collection is 70 badges rather than 250. Every one of them is actually earnable, where the old set was padded out with badges that nothing in the app could ever unlock',
+      'The app now shows the real MangaRecs logo. The old star placeholder was still on the splash, the sign-in screen, the Home header and the guidelines screen, long after the website and the app icon had moved to the new one',
       'The last badge that counted followers is retired. Followers and Following went away in 1.5.1 when friendships replaced them, and the badge ladder had not caught up',
       'The GIF picker has been removed from comments and messages',
-    ],
-  },
-  {
-    version: '1.5.2',
-    date: 'October 1, 2026',
-    highlights: [
       'The username you pick during sign-up now actually sticks. It was being silently thrown away for anyone who signed up through onboarding or with Google, even though the screen told you it was permanent',
       'Words like "cockpit", "Dickens" and "cocktail" are no longer blocked from your bio, comments and messages. The language filter was matching anything that merely started with a blocked word',
       '"Copy Link" on a feed post now copies the link. It used to open the share sheet and then claim it had copied',
