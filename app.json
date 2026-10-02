@@ -10,12 +10,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#080614"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mangarecs.app",
@@ -36,7 +30,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#080614"
       },
-      "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.mangarecs.app",
       "permissions": [
@@ -47,10 +40,21 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "mangarecs.net", "pathPrefix": "/series" },
-            { "scheme": "https", "host": "mangarecs.net", "pathPrefix": "/discussion" }
+            {
+              "scheme": "https",
+              "host": "mangarecs.net",
+              "pathPrefix": "/series"
+            },
+            {
+              "scheme": "https",
+              "host": "mangarecs.net",
+              "pathPrefix": "/discussion"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -88,6 +92,18 @@
         {
           "organization": "lucky-gqu",
           "project": "react-native"
+        }
+      ],
+      "expo-image",
+      "expo-sharing",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#080614"
         }
       ]
     ],
