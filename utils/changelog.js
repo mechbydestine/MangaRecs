@@ -2,6 +2,16 @@
 // Newest first. Bump app.json's "version" and add a new entry here on release.
 export const CHANGELOG = [
   {
+    version: '1.6.0',
+    date: 'October 2, 2026',
+    highlights: [
+      'Signing up with an email address works again. Registration had been failing outright since August: the app reported an error and stopped, for an account it had in fact just finished creating',
+      'Badges are now collectible wreath tokens, and the collection is 70 badges rather than 250. Every one of them is actually earnable, where the old set was padded out with badges that nothing in the app could ever unlock',
+      'The last badge that counted followers is retired. Followers and Following went away in 1.5.1 when friendships replaced them, and the badge ladder had not caught up',
+      'The GIF picker has been removed from comments and messages',
+    ],
+  },
+  {
     version: '1.5.2',
     date: 'October 1, 2026',
     highlights: [
